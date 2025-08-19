@@ -1,0 +1,66 @@
+﻿<Window x:Class="CMDevicesManager.SplashWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CMDevicesManager"
+        mc:Ignorable="d"
+         WindowStyle="None" 
+         AllowsTransparency="True" 
+        Background="Transparent"
+        WindowStartupLocation="CenterScreen"
+        Width="400" Height="300"
+        Topmost="True"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+    <Grid Background="Transparent">
+        <Border Background="#FF111114" BorderBrush="#FF111114" BorderThickness="5" CornerRadius="8,8,8,8" >
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+            <!-- GIF 动画，可以用 Image 播放 -->
+            
+
+                <!-- 金属光泽文字 -->
+                <TextBlock Text="Cooler Master" 
+                       FontSize="52"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                       Margin="0,0,0,0">
+                    <TextBlock.Foreground>
+                        <LinearGradientBrush x:Name="ShinyBrush" StartPoint="0,1" EndPoint="1,0">
+                            <GradientStop Color="#FFBC41E9" Offset="0.0"/>
+                            <GradientStop Color="White" Offset="0.3"/>
+                            <GradientStop Color="#FFBC41E9" Offset="0.6"/>
+                        </LinearGradientBrush>
+                    </TextBlock.Foreground>
+                </TextBlock>
+            </Grid>
+        </Border>
+    </Grid>
+    <!-- 动画 -->
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard>
+                <Storyboard RepeatBehavior="Forever">
+                    <!-- 动画第1个光点 -->
+                    <DoubleAnimation 
+                        Storyboard.TargetName="ShinyBrush"
+                        Storyboard.TargetProperty="GradientStops[1].Offset"
+                        From="0" To="1"
+                        Duration="0:0:2"
+                        AutoReverse="False"
+                        RepeatBehavior="Forever"/>
+
+                    <!-- 动画第2个光点（同步移动） -->
+                    <DoubleAnimation 
+                        Storyboard.TargetName="ShinyBrush"
+                        Storyboard.TargetProperty="GradientStops[2].Offset"
+                        From="0.3" To="1.3"
+                        Duration="0:0:2"
+                        AutoReverse="False"
+                        RepeatBehavior="Forever"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
+</Window>

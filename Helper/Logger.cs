@@ -21,7 +21,7 @@ namespace CMDevicesManager.Helper
             = new BlockingCollection<(LogLevel, string, Exception)>();
 
         private static readonly string LogFile = "app.log"; // 单一日志文件
-        private static readonly long MaxFileSize = 10 * 1024 * 1024; // 10 MB
+        private static readonly long MaxFileSize = 50 * 1024 * 1024; // 50 MB
         private static readonly LogLevel MinLogLevel = LogLevel.Info; // 日志过滤等级
 
         // 🔑 加密控制开关（调试时可以关闭）
@@ -49,23 +49,27 @@ namespace CMDevicesManager.Helper
 
         private static void ProcessLogQueue()
         {
-            foreach (var (Level, Message, Ex) in _logQueue.GetConsumingEnumerable(_cts.Token))
+            try
             {
-                try
+                foreach (var (Level, Message, Ex) in _logQueue.GetConsumingEnumerable(_cts.Token))
                 {
-                    string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{Level}] {Message}";
-                    if (Ex != null)
-                        logMessage += Environment.NewLine + $"Exception: {Ex}" + Environment.NewLine;
+                    try
+                    {
+                        string logMessage = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{Level}] {Message}";
+                        if (Ex != null)
+                            logMessage += Environment.NewLine + $"Exception: {Ex}" + Environment.NewLine;
 
-                    WriteLog(logMessage);
+                        WriteLog(logMessage);
+                    }
+                    catch { /* swallow exceptions */ }
                 }
-                catch { /* swallow exceptions */ }
             }
+            catch { /* swallow exceptions */ }
         }
 
         private static void WriteLog(string text)
         {
-            // 如果文件超过 10MB，则覆盖
+            // 如果文件超过 50MB，则覆盖
             if (File.Exists(LogFile) && new FileInfo(LogFile).Length > MaxFileSize)
             {
                 File.Delete(LogFile);
@@ -140,8 +144,12 @@ namespace CMDevicesManager.Helper
         public static void Shutdown()
         {
             _logQueue.CompleteAdding();
+            while (_logQueue.Count > 0)
+            {
+                Thread.Sleep(30); // Give time for ProcessLogQueue to finish writing
+            }
             _cts.Cancel();
         }
     }
 }
-}
+

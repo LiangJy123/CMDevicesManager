@@ -2,8 +2,17 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:CMDevicesManager"
-             StartupUri="MainWindow.xaml">
+            
+          
+             >
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Other merged dictionaries here -->
+                <ResourceDictionary Source="/Language/StringResources.xaml" />
+                <ResourceDictionary Source="/Language/StringResources.en-US.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <!-- Other app resources here -->
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -4,17 +4,146 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CMDevicesManager"
+   
         mc:Ignorable="d"
-        Height="450" Width="800"
+        Height="800" Width="1200"
         
         WindowStyle="None"
         AllowsTransparency="True"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
-        
+     
         Title="MasterCTRL"  
-      Background="Transparent" Loaded="Window_Loaded">
+      Background="Transparent" Loaded="Window_Loaded" ><!---->
     <Grid>
+        <Border Background="#FF111114" BorderBrush="#FF111114" BorderThickness="5" CornerRadius="8,8,8,8" >
 
+            <Grid>
+
+                <Grid.RowDefinitions>
+                    <!-- 自定义标题栏 -->
+                    <RowDefinition Height="35"/>
+                    <!-- 内容区 -->
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 标题栏 -->
+                <Grid Grid.Row="0" Background="Black" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 左边：图标 + APP 名称 -->
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
+                        <!--<Image Source="/Resources/SplashGIF.gif" Width="35" Height="25"/>-->
+                        <TextBlock Text="Cooler Master"
+                          
+                           FontWeight="Bold"
+                           FontSize="20"
+                           VerticalAlignment="Center"
+                           Margin="5,0,0,0">
+                            <TextBlock.Foreground>
+                                <LinearGradientBrush x:Name="ShinyBrush" StartPoint="0,1" EndPoint="1,0">
+                                    <GradientStop Color="#FFBC41E9" Offset="0.0"/>
+                                    <GradientStop Color="White" Offset="0.3"/>
+                                    <GradientStop Color="#FFBC41E9" Offset="0.6"/>
+                                </LinearGradientBrush>
+                            </TextBlock.Foreground>
+                        </TextBlock>
+                    </StackPanel>
+
+                    <!-- 右边：控制按钮 -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="—" Width="40" Height="30" 
+                        Background="Transparent" Foreground="White"
+                        BorderThickness="0" Click="Minimize_Click"/>
+                        <Button Content="▢" Width="40" Height="30" 
+                        Background="Transparent" Foreground="White"
+                        BorderThickness="0" Click="Maximize_Click"/>
+                        <Button Content="✕" Width="40" Height="30" 
+                        Background="Transparent" Foreground="White"
+                        BorderThickness="0" Click="Close_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 内容区 -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <!-- 左侧导航栏 -->
+                        <ColumnDefinition Width="150"/>
+                        <!-- 主内容 -->
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 左侧导航 -->
+                    <ListBox x:Name="NavList" SelectionChanged="NavList_SelectionChanged"
+                     Background="#FF1E1E1E" Foreground="White" BorderThickness="0">
+                        <ListBoxItem Tag="Pages/HomePage.xaml" Padding="10">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE80F;" FontSize="20" VerticalAlignment="Center"/>
+                                <TextBlock Text="首页" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Pages/DevicePage.xaml" Padding="10">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="20" VerticalAlignment="Center"/>
+                                <TextBlock Text="设备" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <!-- Settings 按钮固定在底部 -->
+                        <ListBoxItem Tag="Pages/SettingsPage.xaml" Padding="10" VerticalAlignment="Bottom">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="20" VerticalAlignment="Center"/>
+                                <TextBlock Text="设置" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                    </ListBox>
+
+
+                    <!-- 内容区 Grid -->
+                    <Grid Grid.Column="1" >
+                        <!-- 背景图片 -->
+
+                        <!-- Change the ImageSource to use a pack URI for proper resource resolution -->
+                        <Grid.Background>
+                            <ImageBrush ImageSource="pack://application:,,,/Resources/background.png" 
+                        Stretch="UniformToFill"/>
+                        </Grid.Background>
+
+
+                        <!-- 主内容 Frame -->
+                        <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" Background="Transparent"/>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
     </Grid>
+    <!-- 动画 -->
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard>
+                <Storyboard RepeatBehavior="Forever">
+                    <!-- 动画第1个光点 -->
+                    <DoubleAnimation 
+                     Storyboard.TargetName="ShinyBrush"
+                     Storyboard.TargetProperty="GradientStops[1].Offset"
+                     From="0" To="1"
+                     Duration="0:0:2"
+                     AutoReverse="False"
+                     RepeatBehavior="Forever"/>
+
+                    <!-- 动画第2个光点（同步移动） -->
+                    <DoubleAnimation 
+                     Storyboard.TargetName="ShinyBrush"
+                     Storyboard.TargetProperty="GradientStops[2].Offset"
+                     From="0.3" To="1.3"
+                     Duration="0:0:2"
+                     AutoReverse="False"
+                     RepeatBehavior="Forever"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
+
 </Window>
