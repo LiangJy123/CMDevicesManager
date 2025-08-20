@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CMDevicesManager.Helper;
+using CMDevicesManager.Language;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -23,6 +25,38 @@ namespace CMDevicesManager.Pages
         public SettingsPage()
         {
             InitializeComponent();
+            LoadCurrentLanguageSettings();
+        }
+
+        private void LoadCurrentLanguageSettings()
+        {
+            // Set the current language radio button based on user config
+            string currentLanguage = UserConfigManager.Current.Language.ToLowerInvariant();
+            
+            switch (currentLanguage)
+            {
+                case "en-us":
+                    EnglishRadio.IsChecked = true;
+                    break;
+                case "zh-cn":
+                default:
+                    ChineseRadio.IsChecked = true;
+                    break;
+            }
+        }
+
+        private void LanguageRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            if (sender is RadioButton radio && radio.Tag is string languageCode)
+            {
+                // Change language immediately
+                LanguageSwitch.ChangeLanguage(languageCode);
+                
+                // Save the configuration
+                UserConfigManager.Save();
+                
+                Logger.Info($"Language changed to: {languageCode}");
+            }
         }
     }
 }

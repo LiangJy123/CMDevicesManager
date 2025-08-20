@@ -6,9 +6,47 @@
       xmlns:local="clr-namespace:CMDevicesManager.Pages"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="SettingsPage">
+      Title="{DynamicResource SettingsPageTitle}">
 
-    <Grid>
-        <TextBlock>SettingsPage</TextBlock>
+    <Grid Background="Transparent">
+        <StackPanel Margin="50" VerticalAlignment="Top">
+            <!-- Settings Title -->
+            <TextBlock Text="{DynamicResource SettingsPageTitle}" 
+                      FontSize="36" 
+                      FontWeight="Bold" 
+                      Foreground="White" 
+                      Margin="0,0,0,30"/>
+
+            <!-- Language Settings Section -->
+            <Border Background="#FF2A2A2A" 
+                   CornerRadius="8" 
+                   Padding="20" 
+                   Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource LanguageLabel}" 
+                              FontSize="20" 
+                              FontWeight="SemiBold" 
+                              Foreground="White" 
+                              Margin="0,0,0,15"/>
+                    
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="ChineseRadio" 
+                                    Content="{DynamicResource ChineseLanguage}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Margin="0,0,30,0"
+                                    Checked="LanguageRadio_Checked"
+                                    Tag="zh-cn"/>
+                        <RadioButton x:Name="EnglishRadio" 
+                                    Content="{DynamicResource EnglishLanguage}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Checked="LanguageRadio_Checked"
+                                    Tag="en-us"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
     </Grid>
 </Page>

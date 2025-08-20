@@ -8,9 +8,8 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Other merged dictionaries here -->
+                <!-- Default language resources will be loaded dynamically by LanguageSwitch -->
                 <ResourceDictionary Source="/Language/StringResources.xaml" />
-                <ResourceDictionary Source="/Language/StringResources.en-US.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <!-- Other app resources here -->
         </ResourceDictionary>
