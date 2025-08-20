@@ -13,7 +13,7 @@ namespace CMDevicesManager.Helper
         public string BackgroundPath { get; set; } = string.Empty;
         public string Theme { get; set; } = "Light";
 
-        public string Language { get; set; } = "en-us"; //"zh-cn"
+        public string Language { get; set; } = "zh-cn"; // Default to Chinese, consistent with StringResources.xaml
     }
     public static class UserConfigManager
     {
