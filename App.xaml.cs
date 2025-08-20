@@ -2,6 +2,8 @@
 using System.Configuration;
 using System.Data;
 using System.Windows;
+using System.Windows.Forms;
+using Application = System.Windows.Application; // Ensure this using directive is present
 
 namespace CMDevicesManager
 {
@@ -10,6 +12,7 @@ namespace CMDevicesManager
     /// </summary>
     public partial class App : Application
     {
+        
         public App()
         {
             this.Exit += App_Exit;
@@ -24,16 +27,17 @@ namespace CMDevicesManager
             Logger.Shutdown();
         }
 
+         
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
+     
             // 显示启动窗口
             var splash = new SplashWindow();
             var main = new MainWindow();
             this.MainWindow = main;
             splash.Show();
-
+            StartNotifyIcon();
             // 后台加载数据
             Task.Run(() =>
             {
@@ -46,8 +50,8 @@ namespace CMDevicesManager
                 {
                    
                     splash.Close();
-                    main.Show();
-                   
+                    ShowFirstMainWindow();
+
                 });
             });
         }

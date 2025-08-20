@@ -9,6 +9,10 @@
       Title="HomePage">
 
     <Grid>
-        <TextBlock>HomePage</TextBlock>
+        <StackPanel>
+        <TextBlock Text="Cooling"></TextBlock>
+            
+        <TextBlock Text="Power"></TextBlock>
+        </StackPanel>
     </Grid>
 </Page>
