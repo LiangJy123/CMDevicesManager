@@ -20,7 +20,7 @@
             
 
                 <!-- 金属光泽文字 -->
-                <TextBlock Text="Cooler Master" 
+                <TextBlock Text="{DynamicResource AppTitle}" 
                        FontSize="52"
                        FontWeight="Bold"
                        HorizontalAlignment="Center"

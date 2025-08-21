@@ -17,10 +17,11 @@ namespace CMDevicesManager.Language
             switch (culture.ToLowerInvariant())
             {
                 case "en-us":
-                    dict.Source = new Uri("Resources/StringResources.en-US.xaml", UriKind.Relative);
+                    dict.Source = new Uri("Language/StringResources.en-US.xaml", UriKind.Relative);
                     break;
+                case "zh-cn":
                 default:
-                    dict.Source = new Uri("Resources/StringResources.xaml", UriKind.Relative);
+                    dict.Source = new Uri("Language/StringResources.xaml", UriKind.Relative);
                     break;
             }
 
