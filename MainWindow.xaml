@@ -10,7 +10,8 @@
         
         WindowStyle="None"
         AllowsTransparency="True"
-        ResizeMode="NoResize"
+        ResizeMode="CanResize"
+        MinWidth="1000" MinHeight="600"
         WindowStartupLocation="CenterScreen"
      
         Title="MasterCTRL"  

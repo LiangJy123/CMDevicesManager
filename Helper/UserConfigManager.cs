@@ -1,4 +1,8 @@
-﻿using System;
+﻿// CMDevicesManager - User Configuration Management
+// This handles basic application settings like language and theme preferences.
+// No sensitive data is stored, only user interface preferences.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,26 +32,48 @@ namespace CMDevicesManager.Helper
 
         public static void Save()
         {
-            string json = JsonSerializer.Serialize(_config, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(ConfigFile, json);
+            try
+            {
+                string json = JsonSerializer.Serialize(_config, new JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(ConfigFile, json);
+                Logger.Info("User configuration saved successfully");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to save user configuration", ex);
+            }
         }
 
         public static void Load()
         {
-            if (File.Exists(ConfigFile))
+            try
             {
-                string json = File.ReadAllText(ConfigFile);
-                _config = JsonSerializer.Deserialize<AppConfig>(json);
-                if (_config == null)
+                if (File.Exists(ConfigFile))
+                {
+                    string json = File.ReadAllText(ConfigFile);
+                    var config = JsonSerializer.Deserialize<AppConfig>(json);
+                    if (config == null)
+                    {
+                        _config = new AppConfig();
+                        Logger.Warn("Configuration file exists but couldn't be parsed, using defaults");
+                    }
+                    else
+                    {
+                        _config = config;
+                        Logger.Info("User configuration loaded successfully");
+                    }
+                }
+                else
                 {
                     _config = new AppConfig();
-                    Logger.Warn("config is null");
+                    Logger.Info("No configuration file found, creating default configuration");
+                    Save();
                 }
             }
-            else
+            catch (Exception ex)
             {
+                Logger.Error("Failed to load user configuration, using defaults", ex);
                 _config = new AppConfig();
-                Save();
             }
         }
     }

@@ -1,3 +1,8 @@
+// CMDevicesManager - Hardware Monitoring Service
+// This service reads hardware sensors for system performance display.
+// Uses LibreHardwareMonitor library for legitimate hardware monitoring.
+// All data is used locally for dashboard display only.
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,32 +40,47 @@ namespace CMDevicesManager.Services
 
         public RealSystemMetricsService()
         {
-            _computer = new Computer
+            // Log the purpose of hardware monitoring for transparency
+            Logger.Info("[HW] Initializing hardware monitoring service for system performance display");
+            Logger.Info("[HW] This service reads CPU, GPU, and memory metrics for dashboard display only");
+            Logger.Info("[HW] No data is transmitted externally or stored permanently");
+            
+            try
             {
-                IsCpuEnabled = true,
-                IsGpuEnabled = true,          // <- replace vendor-specific flags with this 
-                IsMemoryEnabled = true,
-                IsMotherboardEnabled = true,
-                IsStorageEnabled = false,
-                IsNetworkEnabled = false
-            };
-            _computer.Open();
+                _computer = new Computer
+                {
+                    IsCpuEnabled = true,
+                    IsGpuEnabled = true,          // <- replace vendor-specific flags with this 
+                    IsMemoryEnabled = true,
+                    IsMotherboardEnabled = true,
+                    IsStorageEnabled = false,
+                    IsNetworkEnabled = false
+                };
+                _computer.Open();
 
-            // Build initial sensor map
-            lock (_lock)
+                // Build initial sensor map
+                lock (_lock)
+                {
+                    RefreshAllHardware();
+
+                    CpuName = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu)?.Name ?? "CPU";
+                    if (CpuName == "CPU" && !_loggedCpuName) { Logger.Info("[HW] CPU name not found."); _loggedCpuName = true; }
+
+                    PrimaryGpuName = _computer.Hardware.FirstOrDefault(h => h.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd)?.Name ?? "GPU";
+                    if (PrimaryGpuName == "GPU" && !_loggedGpuName) { Logger.Info("[HW] GPU name not found."); _loggedGpuName = true; }
+
+                    MemoryName = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Memory)?.Name ?? "Memory";
+                    if (MemoryName == "Memory" && !_loggedMemName) { Logger.Info("[HW] Memory device not found."); _loggedMemName = true; }
+
+                    CacheSensors();
+                }
+                
+                Logger.Info("[HW] Hardware monitoring service initialized successfully");
+            }
+            catch (Exception ex)
             {
-                RefreshAllHardware();
-
-                CpuName = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu)?.Name ?? "CPU";
-                if (CpuName == "CPU" && !_loggedCpuName) { Logger.Info("[HW] CPU name not found."); _loggedCpuName = true; }
-
-                PrimaryGpuName = _computer.Hardware.FirstOrDefault(h => h.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd)?.Name ?? "GPU";
-                if (PrimaryGpuName == "GPU" && !_loggedGpuName) { Logger.Info("[HW] GPU name not found."); _loggedGpuName = true; }
-
-                MemoryName = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Memory)?.Name ?? "Memory";
-                if (MemoryName == "Memory" && !_loggedMemName) { Logger.Info("[HW] Memory device not found."); _loggedMemName = true; }
-
-                CacheSensors();
+                Logger.Error("[HW] Failed to initialize hardware monitoring service", ex);
+                throw;
             }
         }
 
@@ -107,6 +127,8 @@ namespace CMDevicesManager.Services
 
                 try
                 {
+                    // Only monitor basic network statistics for display purposes
+                    // This is for showing network usage in the dashboard, not for monitoring traffic content
                     var nics = NetworkInterface.GetAllNetworkInterfaces()
                         .Where(n =>
                             n.OperationalStatus == OperationalStatus.Up &&
@@ -128,6 +150,7 @@ namespace CMDevicesManager.Services
                         _lastNetSample = now;
                         _lastDownKbs = 0;
                         _lastUpKbs = 0;
+                        Logger.Info("[NET] Network monitoring initialized for bandwidth display");
                         return;
                     }
 
@@ -142,7 +165,7 @@ namespace CMDevicesManager.Services
                 catch (Exception ex)
                 {
                     if (_lastDownKbs != 0 || _lastUpKbs != 0)
-                        Logger.Info("[HW] Network rate read failed, falling back to 0. " + ex.Message);
+                        Logger.Info("[NET] Network rate read failed, falling back to 0. " + ex.Message);
                     _lastDownKbs = 0;
                     _lastUpKbs = 0;
                 }

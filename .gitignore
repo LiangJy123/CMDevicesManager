@@ -410,6 +410,10 @@ FodyWeavers.xsd
 # Built Visual Studio Code Extensions
 *.vsix
 
+# Application-specific files
+app.log
+*.log
+
 # Windows Installer files from build outputs
 *.cab
 *.msi
