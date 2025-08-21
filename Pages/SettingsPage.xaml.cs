@@ -47,7 +47,7 @@ namespace CMDevicesManager.Pages
 
         private void LanguageRadio_Checked(object sender, RoutedEventArgs e)
         {
-            if (sender is RadioButton radio && radio.Tag is string languageCode)
+            if (sender is System.Windows.Controls.RadioButton radio && radio.Tag is string languageCode)
             {
                 // Change language immediately
                 LanguageSwitch.ChangeLanguage(languageCode);

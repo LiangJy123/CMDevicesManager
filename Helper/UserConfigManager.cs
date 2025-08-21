@@ -12,15 +12,12 @@ namespace CMDevicesManager.Helper
     {
         public string BackgroundPath { get; set; } = string.Empty;
         public string Theme { get; set; } = "Light";
-
-        public string Language { get; set; } = "zh-cn"; // Default to Chinese, consistent with StringResources.xaml
+        public string Language { get; set; } = "zh-cn";
     }
     public static class UserConfigManager
     {
-
-       
         private static readonly string ConfigFile = "userconfig.json";
-        private static AppConfig _config;
+        private static AppConfig _config = new AppConfig(); // Initialize to avoid CS8618
 
         static UserConfigManager()
         {
@@ -53,7 +50,5 @@ namespace CMDevicesManager.Helper
                 Save();
             }
         }
-
-
     }
 }

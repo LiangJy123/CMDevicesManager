@@ -1,0 +1,21 @@
+<UserControl x:Class="CMDevicesManager.Controls.RingProgressBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="48" MinHeight="48">
+    <Grid>
+        <Ellipse x:Name="BaseRing"
+                 Stroke="{Binding TrackBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                 StrokeThickness="{Binding Thickness, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                 Fill="Transparent"/>
+        <Path x:Name="ArcPath"
+              Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+              StrokeThickness="{Binding Thickness, RelativeSource={RelativeSource AncestorType=UserControl}}"
+              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+              Fill="Transparent"/>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Value, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat={}{0:F0}}"
+                       Foreground="White" FontWeight="SemiBold" FontSize="16" HorizontalAlignment="Center"/>
+            <TextBlock Text="%" Foreground="#B8C0CC" FontSize="10" HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
