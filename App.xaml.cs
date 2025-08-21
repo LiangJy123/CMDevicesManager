@@ -44,8 +44,8 @@ namespace CMDevicesManager
             // 后台加载数据
             Task.Run(() =>
             {
-                // 模拟加载数据（3秒）
-                Thread.Sleep(3000);
+                // 模拟加载数据（2秒）
+                Thread.Sleep(2000);
                 //DataLoader.LoadAll(); // 这里写你的初始化逻辑
 
                 // 切回 UI 线程，关闭 Splash，显示主界面
