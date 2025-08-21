@@ -19,25 +19,38 @@ namespace CMDevicesManager
         private bool _isExit;
         private void StartNotifyIcon()
         {
-            using var stream = Application.GetResourceStream(new Uri("pack://application:,,,/Resources/icon/icon.ico")).Stream;
-            
-            _notifyIcon = new NotifyIcon
+            try
             {
-                Icon = new Icon(stream),//File.Exists(iconPath) ? new Icon(iconPath) : SystemIcons.Application, 
-                Visible = true,
-                Text = "CMDevicesManager"
-            };
-            // 托盘菜单
-            var contextMenu = new ContextMenuStrip();
-            contextMenu.Items.Add("打开主界面", null, (s, ev) => ShowMainWindow());
-          //  contextMenu.Items.Add("设置", null, (s, ev) => ShowSettings());
-            contextMenu.Items.Add("退出", null, (s, ev) => ExitApp());
-            _notifyIcon.ContextMenuStrip = contextMenu;
+                using var stream = Application.GetResourceStream(new Uri("pack://application:,,,/Resources/icon/icon.ico")).Stream;
+                
+                _notifyIcon = new NotifyIcon
+                {
+                    Icon = new Icon(stream),
+                    Visible = true,
+                    Text = "CMDevicesManager - Hardware Monitoring Tool"
+                };
+                
+                // 托盘菜单 with clearer descriptions
+                var contextMenu = new ContextMenuStrip();
+                contextMenu.Items.Add("Show Main Window", null, (s, ev) => ShowMainWindow());
+                contextMenu.Items.Add("-"); // Separator
+                contextMenu.Items.Add("Exit Application", null, (s, ev) => ExitApp());
+                _notifyIcon.ContextMenuStrip = contextMenu;
 
-            // 双击托盘图标 → 显示主界面
-            _notifyIcon.DoubleClick += (s, ev) => ShowMainWindow();
+                // 双击托盘图标 → 显示主界面
+                _notifyIcon.DoubleClick += (s, ev) => ShowMainWindow();
 
-           // ShowMainWindow();
+                // Show balloon tip to inform user about system tray functionality
+                _notifyIcon.BalloonTipTitle = "CMDevicesManager";
+                _notifyIcon.BalloonTipText = "Application is running in system tray. Double-click to open or right-click for options.";
+                _notifyIcon.BalloonTipIcon = ToolTipIcon.Info;
+                _notifyIcon.ShowBalloonTip(3000); // Show for 3 seconds
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to initialize system tray icon", ex);
+                // Continue without system tray if it fails
+            }
         }
         private void ShowMainWindow()
         {
@@ -82,8 +95,38 @@ namespace CMDevicesManager
         {
             if (!_isExit)
             {
-                e.Cancel = true; // 阻止关闭
-                MainWindow.Hide(); // 隐藏到托盘
+                // Ask user for confirmation before minimizing to tray
+                var result = MessageBox.Show(
+                    "Do you want to minimize to system tray or exit the application?\n\n" +
+                    "Click 'Yes' to minimize to tray (app keeps running)\n" +
+                    "Click 'No' to exit completely\n" +
+                    "Click 'Cancel' to return to the application",
+                    "Close Confirmation",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+
+                switch (result)
+                {
+                    case MessageBoxResult.Yes:
+                        e.Cancel = true; // 阻止关闭
+                        MainWindow.Hide(); // 隐藏到托盘
+                        
+                        // Show balloon tip to remind user
+                        if (_notifyIcon != null)
+                        {
+                            _notifyIcon.BalloonTipTitle = "CMDevicesManager";
+                            _notifyIcon.BalloonTipText = "Application minimized to system tray. Double-click the tray icon to restore.";
+                            _notifyIcon.ShowBalloonTip(2000);
+                        }
+                        break;
+                    case MessageBoxResult.No:
+                        _isExit = true;
+                        // Let the application close normally
+                        break;
+                    case MessageBoxResult.Cancel:
+                        e.Cancel = true; // Stay in the application
+                        break;
+                }
             }
         }
     }
