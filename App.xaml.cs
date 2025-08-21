@@ -31,7 +31,10 @@ namespace CMDevicesManager
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-     
+
+            // Initialize language based on user configuration
+            CMDevicesManager.Language.LanguageSwitch.ChangeLanguage(UserConfigManager.Current.Language);
+
             // 显示启动窗口
             var splash = new SplashWindow();
             var main = new MainWindow();
