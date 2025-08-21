@@ -8,6 +8,7 @@
       d:DesignHeight="450" d:DesignWidth="800"
       Title="{DynamicResource HomePageTitle}">
 
+
     <Grid Background="Transparent">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
             <TextBlock Text="{DynamicResource HomePageTitle}" 
@@ -22,6 +23,7 @@
                       HorizontalAlignment="Center"
                       TextWrapping="Wrap"
                       TextAlignment="Center"/>
+
         </StackPanel>
     </Grid>
 </Page>

@@ -1,6 +1,5 @@
 ﻿using CMDevicesManager.Helper;
 using CMDevicesManager.Pages;
-using ModernWpf.Controls;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
