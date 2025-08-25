@@ -1,0 +1,1936 @@
+﻿// See https://aka.ms/new-console-template for more information
+using HidApi;
+using System.Text;
+
+static string CalculateMD5Hash(string filePath)
+{
+    using var md5 = System.Security.Cryptography.MD5.Create();
+    using var stream = File.OpenRead(filePath);
+    byte[] hashBytes = md5.ComputeHash(stream);
+    return Convert.ToHexString(hashBytes).ToLowerInvariant();
+}
+
+Console.WriteLine("Hello, World!");
+
+var displayController = new DisplayController(0x2516, 0x0228);
+
+// Example usage with different degrees
+//displayController.Rotate(90);
+//Thread.Sleep(2000);
+//displayController.Rotate(180);
+//Thread.Sleep(2000);
+//displayController.Rotate(270);
+//Thread.Sleep(2000);
+//displayController.Rotate(0);
+// get device info
+var deviceInfo = displayController.GetDeviceInfo();
+if (deviceInfo != null)
+{
+Console.WriteLine($"Device Info: {deviceInfo}");
+}
+
+// Get display capabilities
+var capabilities = displayController.GetDisplayCtrlCapabilities(debug: false);
+if (capabilities != null)
+{
+    Console.WriteLine($"Display Capabilities: {capabilities}");
+}
+
+// Start response listener
+displayController.StartResponseListener();
+
+// Set up response event handler
+displayController.ResponseReceived += (sender, response) =>
+{
+    Console.WriteLine($"[RESPONSE] {response.AckNumber} - Status: {response.StatusCode}");
+    if (!string.IsNullOrEmpty(response.ResponseData))
+    {
+        Console.WriteLine($"[RESPONSE] Data: {response.ResponseData}");
+    }
+};
+
+//displayController.Reboot();
+////Sleep to allow reboot
+//Thread.Sleep(15000);
+// Example usage of enhanced commands with responses
+Console.WriteLine("Testing Enhanced SendCmd with Response Handling...");
+
+try
+{
+    // OSD file details
+    string osdFileName = "osd2.osd";  // OSD file name
+    string osdFilePath = @"E:\github\CMDevicesManager\HidProtocol\resources\osd2.osd";  // Full path to your OSD file
+
+    if (File.Exists(osdFilePath))
+    {
+        Console.WriteLine("=== Enhanced OSD Setup with Response Handling ===");
+
+        // Use the enhanced method with response handling
+        bool osdSuccess = await displayController.SetOsdWithFileAndResponse(osdFilePath, transferId: 1, sequenceNumber: 100);
+
+        if (osdSuccess)
+        {
+            Console.WriteLine("OSD setup completed successfully with response validation!");
+        }
+        else
+        {
+            Console.WriteLine("OSD setup failed!");
+        }
+    }
+    else
+    {
+        Console.WriteLine($"OSD file not found: {osdFilePath}");
+    }
+
+    //// Test brightness with response
+    //var brightnessResponse = await displayController.SendCmdBrightnessWithResponse(75);
+    //if (brightnessResponse?.IsSuccess == true)
+    //{
+    //    Console.WriteLine("Brightness set successfully");
+    //}
+    //Thread.Sleep(1000);
+
+    //// Test rotation with response
+    //var rotationResponse = await displayController.SendCmdRotateWithResponse(180);
+    //if (rotationResponse?.IsSuccess == true)
+    //{
+    //    Console.WriteLine("Rotation set successfully");
+    //}
+    //Thread.Sleep(1000);
+
+    //// Get current device information with responses
+    //var serialNumber = await displayController.GetDeviceSerialNumber();
+    //if (!string.IsNullOrEmpty(serialNumber))
+    //{
+    //    Console.WriteLine($"Device Serial Number: {serialNumber}");
+    //}
+
+    //var colorSku = await displayController.GetColorSku();
+    //if (!string.IsNullOrEmpty(colorSku))
+    //{
+    //    Console.WriteLine($"Color SKU: {colorSku}");
+    //}
+
+    //var currentBrightness = await displayController.GetCurrentBrightness();
+    //if (currentBrightness.HasValue)
+    //{
+    //    Console.WriteLine($"Current Brightness: {currentBrightness.Value}%");
+    //}
+
+    //var currentRotation = await displayController.GetCurrentRotation();
+    //if (currentRotation.HasValue)
+    //{
+    //    Console.WriteLine($"Current Rotation: {currentRotation.Value}°");
+    //}
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Error during enhanced command testing: {ex.Message}");
+}
+
+
+// wait for user input before exiting
+Console.WriteLine("Press Enter to exit...");
+Console.ReadLine();
+
+// Stop response listener before exit
+displayController.StopResponseListener();
+
+// reboot the device
+Console.WriteLine("Rebooting device...");
+displayController.Reboot();
+
+public struct DeviceVersion
+{
+    public byte Major { get; init; }
+    public byte Minor { get; init; }
+
+    public DeviceVersion(byte major, byte minor)
+    {
+        Major = major;
+        Minor = minor;
+    }
+
+    public bool IsAvailable => Major != 0xFF && Minor != 0xFF;
+
+    public override string ToString()
+    {
+        return IsAvailable ? $"{Major}.{Minor}" : "N/A";
+    }
+}
+
+public struct FirmwareVersion
+{
+    public byte Major { get; init; }
+    public byte Minor { get; init; }
+    public byte Revision { get; init; }
+    public byte Build { get; init; }
+
+    public FirmwareVersion(byte major, byte minor, byte revision, byte build)
+    {
+        Major = major;
+        Minor = minor;
+        Revision = revision;
+        Build = build;
+    }
+
+    public bool IsAvailable => Major != 0xFF;
+
+    public override string ToString()
+    {
+        return IsAvailable ? $"{Major}.{Minor}.{Revision}.{Build}" : "N/A";
+    }
+}
+
+public class DeviceInfo
+{
+    public DeviceVersion HardwareVersion { get; init; }
+    public FirmwareVersion FirmwareVersion { get; init; }
+
+    public DeviceInfo(DeviceVersion hardwareVersion, FirmwareVersion firmwareVersion)
+    {
+        HardwareVersion = hardwareVersion;
+        FirmwareVersion = firmwareVersion;
+    }
+
+    public override string ToString()
+    {
+        return $"Hardware Version {HardwareVersion}, Firmware Version {FirmwareVersion}";
+    }
+}
+
+public record DisplayCtrlCapabilities
+{
+    public bool OffModeSupported { get; init; }
+    public bool SsrModeSupported { get; init; }
+    public byte SsrVsInterface { get; init; }
+    public ushort SsrVsWidth { get; init; }
+    public ushort SsrVsHeight { get; init; }
+    public byte SsrVsFormat { get; init; }
+    public byte SsrVsMaxFps { get; init; }
+    public byte SsrVsTransferInterface { get; init; }
+    public byte SsrVsFwSupportRotation { get; init; }
+    public uint SsrVsMaxFileSize { get; init; }
+    public ushort SsrVsMaxFrameCnt { get; init; }
+    public ushort SsrVsHwDecodeSupport { get; init; }
+    public byte SsrVsHwSupportOverlay { get; init; }
+    public byte SsrVsCmdFormat { get; init; }
+
+    // Helper properties for decode support
+    public bool H264DecodeSupported => (SsrVsHwDecodeSupport & 0x01) != 0;
+    public bool JpegDecodeSupported => (SsrVsHwDecodeSupport & 0x02) != 0;
+
+    public override string ToString()
+    {
+        var decodeFormats = new List<string>();
+        if (H264DecodeSupported) decodeFormats.Add("H.264");
+        if (JpegDecodeSupported) decodeFormats.Add("JPEG");
+
+        return $"Display Mode: Off={OffModeSupported}, SSR={SsrModeSupported}, " +
+               $"Resolution: {SsrVsWidth}x{SsrVsHeight}, Format: {SsrVsFormat:X2}, " +
+               $"MaxFPS: {SsrVsMaxFps}, Interface: {SsrVsInterface}, " +
+               $"Rotation: {SsrVsFwSupportRotation:X2}, MaxFileSize: {SsrVsMaxFileSize}MB, " +
+               $"HW Decode: [{string.Join(", ", decodeFormats)}]";
+    }
+}
+
+public class DisplayController
+{
+    private readonly Device _device;
+    private const byte StartEndMarker5A = 0x5A;
+    // display-ctrl-ssr-command report ID 0x1E.
+    private const byte DisplayCtrlSsrCommandReportID = 0x1E;
+
+    // Report ID for device-info 0x1.
+    private const byte DeviceInfoReportID = 0x01;
+    
+    // Report ID for display-ctrl-capabilities 0x20
+    private const byte DisplayCtrlCapabilitiesReportID = 0x14;
+
+
+    public DisplayController(ushort vendorId, ushort productId)
+    {
+        _device = new Device(vendorId, productId);
+    }
+
+    public DisplayCtrlCapabilities? GetDisplayCtrlCapabilities(bool debug = false)
+    {
+        var data = _device.GetFeatureReport(DisplayCtrlCapabilitiesReportID, 1024);
+
+        if (data == null || data.Length < 3)
+        {
+            Console.WriteLine("Failed to get display capabilities or data is too short.");
+            return null;
+        }
+
+        if (debug)
+        {
+            // Debug: Print raw data
+            Console.WriteLine($"Raw capabilities data length: {data.Length}");
+            Console.WriteLine($"Raw data: {Convert.ToHexString(data)}");
+        }
+
+        // Parse the TLV (Tag-Length-Value) structure starting from byte 1
+        int offset = 1; // Skip report ID
+        
+        // Initialize all values
+        bool offModeSupported = false;
+        bool ssrModeSupported = false;
+        byte ssrVsInterface = 0;
+        ushort ssrVsWidth = 0;
+        ushort ssrVsHeight = 0;
+        byte ssrVsFormat = 0;
+        byte ssrVsMaxFps = 0;
+        byte ssrVsTransferInterface = 0;
+        byte ssrVsFwSupportRotation = 0;
+        uint ssrVsMaxFileSize = 0;
+        ushort ssrVsMaxFrameCnt = 0;
+        ushort ssrVsHwDecodeSupport = 0;
+        byte ssrVsHwSupportOverlay = 0;
+        byte ssrVsCmdFormat = 0;
+        
+        // Parse TLV structures in a loop
+        while (offset < data.Length - 1) // Need at least 2 bytes for Tag and Length
+        {
+            byte tag = data[offset];
+            byte length = data[offset + 1];
+            
+            // Check if we have enough data for this TLV entry
+            if (offset + 2 + length > data.Length)
+            {
+                if (debug) Console.WriteLine($"Insufficient data for TLV entry: tag=0x{tag:X2}, length={length}, remaining={data.Length - offset - 2}");
+                break;
+            }
+            
+            if (debug) Console.WriteLine($"Parsing TLV: tag=0x{tag:X2}, length={length}, offset={offset}");
+            
+            // Parse based on tag
+            switch (tag)
+            {
+                case 0x01: // display-mode
+                    if (length == 2)
+                    {
+                        byte displayModeValue = data[offset + 3]; // Skip tag, length, and first byte
+                        offModeSupported = (displayModeValue & 0x01) != 0;
+                        ssrModeSupported = (displayModeValue & 0x02) != 0;
+                        if (debug) Console.WriteLine($"Display mode: off={offModeSupported}, ssr={ssrModeSupported}");
+                    }
+                    break;
+                    
+                case 0x02: // ssr-vs-interface
+                    if (length == 1)
+                    {
+                        ssrVsInterface = data[offset + 2];
+                        if (debug) Console.WriteLine($"SSR VS Interface: {ssrVsInterface}");
+                    }
+                    break;
+                    
+                case 0x03: // ssr-vs-width
+                    if (length == 2)
+                    {
+                        ssrVsWidth = (ushort)((data[offset + 3] << 8) | data[offset + 2]);
+                        if (debug) Console.WriteLine($"SSR VS Width: {ssrVsWidth}");
+                    }
+                    break;
+                    
+                case 0x04: // ssr-vs-height
+                    if (length == 2)
+                    {
+                        ssrVsHeight = (ushort)((data[offset + 3] << 8) | data[offset + 2]);
+                        if (debug) Console.WriteLine($"SSR VS Height: {ssrVsHeight}");
+                    }
+                    break;
+                    
+                case 0x05: // ssr-vs-format
+                    if (length == 1)
+                    {
+                        ssrVsFormat = data[offset + 2];
+                        if (debug) Console.WriteLine($"SSR VS Format: 0x{ssrVsFormat:X2}");
+                    }
+                    break;
+                    
+                case 0x06: // ssr-vs-max-fps
+                    if (length == 1)
+                    {
+                        ssrVsMaxFps = data[offset + 2];
+                        if (debug) Console.WriteLine($"SSR VS Max FPS: {ssrVsMaxFps}");
+                    }
+                    break;
+                    
+                case 0x07: // ssr-vs-transfer-interface
+                    if (length == 1)
+                    {
+                        ssrVsTransferInterface = data[offset + 2];
+                        if (debug) Console.WriteLine($"SSR VS Transfer Interface: {ssrVsTransferInterface}");
+                    }
+                    break;
+                    
+                case 0x08: // ssr-vs-fw-support-rotation
+                    if (length == 1)
+                    {
+                        ssrVsFwSupportRotation = data[offset + 2];
+                        if (debug) Console.WriteLine($"SSR VS FW Support Rotation: 0x{ssrVsFwSupportRotation:X2}");
+                    }
+                    break;
+                    
+                case 0x09: // ssr-vs-max-file-size
+                    if (length == 4)
+                    {
+                        ssrVsMaxFileSize = (uint)((data[offset + 5] << 24) | (data[offset + 4] << 16) | (data[offset + 3] << 8) | data[offset + 2]);
+                        if (debug) Console.WriteLine($"SSR VS Max File Size: {ssrVsMaxFileSize} MB");
+                    }
+                    break;
+                    
+                case 0x0A: // ssr-vs-max-frame-cnt
+                    if (length == 2)
+                    {
+                        ssrVsMaxFrameCnt = (ushort)((data[offset + 3] << 8) | data[offset + 2]);
+                        if (debug) Console.WriteLine($"SSR VS Max Frame Count: {ssrVsMaxFrameCnt}");
+                    }
+                    break;
+                    
+                case 0x0B: // ssr-vs-hw-decode-support
+                    if (length == 2)
+                    {
+                        ssrVsHwDecodeSupport = (ushort)((data[offset + 2] << 8) | data[offset + 3]);
+                        if (debug) Console.WriteLine($"SSR VS HW Decode Support: 0x{ssrVsHwDecodeSupport:X4}");
+                    }
+                    break;
+                    
+                case 0x0C: // ssr-vs-hw-support-overlay
+                    if (length == 1)
+                    {
+                        ssrVsHwSupportOverlay = data[offset + 2];
+                        if (debug) Console.WriteLine($"SSR VS HW Support Overlay: {ssrVsHwSupportOverlay}");
+                    }
+                    break;
+                    
+                case 0x0D: // ssr-vs-cmd-format
+                    if (length == 1)
+                    {
+                        ssrVsCmdFormat = data[offset + 2];
+                        if (debug) Console.WriteLine($"SSR VS Cmd Format: {ssrVsCmdFormat}");
+                    }
+                    break;
+                    
+                default:
+                    if (debug) Console.WriteLine($"Unknown TLV tag: 0x{tag:X2}");
+                    break;
+            }
+            
+            // Move to next TLV entry
+            offset += 2 + length; // Skip tag, length, and value
+        }
+
+        return new DisplayCtrlCapabilities
+        {
+            OffModeSupported = offModeSupported,
+            SsrModeSupported = ssrModeSupported,
+            SsrVsInterface = ssrVsInterface,
+            SsrVsWidth = ssrVsWidth,
+            SsrVsHeight = ssrVsHeight,
+            SsrVsFormat = ssrVsFormat,
+            SsrVsMaxFps = ssrVsMaxFps,
+            SsrVsTransferInterface = ssrVsTransferInterface,
+            SsrVsFwSupportRotation = ssrVsFwSupportRotation,
+            SsrVsMaxFileSize = ssrVsMaxFileSize,
+            SsrVsMaxFrameCnt = ssrVsMaxFrameCnt,
+            SsrVsHwDecodeSupport = ssrVsHwDecodeSupport,
+            SsrVsHwSupportOverlay = ssrVsHwSupportOverlay,
+            SsrVsCmdFormat = ssrVsCmdFormat
+        };
+    }
+
+    public DeviceInfo? GetDeviceInfo()
+    {
+        var info = _device.GetFeatureReport(DeviceInfoReportID, 1024);
+        // parse the device info
+        // 0 report-id, 1
+        // Hardware Version (hw-ver) 1 - 2 hw-ver, R/O,
+        //  0 major, [0-99], 0xFF if the hardware version data is not available on the flash storage
+        //  1 minor, [0-99], 0xFF if the hardware version data is not available on the flash storage
+        // Firmware Version (fw-ver)  3 - 6 fw-ver, R/O, 
+        // 0 major, [0-99]. 1 minor, [0-9]. 2 revision, [0-9]. 3 build, [0-255].
+        if (info == null || info.Length < 7)
+        {
+            Console.WriteLine("Failed to get device info or data is too short.");
+            return null;
+        }
+
+        var hardwareVersion = new DeviceVersion(info[1], info[2]);
+        var firmwareVersion = new FirmwareVersion(info[3], info[4], info[5], info[6]);
+
+        return new DeviceInfo(hardwareVersion, firmwareVersion);
+    }
+
+    public void Reboot()
+    {
+        SendSubcommand(0x02);
+    }
+
+    public void FactoryReset()
+    {
+        SendSubcommand(0x01);
+    }
+
+    //  Subcommand (device-subcommnad)
+    // byte 0: report-id:2
+    // byte 1: subcommand-id.
+    //  0x01 - reset, perform a device factory default.
+    //  0x02 - reboot
+    private void SendSubcommand(byte subcommandId)
+    {
+        byte[] buffer = new byte[3];
+        buffer[0] = 0x02; // Report ID for device-subcommand
+        buffer[1] = subcommandId;
+        _device.Write(buffer.AsSpan(0, buffer.Length));
+    }
+
+    public string GetManufacturer()
+    {
+        return _device.GetManufacturer();
+    }
+
+    //public void Rotate(int degree)
+    //{
+    //    string jsonContent = $"{{\"degree\":{degree}}}";
+    //    int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+    //    string jsonPayload = $"POST rotate 1\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+    //    SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    //}
+
+
+    // Image Control Commands - Function names starting with SendCmd
+
+    /// <summary>
+    /// Turn on/off LCD in sleep mode
+    /// </summary>
+    /// <param name="enable">True to enable display, false to put in sleep</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdDisplayInSleep(bool enable, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"enable\":{enable.ToString().ToLower()}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST displayInSleep 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Set suspend (custom video file)
+    /// </summary>
+    /// <param name="fileName">Suspend video file name (e.g., "suspend_0.mp4")</param>
+    /// <param name="fileSize">File size in bytes</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdSetSuspend(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"type\":\"suspend\",\"fileName\":\"{fileName}\",\"fileSize\":{fileSize}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transport 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Suspend completed command
+    /// </summary>
+    /// <param name="fileName">Suspend file name</param>
+    /// <param name="md5">MD5 hash of the file</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdSuspendCompleted(string fileName, string md5, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"fileName\":\"{fileName}\",\"md5\":\"{md5}\"}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transported 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Delete suspend media
+    /// </summary>
+    /// <param name="fileName">Suspend file name to delete (or "all" to delete all)</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdDeleteSuspend(string fileName, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"type\":\"suspend\",\"fileName\":\"{fileName}\"}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST delMedia 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Keep alive command
+    /// </summary>
+    /// <param name="timestamp">Current timestamp</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdKeepAlive(long timestamp, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"timestamp\":{timestamp}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"STATE timestamp 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Set keep alive timer
+    /// </summary>
+    /// <param name="value">Timer value (0-65,535 seconds, 0 = keep alive forever)</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdSetKeepAliveTimer(int value, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"value\":{value}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST timeout 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Read keep alive timer
+    /// </summary>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdReadKeepAliveTimer(int sequenceNumber = 42)
+    {
+        string jsonPayload = $"POST param 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Read maximum number of suspend media
+    /// </summary>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdReadMaxSuspendMedia(int sequenceNumber = 42)
+    {
+        string jsonPayload = $"POST param 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// OSD completed command
+    /// </summary>
+    /// <param name="fileName">OSD file name</param>
+    /// <param name="md5">MD5 hash of the file</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdOsdCompleted(string fileName, string md5, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"fileName\":\"{fileName}\",\"md5\":\"{md5}\"}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transported 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Set background media
+    /// </summary>
+    /// <param name="fileName">Background file name (e.g., "1.jpg")</param>
+    /// <param name="fileSize">File size in bytes</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdSetBackground(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"type\":\"media\",\"fileName\":\"{fileName}\",\"fileSize\":{fileSize}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transport 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Background completed command
+    /// </summary>
+    /// <param name="fileName">Background file name</param>
+    /// <param name="md5">MD5 hash of the file</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdBackgroundCompleted(string fileName, string md5, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"fileName\":\"{fileName}\",\"md5\":\"{md5}\"}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transported 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Enable/disable real-time display
+    /// </summary>
+    /// <param name="enable">True to enable, false to disable</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdRealTimeDisplay(bool enable, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"enable\":{enable.ToString().ToLower()}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST realtimeDisplay 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Read rotated angle
+    /// </summary>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdReadRotatedAngle(int sequenceNumber = 42)
+    {
+        string jsonPayload = $"POST param 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Read brightness
+    /// </summary>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdReadBrightness(int sequenceNumber = 42)
+    {
+        string jsonPayload = $"POST param 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Set brightness
+    /// </summary>
+    /// <param name="value">Brightness value (0-100)</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdBrightness(int value, int sequenceNumber = 42)
+    {
+        if (value < 0 || value > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), "Brightness value must be between 0 and 100");
+        }
+
+        string jsonContent = $"{{\"value\":{value}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST brightness 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Rotate display
+    /// </summary>
+    /// <param name="degree">Rotation degree (0, 90, 180, or 270)</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdRotate(int degree, int sequenceNumber = 42)
+    {
+        if (degree != 0 && degree != 90 && degree != 180 && degree != 270)
+        {
+            throw new ArgumentException("Degree must be 0, 90, 180, or 270", nameof(degree));
+        }
+
+        string jsonContent = $"{{\"degree\":{degree}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST rotate 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Firmware upgrade transport
+    /// </summary>
+    /// <param name="fileName">Firmware file name (e.g., "update.zip")</param>
+    /// <param name="fileSize">File size in bytes</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdFirmwareUpgrade(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"type\":\"firmware\",\"fileName\":\"{fileName}\",\"fileSize\":{fileSize}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transport 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Firmware upgrade completed
+    /// </summary>
+    /// <param name="fileName">Firmware file name</param>
+    /// <param name="md5">MD5 hash of the file</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdFirmwareUpgradeCompleted(string fileName, string md5, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"fileName\":\"{fileName}\",\"md5\":\"{md5}\"}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transported 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Set OSD file
+    /// </summary>
+    /// <param name="fileName">OSD file name (e.g., "1.osd")</param>
+    /// <param name="fileSize">File size in bytes</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdSetOsd(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"type\":\"media\",\"fileName\":\"{fileName}\",\"fileSize\":{fileSize}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transport 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Set powerup media (logo)
+    /// </summary>
+    /// <param name="fileName">Logo file name (e.g., "logo_0.mp4")</param>
+    /// <param name="fileSize">File size in bytes</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdSetPowerupMedia(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"type\":\"logo\",\"fileName\":\"{fileName}\",\"fileSize\":{fileSize}}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transport 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Powerup media completed command
+    /// </summary>
+    /// <param name="fileName">Logo file name</param>
+    /// <param name="md5">MD5 hash of the file</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdPowerupMediaCompleted(string fileName, string md5, int sequenceNumber = 42)
+    {
+        string jsonContent = $"{{\"fileName\":\"{fileName}\",\"md5\":\"{md5}\"}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST transported 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Set device serial number
+    /// </summary>
+    /// <param name="serialNumber">Device serial number (32 bytes, hexadecimal string)</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdSetDeviceSN(string serialNumber, int sequenceNumber = 42)
+    {
+        if (string.IsNullOrEmpty(serialNumber))
+        {
+            throw new ArgumentException("Serial number cannot be null or empty", nameof(serialNumber));
+        }
+
+        // Validate that it's a valid hex string and has proper length
+        if (serialNumber.Length != 32 || !System.Text.RegularExpressions.Regex.IsMatch(serialNumber, "^[0-9A-Fa-f]+$"))
+        {
+            throw new ArgumentException("Serial number must be a 32-character hexadecimal string", nameof(serialNumber));
+        }
+
+        string jsonContent = $"{{\"sn\":\"{serialNumber.ToUpper()}\"}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST setDeviceSN 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Get device serial number
+    /// </summary>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdGetDeviceSN(int sequenceNumber = 42)
+    {
+        string jsonPayload = $"POST getDeviceSN 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Set color SKU
+    /// </summary>
+    /// <param name="color">Color value as hexadecimal string (e.g., "0x1234")</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdSetColorSku(string color, int sequenceNumber = 42)
+    {
+        if (string.IsNullOrEmpty(color))
+        {
+            throw new ArgumentException("Color cannot be null or empty", nameof(color));
+        }
+
+        // Ensure color starts with "0x" and is valid hex
+        if (!color.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Color must start with '0x'", nameof(color));
+        }
+
+        string hexPart = color.Substring(2);
+        if (!System.Text.RegularExpressions.Regex.IsMatch(hexPart, "^[0-9A-Fa-f]+$"))
+        {
+            throw new ArgumentException("Color must be a valid hexadecimal value", nameof(color));
+        }
+
+        string jsonContent = $"{{\"color\":\"{color}\"}}";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST setSKUColor 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+    /// <summary>
+    /// Set color SKU with integer value
+    /// </summary>
+    /// <param name="colorValue">Color value as integer (will be converted to hex string)</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdSetColorSku(int colorValue, int sequenceNumber = 42)
+    {
+        string color = $"0x{colorValue:X4}";
+        SendCmdSetColorSku(color, sequenceNumber);
+    }
+
+    /// <summary>
+    /// Get color SKU
+    /// </summary>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    public void SendCmdGetColorSku(int sequenceNumber = 42)
+    {
+        string jsonPayload = $"POST getSKUColor 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        SendDisplayCtrlSsrCommandCommand(jsonPayload);
+    }
+
+
+    private void SendDisplayCtrlSsrCommandCommandBack(string jsonPayload)
+    {
+
+        // Length of payload (ASCII bytes)
+        int jsonPayloadLen = Encoding.ASCII.GetByteCount(jsonPayload);
+
+        // command_len = reportId(1) + start(1) + length(2) + payload + checksum(1) + end(1)
+        int commandLen = 1 + 1 + 2 + jsonPayloadLen + 1 + 1;
+
+        byte[] buffer = new byte[commandLen];
+
+        // Report ID
+        buffer[0] = DisplayCtrlSsrCommandReportID;
+        // Start marker
+        buffer[1] = StartEndMarker5A;
+        // Length (high byte first = 0, then low byte)
+        buffer[2] = 0x00;            // high byte
+        buffer[3] = (byte)(jsonPayloadLen + 3 + 2); // low byte
+
+        // Copy payload starting at index 4
+        Encoding.ASCII.GetBytes(jsonPayload, 0, jsonPayloadLen, buffer, 4);
+
+        // Compute checksum: sum bytes from index 2 up to (commandLen - 2) exclusive
+        byte checksum = 0;
+        for (int i = 2; i < commandLen - 2; i++)
+        {
+            unchecked
+            {
+                checksum += buffer[i];
+            }
+        }
+
+        // Place checksum (after payload)
+        buffer[1 + 1 + 2 + jsonPayloadLen] = checksum;
+        // End marker
+        buffer[1 + 1 + 2 + jsonPayloadLen + 1] = StartEndMarker5A;
+
+        // Send the command
+        _device.Write(buffer.AsSpan(0, commandLen));
+    }
+
+    // Software Screen Rendering-Command (display-ctrl-ssr-command)
+    private void SendDisplayCtrlSsrCommandCommand(string jsonPayload)
+    {
+        // Length of payload (ASCII bytes)
+        int jsonPayloadLen = Encoding.ASCII.GetByteCount(jsonPayload);
+
+        // Create initial buffer without translation
+        byte[] tempBuffer = new byte[2 + jsonPayloadLen + 1]; // length(2) + payload + checksum(1)
+
+        // Length (high byte first = 0, then low byte)
+        tempBuffer[0] = 0x00;            // high byte
+        tempBuffer[1] = (byte)(jsonPayloadLen + 3 + 2); // low byte
+
+        // Copy payload
+        Encoding.ASCII.GetBytes(jsonPayload, 0, jsonPayloadLen, tempBuffer, 2);
+
+        // Compute checksum on untranslated data
+        byte checksum = 0;
+        for (int i = 0; i < tempBuffer.Length - 1; i++)
+        {
+            unchecked
+            {
+                checksum += tempBuffer[i];
+            }
+        }
+        tempBuffer[tempBuffer.Length - 1] = checksum;
+
+        // Apply payload translation to length, JSON payload, and checksum
+        var translatedData = TranslatePayload(tempBuffer);
+
+        // Calculate final command length: reportId(1) + start(1) + translatedData + end(1)
+        int commandLen = 1 + 1 + translatedData.Length + 1;
+        byte[] buffer = new byte[commandLen];
+
+        // Report ID
+        buffer[0] = DisplayCtrlSsrCommandReportID;
+        // Start marker (not translated)
+        buffer[1] = StartEndMarker5A;
+
+        // Copy translated data
+        Array.Copy(translatedData, 0, buffer, 2, translatedData.Length);
+
+        // End marker (not translated)
+        buffer[buffer.Length - 1] = StartEndMarker5A;
+
+        // Send the command
+        _device.Write(buffer.AsSpan(0, commandLen));
+    }
+
+    //
+    // Helper methods
+    //
+    private byte[] TranslatePayload(byte[] data)
+    {
+        var translatedList = new List<byte>();
+
+        foreach (byte b in data)
+        {
+            if (b == 0x5A)
+            {
+                // 0x5A --> 0x5B 0x01
+                translatedList.Add(0x5B);
+                translatedList.Add(0x01);
+            }
+            else if (b == 0x5B)
+            {
+                // 0x5B --> 0x5B 0x02
+                translatedList.Add(0x5B);
+                translatedList.Add(0x02);
+            }
+            else
+            {
+                translatedList.Add(b);
+            }
+        }
+
+        return translatedList.ToArray();
+    }
+
+    private byte[] ReverseTranslatePayload(byte[] translatedData)
+    {
+        var originalList = new List<byte>();
+
+        for (int i = 0; i < translatedData.Length; i++)
+        {
+            if (translatedData[i] == 0x5B && i + 1 < translatedData.Length)
+            {
+                if (translatedData[i + 1] == 0x01)
+                {
+                    // 0x5B 0x01 --> 0x5A
+                    originalList.Add(0x5A);
+                    i++; // Skip next byte
+                }
+                else if (translatedData[i + 1] == 0x02)
+                {
+                    // 0x5B 0x02 --> 0x5B
+                    originalList.Add(0x5B);
+                    i++; // Skip next byte
+                }
+                else
+                {
+                    originalList.Add(translatedData[i]);
+                }
+            }
+            else
+            {
+                originalList.Add(translatedData[i]);
+            }
+        }
+
+        return originalList.ToArray();
+    }
+
+    private bool ValidateReceivedData(byte[] receivedBuffer)
+    {
+        // Extract translated data (skip reportId and start marker, remove end marker)
+        if (receivedBuffer.Length < 4 ||
+            receivedBuffer[0] != DisplayCtrlSsrCommandReportID ||
+            receivedBuffer[1] != StartEndMarker5A ||
+            receivedBuffer[receivedBuffer.Length - 1] != StartEndMarker5A)
+        {
+            return false;
+        }
+
+        byte[] translatedData = new byte[receivedBuffer.Length - 3]; // Remove reportId, start, end
+        Array.Copy(receivedBuffer, 2, translatedData, 0, translatedData.Length);
+
+        // Reverse translate to get original data
+        byte[] originalData = ReverseTranslatePayload(translatedData);
+
+        if (originalData.Length < 3) return false;
+
+        // Extract length, payload, and checksum from original data
+        ushort length = (ushort)((originalData[0] << 8) | originalData[1]);
+        byte receivedChecksum = originalData[originalData.Length - 1];
+
+        // Verify length matches actual payload + overhead
+        int expectedPayloadLen = originalData.Length - 3; // Total - length(2) - checksum(1)
+        if (length != expectedPayloadLen + 3 + 2) return false;
+
+        // Verify checksum
+        byte calculatedChecksum = 0;
+        for (int i = 0; i < originalData.Length - 1; i++)
+        {
+            unchecked
+            {
+                calculatedChecksum += originalData[i];
+            }
+        }
+
+        return calculatedChecksum == receivedChecksum;
+    }
+
+    //
+    // File Transfer Constants
+    //
+    private const byte FileTransferReportID = 0x1F; // Report ID 31 for file transfer
+
+    /// <summary>
+    /// File transfer metadata structure
+    /// </summary>
+    public struct FileTransferMetadata
+    {
+        public byte Id { get; init; }        // Unique number 0-59
+        public ushort Count { get; init; }   // Total block count (1-65535)
+        public ushort Index { get; init; }   // Current block index, 0-(count-1)
+        public byte Type { get; init; }      // 0=don't care, 1=jpg, 2=png
+        public byte[] Reserved { get; init; } // 14 bytes reserved (need checksum)
+
+        public FileTransferMetadata(byte id, ushort count, ushort index, byte type)
+        {
+            Id = id;
+            Count = count;
+            Index = index;
+            Type = type;
+            Reserved = new byte[14]; // Will be filled with checksum data
+        }
+    }
+
+    /// <summary>
+    /// Send file data using the Software Screen Rendering File Transfer protocol
+    /// </summary>
+    /// <param name="fileData">Complete file data to transfer</param>
+    /// <param name="fileType">File type: 0=don't care, 1=jpg, 2=png</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="blockSize">Size of each data block (default 1000 bytes)</param>
+    public void SendFileTransfer(byte[] fileData, byte fileType = 0, byte transferId = 0, int blockSize = 1000)
+    {
+        if (fileData == null || fileData.Length == 0)
+        {
+            throw new ArgumentException("File data cannot be null or empty", nameof(fileData));
+        }
+
+        if (transferId > 59)
+        {
+            throw new ArgumentOutOfRangeException(nameof(transferId), "Transfer ID must be between 0 and 59");
+        }
+
+        if (blockSize < 1 || blockSize > 1000)
+        {
+            throw new ArgumentOutOfRangeException(nameof(blockSize), "Block size must be between 1 and 1000 bytes");
+        }
+
+        // Calculate total number of blocks needed
+        int totalBlocks = (fileData.Length + blockSize - 1) / blockSize; // Ceiling division
+
+        if (totalBlocks > 65535)
+        {
+            throw new ArgumentException("File too large - would require more than 65535 blocks", nameof(fileData));
+        }
+
+        Console.WriteLine($"Starting file transfer: {fileData.Length} bytes in {totalBlocks} blocks");
+
+        // Send each block
+        for (int blockIndex = 0; blockIndex < totalBlocks; blockIndex++)
+        {
+            int offset = blockIndex * blockSize;
+            int currentBlockSize = Math.Min(blockSize, fileData.Length - offset);
+
+            byte[] blockData = new byte[currentBlockSize];
+            Array.Copy(fileData, offset, blockData, 0, currentBlockSize);
+
+            SendFileTransferBlock(transferId, (ushort)totalBlocks, (ushort)blockIndex, fileType, blockData);
+
+            Console.WriteLine($"Sent block {blockIndex + 1}/{totalBlocks} ({currentBlockSize} bytes)");
+
+            // Small delay between blocks to avoid overwhelming the device
+            Thread.Sleep(10);
+        }
+
+        Console.WriteLine("File transfer completed");
+    }
+
+    /// <summary>
+    /// Send a single file transfer block
+    /// </summary>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="totalBlocks">Total number of blocks</param>
+    /// <param name="blockIndex">Current block index</param>
+    /// <param name="fileType">File type</param>
+    /// <param name="blockData">Data for this block</param>
+    private void SendFileTransferBlock(byte transferId, ushort totalBlocks, ushort blockIndex, byte fileType, byte[] blockData)
+    {
+        // Create metadata
+        var metadata = new FileTransferMetadata(transferId, totalBlocks, blockIndex, fileType);
+
+        // Calculate total payload size: 1 byte (0x5c) + 2 bytes (length) + 20 bytes (metadata) + block data
+        int payloadSize = 1 + 2 + 20 + blockData.Length;
+        byte[] payload = new byte[payloadSize];
+
+        int offset = 0;
+
+        // Byte 1: 0x5c
+        payload[offset++] = 0x5C;
+
+        // Bytes 2-3: Length (little-endian: low byte first, then high byte)
+        ushort length = (ushort)(20 + blockData.Length); // metadata + payload
+        payload[offset++] = (byte)(length & 0xFF);        // Low byte
+        payload[offset++] = (byte)((length >> 8) & 0xFF); // High byte
+
+        // Bytes 4-23: Metadata (20 bytes)
+        payload[offset++] = metadata.Id;
+
+        // Count (little-endian)
+        payload[offset++] = (byte)(metadata.Count & 0xFF);
+        payload[offset++] = (byte)((metadata.Count >> 8) & 0xFF);
+
+        // Index (little-endian)
+        payload[offset++] = (byte)(metadata.Index & 0xFF);
+        payload[offset++] = (byte)((metadata.Index >> 8) & 0xFF);
+
+        // Type
+        payload[offset++] = metadata.Type;
+
+        // Reserved (14 bytes) - fill with zeros for now
+        for (int i = 0; i < 14; i++)
+        {
+            payload[offset++] = 0x00;
+        }
+
+        // Bytes 24+: Block data
+        Array.Copy(blockData, 0, payload, offset, blockData.Length);
+
+        // Send using HID report
+        SendFileTransferReport(payload);
+    }
+
+    /// <summary>
+    /// Send file transfer data via HID report
+    /// </summary>
+    /// <param name="payload">Complete payload to send</param>
+    private void SendFileTransferReport(byte[] payload)
+    {
+        // Create HID report: Report ID + payload
+        byte[] report = new byte[payload.Length + 1];
+        report[0] = FileTransferReportID; // Report ID 31 (0x1F)
+        Array.Copy(payload, 0, report, 1, payload.Length);
+
+        // Send the report
+        _device.Write(report.AsSpan());
+    }
+
+    /// <summary>
+    /// Transfer a file from disk using the file transfer protocol
+    /// </summary>
+    /// <param name="filePath">Path to the file to transfer</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="blockSize">Size of each data block (default 1000 bytes)</param>
+    public void SendFileFromDisk(string filePath, byte transferId = 0, int blockSize = 1000)
+    {
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"File not found: {filePath}");
+        }
+
+        // Determine file type from extension
+        byte fileType = 0; // Default: don't care
+        string extension = Path.GetExtension(filePath).ToLowerInvariant();
+        switch (extension)
+        {
+            case ".jpg":
+            case ".jpeg":
+                fileType = 1;
+                break;
+            case ".osd":
+                fileType = 2;
+                break;
+        }
+
+        // Read file data
+        byte[] fileData = File.ReadAllBytes(filePath);
+
+        Console.WriteLine($"Transferring file: {Path.GetFileName(filePath)} ({fileData.Length} bytes, type: {fileType})");
+
+        // Send the file
+        SendFileTransfer(fileData, fileType, transferId, blockSize);
+    }
+
+    /// <summary>
+    /// Send image file after setting background/OSD/powerup media command
+    /// </summary>
+    /// <param name="filePath">Path to the image file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    public void SendImageFile(string filePath, byte transferId = 0)
+    {
+        SendFileFromDisk(filePath, transferId);
+    }
+
+    /// <summary>
+    /// Complete workflow: Set background and transfer file
+    /// </summary>
+    /// <param name="filePath">Path to the background image file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="sequenceNumber">Sequence number for commands</param>
+    public void SetBackgroundWithFile(string filePath, byte transferId = 0, int sequenceNumber = 42)
+    {
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"File not found: {filePath}");
+        }
+
+        var fileInfo = new FileInfo(filePath);
+        string fileName = fileInfo.Name;
+        int fileSize = (int)fileInfo.Length;
+
+        // Step 1: Send transport command
+        SendCmdSetBackground(fileName, fileSize, sequenceNumber);
+        Console.WriteLine($"Sent background transport command for {fileName}");
+
+        // Wait a bit for device to process
+        Thread.Sleep(500);
+
+        // Step 2: Transfer the actual file data
+        SendFileFromDisk(filePath, transferId);
+
+        // Step 3: Send completion command with MD5 hash
+        string md5Hash = CalculateMD5Hash(filePath);
+        SendCmdBackgroundCompleted(fileName, md5Hash, sequenceNumber);
+        Console.WriteLine($"Sent background completion command with MD5: {md5Hash}");
+    }
+
+    /// <summary>
+    /// Calculate MD5 hash of a file
+    /// </summary>
+    /// <param name="filePath">Path to the file</param>
+    /// <returns>MD5 hash as hexadecimal string</returns>
+    private string CalculateMD5Hash(string filePath)
+    {
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        using var stream = File.OpenRead(filePath);
+        byte[] hashBytes = md5.ComputeHash(stream);
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+    }
+
+
+    //
+    // Response handling constants and structures
+    //
+    private const byte ResponseReportID = 0x20; // Same as file transfer for responses
+
+    /// <summary>
+    /// Response structure for display control commands
+    /// </summary>
+    public struct DisplayResponse
+    {
+        public byte ReportId { get; init; }
+        public ushort Length { get; init; }
+        public string Command { get; init; }
+        public int AckNumber { get; init; }
+        public int StatusCode { get; init; }
+        public string? ResponseData { get; init; }
+        public DateTime Timestamp { get; init; }
+
+        public DisplayResponse(byte reportId, ushort length, string command, int ackNumber, int statusCode, string? data = null)
+        {
+            ReportId = reportId;
+            Length = length;
+            Command = command;
+            AckNumber = ackNumber;
+            StatusCode = statusCode;
+            ResponseData = data;
+            Timestamp = DateTime.Now;
+        }
+
+        public bool IsSuccess => StatusCode == 200;
+        public bool IsError => StatusCode >= 400;
+    }
+
+    /// <summary>
+    /// Event handler for received responses
+    /// </summary>
+    public event EventHandler<DisplayResponse>? ResponseReceived;
+
+    /// <summary>
+    /// Start listening for responses from the device
+    /// </summary>
+    public void StartResponseListener()
+    {
+        Task.Run(async () =>
+        {
+            while (!_cancellationTokenSource.Token.IsCancellationRequested)
+            {
+                try
+                {
+                    await ListenForResponse();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Response listener error: {ex.Message}");
+                    await Task.Delay(1000); // Wait before retrying
+                }
+            }
+        });
+    }
+
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
+
+    /// <summary>
+    /// Stop the response listener
+    /// </summary>
+    public void StopResponseListener()
+    {
+        _cancellationTokenSource.Cancel();
+    }
+
+
+    /// <summary>
+    /// Listen for a single response
+    /// </summary>
+    private async Task ListenForResponse()
+    {
+        byte[] buffer = new byte[1024];
+
+        // Read response using the correct method signature
+        await Task.Run(() =>
+        {
+            try
+            {
+                // Use ReadTimeout with timeout to avoid blocking indefinitely
+                int result = _device.ReadTimeout(buffer.AsSpan(), 1000); // 1 second timeout
+                if (result > 0)
+                {
+                    ProcessResponse(buffer, result);
+                }
+            }
+            catch (HidException ex)
+            {
+                // HID specific exceptions
+                Console.WriteLine($"HID read error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Other exceptions
+                Console.WriteLine($"Read error: {ex.Message}");
+            }
+        });
+    }
+
+    /// <summary>
+    /// Process received response data
+    /// </summary>
+    /// <param name="buffer">Response buffer</param>
+    /// <param name="length">Actual length of response</param>
+    private void ProcessResponse(byte[] buffer, int length)
+    {
+        if (length < 3) return; // Minimum response size
+
+        try
+        {
+            byte reportId = buffer[0];
+
+            // Check if this is a display control response
+            if (reportId == ResponseReportID)
+            {
+                ParseDisplayControlResponse(buffer, length);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing response: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Validate response data before parsing
+    /// </summary>
+    /// <param name="buffer">Response buffer</param>
+    /// <param name="actualLength">Actual data length</param>
+    /// <returns>True if data is valid</returns>
+    private bool ValidateAndParseResponse(byte[] buffer, int length,ref int actualLength)
+    {
+        if (length < 5) // Minimum: ReportID + 0x5A + length(2) + some data
+        {
+            Console.WriteLine($"[DEBUG] Response too short: {length} bytes");
+            return false;
+        }
+
+        // Check the expected response format:
+        // [0] = Report ID (0x20)
+        // [1] = 0x5A
+        // [2-3] = Length (little-endian)
+        // [4+] = Response data
+
+        byte reportId = buffer[0];
+        if (reportId != ResponseReportID)
+        {
+            Console.WriteLine($"[DEBUG] Wrong report ID: 0x{reportId:X2}, expected: 0x{ResponseReportID:X2}");
+            return false;
+        }
+
+        byte marker = buffer[1];
+        if (marker != 0x5A)
+        {
+            Console.WriteLine($"[DEBUG] Wrong marker: 0x{marker:X2}, expected: 0x5A");
+            return false;
+        }
+
+        // Read the length field (little-endian: [2] = low byte, [3] = high byte)
+        ushort declaredLength = (ushort)(buffer[2] | (buffer[3] << 8));
+        Console.WriteLine($"[DEBUG] Declared length: {declaredLength}, Actual length: {length}");
+
+        // The declared length should match or be less than actual data available
+        // Available data = actualLength - 4 (subtract ReportID + 0x5A + length field)
+        int availableDataLength = actualLength - 4;
+        if (declaredLength > availableDataLength)
+        {
+            Console.WriteLine($"[DEBUG] Declared length ({declaredLength}) exceeds available data ({availableDataLength})");
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Parse display control response
+    /// </summary>
+    /// <param name="buffer">Response buffer</param>
+    /// <param name="length">Buffer length</param>
+    private void ParseDisplayControlResponse(byte[] buffer, int length)
+    {
+        if (length < 10) return; // Minimum for a meaningful response
+
+        int offset = 2; // Skip report ID and start marker (0x5A)
+
+        // Read length (2 bytes, little-endian)
+        ushort responseLength = (ushort)((buffer[offset] << 8) | buffer[offset + 1]);
+        offset += 2;
+
+        // need remove the last byte (end marker) to responseLength
+        responseLength -= 4;
+
+        // Parse the response content (assuming HTTP-like format)
+        string responseText = Encoding.UTF8.GetString(buffer, offset, Math.Min(responseLength, length - offset));
+        responseText = responseText.Trim();
+
+        // Parse HTTP-like response
+        var response = ParseHttpResponse(responseText);
+
+        // if AckNumber not 0, then it's a valid response
+
+        if (response.HasValue && response.Value.AckNumber > 0)
+        {
+            // Fire the response received event
+            ResponseReceived?.Invoke(this, response.Value);
+
+            Console.WriteLine($"Response received, AckNumber: {response.Value.AckNumber} - Status: {response.Value.StatusCode}");
+            if (!string.IsNullOrEmpty(response.Value.ResponseData))
+            {
+                Console.WriteLine($"Response data: {response.Value.ResponseData}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Parse HTTP-like response format
+    /// </summary>
+    /// <param name="responseText">Response text</param>
+    /// <returns>Parsed response or null</returns>
+    private DisplayResponse? ParseHttpResponse(string responseText)
+    {
+        try
+        {
+            // Clean up the response text (remove null terminators and trim)
+            responseText = responseText.TrimEnd('\0').Trim();
+
+            var lines = responseText.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length == 0) return null;
+
+            // Parse status line (e.g., "1 200")
+            var statusLine = lines[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (statusLine.Length < 2) return null;
+
+            string command = statusLine[0]; // First part is the command/version
+            if (!int.TryParse(statusLine[1], out int statusCode)) return null;
+
+            int ackNumber = 0;
+            string? contentType = null;
+            int contentLength = 0;
+            string? responseData = null;
+
+            // Parse headers and body
+            bool inBody = false;
+            var bodyLines = new List<string>();
+
+            for (int i = 1; i < lines.Length; i++)
+            {
+                var line = lines[i];
+
+                if (string.IsNullOrEmpty(line))
+                {
+                    inBody = true;
+                    continue;
+                }
+
+                if (!inBody)
+                {
+                    // Parse headers
+                    if (line.StartsWith("AckNumber="))
+                    {
+                        int.TryParse(line.Substring(10), out ackNumber);
+                    }
+                    else if (line.StartsWith("ContentType="))
+                    {
+                        contentType = line.Substring(12);
+                        if (string.IsNullOrEmpty(contentType)) contentType = null;
+                    }
+                    else if (line.StartsWith("ContentLength="))
+                    {
+                        int.TryParse(line.Substring(14), out contentLength);
+                    }
+                }
+                else
+                {
+                    // Body content
+                    bodyLines.Add(line);
+                }
+            }
+
+            // If there's content length specified and we have body data
+            if (bodyLines.Count > 0)
+            {
+                responseData = string.Join("\n", bodyLines);
+            }
+            else if (contentLength > 0)
+            {
+                // If content length is specified but no body found, it might be in a different format
+                // You might need to handle this case based on your protocol
+            }
+
+            return new DisplayResponse(ResponseReportID, (ushort)responseText.Length, command, ackNumber, statusCode, responseData);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error parsing HTTP response: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Send command and wait for response
+    /// </summary>
+    /// <param name="jsonPayload">Command payload</param>
+    /// <param name="timeoutMs">Timeout in milliseconds</param>
+    /// <returns>Response or null if timeout</returns>
+    public async Task<DisplayResponse?> SendCommandAndWaitResponse(string jsonPayload, int timeoutMs = 5000)
+    {
+        DisplayResponse? response = null;
+        var responseReceived = false;
+        var waitHandle = new ManualResetEventSlim(false);
+
+        // Set up temporary event handler
+        EventHandler<DisplayResponse> handler = (sender, resp) =>
+        {
+            response = resp;
+            responseReceived = true;
+            waitHandle.Set();
+        };
+
+        ResponseReceived += handler;
+
+        try
+        {
+            // Send the command
+            SendDisplayCtrlSsrCommandCommand(jsonPayload);
+
+            // Wait for response
+            await Task.Run(() =>
+            {
+                waitHandle.Wait(timeoutMs);
+            });
+
+            return responseReceived ? response : null;
+        }
+        finally
+        {
+            ResponseReceived -= handler;
+            waitHandle.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Send command with automatic response handling
+    /// </summary>
+    /// <param name="command">Command name</param>
+    /// <param name="parameters">Command parameters</param>
+    /// <param name="sequenceNumber">Sequence number</param>
+    /// <param name="waitForResponse">Whether to wait for response</param>
+    /// <returns>Response if waiting enabled, null otherwise</returns>
+    public async Task<DisplayResponse?> SendCmdWithResponse(string command, object? parameters = null, int sequenceNumber = 42, bool waitForResponse = false)
+    {
+        string jsonContent = parameters != null ? System.Text.Json.JsonSerializer.Serialize(parameters) : "";
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"POST {command} 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        if (waitForResponse)
+        {
+            return await SendCommandAndWaitResponse(jsonPayload);
+        }
+        else
+        {
+            SendDisplayCtrlSsrCommandCommand(jsonPayload);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Enhanced brightness command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdBrightnessWithResponse(int value, int sequenceNumber = 42)
+    {
+        if (value < 0 || value > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(value), "Brightness value must be between 0 and 100");
+        }
+
+        return await SendCmdWithResponse("brightness", new { value = value }, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced rotation command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdRotateWithResponse(int degree, int sequenceNumber = 42)
+    {
+        if (degree != 0 && degree != 90 && degree != 180 && degree != 270)
+        {
+            throw new ArgumentException("Degree must be 0, 90, 180, or 270", nameof(degree));
+        }
+
+        return await SendCmdWithResponse("rotate", new { degree = degree }, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Get device capabilities with response parsing
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdGetCapabilitiesWithResponse(int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced device serial number request with response
+    /// </summary>
+    public async Task<string?> GetDeviceSerialNumber(int sequenceNumber = 42)
+    {
+        var response = await SendCmdWithResponse("getDeviceSN", null, sequenceNumber, waitForResponse: true);
+
+        if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
+        {
+            try
+            {
+                var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(response.Value.ResponseData);
+                if (jsonResponse?.ContainsKey("sn") == true)
+                {
+                    return jsonResponse["sn"].ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse serial number response: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Enhanced color SKU request with response
+    /// </summary>
+    public async Task<string?> GetColorSku(int sequenceNumber = 42)
+    {
+        var response = await SendCmdWithResponse("getSKUColor", null, sequenceNumber, waitForResponse: true);
+
+        if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
+        {
+            try
+            {
+                var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(response.Value.ResponseData);
+                if (jsonResponse?.ContainsKey("color") == true)
+                {
+                    return jsonResponse["color"].ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse color SKU response: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get current brightness with response
+    /// </summary>
+    public async Task<int?> GetCurrentBrightness(int sequenceNumber = 42)
+    {
+        var response = await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
+
+        if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
+        {
+            try
+            {
+                var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(response.Value.ResponseData);
+                if (jsonResponse?.ContainsKey("brightness") == true)
+                {
+                    if (int.TryParse(jsonResponse["brightness"].ToString(), out int brightness))
+                    {
+                        return brightness;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse brightness response: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get current rotation angle with response
+    /// </summary>
+    public async Task<int?> GetCurrentRotation(int sequenceNumber = 42)
+    {
+        var response = await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
+
+        if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
+        {
+            try
+            {
+                var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(response.Value.ResponseData);
+                if (jsonResponse?.ContainsKey("rotation") == true)
+                {
+                    if (int.TryParse(jsonResponse["rotation"].ToString(), out int rotation))
+                    {
+                        return rotation;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse rotation response: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Enhanced OSD command with response
+    /// </summary>
+    /// <param name="fileName">OSD file name</param>
+    /// <param name="fileSize">File size in bytes</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    /// <returns>Response from the device</returns>
+    public async Task<DisplayResponse?> SendCmdSetOsdWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        var parameters = new { type = "media", fileName = fileName, fileSize = fileSize };
+        return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced OSD completed command with response
+    /// </summary>
+    /// <param name="fileName">OSD file name</param>
+    /// <param name="md5">MD5 hash of the file</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    /// <returns>Response from the device</returns>
+    public async Task<DisplayResponse?> SendCmdOsdCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
+    {
+        var parameters = new { fileName = fileName, md5 = md5 };
+        return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Complete OSD workflow with response handling
+    /// </summary>
+    /// <param name="filePath">Path to the OSD file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="sequenceNumber">Sequence number for commands</param>
+    /// <returns>True if all steps completed successfully</returns>
+    public async Task<bool> SetOsdWithFileAndResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"OSD file not found: {filePath}");
+            return false;
+        }
+
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            string fileName = fileInfo.Name;
+            int fileSize = (int)fileInfo.Length;
+
+            Console.WriteLine($"Setting OSD with response handling: {fileName} ({fileSize} bytes)");
+
+            // Step 1: Send OSD transport command with response
+            var transportResponse = await SendCmdSetOsdWithResponse(fileName, fileSize, sequenceNumber);
+            if (transportResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"OSD transport command failed. Status: {transportResponse?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine($"OSD transport command successful. Response: {transportResponse.Value.ResponseData}");
+
+            // Wait for device to process
+            Thread.Sleep(1500);
+
+            // Step 2: Transfer the actual file data
+            SendFileFromDisk(filePath, transferId);
+            Console.WriteLine("OSD file data transfer completed");
+
+            // Step 3: Send completion command with response
+            string md5Hash = CalculateMD5Hash(filePath);
+            var completionResponse = await SendCmdOsdCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
+            if (completionResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"OSD completion command failed. Status: {completionResponse?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine($"OSD completion command successful. Response: {completionResponse.Value.ResponseData}");
+
+            Console.WriteLine("OSD setup with response handling completed successfully!");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in OSD setup with response: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Enhanced dispose method
+    /// </summary>
+    public void Dispose()
+    {
+        StopResponseListener();
+        _cancellationTokenSource?.Dispose();
+        _device?.Dispose();
+    }
+}
