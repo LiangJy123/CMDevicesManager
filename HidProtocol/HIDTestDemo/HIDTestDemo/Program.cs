@@ -36,6 +36,11 @@ if (capabilities != null)
     Console.WriteLine($"Display Capabilities: {capabilities}");
 }
 
+//Console.WriteLine("Performing factory reset...");
+//displayController.FactoryReset();
+//////Sleep to allow reboot
+//Thread.Sleep(15000);
+
 // Start response listener
 displayController.StartResponseListener();
 
@@ -49,83 +54,85 @@ displayController.ResponseReceived += (sender, response) =>
     }
 };
 
-//displayController.Reboot();
-////Sleep to allow reboot
-//Thread.Sleep(15000);
 // Example usage of enhanced commands with responses
 Console.WriteLine("Testing Enhanced SendCmd with Response Handling...");
 
-// set SendCmdRealTimeDisplay 
-displayController.SendCmdRealTimeDisplay(true, sequenceNumber: 43);
-Thread.Sleep(500);
-// send displaybrightness 80
-displayController.SendCmdBrightness(80, sequenceNumber: 44);
-Thread.Sleep(5000);
-
-// get timeout value
-displayController.SendCmdReadKeepAliveTimer(sequenceNumber: 46);
-Thread.Sleep(500);
-// set timeout value to 60 seconds
-displayController.SendCmdSetKeepAliveTimer(60, sequenceNumber: 47);
-Thread.Sleep(500);
-
-byte transferId = 3;
-int fileIndex = 1;
-while (true)
+// Example: real time mode.
+if (false)
 {
-    // send "E:\github\CMDevicesManager\HidProtocol\resources\osd3d-square-480.png" by SendFileFromDisk
-    // fine file path based on fileIndex
+    // set SendCmdRealTimeDisplay 
+    displayController.SendCmdRealTimeDisplay(true, sequenceNumber: 43);
+    Thread.Sleep(500);
+    // send displaybrightness 80
+    displayController.SendCmdBrightness(80, sequenceNumber: 44);
+    Thread.Sleep(500);
 
+    // get timeout value
+    displayController.SendCmdReadKeepAliveTimer(sequenceNumber: 46);
+    Thread.Sleep(500);
+    // set timeout value to 60 seconds
+    int timeoutValue = 6;
+    //displayController.SendCmdSetKeepAliveTimer(timeoutValue, sequenceNumber: 47);
+    //Thread.Sleep(500);
 
-    //string filePath = @"E:\github\CMDevicesManager\HidProtocol\resources\0 (1).jpg";
-    // cycle through 0 (1).jpg to 0 (6).jpg
-    string filePath = $@"E:\github\CMDevicesManager\HidProtocol\resources\0 ({fileIndex}).jpg";
-    if (File.Exists(filePath))
+    byte transferId = 3;
+    int fileIndex = 1;
+    while (true)
     {
-        displayController.SendFileFromDisk(filePath,transferId: transferId);
+        // send "E:\github\CMDevicesManager\HidProtocol\resources\osd3d-square-480.png" by SendFileFromDisk
+        // fine file path based on fileIndex
+        //string filePath = @"E:\github\CMDevicesManager\HidProtocol\resources\0 (1).jpg";
+        // cycle through 0 (1).jpg to 0 (7).jpg or png
+        string filePath = $@"C:\Users\mxxmu\Desktop\MyLed\CMDevicesManager\HidProtocol\resources\0 ({fileIndex}).jpg";
+        // check if file exists
+        if (!File.Exists(filePath))
+        {
+            filePath = filePath.Replace(".jpg", ".png");
+        }
 
-        // send time stamp
-        displayController.SendCmdKeepAlive(DateTimeOffset.UtcNow.ToUnixTimeSeconds(), sequenceNumber: 45);
-        Thread.Sleep(10); // wait for 10 seconds before sending again
+        Console.WriteLine($"Sending file: {filePath} with transferId: {transferId}");
+        if (File.Exists(filePath))
+        {
+            displayController.SendFileFromDisk(filePath, transferId: transferId);
+
+            // send time stamp
+            displayController.SendCmdKeepAlive(DateTimeOffset.UtcNow.ToUnixTimeSeconds(), sequenceNumber: 45);
+            //Thread.Sleep((timeoutValue*1000)-50); // wait for 10 seconds before sending again
+            Thread.Sleep(10);
+        }
+        else
+        {
+            Console.WriteLine($"File not found: {filePath}");
+            break;
+        }
+        transferId++;
+        // if transferId > 59, reset to 3
+        if (transferId > 59) transferId = 3;
+        fileIndex++;
+        if (fileIndex > 7) fileIndex = 1;
     }
-    else
-    {
-        Console.WriteLine($"File not found: {filePath}");
-        break;
-    }
-    transferId++;
-    // if transferId > 59, reset to 3
-    if (transferId > 59) transferId = 3;
-    fileIndex++;
-    if (fileIndex > 5) fileIndex = 1;
+
 }
 
 try
 {
-    // OSD file details
-    string osdFileName = "osd2.osd";  // OSD file name
-    string osdFilePath = @"E:\github\CMDevicesManager\HidProtocol\resources\osd2.osd";  // Full path to your OSD file
+    // set suspend mode.
+    //
+    // Example usage - basic version
+    string suspendFilePath = @"C:\Users\mxxmu\Desktop\MyLed\CMDevicesManager\HidProtocol\resources\suspend_01.png";
+    displayController.SetSuspendMode(suspendFilePath, transferId: 2, sequenceNumber: 100);
 
-    if (File.Exists(osdFilePath))
-    {
-        Console.WriteLine("=== Enhanced OSD Setup with Response Handling ===");
-
-        // Use the enhanced method with response handling
-        bool osdSuccess = await displayController.SetOsdWithFileAndResponse(osdFilePath, transferId: 1, sequenceNumber: 100);
-
-        if (osdSuccess)
-        {
-            Console.WriteLine("OSD setup completed successfully with response validation!");
-        }
-        else
-        {
-            Console.WriteLine("OSD setup failed!");
-        }
-    }
-    else
-    {
-        Console.WriteLine($"OSD file not found: {osdFilePath}");
-    }
+    // Example usage - enhanced version with response handling
+    //string suspendFilePath = @"C:\path\to\your\suspend_video.mp4";
+    //bool success = await displayController.SetSuspendModeWithResponse(suspendFilePath, transferId: 2, sequenceNumber: 100);
+    //if (success)
+    //{
+    //    Console.WriteLine("Suspend mode configured successfully!");
+    //}
+    //else
+    //{
+    //    Console.WriteLine("Failed to configure suspend mode!");
+    //}
 
     //// Test brightness with response
     //var brightnessResponse = await displayController.SendCmdBrightnessWithResponse(75);
@@ -640,7 +647,7 @@ public class DisplayController
     /// <param name="sequenceNumber">Sequence number for the command</param>
     public void SendCmdReadKeepAliveTimer(int sequenceNumber = 42)
     {
-        string jsonPayload = $"POST param 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        string jsonPayload = $"POST param 1\r\n";
         SendDisplayCtrlSsrCommandCommand(jsonPayload);
     }
 
@@ -650,7 +657,7 @@ public class DisplayController
     /// <param name="sequenceNumber">Sequence number for the command</param>
     public void SendCmdReadMaxSuspendMedia(int sequenceNumber = 42)
     {
-        string jsonPayload = $"POST param 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        string jsonPayload = $"POST param 1\r\n";
         SendDisplayCtrlSsrCommandCommand(jsonPayload);
     }
 
@@ -719,7 +726,7 @@ public class DisplayController
     /// <param name="sequenceNumber">Sequence number for the command</param>
     public void SendCmdReadRotatedAngle(int sequenceNumber = 42)
     {
-        string jsonPayload = $"POST param 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        string jsonPayload = $"POST param 1\r\n";
         SendDisplayCtrlSsrCommandCommand(jsonPayload);
     }
 
@@ -729,7 +736,7 @@ public class DisplayController
     /// <param name="sequenceNumber">Sequence number for the command</param>
     public void SendCmdReadBrightness(int sequenceNumber = 42)
     {
-        string jsonPayload = $"POST param 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength=0\r\n\r\n";
+        string jsonPayload = $"POST param 1\r\n";
         SendDisplayCtrlSsrCommandCommand(jsonPayload);
     }
 
@@ -1199,7 +1206,7 @@ public class DisplayController
 
             SendFileTransferBlock(transferId, (ushort)totalBlocks, (ushort)blockIndex, fileType, blockData);
 
-            Console.WriteLine($"Sent block {blockIndex + 1}/{totalBlocks} ({currentBlockSize} bytes)");
+            //Console.WriteLine($"Sent block {blockIndex + 1}/{totalBlocks} ({currentBlockSize} bytes)");
 
             // Small delay between blocks to avoid overwhelming the device
             //Thread.Sleep(10);
@@ -1988,6 +1995,164 @@ public class DisplayController
         catch (Exception ex)
         {
             Console.WriteLine($"Error in OSD setup with response: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Complete workflow to set suspend mode with file transfer
+    /// </summary>
+    /// <param name="filePath">Path to the suspend video file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="sequenceNumber">Starting sequence number for commands</param>
+    /// <returns>True if all steps completed successfully</returns>
+    public void SetSuspendMode(string filePath, byte transferId = 1, int sequenceNumber = 50)
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"Suspend file not found: {filePath}");
+            return;
+        }
+
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            string fileName = fileInfo.Name;
+            int fileSize = (int)fileInfo.Length;
+
+            Console.WriteLine($"Setting suspend mode: {fileName} ({fileSize} bytes)");
+
+            // Step 1: Disable real-time display mode
+            Console.WriteLine("Step 1: Disabling real-time display mode...");
+            SendCmdRealTimeDisplay(false, sequenceNumber);
+            Thread.Sleep(500);
+
+            // Step 2: Set suspend file configuration
+            Console.WriteLine($"Step 2: Setting suspend file configuration for {fileName}...");
+            SendCmdSetSuspend(fileName, fileSize, sequenceNumber + 1);
+            Thread.Sleep(1000);
+
+            // Step 3: Transfer the actual file data
+            Console.WriteLine("Step 3: Transferring suspend file data...");
+            SendFileFromDisk(filePath, transferId);
+            Console.WriteLine("Suspend file data transfer completed");
+
+            // Step 4: Send suspend completion command with MD5 hash
+            Console.WriteLine("Step 4: Sending suspend completion command...");
+            string md5Hash = CalculateMD5Hash(filePath);
+            SendCmdSuspendCompleted(fileName, md5Hash, sequenceNumber + 2);
+            Thread.Sleep(500);
+
+            // Step 5: Disable real-time display mode again
+            Console.WriteLine("Step 5: Disabling real-time display mode again...");
+            SendCmdRealTimeDisplay(false, sequenceNumber + 3);
+            Thread.Sleep(500);
+
+            // Step 6: Read maximum suspend media count
+            Console.WriteLine("Step 6: Reading maximum suspend media count...");
+            SendCmdReadMaxSuspendMedia(sequenceNumber + 4);
+            Thread.Sleep(500);
+
+            Console.WriteLine("Suspend mode setup completed successfully!");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting suspend mode: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Complete workflow to set suspend mode with file transfer and response handling
+    /// </summary>
+    /// <param name="filePath">Path to the suspend video file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="sequenceNumber">Starting sequence number for commands</param>
+    /// <returns>True if all steps completed successfully</returns>
+    public async Task<bool> SetSuspendModeWithResponse(string filePath, byte transferId = 1, int sequenceNumber = 50)
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"Suspend file not found: {filePath}");
+            return false;
+        }
+
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            string fileName = fileInfo.Name;
+            int fileSize = (int)fileInfo.Length;
+
+            Console.WriteLine($"Setting suspend mode with response handling: {fileName} ({fileSize} bytes)");
+
+            // Step 1: Disable real-time display mode
+            Console.WriteLine("Step 1: Disabling real-time display mode...");
+            var step1Response = await SendCmdWithResponse("realtimeDisplay", new { enable = false }, sequenceNumber, waitForResponse: true);
+            if (step1Response?.IsSuccess != true)
+            {
+                Console.WriteLine($"Step 1 failed. Status: {step1Response?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine("Step 1 successful");
+
+            // Step 2: Set suspend file configuration
+            Console.WriteLine($"Step 2: Setting suspend file configuration for {fileName}...");
+            var step2Response = await SendCmdWithResponse("transport",
+                new { type = "suspend", fileName = fileName, fileSize = fileSize },
+                sequenceNumber + 1, waitForResponse: true);
+            if (step2Response?.IsSuccess != true)
+            {
+                Console.WriteLine($"Step 2 failed. Status: {step2Response?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine("Step 2 successful");
+
+            // Wait for device to process
+            Thread.Sleep(1500);
+
+            // Step 3: Transfer the actual file data
+            Console.WriteLine("Step 3: Transferring suspend file data...");
+            SendFileFromDisk(filePath, transferId);
+            Console.WriteLine("Suspend file data transfer completed");
+
+            // Step 4: Send suspend completion command with MD5 hash
+            Console.WriteLine("Step 4: Sending suspend completion command...");
+            string md5Hash = CalculateMD5Hash(filePath);
+            var step4Response = await SendCmdWithResponse("transported",
+                new { fileName = fileName, md5 = md5Hash },
+                sequenceNumber + 2, waitForResponse: true);
+            if (step4Response?.IsSuccess != true)
+            {
+                Console.WriteLine($"Step 4 failed. Status: {step4Response?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine("Step 4 successful");
+
+            // Step 5: Disable real-time display mode again
+            Console.WriteLine("Step 5: Disabling real-time display mode again...");
+            var step5Response = await SendCmdWithResponse("realtimeDisplay", new { enable = false }, sequenceNumber + 3, waitForResponse: true);
+            if (step5Response?.IsSuccess != true)
+            {
+                Console.WriteLine($"Step 5 failed. Status: {step5Response?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine("Step 5 successful");
+
+            // Step 6: Read maximum suspend media count
+            Console.WriteLine("Step 6: Reading maximum suspend media count...");
+            var step6Response = await SendCmdWithResponse("param", null, sequenceNumber + 4, waitForResponse: true);
+            if (step6Response?.IsSuccess != true)
+            {
+                Console.WriteLine($"Step 6 failed. Status: {step6Response?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine($"Step 6 successful. Response: {step6Response.Value.ResponseData}");
+
+            Console.WriteLine("Suspend mode setup with response handling completed successfully!");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error setting suspend mode: {ex.Message}");
             return false;
         }
     }
