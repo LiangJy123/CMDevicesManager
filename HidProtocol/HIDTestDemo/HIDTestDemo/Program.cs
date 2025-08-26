@@ -55,6 +55,35 @@ displayController.ResponseReceived += (sender, response) =>
 // Example usage of enhanced commands with responses
 Console.WriteLine("Testing Enhanced SendCmd with Response Handling...");
 
+// set SendCmdRealTimeDisplay 
+displayController.SendCmdRealTimeDisplay(true, sequenceNumber: 43);
+Thread.Sleep(500);
+// send displaybrightness 80
+displayController.SendCmdBrightness(80, sequenceNumber: 44);
+Thread.Sleep(5000);
+
+while(true)
+{
+    // send "E:\github\CMDevicesManager\HidProtocol\resources\osd3d-square-480.png" by SendFileFromDisk
+    string filePath = @"E:\github\CMDevicesManager\HidProtocol\resources\LCD-cm-A.jpg";
+    if (File.Exists(filePath))
+    {
+        displayController.SendFileFromDisk(filePath,transferId:38);
+
+        // send time stamp
+        displayController.SendCmdKeepAlive(DateTimeOffset.UtcNow.ToUnixTimeSeconds(), sequenceNumber: 45);
+        Thread.Sleep(1000); // wait for 10 seconds before sending again
+    }
+    else
+    {
+        Console.WriteLine($"File not found: {filePath}");
+        break;
+    }
+
+
+
+}
+
 try
 {
     // OSD file details
@@ -1157,7 +1186,7 @@ public class DisplayController
             Console.WriteLine($"Sent block {blockIndex + 1}/{totalBlocks} ({currentBlockSize} bytes)");
 
             // Small delay between blocks to avoid overwhelming the device
-            Thread.Sleep(10);
+            //Thread.Sleep(10);
         }
 
         Console.WriteLine("File transfer completed");
@@ -1187,19 +1216,19 @@ public class DisplayController
 
         // Bytes 2-3: Length (little-endian: low byte first, then high byte)
         ushort length = (ushort)(20 + blockData.Length); // metadata + payload
-        payload[offset++] = (byte)(length & 0xFF);        // Low byte
         payload[offset++] = (byte)((length >> 8) & 0xFF); // High byte
+        payload[offset++] = (byte)(length & 0xFF);        // Low byte
 
         // Bytes 4-23: Metadata (20 bytes)
         payload[offset++] = metadata.Id;
 
         // Count (little-endian)
-        payload[offset++] = (byte)(metadata.Count & 0xFF);
         payload[offset++] = (byte)((metadata.Count >> 8) & 0xFF);
+        payload[offset++] = (byte)(metadata.Count & 0xFF);
 
         // Index (little-endian)
-        payload[offset++] = (byte)(metadata.Index & 0xFF);
         payload[offset++] = (byte)((metadata.Index >> 8) & 0xFF);
+        payload[offset++] = (byte)(metadata.Index & 0xFF);
 
         // Type
         payload[offset++] = metadata.Type;
@@ -1228,6 +1257,24 @@ public class DisplayController
         report[0] = FileTransferReportID; // Report ID 31 (0x1F)
         Array.Copy(payload, 0, report, 1, payload.Length);
 
+        // output the payload for debugging
+        Console.WriteLine($"report (length {payload.Length}): {BitConverter.ToString(report)}");
+
+        // save the report data [24-last] data to a file for debugging
+        {
+            byte[] debugData = new byte[report.Length - 24];
+            Array.Copy(report, 24, debugData, 0, debugData.Length);
+            // save to file with append mode
+            string filePath = @"E:\github\CMDevicesManager\HidProtocol\resources\sendfile1.bin";
+            using (var fileStream = new FileStream(filePath, FileMode.Append, FileAccess.Write))
+            {
+                fileStream.Write(debugData, 0, debugData.Length);
+            }
+        }
+
+
+
+
         // Send the report
         _device.Write(report.AsSpan());
     }
@@ -1254,7 +1301,7 @@ public class DisplayController
             case ".jpeg":
                 fileType = 1;
                 break;
-            case ".osd":
+            case ".png":
                 fileType = 2;
                 break;
         }
@@ -1580,9 +1627,14 @@ public class DisplayController
 
                 if (string.IsNullOrEmpty(line))
                 {
-                    inBody = true;
                     continue;
                 }
+                // if the line have {}, then it's body
+                if (line.Contains("{"))
+                {
+                    inBody = true;
+                }
+
 
                 if (!inBody)
                 {
