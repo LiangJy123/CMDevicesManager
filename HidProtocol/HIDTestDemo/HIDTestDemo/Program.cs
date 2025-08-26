@@ -62,26 +62,42 @@ Thread.Sleep(500);
 displayController.SendCmdBrightness(80, sequenceNumber: 44);
 Thread.Sleep(5000);
 
-while(true)
+// get timeout value
+displayController.SendCmdReadKeepAliveTimer(sequenceNumber: 46);
+Thread.Sleep(500);
+// set timeout value to 60 seconds
+displayController.SendCmdSetKeepAliveTimer(60, sequenceNumber: 47);
+Thread.Sleep(500);
+
+byte transferId = 3;
+int fileIndex = 1;
+while (true)
 {
     // send "E:\github\CMDevicesManager\HidProtocol\resources\osd3d-square-480.png" by SendFileFromDisk
-    string filePath = @"E:\github\CMDevicesManager\HidProtocol\resources\LCD-cm-A.jpg";
+    // fine file path based on fileIndex
+
+
+    //string filePath = @"E:\github\CMDevicesManager\HidProtocol\resources\0 (1).jpg";
+    // cycle through 0 (1).jpg to 0 (6).jpg
+    string filePath = $@"E:\github\CMDevicesManager\HidProtocol\resources\0 ({fileIndex}).jpg";
     if (File.Exists(filePath))
     {
-        displayController.SendFileFromDisk(filePath,transferId:38);
+        displayController.SendFileFromDisk(filePath,transferId: transferId);
 
         // send time stamp
         displayController.SendCmdKeepAlive(DateTimeOffset.UtcNow.ToUnixTimeSeconds(), sequenceNumber: 45);
-        Thread.Sleep(1000); // wait for 10 seconds before sending again
+        Thread.Sleep(10); // wait for 10 seconds before sending again
     }
     else
     {
         Console.WriteLine($"File not found: {filePath}");
         break;
     }
-
-
-
+    transferId++;
+    // if transferId > 59, reset to 3
+    if (transferId > 59) transferId = 3;
+    fileIndex++;
+    if (fileIndex > 5) fileIndex = 1;
 }
 
 try
@@ -1257,20 +1273,20 @@ public class DisplayController
         report[0] = FileTransferReportID; // Report ID 31 (0x1F)
         Array.Copy(payload, 0, report, 1, payload.Length);
 
-        // output the payload for debugging
-        Console.WriteLine($"report (length {payload.Length}): {BitConverter.ToString(report)}");
+        //// output the payload for debugging
+        //Console.WriteLine($"report (length {payload.Length}): {BitConverter.ToString(report)}");
 
-        // save the report data [24-last] data to a file for debugging
-        {
-            byte[] debugData = new byte[report.Length - 24];
-            Array.Copy(report, 24, debugData, 0, debugData.Length);
-            // save to file with append mode
-            string filePath = @"E:\github\CMDevicesManager\HidProtocol\resources\sendfile1.bin";
-            using (var fileStream = new FileStream(filePath, FileMode.Append, FileAccess.Write))
-            {
-                fileStream.Write(debugData, 0, debugData.Length);
-            }
-        }
+        //// save the report data [24-last] data to a file for debugging
+        //{
+        //    byte[] debugData = new byte[report.Length - 24];
+        //    Array.Copy(report, 24, debugData, 0, debugData.Length);
+        //    // save to file with append mode
+        //    string filePath = @"E:\github\CMDevicesManager\HidProtocol\resources\sendfile1.bin";
+        //    using (var fileStream = new FileStream(filePath, FileMode.Append, FileAccess.Write))
+        //    {
+        //        fileStream.Write(debugData, 0, debugData.Length);
+        //    }
+        //}
 
 
 
