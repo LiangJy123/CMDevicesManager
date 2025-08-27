@@ -26,21 +26,7 @@ namespace CMDevicesManager.Pages
         {
             InitializeComponent();
 
-            // Switch between fake and real hardware-backed service
-            // For testing: Use FakeSystemMetricsService to verify dynamic updates work
-            // For production: Use RealSystemMetricsService for actual hardware monitoring
-            
-            ISystemMetricsService service;
-            
-#if DEBUG
-            // In debug builds, you can easily switch to fake service for testing
-            bool useFakeService = false; // Set to true to test with fake data
-            service = useFakeService ? new FakeSystemMetricsService() : new RealSystemMetricsService();
-#else
-            // In release builds, always use real hardware monitoring
-            service = new RealSystemMetricsService();
-#endif
-            
+            ISystemMetricsService service = new RealSystemMetricsService();
             DataContext = new HomeViewModel(service);
 
             // Swallow wheel/keyboard scrolling just in case a parent tries to scroll.
