@@ -71,7 +71,7 @@ if (false)
     displayController.SendCmdReadKeepAliveTimer(sequenceNumber: 46);
     Thread.Sleep(500);
     // set timeout value to 60 seconds
-    int timeoutValue = 6;
+    int timeoutValue = 60;
     //displayController.SendCmdSetKeepAliveTimer(timeoutValue, sequenceNumber: 47);
     //Thread.Sleep(500);
 
@@ -83,7 +83,8 @@ if (false)
         // fine file path based on fileIndex
         //string filePath = @"E:\github\CMDevicesManager\HidProtocol\resources\0 (1).jpg";
         // cycle through 0 (1).jpg to 0 (7).jpg or png
-        string filePath = $@"C:\Users\mxxmu\Desktop\MyLed\CMDevicesManager\HidProtocol\resources\0 ({fileIndex}).jpg";
+        //string filePath = $@"C:\Users\mxxmu\Desktop\MyLed\CMDevicesManager\HidProtocol\resources\0 ({fileIndex}).jpg";
+        string filePath = $@"E:\github\CMDevicesManager\HidProtocol\resources\0 ({fileIndex}).jpg";
         // check if file exists
         if (!File.Exists(filePath))
         {
@@ -119,20 +120,21 @@ try
     // set suspend mode.
     //
     // Example usage - basic version
-    string suspendFilePath = @"C:\Users\mxxmu\Desktop\MyLed\CMDevicesManager\HidProtocol\resources\suspend_01.png";
-    displayController.SetSuspendMode(suspendFilePath, transferId: 2, sequenceNumber: 100);
+    //string suspendFilePath = @"C:\Users\mxxmu\Desktop\MyLed\CMDevicesManager\HidProtocol\resources\suspend_01.png";
+    string suspendFilePath = @"E:\github\CMDevicesManager\HidProtocol\resources\suspend_0.jpg";
+    //displayController.SetSuspendMode(suspendFilePath, transferId: 2, sequenceNumber: 46);
 
     // Example usage - enhanced version with response handling
     //string suspendFilePath = @"C:\path\to\your\suspend_video.mp4";
-    //bool success = await displayController.SetSuspendModeWithResponse(suspendFilePath, transferId: 2, sequenceNumber: 100);
-    //if (success)
-    //{
-    //    Console.WriteLine("Suspend mode configured successfully!");
-    //}
-    //else
-    //{
-    //    Console.WriteLine("Failed to configure suspend mode!");
-    //}
+    bool success = await displayController.SetSuspendModeDemo();
+    if (success)
+    {
+        Console.WriteLine("Suspend mode configured successfully!");
+    }
+    else
+    {
+        Console.WriteLine("Failed to configure suspend mode!");
+    }
 
     //// Test brightness with response
     //var brightnessResponse = await displayController.SendCmdBrightnessWithResponse(75);
@@ -295,7 +297,7 @@ public class DisplayController
 
     // Report ID for device-info 0x1.
     private const byte DeviceInfoReportID = 0x01;
-    
+
     // Report ID for display-ctrl-capabilities 0x20
     private const byte DisplayCtrlCapabilitiesReportID = 0x14;
 
@@ -324,7 +326,7 @@ public class DisplayController
 
         // Parse the TLV (Tag-Length-Value) structure starting from byte 1
         int offset = 1; // Skip report ID
-        
+
         // Initialize all values
         bool offModeSupported = false;
         bool ssrModeSupported = false;
@@ -340,22 +342,22 @@ public class DisplayController
         ushort ssrVsHwDecodeSupport = 0;
         byte ssrVsHwSupportOverlay = 0;
         byte ssrVsCmdFormat = 0;
-        
+
         // Parse TLV structures in a loop
         while (offset < data.Length - 1) // Need at least 2 bytes for Tag and Length
         {
             byte tag = data[offset];
             byte length = data[offset + 1];
-            
+
             // Check if we have enough data for this TLV entry
             if (offset + 2 + length > data.Length)
             {
                 if (debug) Console.WriteLine($"Insufficient data for TLV entry: tag=0x{tag:X2}, length={length}, remaining={data.Length - offset - 2}");
                 break;
             }
-            
+
             if (debug) Console.WriteLine($"Parsing TLV: tag=0x{tag:X2}, length={length}, offset={offset}");
-            
+
             // Parse based on tag
             switch (tag)
             {
@@ -368,7 +370,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"Display mode: off={offModeSupported}, ssr={ssrModeSupported}");
                     }
                     break;
-                    
+
                 case 0x02: // ssr-vs-interface
                     if (length == 1)
                     {
@@ -376,7 +378,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS Interface: {ssrVsInterface}");
                     }
                     break;
-                    
+
                 case 0x03: // ssr-vs-width
                     if (length == 2)
                     {
@@ -384,7 +386,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS Width: {ssrVsWidth}");
                     }
                     break;
-                    
+
                 case 0x04: // ssr-vs-height
                     if (length == 2)
                     {
@@ -392,7 +394,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS Height: {ssrVsHeight}");
                     }
                     break;
-                    
+
                 case 0x05: // ssr-vs-format
                     if (length == 1)
                     {
@@ -400,7 +402,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS Format: 0x{ssrVsFormat:X2}");
                     }
                     break;
-                    
+
                 case 0x06: // ssr-vs-max-fps
                     if (length == 1)
                     {
@@ -408,7 +410,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS Max FPS: {ssrVsMaxFps}");
                     }
                     break;
-                    
+
                 case 0x07: // ssr-vs-transfer-interface
                     if (length == 1)
                     {
@@ -416,7 +418,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS Transfer Interface: {ssrVsTransferInterface}");
                     }
                     break;
-                    
+
                 case 0x08: // ssr-vs-fw-support-rotation
                     if (length == 1)
                     {
@@ -424,7 +426,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS FW Support Rotation: 0x{ssrVsFwSupportRotation:X2}");
                     }
                     break;
-                    
+
                 case 0x09: // ssr-vs-max-file-size
                     if (length == 4)
                     {
@@ -432,7 +434,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS Max File Size: {ssrVsMaxFileSize} MB");
                     }
                     break;
-                    
+
                 case 0x0A: // ssr-vs-max-frame-cnt
                     if (length == 2)
                     {
@@ -440,7 +442,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS Max Frame Count: {ssrVsMaxFrameCnt}");
                     }
                     break;
-                    
+
                 case 0x0B: // ssr-vs-hw-decode-support
                     if (length == 2)
                     {
@@ -448,7 +450,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS HW Decode Support: 0x{ssrVsHwDecodeSupport:X4}");
                     }
                     break;
-                    
+
                 case 0x0C: // ssr-vs-hw-support-overlay
                     if (length == 1)
                     {
@@ -456,7 +458,7 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS HW Support Overlay: {ssrVsHwSupportOverlay}");
                     }
                     break;
-                    
+
                 case 0x0D: // ssr-vs-cmd-format
                     if (length == 1)
                     {
@@ -464,12 +466,12 @@ public class DisplayController
                         if (debug) Console.WriteLine($"SSR VS Cmd Format: {ssrVsCmdFormat}");
                     }
                     break;
-                    
+
                 default:
                     if (debug) Console.WriteLine($"Unknown TLV tag: 0x{tag:X2}");
                     break;
             }
-            
+
             // Move to next TLV entry
             offset += 2 + length; // Skip tag, length, and value
         }
@@ -604,7 +606,7 @@ public class DisplayController
     /// </summary>
     /// <param name="fileName">Suspend file name to delete (or "all" to delete all)</param>
     /// <param name="sequenceNumber">Sequence number for the command</param>
-    public void SendCmdDeleteSuspend(string fileName, int sequenceNumber = 42)
+    public void SendCmdDeleteSuspend(string fileName = "all", int sequenceNumber = 42)
     {
         string jsonContent = $"{{\"type\":\"suspend\",\"fileName\":\"{fileName}\"}}";
         int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
@@ -985,6 +987,62 @@ public class DisplayController
     // Software Screen Rendering-Command (display-ctrl-ssr-command)
     private void SendDisplayCtrlSsrCommandCommand(string jsonPayload)
     {
+        // [0] = Report ID (0x1E)
+        // [1] = 0x5A (start marker)
+        // [2-3] = Length (big-endian) - from 1st "5a" to 2nd "5a", include the length bytes, payload, and checksum and the two "5a" bytes
+        // [4~n] = JSON payload (response data)
+        // [n+1] = Checksum (sum of length + payload, lowest 8 bits)
+        // [last] = 0x5A (end marker)
+
+        // Length of payload (ASCII bytes)
+        int jsonPayloadLen = Encoding.ASCII.GetByteCount(jsonPayload);
+
+        // Create initial buffer without translation
+        byte[] tempBuffer = new byte[2 + jsonPayloadLen + 1]; // length(2) + payload + checksum(1)
+
+        // Length (high byte first = 0, then low byte)
+        tempBuffer[0] = 0x00;            // high byte
+        tempBuffer[1] = (byte)(jsonPayloadLen + 3 + 2); // low byte
+
+        // Copy payload
+        Encoding.ASCII.GetBytes(jsonPayload, 0, jsonPayloadLen, tempBuffer, 2);
+
+        // Compute checksum on untranslated data
+        byte checksum = 0;
+        for (int i = 0; i < tempBuffer.Length - 1; i++)
+        {
+            unchecked
+            {
+                checksum += tempBuffer[i];
+            }
+        }
+        tempBuffer[tempBuffer.Length - 1] = checksum;
+
+        // Apply payload translation to length, JSON payload, and checksum
+        var translatedData = TranslatePayload(tempBuffer);
+
+        // Calculate final command length: reportId(1) + start marker(1) + translatedData + end marker(1)
+        int commandLen = 1 + 1 + translatedData.Length + 1;
+        byte[] buffer = new byte[commandLen];
+
+        // Report ID
+        buffer[0] = DisplayCtrlSsrCommandReportID;
+        // Start marker (not translated)
+        buffer[1] = StartEndMarker5A;
+
+        // Copy translated data
+        Array.Copy(translatedData, 0, buffer, 2, translatedData.Length);
+
+        // End marker (not translated)
+        buffer[buffer.Length - 1] = StartEndMarker5A;
+
+        // Send the command
+        _device.Write(buffer.AsSpan(0, commandLen));
+    }
+
+    // Software Screen Rendering-Command (display-ctrl-ssr-command)
+    private void SendDisplayCtrlSsrCommandCommand_back(string jsonPayload)
+    {
         // Length of payload (ASCII bytes)
         int jsonPayloadLen = Encoding.ASCII.GetByteCount(jsonPayload);
 
@@ -1354,6 +1412,7 @@ public class DisplayController
     /// <param name="filePath">Path to the background image file</param>
     /// <param name="transferId">Unique transfer ID (0-59)</param>
     /// <param name="sequenceNumber">Sequence number for commands</param>
+    /// <returns>True if all steps completed successfully</returns>
     public void SetBackgroundWithFile(string filePath, byte transferId = 0, int sequenceNumber = 42)
     {
         if (!File.Exists(filePath))
@@ -1514,6 +1573,15 @@ public class DisplayController
             // Check if this is a display control response
             if (reportId == ResponseReportID)
             {
+                // Get the last byte value is 0x5A as actual length.
+                int actualLength = length;
+                if (!ValidateAndParseResponse(buffer, length, ref actualLength))
+                {
+                    Console.WriteLine("[DEBUG] Invalid response data");
+                    return;
+                }
+
+
                 ParseDisplayControlResponse(buffer, length);
             }
         }
@@ -1527,21 +1595,24 @@ public class DisplayController
     /// Validate response data before parsing
     /// </summary>
     /// <param name="buffer">Response buffer</param>
-    /// <param name="actualLength">Actual data length</param>
+    /// <param name="length">Actual data length</param>
+    /// <param name="actualLength">Reference to actual length (will be updated to valid data length)</param>
     /// <returns>True if data is valid</returns>
-    private bool ValidateAndParseResponse(byte[] buffer, int length,ref int actualLength)
+    private bool ValidateAndParseResponse(byte[] buffer, int length, ref int actualLength)
     {
-        if (length < 5) // Minimum: ReportID + 0x5A + length(2) + some data
+        if (length < 6) // Minimum: ReportID + 0x5A + length(2) + checksum + end 0x5A
         {
             Console.WriteLine($"[DEBUG] Response too short: {length} bytes");
             return false;
         }
 
-        // Check the expected response format:
+        // Check the expected response format according to the image:
         // [0] = Report ID (0x20)
-        // [1] = 0x5A
-        // [2-3] = Length (little-endian)
-        // [4+] = Response data
+        // [1] = 0x5A (start marker)
+        // [2-3] = Length (big-endian) - from 1st "5a" to 2nd "5a"
+        // [4~n] = JSON payload (response data)
+        // [n+1] = Checksum (sum of length + payload, lowest 8 bits)
+        // [last] = 0x5A (end marker)
 
         byte reportId = buffer[0];
         if (reportId != ResponseReportID)
@@ -1550,25 +1621,96 @@ public class DisplayController
             return false;
         }
 
-        byte marker = buffer[1];
-        if (marker != 0x5A)
+        byte startMarker = buffer[1];
+        if (startMarker != StartEndMarker5A)
         {
-            Console.WriteLine($"[DEBUG] Wrong marker: 0x{marker:X2}, expected: 0x5A");
+            Console.WriteLine($"[DEBUG] Wrong start marker: 0x{startMarker:X2}, expected: 0x{StartEndMarker5A:X2}");
             return false;
         }
 
-        // Read the length field (little-endian: [2] = low byte, [3] = high byte)
-        ushort declaredLength = (ushort)(buffer[2] | (buffer[3] << 8));
-        Console.WriteLine($"[DEBUG] Declared length: {declaredLength}, Actual length: {length}");
+        // Read the length field (big-endian: [2] = high byte, [3] = low byte)
+        // Length represents the distance from 1st "5a" to 2nd "5a" (Ex: length is 0x009A, highbyte is 0x00, lowbyte is 0x9A)
+        ushort declaredLength = (ushort)((buffer[2] << 8) | buffer[3]);
+        Console.WriteLine($"[DEBUG] Declared length: {declaredLength} (from 1st 5A to 2nd 5A)");
 
-        // The declared length should match or be less than actual data available
-        // Available data = actualLength - 4 (subtract ReportID + 0x5A + length field)
-        int availableDataLength = actualLength - 4;
-        if (declaredLength > availableDataLength)
+        // Find the last 0x5A byte (end marker) in the buffer
+        int endMarkerIndex = Array.LastIndexOf(buffer, StartEndMarker5A, length - 1);
+
+        if (endMarkerIndex == -1 || endMarkerIndex <= 1) // Should not be the start marker
         {
-            Console.WriteLine($"[DEBUG] Declared length ({declaredLength}) exceeds available data ({availableDataLength})");
+            Console.WriteLine($"[DEBUG] End marker 0x5A not found or invalid position");
             return false;
         }
+
+        Console.WriteLine($"[DEBUG] End marker found at index: {endMarkerIndex}");
+
+        // Validate the declared length against actual structure
+        // declaredLength should equal the distance from start marker (index 1) to end marker
+        int actualDistanceFrom5ATo5A = endMarkerIndex - 1; // Distance from start 5A to end 5A
+
+        if (declaredLength != actualDistanceFrom5ATo5A)
+        {
+            Console.WriteLine($"[DEBUG] Length mismatch: declared={declaredLength}, actual distance from 5A to 5A={actualDistanceFrom5ATo5A}");
+            // Allow small tolerance for different implementations
+            if (Math.Abs(declaredLength - actualDistanceFrom5ATo5A) > 2)
+            {
+                return false;
+            }
+        }
+
+        // Calculate JSON payload area: from index 4 to (endMarkerIndex - 1 - 1) 
+        // Structure: [0]=ReportID, [1]=StartMarker, [2-3]=Length, [4 to n]=JSON, [n+1]=Checksum, [last]=EndMarker
+        int jsonStartIndex = 4;
+        int checksumIndex = endMarkerIndex - 1;
+        int jsonEndIndex = checksumIndex - 1;
+
+        if (jsonEndIndex < jsonStartIndex)
+        {
+            Console.WriteLine($"[DEBUG] Invalid payload structure: json area too small");
+            return false;
+        }
+
+        int jsonPayloadLength = jsonEndIndex - jsonStartIndex + 1;
+        Console.WriteLine($"[DEBUG] JSON payload length: {jsonPayloadLength}, checksum at index: {checksumIndex}");
+
+        // Validate checksum: sum of length(2 bytes) + JSON payload, take lowest 8 bits
+        byte expectedChecksum = 0;
+
+        // Add length bytes (big-endian)
+        unchecked
+        {
+            expectedChecksum += buffer[2]; // High byte of length
+            expectedChecksum += buffer[3]; // Low byte of length
+
+            // Add JSON payload bytes
+            for (int i = jsonStartIndex; i <= jsonEndIndex; i++)
+            {
+                expectedChecksum += buffer[i];
+            }
+        }
+
+        byte actualChecksum = buffer[checksumIndex];
+
+        //byte checksum = 0;
+        //for (int i = 0; i < tempBuffer.Length - 1; i++)
+        //{
+        //    unchecked
+        //    {
+        //        checksum += tempBuffer[i];
+        //    }
+        //}
+
+        //if (expectedChecksum != actualChecksum)
+        //{
+        //    Console.WriteLine($"[DEBUG] Checksum mismatch: expected=0x{expectedChecksum:X2}, actual=0x{actualChecksum:X2}");
+        //    return false;
+        //}
+
+        // Update actualLength to the position right after the end marker
+        actualLength = endMarkerIndex + 1;
+
+        Console.WriteLine($"[DEBUG] Response validation successful!");
+        Console.WriteLine($"[DEBUG] Structure: ReportID[{buffer[0]:X2}] + StartMarker[{buffer[1]:X2}] + Length[{declaredLength}] + JSON[{jsonPayloadLength}] + Checksum[{actualChecksum:X2}] + EndMarker[{buffer[endMarkerIndex]:X2}]");
 
         return true;
     }
@@ -1578,7 +1720,7 @@ public class DisplayController
     /// </summary>
     /// <param name="buffer">Response buffer</param>
     /// <param name="length">Buffer length</param>
-    private void ParseDisplayControlResponse(byte[] buffer, int length)
+    private void ParseDisplayControlResponse_back(byte[] buffer, int length)
     {
         if (length < 10) return; // Minimum for a meaningful response
 
@@ -1610,6 +1752,75 @@ public class DisplayController
             {
                 Console.WriteLine($"Response data: {response.Value.ResponseData}");
             }
+        }
+    }
+
+    /// <summary>
+    /// Parse display control response
+    /// </summary>
+    /// <param name="buffer">Response buffer</param>
+    /// <param name="length">Buffer length</param>
+    private void ParseDisplayControlResponse(byte[] buffer, int length)
+    {
+        if (length < 10) return; // Minimum for a meaningful response
+
+        // Validate basic structure first
+        if (buffer[0] != ResponseReportID || buffer[1] != StartEndMarker5A)
+        {
+            Console.WriteLine("[DEBUG] Invalid response structure");
+            return;
+        }
+
+        try
+        {
+            // Extract translated data (skip reportId and start marker, remove end marker)
+            byte[] translatedData = new byte[length - 3]; // Remove reportId, start, end
+            Array.Copy(buffer, 2, translatedData, 0, translatedData.Length);
+
+            // Call ReverseTranslatePayload to decode the received data
+            byte[] originalData = ReverseTranslatePayload(translatedData);
+
+            if (originalData.Length < 3) return; // Need at least length(2) + some data
+
+            // Now parse the original (untranslated) data
+            int offset = 0;
+
+            // Read length (2 bytes, big-endian in original data)
+            ushort responseLength = (ushort)((originalData[offset] << 8) | originalData[offset + 1]);
+            offset += 2;
+
+            // Subtract the overhead (length field + checksum) from responseLength
+            responseLength -= 4;
+
+            // The actual response content length should not exceed available data
+            int availableDataLength = originalData.Length - offset - 1; // Subtract checksum byte
+            int actualContentLength = Math.Min(responseLength, availableDataLength);
+
+            if (actualContentLength <= 0) return;
+
+            // Parse the response content (assuming HTTP-like format)
+            string responseText = Encoding.UTF8.GetString(originalData, offset, actualContentLength);
+            responseText = responseText.Trim();
+
+            // Parse HTTP-like response
+            var response = ParseHttpResponse(responseText);
+
+            // if AckNumber not 0, then it's a valid response
+            if (response.HasValue && response.Value.AckNumber > 0)
+            {
+                // Fire the response received event
+                ResponseReceived?.Invoke(this, response.Value);
+
+                Console.WriteLine($"Response received, AckNumber: {response.Value.AckNumber} - Status: {response.Value.StatusCode}");
+                if (!string.IsNullOrEmpty(response.Value.ResponseData))
+                {
+                    Console.WriteLine($"Response data: {response.Value.ResponseData}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error parsing display control response: {ex.Message}");
         }
     }
 
@@ -1797,6 +2008,225 @@ public class DisplayController
     }
 
     /// <summary>
+    /// Enhanced display in sleep command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdDisplayInSleepWithResponse(bool enable, int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("displayInSleep", new { enable = enable }, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced set suspend command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdSetSuspendWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        var parameters = new { type = "suspend", fileName = fileName, fileSize = fileSize };
+        return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced suspend completed command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdSuspendCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
+    {
+        var parameters = new { fileName = fileName, md5 = md5 };
+        return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced delete suspend command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdDeleteSuspendWithResponse(string fileName = "all", int sequenceNumber = 42)
+    {
+        var parameters = new { type = "suspend", fileName = fileName };
+        return await SendCmdWithResponse("delMedia", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced keep alive command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdKeepAliveWithResponse(long timestamp, int sequenceNumber = 42)
+    {
+        var parameters = new { timestamp = timestamp };
+        string jsonContent = System.Text.Json.JsonSerializer.Serialize(parameters);
+        int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
+        string jsonPayload = $"STATE timestamp 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+
+        return await SendCommandAndWaitResponse(jsonPayload);
+    }
+
+    /// <summary>
+    /// Enhanced set keep alive timer command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdSetKeepAliveTimerWithResponse(int value, int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("timeout", new { value = value }, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced read keep alive timer command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdReadKeepAliveTimerWithResponse(int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced read maximum suspend media command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdReadMaxSuspendMediaWithResponse(int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced set background command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdSetBackgroundWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        var parameters = new { type = "media", fileName = fileName, fileSize = fileSize };
+        return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced background completed command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdBackgroundCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
+    {
+        var parameters = new { fileName = fileName, md5 = md5 };
+        return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced real-time display command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdRealTimeDisplayWithResponse(bool enable, int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("realtimeDisplay", new { enable = enable }, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced read rotated angle command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdReadRotatedAngleWithResponse(int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced read brightness command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdReadBrightnessWithResponse(int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced firmware upgrade command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdFirmwareUpgradeWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        var parameters = new { type = "firmware", fileName = fileName, fileSize = fileSize };
+        return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced firmware upgrade completed command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdFirmwareUpgradeCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
+    {
+        var parameters = new { fileName = fileName, md5 = md5 };
+        return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced set powerup media command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdSetPowerupMediaWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
+    {
+        var parameters = new { type = "logo", fileName = fileName, fileSize = fileSize };
+        return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced powerup media completed command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdPowerupMediaCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
+    {
+        var parameters = new { fileName = fileName, md5 = md5 };
+        return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced set device serial number command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdSetDeviceSNWithResponse(string serialNumber, int sequenceNumber = 42)
+    {
+        if (string.IsNullOrEmpty(serialNumber))
+        {
+            throw new ArgumentException("Serial number cannot be null or empty", nameof(serialNumber));
+        }
+
+        // Validate that it's a valid hex string and has proper length
+        if (serialNumber.Length != 32 || !System.Text.RegularExpressions.Regex.IsMatch(serialNumber, "^[0-9A-Fa-f]+$"))
+        {
+            throw new ArgumentException("Serial number must be a 32-character hexadecimal string", nameof(serialNumber));
+        }
+
+        return await SendCmdWithResponse("setDeviceSN", new { sn = serialNumber.ToUpper() }, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced get device serial number command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdGetDeviceSNWithResponse(int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("getDeviceSN", null, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced set color SKU command with response (string version)
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdSetColorSkuWithResponse(string color, int sequenceNumber = 42)
+    {
+        if (string.IsNullOrEmpty(color))
+        {
+            throw new ArgumentException("Color cannot be null or empty", nameof(color));
+        }
+
+        // Ensure color starts with "0x" and is valid hex
+        if (!color.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Color must start with '0x'", nameof(color));
+        }
+
+        string hexPart = color.Substring(2);
+        if (!System.Text.RegularExpressions.Regex.IsMatch(hexPart, "^[0-9A-Fa-f]+$"))
+        {
+            throw new ArgumentException("Color must be a valid hexadecimal value", nameof(color));
+        }
+
+        return await SendCmdWithResponse("setSKUColor", new { color = color }, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
+    /// Enhanced set color SKU command with response (integer version)
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdSetColorSkuWithResponse(int colorValue, int sequenceNumber = 42)
+    {
+        string color = $"0x{colorValue:X4}";
+        return await SendCmdSetColorSkuWithResponse(color, sequenceNumber);
+    }
+
+    /// <summary>
+    /// Enhanced get color SKU command with response
+    /// </summary>
+    public async Task<DisplayResponse?> SendCmdGetColorSkuWithResponse(int sequenceNumber = 42)
+    {
+        return await SendCmdWithResponse("getSKUColor", null, sequenceNumber, waitForResponse: true);
+    }
+
+    /// <summary>
     /// Get device capabilities with response parsing
     /// </summary>
     public async Task<DisplayResponse?> SendCmdGetCapabilitiesWithResponse(int sequenceNumber = 42)
@@ -1915,6 +2345,270 @@ public class DisplayController
     }
 
     /// <summary>
+    /// Get current keep alive timer value with response
+    /// </summary>
+    public async Task<int?> GetCurrentKeepAliveTimer(int sequenceNumber = 42)
+    {
+        var response = await SendCmdReadKeepAliveTimerWithResponse(sequenceNumber);
+
+        if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
+        {
+            try
+            {
+                var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(response.Value.ResponseData);
+                if (jsonResponse?.ContainsKey("timeout") == true)
+                {
+                    if (int.TryParse(jsonResponse["timeout"].ToString(), out int timeout))
+                    {
+                        return timeout;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse keep alive timer response: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get maximum suspend media count with response
+    /// </summary>
+    public async Task<int?> GetMaxSuspendMediaCount(int sequenceNumber = 42)
+    {
+        var response = await SendCmdReadMaxSuspendMediaWithResponse(sequenceNumber);
+
+        if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
+        {
+            try
+            {
+                var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(response.Value.ResponseData);
+                if (jsonResponse?.ContainsKey("maxSuspendMedia") == true)
+                {
+                    if (int.TryParse(jsonResponse["maxSuspendMedia"].ToString(), out int maxCount))
+                    {
+                        return maxCount;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse max suspend media response: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Get current rotated angle with response
+    /// </summary>
+    public async Task<int?> GetCurrentRotatedAngle(int sequenceNumber = 42)
+    {
+        var response = await SendCmdReadRotatedAngleWithResponse(sequenceNumber);
+
+        if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
+        {
+            try
+            {
+                var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(response.Value.ResponseData);
+                if (jsonResponse?.ContainsKey("rotatedAngle") == true)
+                {
+                    if (int.TryParse(jsonResponse["rotatedAngle"].ToString(), out int angle))
+                    {
+                        return angle;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to parse rotated angle response: {ex.Message}");
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Complete background workflow with response handling
+    /// </summary>
+    /// <param name="filePath">Path to the background file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="sequenceNumber">Sequence number for commands</param>
+    /// <returns>True if all steps completed successfully</returns>
+    public async Task<bool> SetBackgroundWithFileAndResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"Background file not found: {filePath}");
+            return false;
+        }
+
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            string fileName = fileInfo.Name;
+            int fileSize = (int)fileInfo.Length;
+
+            Console.WriteLine($"Setting background with response handling: {fileName} ({fileSize} bytes)");
+
+            // Step 1: Send background transport command with response
+            var transportResponse = await SendCmdSetBackgroundWithResponse(fileName, fileSize, sequenceNumber);
+            if (transportResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"Background transport command failed. Status: {transportResponse?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine($"Background transport command successful. Response: {transportResponse.Value.ResponseData}");
+
+            // Wait for device to process
+            Thread.Sleep(1500);
+
+            // Step 2: Transfer the actual file data
+            SendFileFromDisk(filePath, transferId);
+            Console.WriteLine("Background file data transfer completed");
+
+            // Step 3: Send completion command with response
+            string md5Hash = CalculateMD5Hash(filePath);
+            var completionResponse = await SendCmdBackgroundCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
+            if (completionResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"Background completion command failed. Status: {completionResponse?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine($"Background completion command successful. Response: {completionResponse.Value.ResponseData}");
+
+            Console.WriteLine("Background setup with response handling completed successfully!");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in background setup with response: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Complete powerup media workflow with response handling
+    /// </summary>
+    /// <param name="filePath">Path to the powerup media file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="sequenceNumber">Sequence number for commands</param>
+    /// <returns>True if all steps completed successfully</returns>
+    public async Task<bool> SetPowerupMediaWithFileAndResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"Powerup media file not found: {filePath}");
+            return false;
+        }
+
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            string fileName = fileInfo.Name;
+            int fileSize = (int)fileInfo.Length;
+
+            Console.WriteLine($"Setting powerup media with response handling: {fileName} ({fileSize} bytes)");
+
+            // Step 1: Send powerup media transport command with response
+            var transportResponse = await SendCmdSetPowerupMediaWithResponse(fileName, fileSize, sequenceNumber);
+            if (transportResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"Powerup media transport command failed. Status: {transportResponse?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine($"Powerup media transport command successful. Response: {transportResponse.Value.ResponseData}");
+
+            // Wait for device to process
+            Thread.Sleep(1500);
+
+            // Step 2: Transfer the actual file data
+            SendFileFromDisk(filePath, transferId);
+            Console.WriteLine("Powerup media file data transfer completed");
+
+            // Step 3: Send completion command with response
+            string md5Hash = CalculateMD5Hash(filePath);
+            var completionResponse = await SendCmdPowerupMediaCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
+            if (completionResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"Powerup media completion command failed. Status: {completionResponse?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine($"Powerup media completion command successful. Response: {completionResponse.Value.ResponseData}");
+
+            Console.WriteLine("Powerup media setup with response handling completed successfully!");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in powerup media setup with response: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Complete firmware upgrade workflow with response handling
+    /// </summary>
+    /// <param name="filePath">Path to the firmware file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="sequenceNumber">Sequence number for commands</param>
+    /// <returns>True if all steps completed successfully</returns>
+    public async Task<bool> FirmwareUpgradeWithFileAndResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"Firmware file not found: {filePath}");
+            return false;
+        }
+
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            string fileName = fileInfo.Name;
+            int fileSize = (int)fileInfo.Length;
+
+            Console.WriteLine($"Starting firmware upgrade with response handling: {fileName} ({fileSize} bytes)");
+
+            // Step 1: Send firmware upgrade transport command with response
+            var transportResponse = await SendCmdFirmwareUpgradeWithResponse(fileName, fileSize, sequenceNumber);
+            if (transportResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"Firmware upgrade transport command failed. Status: {transportResponse?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine($"Firmware upgrade transport command successful. Response: {transportResponse.Value.ResponseData}");
+
+            // Wait for device to process
+            Thread.Sleep(1500);
+
+            // Step 2: Transfer the actual file data
+            SendFileFromDisk(filePath, transferId);
+            Console.WriteLine("Firmware file data transfer completed");
+
+            // Step 3: Send completion command with response
+            string md5Hash = CalculateMD5Hash(filePath);
+            var completionResponse = await SendCmdFirmwareUpgradeCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
+            if (completionResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"Firmware upgrade completion command failed. Status: {completionResponse?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine($"Firmware upgrade completion command successful. Response: {completionResponse.Value.ResponseData}");
+
+            Console.WriteLine("Firmware upgrade with response handling completed successfully!");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in firmware upgrade with response: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Enhanced OSD command with response
     /// </summary>
     /// <param name="fileName">OSD file name</param>
@@ -2022,36 +2716,52 @@ public class DisplayController
 
             Console.WriteLine($"Setting suspend mode: {fileName} ({fileSize} bytes)");
 
+            // set SendCmdDeleteSuspend
+            SendCmdDeleteSuspend("all", sequenceNumber - 3);
+            Thread.Sleep(500);
+            // set rotation to 0
+            SendCmdRotate(0, sequenceNumber - 1);
+            Thread.Sleep(500);
+
+            // set brightness to 80
+            SendCmdBrightness(80, sequenceNumber - 2);
+            Thread.Sleep(500);
+
             // Step 1: Disable real-time display mode
             Console.WriteLine("Step 1: Disabling real-time display mode...");
             SendCmdRealTimeDisplay(false, sequenceNumber);
             Thread.Sleep(500);
 
+            SendCmdReadMaxSuspendMedia(sequenceNumber - 4);
+            Thread.Sleep(200);
+
             // Step 2: Set suspend file configuration
             Console.WriteLine($"Step 2: Setting suspend file configuration for {fileName}...");
             SendCmdSetSuspend(fileName, fileSize, sequenceNumber + 1);
-            Thread.Sleep(1000);
+            Thread.Sleep(200);
 
             // Step 3: Transfer the actual file data
             Console.WriteLine("Step 3: Transferring suspend file data...");
             SendFileFromDisk(filePath, transferId);
             Console.WriteLine("Suspend file data transfer completed");
-
+            Thread.Sleep(200);
             // Step 4: Send suspend completion command with MD5 hash
             Console.WriteLine("Step 4: Sending suspend completion command...");
             string md5Hash = CalculateMD5Hash(filePath);
-            SendCmdSuspendCompleted(fileName, md5Hash, sequenceNumber + 2);
-            Thread.Sleep(500);
+            SendCmdSuspendCompleted(fileName, "1111111", sequenceNumber + 2);
+            Thread.Sleep(200);
 
             // Step 5: Disable real-time display mode again
             Console.WriteLine("Step 5: Disabling real-time display mode again...");
             SendCmdRealTimeDisplay(false, sequenceNumber + 3);
-            Thread.Sleep(500);
+            Thread.Sleep(200);
+
+            SendCmdSetKeepAliveTimer(2, sequenceNumber + 5);
 
             // Step 6: Read maximum suspend media count
             Console.WriteLine("Step 6: Reading maximum suspend media count...");
             SendCmdReadMaxSuspendMedia(sequenceNumber + 4);
-            Thread.Sleep(500);
+            Thread.Sleep(200);
 
             Console.WriteLine("Suspend mode setup completed successfully!");
         }
@@ -2068,7 +2778,363 @@ public class DisplayController
     /// <param name="transferId">Unique transfer ID (0-59)</param>
     /// <param name="sequenceNumber">Starting sequence number for commands</param>
     /// <returns>True if all steps completed successfully</returns>
-    public async Task<bool> SetSuspendModeWithResponse(string filePath, byte transferId = 1, int sequenceNumber = 50)
+    public async Task<bool> SetSuspendModeWithResponse(int sequenceNumber = 50)
+    {
+        var step1Response = await SendCmdRealTimeDisplayWithResponse(false, sequenceNumber);
+        if (step1Response?.IsSuccess != true)
+        {
+            Console.WriteLine($"SetSuspendModeWithResponse. Status: {step1Response?.StatusCode}");
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Send a suspend file with complete workflow including transport, file transfer, and completion
+    /// </summary>
+    /// <param name="filePath">Path to the suspend file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="sequenceNumber">Starting sequence number for commands</param>
+    /// <returns>True if all steps completed successfully</returns>
+    public async Task<bool> SendSuspendFileWithResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
+    {
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"Suspend file not found: {filePath}");
+            return false;
+        }
+
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            string fileName = fileInfo.Name;
+            int fileSize = (int)fileInfo.Length;
+
+            Console.WriteLine($"Sending suspend file with response handling: {fileName} ({fileSize} bytes)");
+
+            // Step 1: Set suspend file configuration
+            Console.WriteLine($"Step 1: Setting suspend file configuration for {fileName}...");
+            var step1Response = await SendCmdSetSuspendWithResponse(fileName, fileSize, sequenceNumber);
+            if (step1Response?.IsSuccess != true)
+            {
+                Console.WriteLine($"Step 1 failed. Status: {step1Response?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine("Step 1 successful");
+
+            // Step 2: Transfer the actual file data
+            Console.WriteLine("Step 2: Transferring suspend file data...");
+            SendFileFromDisk(filePath, transferId);
+            Console.WriteLine("Suspend file data transfer completed");
+
+            // Step 3: Send suspend completion command with MD5 hash
+            Console.WriteLine("Step 3: Sending suspend completion command...");
+            string md5Hash = CalculateMD5Hash(filePath);
+            var step3Response = await SendCmdSuspendCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
+            if (step3Response?.IsSuccess != true)
+            {
+                Console.WriteLine($"Step 3 failed. Status: {step3Response?.StatusCode}");
+                return false;
+            }
+            Console.WriteLine("Step 3 successful");
+
+            Console.WriteLine($"Suspend file {fileName} sent successfully!");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending suspend file: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Send multiple suspend files with complete workflow
+    /// </summary>
+    /// <param name="filePaths">List of file paths to send</param>
+    /// <param name="startingTransferId">Starting transfer ID (0-59)</param>
+    /// <param name="startingSequenceNumber">Starting sequence number for commands</param>
+    /// <returns>True if all files were sent successfully</returns>
+    public async Task<bool> SendMultipleSuspendFilesWithResponse(List<string> filePaths, byte startingTransferId = 1, int startingSequenceNumber = 42)
+    {
+        if (filePaths == null || filePaths.Count == 0)
+        {
+            Console.WriteLine("No files provided to send");
+            return false;
+        }
+
+        Console.WriteLine($"Sending {filePaths.Count} suspend files...");
+
+        for (int i = 0; i < filePaths.Count; i++)
+        {
+            string filePath = filePaths[i];
+            byte transferId = (byte)((startingTransferId + i) % 60); // Ensure within valid range
+            int sequenceNumber = startingSequenceNumber + (i * 3); // Space out sequence numbers
+
+            Console.WriteLine($"Processing file {i + 1}/{filePaths.Count}: {Path.GetFileName(filePath)}");
+
+            bool success = await SendSuspendFileWithResponse(filePath, transferId, sequenceNumber);
+            if (!success)
+            {
+                Console.WriteLine($"Failed to send file {i + 1}: {Path.GetFileName(filePath)}");
+                return false;
+            }
+
+            // Small delay between files to avoid overwhelming the device
+            await Task.Delay(100);
+        }
+
+        Console.WriteLine("All suspend files sent successfully!");
+        return true;
+    }
+
+    /// <summary>
+    /// Delete suspend media files with response handling
+    /// </summary>
+    /// <param name="fileName">Suspend file name to delete (defaults to "all" to delete all files)</param>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    /// <returns>True if deletion was successful</returns>
+    public async Task<bool> DeleteSuspendFilesWithResponse(string fileName = "all", int sequenceNumber = 42)
+    {
+        try
+        {
+            Console.WriteLine($"Deleting suspend media: {fileName}");
+
+            var deleteResponse = await SendCmdDeleteSuspendWithResponse(fileName, sequenceNumber);
+            if (deleteResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"Delete suspend media failed. Status: {deleteResponse?.StatusCode}");
+                if (!string.IsNullOrEmpty(deleteResponse?.ResponseData))
+                {
+                    Console.WriteLine($"Error details: {deleteResponse.Value.ResponseData}");
+                }
+                return false;
+            }
+
+            Console.WriteLine($"Successfully deleted suspend media: {fileName}");
+            if (!string.IsNullOrEmpty(deleteResponse.Value.ResponseData))
+            {
+                Console.WriteLine($"Response: {deleteResponse.Value.ResponseData}");
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting suspend files: {ex.Message}");
+            return false;
+        }
+    }
+
+
+    /// <summary>
+    /// Delete multiple specific suspend files with response handling
+    /// </summary>
+    /// <param name="fileNames">List of suspend file names to delete</param>
+    /// <param name="startingSequenceNumber">Starting sequence number for commands</param>
+    /// <returns>True if all deletions were successful</returns>
+    public async Task<bool> DeleteMultipleSuspendFilesWithResponse(List<string> fileNames, int startingSequenceNumber = 42)
+    {
+        if (fileNames == null || fileNames.Count == 0)
+        {
+            Console.WriteLine("No files provided to delete");
+            return false;
+        }
+
+        Console.WriteLine($"Deleting {fileNames.Count} suspend files...");
+
+        for (int i = 0; i < fileNames.Count; i++)
+        {
+            string fileName = fileNames[i];
+            int sequenceNumber = startingSequenceNumber + i;
+
+            Console.WriteLine($"Deleting file {i + 1}/{fileNames.Count}: {fileName}");
+
+            bool success = await DeleteSuspendFilesWithResponse(fileName, sequenceNumber);
+            if (!success)
+            {
+                Console.WriteLine($"Failed to delete file {i + 1}: {fileName}");
+                return false;
+            }
+
+            // Small delay between commands to avoid overwhelming the device
+            await Task.Delay(100);
+        }
+
+        Console.WriteLine("All suspend files deleted successfully!");
+        return true;
+    }
+
+    /// <summary>
+    /// Clear all suspend media and exit suspend mode
+    /// </summary>
+    /// <param name="sequenceNumber">Sequence number for the command</param>
+    /// <returns>True if operation was successful</returns>
+    public async Task<bool> ClearSuspendModeWithResponse(int sequenceNumber = 42)
+    {
+        try
+        {
+            Console.WriteLine("Clearing suspend mode by deleting all suspend media...");
+
+            // Delete all suspend media
+            bool deleteSuccess = await DeleteSuspendFilesWithResponse("all", sequenceNumber);
+            if (!deleteSuccess)
+            {
+                return false;
+            }
+
+            // Sleep 100
+            Thread.Sleep(100);
+
+            // Optional: Read status to confirm
+            Console.WriteLine("Reading suspend media status after deletion...");
+            var statusResponse = await SendCmdReadMaxSuspendMediaWithResponse(sequenceNumber + 1);
+            if (statusResponse?.IsSuccess == true && !string.IsNullOrEmpty(statusResponse.Value.ResponseData))
+            {
+                Console.WriteLine($"Suspend media status: {statusResponse.Value.ResponseData}");
+                // {"brightness": 80,"degree": 0,"osdState": 0,"keepAliveTimeout": 5,"maxSuspendMediaCount": 5,"displayInSleep": 0,"suspendMediaActive": [☻0,0,0,0,0]}
+                // Get the [☻0,0,0,0,0] value
+                try
+                {
+                    var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(statusResponse.Value.ResponseData);
+                    if (jsonResponse?.ContainsKey("suspendMediaActive") == true)
+                    {
+                        var activeArray = jsonResponse["suspendMediaActive"].ToString();
+                        Console.WriteLine($"Current suspend media active status: {activeArray}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to parse suspend media status response: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine("Suspend mode cleared successfully!");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error clearing suspend mode: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Delete specific suspend files by their indices (1-based)
+    /// </summary>
+    /// <param name="indices">List of 1-based indices to delete (e.g., [1, 3, 5])</param>
+    /// <param name="startingSequenceNumber">Starting sequence number for commands</param>
+    /// <returns>True if all deletions were successful</returns>
+    public async Task<bool> DeleteSuspendFilesByIndexWithResponse(List<int> indices, int startingSequenceNumber = 42)
+    {
+        if (indices == null || indices.Count == 0)
+        {
+            Console.WriteLine("No indices provided to delete");
+            return false;
+        }
+
+        // Convert indices to file names (assuming format like "suspend_0.jpg", "suspend_1.jpg", etc.)
+        var fileNames = new List<string>();
+        foreach (int index in indices)
+        {
+            if (index < 1)
+            {
+                Console.WriteLine($"Invalid index: {index}. Indices must be 1-based.");
+                return false;
+            }
+
+            // Convert 1-based index to 0-based file name
+            string fileName = $"suspend_{index - 1}.jpg"; // You can adjust the naming convention as needed
+            fileNames.Add(fileName);
+        }
+
+        Console.WriteLine($"Deleting suspend files by indices: [{string.Join(", ", indices)}]");
+        return await DeleteMultipleSuspendFilesWithResponse(fileNames, startingSequenceNumber);
+    }
+
+
+    public async Task<bool> SetSuspendModeDemo()
+    {
+        // Step 1: Disable real-time display mode and entry to suspend mode by call SetSuspendModeWithResponse 
+        bool step1Response = await SetSuspendModeWithResponse(50);
+        if (step1Response != true)
+        {
+            return false;
+        }
+
+        // Init files list to transfer
+        List<string> filesToTransfer = new List<string>
+        {
+            @"E:\github\CMDevicesManager\HidProtocol\resources\suspend_0.jpg",
+            @"E:\github\CMDevicesManager\HidProtocol\resources\suspend_1.jpg",
+            @"E:\github\CMDevicesManager\HidProtocol\resources\suspend_2.mp4"
+        };
+
+        // Step 2: Send multiple suspend files/ or call SendSuspendFileWithResponse to send single file.
+        bool filesSuccess = await SendMultipleSuspendFilesWithResponse(filesToTransfer, startingTransferId: 2, startingSequenceNumber: 51);
+        if (!filesSuccess)
+        {
+            Console.WriteLine("Failed to send suspend files");
+            return false;
+        }
+
+        // Step 3: Set brightness to 80 or other value.
+        Console.WriteLine("Setting brightness to 80...");
+        var brightnessResponse = await SendCmdBrightnessWithResponse(80, sequenceNumber:60);
+        if (brightnessResponse?.IsSuccess != true)
+        {
+            Console.WriteLine($"Set brightness failed. Status: {brightnessResponse?.StatusCode}");
+            // Continue anyway as this might not be critical
+        }
+        else
+        {
+            Console.WriteLine("Set brightness successful");
+        }
+
+        // Step 4: Set keep alive timer, if have muitiple suspend files, the alive timer is each file duration.
+        var timerResponse = await SendCmdSetKeepAliveTimerWithResponse(5, 60);
+        if (timerResponse?.IsSuccess != true)
+        {
+            Console.WriteLine($"Set keep alive timer failed. Status: {timerResponse?.StatusCode}");
+            // Continue anyway as this might not be critical
+        }
+        else
+        {
+            Console.WriteLine("Set keep alive timer successful");
+        }
+
+        // Step 5: (Optional) get max suspend media count to check current status. like below json response. suspendMediaActive array indicate which suspend media is active.
+        // {"brightness": 80,"degree": 0,"osdState": 0,"keepAliveTimeout": 2,"maxSuspendMediaCount": 5,"displayInSleep": 0,"suspendMediaActive": [☻1,1,0,0,0]}
+        var maxMediaResponse = await SendCmdReadMaxSuspendMediaWithResponse(sequenceNumber:61);
+        if (maxMediaResponse?.IsSuccess == true && !string.IsNullOrEmpty(maxMediaResponse.Value.ResponseData))
+        {
+            Console.WriteLine($"Max suspend media response: {maxMediaResponse.Value.ResponseData}");
+        }
+
+        // Sleep 20 seconds, then call delete suspend media command to exit suspend mode.
+        Console.WriteLine("Entering suspend mode for 40 seconds...");
+        Thread.Sleep(40000);
+
+        Console.WriteLine("Exiting suspend mode by deleting all suspend media...");
+        bool clearSuccess = await ClearSuspendModeWithResponse(sequenceNumber: 62);
+        if (!clearSuccess)
+        {
+            Console.WriteLine("Failed to clear suspend mode");
+            return false;
+        }
+
+        Console.WriteLine("Suspend mode demo completed successfully!");
+        return true;
+    }
+
+    /// <summary>
+    /// Complete workflow to set suspend mode with file transfer and response handling
+    /// </summary>
+    /// <param name="filePath">Path to the suspend video file</param>
+    /// <param name="transferId">Unique transfer ID (0-59)</param>
+    /// <param name="sequenceNumber">Starting sequence number for commands</param>
+    /// <returns>True if all steps completed successfully</returns>
+    public async Task<bool> SetSuspendModeWithResponse_back(string filePath, byte transferId = 1, int sequenceNumber = 50)
     {
         if (!File.Exists(filePath))
         {
@@ -2084,9 +3150,44 @@ public class DisplayController
 
             Console.WriteLine($"Setting suspend mode with response handling: {fileName} ({fileSize} bytes)");
 
+            //// Pre-step: Delete all existing suspend media
+            //Console.WriteLine("Pre-step: Deleting all existing suspend media...");
+            //var deleteResponse = await SendCmdDeleteSuspendWithResponse("all", sequenceNumber - 4);
+            //if (deleteResponse?.IsSuccess != true)
+            //{
+            //    Console.WriteLine($"Delete suspend media failed. Status: {deleteResponse?.StatusCode}");
+            //    // Continue anyway as this might not be critical
+            //}
+            //else
+            //{
+            //    Console.WriteLine("Delete suspend media successful");
+            //}
+
+            //// Pre-step: Set rotation to 0
+            //Console.WriteLine("Pre-step: Setting rotation to 0...");
+            //var rotationResponse = await SendCmdRotateWithResponse(0, sequenceNumber - 3);
+            //if (rotationResponse?.IsSuccess != true)
+            //{
+            //    Console.WriteLine($"Set rotation failed. Status: {rotationResponse?.StatusCode}");
+            //    // Continue anyway as this might not be critical
+            //}
+            //else
+            //{
+            //    Console.WriteLine("Set rotation successful");
+            //}
+
+
+            //// Pre-step: Read maximum suspend media count
+            //Console.WriteLine("Pre-step: Reading maximum suspend media count...");
+            //var maxMediaResponse = await SendCmdReadMaxSuspendMediaWithResponse(sequenceNumber - 1);
+            //if (maxMediaResponse?.IsSuccess == true && !string.IsNullOrEmpty(maxMediaResponse.Value.ResponseData))
+            //{
+            //    Console.WriteLine($"Max suspend media response: {maxMediaResponse.Value.ResponseData}");
+            //}
+
             // Step 1: Disable real-time display mode
             Console.WriteLine("Step 1: Disabling real-time display mode...");
-            var step1Response = await SendCmdWithResponse("realtimeDisplay", new { enable = false }, sequenceNumber, waitForResponse: true);
+            var step1Response = await SendCmdRealTimeDisplayWithResponse(false, sequenceNumber);
             if (step1Response?.IsSuccess != true)
             {
                 Console.WriteLine($"Step 1 failed. Status: {step1Response?.StatusCode}");
@@ -2096,18 +3197,13 @@ public class DisplayController
 
             // Step 2: Set suspend file configuration
             Console.WriteLine($"Step 2: Setting suspend file configuration for {fileName}...");
-            var step2Response = await SendCmdWithResponse("transport",
-                new { type = "suspend", fileName = fileName, fileSize = fileSize },
-                sequenceNumber + 1, waitForResponse: true);
+            var step2Response = await SendCmdSetSuspendWithResponse(fileName, fileSize, sequenceNumber + 1);
             if (step2Response?.IsSuccess != true)
             {
                 Console.WriteLine($"Step 2 failed. Status: {step2Response?.StatusCode}");
                 return false;
             }
             Console.WriteLine("Step 2 successful");
-
-            // Wait for device to process
-            Thread.Sleep(1500);
 
             // Step 3: Transfer the actual file data
             Console.WriteLine("Step 3: Transferring suspend file data...");
@@ -2117,9 +3213,7 @@ public class DisplayController
             // Step 4: Send suspend completion command with MD5 hash
             Console.WriteLine("Step 4: Sending suspend completion command...");
             string md5Hash = CalculateMD5Hash(filePath);
-            var step4Response = await SendCmdWithResponse("transported",
-                new { fileName = fileName, md5 = md5Hash },
-                sequenceNumber + 2, waitForResponse: true);
+            var step4Response = await SendCmdSuspendCompletedWithResponse(fileName, md5Hash, sequenceNumber + 2);
             if (step4Response?.IsSuccess != true)
             {
                 Console.WriteLine($"Step 4 failed. Status: {step4Response?.StatusCode}");
@@ -2127,9 +3221,11 @@ public class DisplayController
             }
             Console.WriteLine("Step 4 successful");
 
+            Thread.Sleep(200);
+
             // Step 5: Disable real-time display mode again
             Console.WriteLine("Step 5: Disabling real-time display mode again...");
-            var step5Response = await SendCmdWithResponse("realtimeDisplay", new { enable = false }, sequenceNumber + 3, waitForResponse: true);
+            var step5Response = await SendCmdRealTimeDisplayWithResponse(false, sequenceNumber + 3);
             if (step5Response?.IsSuccess != true)
             {
                 Console.WriteLine($"Step 5 failed. Status: {step5Response?.StatusCode}");
@@ -2137,15 +3233,45 @@ public class DisplayController
             }
             Console.WriteLine("Step 5 successful");
 
-            // Step 6: Read maximum suspend media count
-            Console.WriteLine("Step 6: Reading maximum suspend media count...");
-            var step6Response = await SendCmdWithResponse("param", null, sequenceNumber + 4, waitForResponse: true);
-            if (step6Response?.IsSuccess != true)
+
+            // Pre-step: Set brightness to 80
+            Console.WriteLine("Pre-step: Setting brightness to 80...");
+            var brightnessResponse = await SendCmdBrightnessWithResponse(80, sequenceNumber - 2);
+            if (brightnessResponse?.IsSuccess != true)
             {
-                Console.WriteLine($"Step 6 failed. Status: {step6Response?.StatusCode}");
-                return false;
+                Console.WriteLine($"Set brightness failed. Status: {brightnessResponse?.StatusCode}");
+                // Continue anyway as this might not be critical
             }
-            Console.WriteLine($"Step 6 successful. Response: {step6Response.Value.ResponseData}");
+            else
+            {
+                Console.WriteLine("Set brightness successful");
+            }
+
+            // Step 6: Set keep alive timer
+            Console.WriteLine("Step 6: Setting keep alive timer to 2 seconds...");
+            var timerResponse = await SendCmdSetKeepAliveTimerWithResponse(2, sequenceNumber + 4);
+            if (timerResponse?.IsSuccess != true)
+            {
+                Console.WriteLine($"Step 6 failed. Status: {timerResponse?.StatusCode}");
+                // Continue anyway as this might not be critical
+            }
+            else
+            {
+                Console.WriteLine("Step 6 successful");
+            }
+
+            // Step 7: Read maximum suspend media count again
+            Console.WriteLine("Step 7: Reading maximum suspend media count again...");
+            var step7Response = await SendCmdReadMaxSuspendMediaWithResponse(sequenceNumber + 5);
+            if (step7Response?.IsSuccess != true)
+            {
+                Console.WriteLine($"Step 7 failed. Status: {step7Response?.StatusCode}");
+                // Continue anyway as this is just a status check
+            }
+            else
+            {
+                Console.WriteLine($"Step 7 successful. Response: {step7Response.Value.ResponseData}");
+            }
 
             Console.WriteLine("Suspend mode setup with response handling completed successfully!");
             return true;
