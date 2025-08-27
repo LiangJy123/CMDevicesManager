@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Remove="HAF700II - Device Control Protocol Specification-v0_2_1.pdf" />
+  </ItemGroup>
+
 </Project>
