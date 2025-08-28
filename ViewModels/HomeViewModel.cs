@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Windows.Threading;
 using CMDevicesManager.Models;
 using CMDevicesManager.Services;
 using Timer = System.Threading.Timer;
@@ -13,6 +14,7 @@ namespace CMDevicesManager.ViewModels
     {
         private readonly ISystemMetricsService _service;
         private readonly Timer _timer;
+        private readonly Dispatcher _dispatcher;
 
         public ObservableCollection<SensorCard> CoolingCards { get; } = new();
         public ObservableCollection<SensorCard> PowerCards { get; } = new();
@@ -22,9 +24,10 @@ namespace CMDevicesManager.ViewModels
         public HomeViewModel(ISystemMetricsService service)
         {
             _service = service;
+            _dispatcher = Dispatcher.CurrentDispatcher;
 
-            CoolingCards.Add(new SensorCard("CPU", _service.CpuName, "°C", "\uE9CA"));
-            CoolingCards.Add(new SensorCard("GPU", _service.PrimaryGpuName, "°C", "\uE9CA"));
+            CoolingCards.Add(new SensorCard("CPU", _service.CpuName, "Â°C", "\uE9CA"));
+            CoolingCards.Add(new SensorCard("GPU", _service.PrimaryGpuName, "Â°C", "\uE9CA"));
 
             PowerCards.Add(new SensorCard("CPU", _service.CpuName, "W", "\uE945"));
             PowerCards.Add(new SensorCard("GPU", _service.PrimaryGpuName, "W", "\uE945"));
@@ -41,18 +44,22 @@ namespace CMDevicesManager.ViewModels
 
         private void Update()
         {
-            CoolingCards[0].Value = _service.GetCpuTemperature();
-            CoolingCards[1].Value = _service.GetGpuTemperature();
+            // Marshal to UI thread to ensure proper binding updates
+            _dispatcher.BeginInvoke(() =>
+            {
+                CoolingCards[0].Value = _service.GetCpuTemperature();
+                CoolingCards[1].Value = _service.GetGpuTemperature();
 
-            PowerCards[0].Value = _service.GetCpuPower();
-            PowerCards[1].Value = _service.GetGpuPower();
+                PowerCards[0].Value = _service.GetCpuPower();
+                PowerCards[1].Value = _service.GetGpuPower();
 
-            SystemCards[0].Value = _service.GetCpuUsagePercent();
-            SystemCards[1].Value = _service.GetGpuUsagePercent();
-            SystemCards[2].Value = _service.GetMemoryUsagePercent();
+                SystemCards[0].Value = _service.GetCpuUsagePercent();
+                SystemCards[1].Value = _service.GetGpuUsagePercent();
+                SystemCards[2].Value = _service.GetMemoryUsagePercent();
 
-            NetworkCards[0].Value = _service.GetNetDownloadKBs();
-            NetworkCards[1].Value = _service.GetNetUploadKBs();
+                NetworkCards[0].Value = _service.GetNetDownloadKBs();
+                NetworkCards[1].Value = _service.GetNetUploadKBs();
+            });
         }
 
         public void Dispose()

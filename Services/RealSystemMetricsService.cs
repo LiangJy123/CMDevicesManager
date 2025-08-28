@@ -81,6 +81,7 @@ namespace CMDevicesManager.Services
             {
                 Logger.Error("[HW] Failed to initialize hardware monitoring service", ex);
                 throw;
+
             }
         }
 
@@ -180,12 +181,30 @@ namespace CMDevicesManager.Services
                 {
                     RefreshAllHardware();
 
-                    cache ??= resolver();
+                    // If cache is null or the sensor is no longer valid, try to resolve it again
+                    if (cache == null || cache.Hardware == null)
+                    {
+                        cache = resolver();
+                    }
+                    
+                    // Update the specific hardware for this sensor
                     cache?.Hardware?.Update();
 
                     var value = cache?.Value;
                     if (value.HasValue)
                         return Math.Round(value.Value, 0);
+
+                    // If we still don't have a value, try to resolve the sensor again
+                    // This handles cases where sensors become available after initialization
+                    if (cache == null)
+                    {
+                        cache = resolver();
+                        cache?.Hardware?.Update();
+                        
+                        value = cache?.Value;
+                        if (value.HasValue)
+                            return Math.Round(value.Value, 0);
+                    }
 
                     // Log once per sensor type
                     LogMissing(cache);
@@ -202,20 +221,24 @@ namespace CMDevicesManager.Services
 
         private void CacheSensors()
         {
-            _cpuTemp = FindCpuSensor(SensorType.Temperature, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase)) ??
+            // Use the same patterns as the Get methods for consistency
+            _cpuTemp = FindCpuSensor(SensorType.Temperature, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)) ??
                        FindCpuSensor(SensorType.Temperature, _ => true);
 
             _gpuTemp = FindGpuSensor(SensorType.Temperature, s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)) ??
                        FindGpuSensor(SensorType.Temperature, _ => true);
 
-            _cpuPower = FindCpuSensor(SensorType.Power, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase)) ??
+            _cpuPower = FindCpuSensor(SensorType.Power, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("CPU", StringComparison.OrdinalIgnoreCase)) ??
                         FindCpuSensor(SensorType.Power, _ => true);
 
-            _gpuPower = FindGpuSensor(SensorType.Power, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase)) ??
+            _gpuPower = FindGpuSensor(SensorType.Power, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)) ??
                         FindGpuSensor(SensorType.Power, _ => true);
 
-            _cpuLoad = FindCpuSensor(SensorType.Load, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase));
-            _gpuLoad = FindGpuSensor(SensorType.Load, s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase));
+            _cpuLoad = FindCpuSensor(SensorType.Load, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase)) ??
+                       FindCpuSensor(SensorType.Load, _ => true);
+            
+            _gpuLoad = FindGpuSensor(SensorType.Load, s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)) ??
+                       FindGpuSensor(SensorType.Load, _ => true);
 
             _memLoad = FindMemorySensor(SensorType.Load, s => s.Name.Equals("Memory", StringComparison.OrdinalIgnoreCase)) ??
                        FindMemorySensor(SensorType.Load, _ => true);
@@ -246,8 +269,53 @@ namespace CMDevicesManager.Services
         {
             foreach (var h in _computer.Hardware)
             {
-                h.Update();
-                foreach (var sub in h.SubHardware) sub.Update();
+                try
+                {
+                    h.Update();
+                    // Also update sub-hardware recursively
+                    foreach (var sub in h.SubHardware) 
+                    {
+                        sub.Update();
+                        // Some hardware may have nested sub-hardware
+                        foreach (var subSub in sub.SubHardware)
+                        {
+                            subSub.Update();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log but don't fail completely if one piece of hardware fails to update
+                    Logger.Info($"[HW] Failed to update hardware {h.Name}: {ex.Message}");
+                }
+            }
+        }
+
+        private void LogAvailableSensors()
+        {
+            try
+            {
+                Logger.Info("[HW] Available hardware and sensors:");
+                foreach (var hardware in _computer.Hardware)
+                {
+                    Logger.Info($"[HW] Hardware: {hardware.Name} ({hardware.HardwareType})");
+                    foreach (var sensor in hardware.Sensors)
+                    {
+                        Logger.Info($"[HW]   Sensor: {sensor.Name} ({sensor.SensorType}) = {sensor.Value}");
+                    }
+                    foreach (var subHardware in hardware.SubHardware)
+                    {
+                        Logger.Info($"[HW]   SubHardware: {subHardware.Name} ({subHardware.HardwareType})");
+                        foreach (var sensor in subHardware.Sensors)
+                        {
+                            Logger.Info($"[HW]     Sensor: {sensor.Name} ({sensor.SensorType}) = {sensor.Value}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Info($"[HW] Failed to log available sensors: {ex.Message}");
             }
         }
 
@@ -258,42 +326,49 @@ namespace CMDevicesManager.Services
             {
                 msg = "[HW] CPU temperature sensor not found. Using 0.";
                 Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
+                Logger.Info($"[HW] Looking for CPU temp sensor with patterns: Package, Core");
                 _loggedCpuTemp = true;
             }
             else if (sensor == _gpuTemp && !_loggedGpuTemp)
             {
                 msg = "[HW] GPU temperature sensor not found. Using 0.";
                 Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
+                Logger.Info($"[HW] Looking for GPU temp sensor with pattern: Core");
                 _loggedGpuTemp = true;
             }
             else if (sensor == _cpuPower && !_loggedCpuPower)
             {
                 msg = "[HW] CPU power sensor not found. Using 0.";
                 Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
+                Logger.Info($"[HW] Looking for CPU power sensor with patterns: Package, CPU");
                 _loggedCpuPower = true;
             }
             else if (sensor == _gpuPower && !_loggedGpuPower)
             {
                 msg = "[HW] GPU power sensor not found. Using 0.";
                 Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
+                Logger.Info($"[HW] Looking for GPU power sensor with patterns: Total, Package, Core");
                 _loggedGpuPower = true;
             }
             else if (sensor == _cpuLoad && !_loggedCpuLoad)
             {
                 msg = "[HW] CPU load sensor not found. Using 0%.";
                 Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
+                Logger.Info($"[HW] Looking for CPU load sensor with pattern: Total");
                 _loggedCpuLoad = true;
             }
             else if (sensor == _gpuLoad && !_loggedGpuLoad)
             {
                 msg = "[HW] GPU load sensor not found. Using 0%.";
                 Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
+                Logger.Info($"[HW] Looking for GPU load sensor with pattern: Core");
                 _loggedGpuLoad = true;
             }
             else if (sensor == _memLoad && !_loggedMemLoad)
             {
                 msg = "[HW] Memory load sensor not found. Using 0%.";
                 Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
+                Logger.Info($"[HW] Looking for Memory load sensor with pattern: Memory");
                 _loggedMemLoad = true;
             }
         }
