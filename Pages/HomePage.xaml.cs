@@ -26,7 +26,6 @@ namespace CMDevicesManager.Pages
         {
             InitializeComponent();
 
-            // Switch from fake to real hardware-backed service
             ISystemMetricsService service = new RealSystemMetricsService();
             DataContext = new HomeViewModel(service);
 
