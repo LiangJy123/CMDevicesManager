@@ -251,9 +251,6 @@ namespace HID.DisplayController
         // Report ID for display-ctrl-capabilities 0x20
         private const byte DisplayCtrlCapabilitiesReportID = 0x14;
 
-        // Define global SeqNumber for commands
-        private uint _currentSeqNumber = 1;    // 0 ~ (0xFFFFFFFF-1)
-
         /// <summary>
         /// Device firmware and hardware information
         /// </summary>
@@ -353,12 +350,13 @@ namespace HID.DisplayController
         /// Get current device status with parsed DeviceStatus structure
         /// {"brightness":100,"degree":0,"osdState":0,"keepAliveTimeout":5,"maxSuspendMediaCount":5,"displayInSleep":0,"suspendMediaActive":[1,0,0,1,1]}
         /// </summary>
+        /// <param name="sequenceNumber">Sequence number for the command</param>
         /// <returns>DeviceStatus instance with current device state, or null if failed</returns>
-        public async Task<DeviceStatus?> GetDeviceStatus()
+        public async Task<DeviceStatus?> GetDeviceStatus(int sequenceNumber = 42)
         {
             try
             {
-                var response = await SendCmdGetStatusWithResponse();
+                var response = await SendCmdGetStatusWithResponse(sequenceNumber);
 
                 if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
                 {
@@ -390,6 +388,7 @@ namespace HID.DisplayController
                 return null;
             }
         }
+
 
         private DisplayCtrlCapabilities? GetDisplayCtrlCapabilities(bool debug = false)
         {
@@ -1437,7 +1436,7 @@ namespace HID.DisplayController
         /// <param name="jsonPayload">Command payload</param>
         /// <param name="timeoutMs">Timeout in milliseconds</param>
         /// <returns>Response or null if timeout</returns>
-        public async Task<DisplayResponse?> SendCommandAndWaitResponse(string jsonPayload, uint sequenceNumber, int timeoutMs = 5000)
+        public async Task<DisplayResponse?> SendCommandAndWaitResponse(string jsonPayload, int timeoutMs = 5000)
         {
             DisplayResponse? response = null;
             var responseReceived = false;
@@ -1446,12 +1445,9 @@ namespace HID.DisplayController
             // Set up temporary event handler
             EventHandler<DisplayResponse> handler = (sender, resp) =>
             {
-                if (resp.AckNumber == (sequenceNumber + 1))
-                {
-                    response = resp;
-                    responseReceived = true;
-                    waitHandle.Set();
-                }
+                response = resp;
+                responseReceived = true;
+                waitHandle.Set();
             };
 
             ResponseReceived += handler;
@@ -1481,23 +1477,18 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="command">Command name</param>
         /// <param name="parameters">Command parameters</param>
+        /// <param name="sequenceNumber">Sequence number</param>
         /// <param name="waitForResponse">Whether to wait for response</param>
         /// <returns>Response if waiting enabled, null otherwise</returns>
-        public async Task<DisplayResponse?> SendCmdWithResponse(string command, object? parameters = null, bool waitForResponse = false)
+        public async Task<DisplayResponse?> SendCmdWithResponse(string command, object? parameters = null, int sequenceNumber = 42, bool waitForResponse = false)
         {
-            uint currentSeqNumber = _currentSeqNumber;
             string jsonContent = parameters != null ? System.Text.Json.JsonSerializer.Serialize(parameters) : "";
             int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
-            string jsonPayload = $"POST {command} 1\r\nSeqNumber={currentSeqNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
-            _currentSeqNumber++;
-            if (_currentSeqNumber == (uint.MaxValue - 1))
-            {
-                _currentSeqNumber = 1;
-            }
+            string jsonPayload = $"POST {command} 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
 
             if (waitForResponse)
             {
-                return await SendCommandAndWaitResponse(jsonPayload, currentSeqNumber);
+                return await SendCommandAndWaitResponse(jsonPayload);
             }
             else
             {
@@ -1509,190 +1500,183 @@ namespace HID.DisplayController
         /// <summary>
         /// Enhanced brightness command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdBrightnessWithResponse(int value)
+        public async Task<DisplayResponse?> SendCmdBrightnessWithResponse(int value, int sequenceNumber = 42)
         {
             if (value < 0 || value > 100)
             {
                 throw new ArgumentOutOfRangeException(nameof(value), "Brightness value must be between 0 and 100");
             }
 
-            return await SendCmdWithResponse("brightness", new { value = value }, waitForResponse: true);
+            return await SendCmdWithResponse("brightness", new { value = value }, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced rotation command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdRotateWithResponse(int degree)
+        public async Task<DisplayResponse?> SendCmdRotateWithResponse(int degree, int sequenceNumber = 42)
         {
             if (degree != 0 && degree != 90 && degree != 180 && degree != 270)
             {
                 throw new ArgumentException("Degree must be 0, 90, 180, or 270", nameof(degree));
             }
 
-            return await SendCmdWithResponse("rotate", new { degree = degree }, waitForResponse: true);
+            return await SendCmdWithResponse("rotate", new { degree = degree }, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced display in sleep command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdDisplayInSleepWithResponse(bool enable)
+        public async Task<DisplayResponse?> SendCmdDisplayInSleepWithResponse(bool enable, int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("displayInSleep", new { enable = enable }, waitForResponse: true);
+            return await SendCmdWithResponse("displayInSleep", new { enable = enable }, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced set suspend command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdSetSuspendWithResponse(string fileName, int fileSize)
+        public async Task<DisplayResponse?> SendCmdSetSuspendWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
         {
             var parameters = new { type = "suspend", fileName = fileName, fileSize = fileSize };
-            return await SendCmdWithResponse("transport", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced suspend completed command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdSuspendCompletedWithResponse(string fileName, string md5)
+        public async Task<DisplayResponse?> SendCmdSuspendCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
         {
             var parameters = new { fileName = fileName, md5 = md5 };
-            return await SendCmdWithResponse("transported", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced delete suspend command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdDeleteSuspendWithResponse(string fileName = "all")
+        public async Task<DisplayResponse?> SendCmdDeleteSuspendWithResponse(string fileName = "all", int sequenceNumber = 42)
         {
             var parameters = new { type = "suspend", fileName = fileName };
-            return await SendCmdWithResponse("delMedia", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("delMedia", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced keep alive command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdKeepAliveWithResponse(long timestamp)
+        public async Task<DisplayResponse?> SendCmdKeepAliveWithResponse(long timestamp, int sequenceNumber = 42)
         {
-            uint currentSeqNumber = _currentSeqNumber;
             var parameters = new { timestamp = timestamp };
             string jsonContent = System.Text.Json.JsonSerializer.Serialize(parameters);
             int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
-            string jsonPayload = $"STATE timestamp 1\r\nSeqNumber={currentSeqNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
-            _currentSeqNumber++;
-            // if _currentSeqNumber exceeds uint.MaxValue, reset to 1
-            if (_currentSeqNumber == (uint.MaxValue - 1))
-            {
-                _currentSeqNumber = 1;
-            }
+            string jsonPayload = $"STATE timestamp 1\r\nSeqNumber={sequenceNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
 
-            return await SendCommandAndWaitResponse(jsonPayload, currentSeqNumber);
+            return await SendCommandAndWaitResponse(jsonPayload);
         }
 
         /// <summary>
         /// Enhanced set keep alive timer command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdSetKeepAliveTimerWithResponse(int value)
+        public async Task<DisplayResponse?> SendCmdSetKeepAliveTimerWithResponse(int value, int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("timeout", new { value = value }, waitForResponse: true);
+            return await SendCmdWithResponse("timeout", new { value = value }, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced read keep alive timer command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdReadKeepAliveTimerWithResponse()
+        public async Task<DisplayResponse?> SendCmdReadKeepAliveTimerWithResponse(int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("param", null, waitForResponse: true);
+            return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced read maximum suspend media command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdReadMaxSuspendMediaWithResponse()
+        public async Task<DisplayResponse?> SendCmdReadMaxSuspendMediaWithResponse(int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("param", null, waitForResponse: true);
+            return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced set background command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdSetBackgroundWithResponse(string fileName, int fileSize)
+        public async Task<DisplayResponse?> SendCmdSetBackgroundWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
         {
             var parameters = new { type = "media", fileName = fileName, fileSize = fileSize };
-            return await SendCmdWithResponse("transport", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced background completed command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdBackgroundCompletedWithResponse(string fileName, string md5)
+        public async Task<DisplayResponse?> SendCmdBackgroundCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
         {
             var parameters = new { fileName = fileName, md5 = md5 };
-            return await SendCmdWithResponse("transported", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced real-time display command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdRealTimeDisplayWithResponse(bool enable)
+        public async Task<DisplayResponse?> SendCmdRealTimeDisplayWithResponse(bool enable, int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("realtimeDisplay", new { enable = enable }, waitForResponse: true);
+            return await SendCmdWithResponse("realtimeDisplay", new { enable = enable }, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced read rotated angle command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdReadRotatedAngleWithResponse()
+        public async Task<DisplayResponse?> SendCmdReadRotatedAngleWithResponse(int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("param", null, waitForResponse: true);
+            return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced read brightness command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdReadBrightnessWithResponse()
+        public async Task<DisplayResponse?> SendCmdReadBrightnessWithResponse(int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("param", null, waitForResponse: true);
+            return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced firmware upgrade command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdFirmwareUpgradeWithResponse(string fileName, int fileSize)
+        public async Task<DisplayResponse?> SendCmdFirmwareUpgradeWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
         {
             var parameters = new { type = "firmware", fileName = fileName, fileSize = fileSize };
-            return await SendCmdWithResponse("transport", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced firmware upgrade completed command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdFirmwareUpgradeCompletedWithResponse(string fileName, string md5)
+        public async Task<DisplayResponse?> SendCmdFirmwareUpgradeCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
         {
             var parameters = new { fileName = fileName, md5 = md5 };
-            return await SendCmdWithResponse("transported", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced set powerup media command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdSetPowerupMediaWithResponse(string fileName, int fileSize)
+        public async Task<DisplayResponse?> SendCmdSetPowerupMediaWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
         {
             var parameters = new { type = "logo", fileName = fileName, fileSize = fileSize };
-            return await SendCmdWithResponse("transport", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced powerup media completed command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdPowerupMediaCompletedWithResponse(string fileName, string md5)
+        public async Task<DisplayResponse?> SendCmdPowerupMediaCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
         {
             var parameters = new { fileName = fileName, md5 = md5 };
-            return await SendCmdWithResponse("transported", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced set device serial number command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdSetDeviceSNWithResponse(string serialNumber)
+        public async Task<DisplayResponse?> SendCmdSetDeviceSNWithResponse(string serialNumber, int sequenceNumber = 42)
         {
             if (string.IsNullOrEmpty(serialNumber))
             {
@@ -1705,21 +1689,21 @@ namespace HID.DisplayController
                 throw new ArgumentException("Serial number must be a 32-character hexadecimal string", nameof(serialNumber));
             }
 
-            return await SendCmdWithResponse("setDeviceSN", new { sn = serialNumber.ToUpper() }, waitForResponse: true);
+            return await SendCmdWithResponse("setDeviceSN", new { sn = serialNumber.ToUpper() }, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced get device serial number command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdGetDeviceSNWithResponse()
+        public async Task<DisplayResponse?> SendCmdGetDeviceSNWithResponse(int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("getDeviceSN", null, waitForResponse: true);
+            return await SendCmdWithResponse("getDeviceSN", null, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced set color SKU command with response (string version)
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdSetColorSkuWithResponse(string color)
+        public async Task<DisplayResponse?> SendCmdSetColorSkuWithResponse(string color, int sequenceNumber = 42)
         {
             if (string.IsNullOrEmpty(color))
             {
@@ -1738,40 +1722,40 @@ namespace HID.DisplayController
                 throw new ArgumentException("Color must be a valid hexadecimal value", nameof(color));
             }
 
-            return await SendCmdWithResponse("setSKUColor", new { color = color }, waitForResponse: true);
+            return await SendCmdWithResponse("setSKUColor", new { color = color }, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced set color SKU command with response (integer version)
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdSetColorSkuWithResponse(int colorValue)
+        public async Task<DisplayResponse?> SendCmdSetColorSkuWithResponse(int colorValue, int sequenceNumber = 42)
         {
             string color = $"0x{colorValue:X4}";
-            return await SendCmdSetColorSkuWithResponse(color);
+            return await SendCmdSetColorSkuWithResponse(color, sequenceNumber);
         }
 
         /// <summary>
         /// Enhanced get color SKU command with response
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdGetColorSkuWithResponse()
+        public async Task<DisplayResponse?> SendCmdGetColorSkuWithResponse(int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("getSKUColor", null, waitForResponse: true);
+            return await SendCmdWithResponse("getSKUColor", null, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Get device capabilities with response parsing
         /// </summary>
-        public async Task<DisplayResponse?> SendCmdGetStatusWithResponse()
+        public async Task<DisplayResponse?> SendCmdGetStatusWithResponse(int sequenceNumber = 42)
         {
-            return await SendCmdWithResponse("param", null, waitForResponse: true);
+            return await SendCmdWithResponse("param", null, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
         /// Enhanced device serial number request with response
         /// </summary>
-        public async Task<string?> GetDeviceSerialNumber()
+        public async Task<string?> GetDeviceSerialNumber(int sequenceNumber = 42)
         {
-            var response = await SendCmdWithResponse("getDeviceSN", null, waitForResponse: true);
+            var response = await SendCmdWithResponse("getDeviceSN", null, sequenceNumber, waitForResponse: true);
 
             if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
             {
@@ -1795,9 +1779,9 @@ namespace HID.DisplayController
         /// <summary>
         /// Enhanced color SKU request with response
         /// </summary>
-        public async Task<string?> GetColorSku()
+        public async Task<string?> GetColorSku(int sequenceNumber = 42)
         {
-            var response = await SendCmdWithResponse("getSKUColor", null, waitForResponse: true);
+            var response = await SendCmdWithResponse("getSKUColor", null, sequenceNumber, waitForResponse: true);
 
             if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
             {
@@ -1823,8 +1807,9 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="filePath">Path to the background file</param>
         /// <param name="transferId">Unique transfer ID (0-59)</param>
+        /// <param name="sequenceNumber">Sequence number for commands</param>
         /// <returns>True if all steps completed successfully</returns>
-        public async Task<bool> SetBackgroundWithFileAndResponse(string filePath, byte transferId = 1)
+        public async Task<bool> SetBackgroundWithFileAndResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
         {
             if (!File.Exists(filePath))
             {
@@ -1841,7 +1826,7 @@ namespace HID.DisplayController
                 Console.WriteLine($"Setting background with response handling: {fileName} ({fileSize} bytes)");
 
                 // Step 1: Send background transport command with response
-                var transportResponse = await SendCmdSetBackgroundWithResponse(fileName, fileSize);
+                var transportResponse = await SendCmdSetBackgroundWithResponse(fileName, fileSize, sequenceNumber);
                 if (transportResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"Background transport command failed. Status: {transportResponse?.StatusCode}");
@@ -1858,7 +1843,7 @@ namespace HID.DisplayController
 
                 // Step 3: Send completion command with response
                 string md5Hash = CalculateMD5Hash(filePath);
-                var completionResponse = await SendCmdBackgroundCompletedWithResponse(fileName, md5Hash + 1);
+                var completionResponse = await SendCmdBackgroundCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
                 if (completionResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"Background completion command failed. Status: {completionResponse?.StatusCode}");
@@ -1881,8 +1866,9 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="filePath">Path to the powerup media file</param>
         /// <param name="transferId">Unique transfer ID (0-59)</param>
+        /// <param name="sequenceNumber">Sequence number for commands</param>
         /// <returns>True if all steps completed successfully</returns>
-        public async Task<bool> SetPowerupMediaWithFileAndResponse(string filePath, byte transferId = 1)
+        public async Task<bool> SetPowerupMediaWithFileAndResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
         {
             if (!File.Exists(filePath))
             {
@@ -1899,7 +1885,7 @@ namespace HID.DisplayController
                 Console.WriteLine($"Setting powerup media with response handling: {fileName} ({fileSize} bytes)");
 
                 // Step 1: Send powerup media transport command with response
-                var transportResponse = await SendCmdSetPowerupMediaWithResponse(fileName, fileSize);
+                var transportResponse = await SendCmdSetPowerupMediaWithResponse(fileName, fileSize, sequenceNumber);
                 if (transportResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"Powerup media transport command failed. Status: {transportResponse?.StatusCode}");
@@ -1916,7 +1902,7 @@ namespace HID.DisplayController
 
                 // Step 3: Send completion command with response
                 string md5Hash = CalculateMD5Hash(filePath);
-                var completionResponse = await SendCmdPowerupMediaCompletedWithResponse(fileName, md5Hash + 1);
+                var completionResponse = await SendCmdPowerupMediaCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
                 if (completionResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"Powerup media completion command failed. Status: {completionResponse?.StatusCode}");
@@ -1939,8 +1925,9 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="filePath">Path to the firmware file</param>
         /// <param name="transferId">Unique transfer ID (0-59)</param>
+        /// <param name="sequenceNumber">Sequence number for commands</param>
         /// <returns>True if all steps completed successfully</returns>
-        public async Task<bool> FirmwareUpgradeWithFileAndResponse(string filePath, byte transferId = 1)
+        public async Task<bool> FirmwareUpgradeWithFileAndResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
         {
             if (!File.Exists(filePath))
             {
@@ -1957,7 +1944,7 @@ namespace HID.DisplayController
                 Console.WriteLine($"Starting firmware upgrade with response handling: {fileName} ({fileSize} bytes)");
 
                 // Step 1: Send firmware upgrade transport command with response
-                var transportResponse = await SendCmdFirmwareUpgradeWithResponse(fileName, fileSize);
+                var transportResponse = await SendCmdFirmwareUpgradeWithResponse(fileName, fileSize, sequenceNumber);
                 if (transportResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"Firmware upgrade transport command failed. Status: {transportResponse?.StatusCode}");
@@ -1971,7 +1958,7 @@ namespace HID.DisplayController
 
                 // Step 3: Send completion command with response
                 string md5Hash = CalculateMD5Hash(filePath);
-                var completionResponse = await SendCmdFirmwareUpgradeCompletedWithResponse(fileName, md5Hash + 1);
+                var completionResponse = await SendCmdFirmwareUpgradeCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
                 if (completionResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"Firmware upgrade completion command failed. Status: {completionResponse?.StatusCode}");
@@ -1994,11 +1981,12 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="fileName">OSD file name</param>
         /// <param name="fileSize">File size in bytes</param>
+        /// <param name="sequenceNumber">Sequence number for the command</param>
         /// <returns>Response from the device</returns>
-        public async Task<DisplayResponse?> SendCmdSetOsdWithResponse(string fileName, int fileSize)
+        public async Task<DisplayResponse?> SendCmdSetOsdWithResponse(string fileName, int fileSize, int sequenceNumber = 42)
         {
             var parameters = new { type = "media", fileName = fileName, fileSize = fileSize };
-            return await SendCmdWithResponse("transport", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transport", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
@@ -2006,11 +1994,12 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="fileName">OSD file name</param>
         /// <param name="md5">MD5 hash of the file</param>
+        /// <param name="sequenceNumber">Sequence number for the command</param>
         /// <returns>Response from the device</returns>
-        public async Task<DisplayResponse?> SendCmdOsdCompletedWithResponse(string fileName, string md5)
+        public async Task<DisplayResponse?> SendCmdOsdCompletedWithResponse(string fileName, string md5, int sequenceNumber = 42)
         {
             var parameters = new { fileName = fileName, md5 = md5 };
-            return await SendCmdWithResponse("transported", parameters, waitForResponse: true);
+            return await SendCmdWithResponse("transported", parameters, sequenceNumber, waitForResponse: true);
         }
 
         /// <summary>
@@ -2018,8 +2007,9 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="filePath">Path to the OSD file</param>
         /// <param name="transferId">Unique transfer ID (0-59)</param>
+        /// <param name="sequenceNumber">Sequence number for commands</param>
         /// <returns>True if all steps completed successfully</returns>
-        public async Task<bool> SetOsdWithFileAndResponse(string filePath, byte transferId = 1)
+        public async Task<bool> SetOsdWithFileAndResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
         {
             if (!File.Exists(filePath))
             {
@@ -2036,7 +2026,7 @@ namespace HID.DisplayController
                 Console.WriteLine($"Setting OSD with response handling: {fileName} ({fileSize} bytes)");
 
                 // Step 1: Send OSD transport command with response
-                var transportResponse = await SendCmdSetOsdWithResponse(fileName, fileSize);
+                var transportResponse = await SendCmdSetOsdWithResponse(fileName, fileSize, sequenceNumber);
                 if (transportResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"OSD transport command failed. Status: {transportResponse?.StatusCode}");
@@ -2053,7 +2043,7 @@ namespace HID.DisplayController
 
                 // Step 3: Send completion command with response
                 string md5Hash = CalculateMD5Hash(filePath);
-                var completionResponse = await SendCmdOsdCompletedWithResponse(fileName, md5Hash + 1);
+                var completionResponse = await SendCmdOsdCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
                 if (completionResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"OSD completion command failed. Status: {completionResponse?.StatusCode}");
@@ -2076,10 +2066,11 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="filePath">Path to the suspend video file</param>
         /// <param name="transferId">Unique transfer ID (0-59)</param>
+        /// <param name="sequenceNumber">Starting sequence number for commands</param>
         /// <returns>True if all steps completed successfully</returns>
-        public async Task<bool> SetSuspendModeWithResponse()
+        public async Task<bool> SetSuspendModeWithResponse(int sequenceNumber = 50)
         {
-            var step1Response = await SendCmdRealTimeDisplayWithResponse(false);
+            var step1Response = await SendCmdRealTimeDisplayWithResponse(false, sequenceNumber);
             if (step1Response?.IsSuccess != true)
             {
                 Console.WriteLine($"SetSuspendModeWithResponse. Status: {step1Response?.StatusCode}");
@@ -2093,8 +2084,9 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="filePath">Path to the suspend file</param>
         /// <param name="transferId">Unique transfer ID (0-59)</param>
+        /// <param name="sequenceNumber">Starting sequence number for commands</param>
         /// <returns>True if all steps completed successfully</returns>
-        public async Task<bool> SendSuspendFileWithResponse(string filePath, byte transferId = 1)
+        public async Task<bool> SendSuspendFileWithResponse(string filePath, byte transferId = 1, int sequenceNumber = 42)
         {
             if (!File.Exists(filePath))
             {
@@ -2112,7 +2104,7 @@ namespace HID.DisplayController
 
                 // Step 1: Set suspend file configuration
                 Console.WriteLine($"Step 1: Setting suspend file configuration for {fileName}...");
-                var step1Response = await SendCmdSetSuspendWithResponse(fileName, fileSize);
+                var step1Response = await SendCmdSetSuspendWithResponse(fileName, fileSize, sequenceNumber);
                 if (step1Response?.IsSuccess != true)
                 {
                     Console.WriteLine($"Step 1 failed. Status: {step1Response?.StatusCode}");
@@ -2128,7 +2120,7 @@ namespace HID.DisplayController
                 // Step 3: Send suspend completion command with MD5 hash
                 Console.WriteLine("Step 3: Sending suspend completion command...");
                 string md5Hash = CalculateMD5Hash(filePath);
-                var step3Response = await SendCmdSuspendCompletedWithResponse(fileName, md5Hash + 1);
+                var step3Response = await SendCmdSuspendCompletedWithResponse(fileName, md5Hash, sequenceNumber + 1);
                 if (step3Response?.IsSuccess != true)
                 {
                     Console.WriteLine($"Step 3 failed. Status: {step3Response?.StatusCode}");
@@ -2151,8 +2143,9 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="filePaths">List of file paths to send</param>
         /// <param name="startingTransferId">Starting transfer ID (0-59)</param>
+        /// <param name="startingSequenceNumber">Starting sequence number for commands</param>
         /// <returns>True if all files were sent successfully</returns>
-        public async Task<bool> SendMultipleSuspendFilesWithResponse(List<string> filePaths, byte startingTransferId = 1)
+        public async Task<bool> SendMultipleSuspendFilesWithResponse(List<string> filePaths, byte startingTransferId = 1, int startingSequenceNumber = 42)
         {
             if (filePaths == null || filePaths.Count == 0)
             {
@@ -2166,10 +2159,11 @@ namespace HID.DisplayController
             {
                 string filePath = filePaths[i];
                 byte transferId = (byte)((startingTransferId + i) % 60); // Ensure within valid range
+                int sequenceNumber = startingSequenceNumber + (i * 3); // Space out sequence numbers
 
                 Console.WriteLine($"Processing file {i + 1}/{filePaths.Count}: {Path.GetFileName(filePath)}");
 
-                bool success = await SendSuspendFileWithResponse(filePath, transferId);
+                bool success = await SendSuspendFileWithResponse(filePath, transferId, sequenceNumber);
                 if (!success)
                 {
                     Console.WriteLine($"Failed to send file {i + 1}: {Path.GetFileName(filePath)}");
@@ -2188,14 +2182,15 @@ namespace HID.DisplayController
         /// Delete suspend media files with response handling
         /// </summary>
         /// <param name="fileName">Suspend file name to delete (defaults to "all" to delete all files)</param>
+        /// <param name="sequenceNumber">Sequence number for the command</param>
         /// <returns>True if deletion was successful</returns>
-        public async Task<bool> DeleteSuspendFilesWithResponse(string fileName = "all")
+        public async Task<bool> DeleteSuspendFilesWithResponse(string fileName = "all", int sequenceNumber = 42)
         {
             try
             {
                 Console.WriteLine($"Deleting suspend media: {fileName}");
 
-                var deleteResponse = await SendCmdDeleteSuspendWithResponse(fileName);
+                var deleteResponse = await SendCmdDeleteSuspendWithResponse(fileName, sequenceNumber);
                 if (deleteResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"Delete suspend media failed. Status: {deleteResponse?.StatusCode}");
@@ -2241,10 +2236,11 @@ namespace HID.DisplayController
             for (int i = 0; i < fileNames.Count; i++)
             {
                 string fileName = fileNames[i];
+                int sequenceNumber = startingSequenceNumber + i;
 
                 Console.WriteLine($"Deleting file {i + 1}/{fileNames.Count}: {fileName}");
 
-                bool success = await DeleteSuspendFilesWithResponse(fileName);
+                bool success = await DeleteSuspendFilesWithResponse(fileName, sequenceNumber);
                 if (!success)
                 {
                     Console.WriteLine($"Failed to delete file {i + 1}: {fileName}");
@@ -2262,15 +2258,16 @@ namespace HID.DisplayController
         /// <summary>
         /// Clear all suspend media and exit suspend mode
         /// </summary>
+        /// <param name="sequenceNumber">Sequence number for the command</param>
         /// <returns>True if operation was successful</returns>
-        public async Task<bool> ClearSuspendModeWithResponse()
+        public async Task<bool> ClearSuspendModeWithResponse(int sequenceNumber = 42)
         {
             try
             {
                 Console.WriteLine("Clearing suspend mode by deleting all suspend media...");
 
                 // Delete all suspend media
-                bool deleteSuccess = await DeleteSuspendFilesWithResponse("all");
+                bool deleteSuccess = await DeleteSuspendFilesWithResponse("all", sequenceNumber);
                 if (!deleteSuccess)
                 {
                     return false;
@@ -2281,7 +2278,7 @@ namespace HID.DisplayController
 
                 // Optional: Read status to confirm
                 Console.WriteLine("Reading suspend media status after deletion...");
-                var statusResponse = await SendCmdReadMaxSuspendMediaWithResponse();
+                var statusResponse = await SendCmdReadMaxSuspendMediaWithResponse(sequenceNumber + 1);
                 if (statusResponse?.IsSuccess == true && !string.IsNullOrEmpty(statusResponse.Value.ResponseData))
                 {
                     Console.WriteLine($"Suspend media status: {statusResponse.Value.ResponseData}");
@@ -2352,7 +2349,7 @@ namespace HID.DisplayController
         public async Task<bool> SetSuspendModeDemo()
         {
             // Step 1: Disable real-time display mode and entry to suspend mode by call SetSuspendModeWithResponse 
-            bool step1Response = await SetSuspendModeWithResponse();
+            bool step1Response = await SetSuspendModeWithResponse(50);
             if (step1Response != true)
             {
                 return false;
@@ -2367,7 +2364,7 @@ namespace HID.DisplayController
         };
 
             // Step 2: Send multiple suspend files/ or call SendSuspendFileWithResponse to send single file.
-            bool filesSuccess = await SendMultipleSuspendFilesWithResponse(filesToTransfer, startingTransferId: 2);
+            bool filesSuccess = await SendMultipleSuspendFilesWithResponse(filesToTransfer, startingTransferId: 2, startingSequenceNumber: 51);
             if (!filesSuccess)
             {
                 Console.WriteLine("Failed to send suspend files");
@@ -2376,7 +2373,7 @@ namespace HID.DisplayController
 
             // Step 3: Set brightness to 80 or other value.
             Console.WriteLine("Setting brightness to 80...");
-            var brightnessResponse = await SendCmdBrightnessWithResponse(80);
+            var brightnessResponse = await SendCmdBrightnessWithResponse(80, sequenceNumber: 60);
             if (brightnessResponse?.IsSuccess != true)
             {
                 Console.WriteLine($"Set brightness failed. Status: {brightnessResponse?.StatusCode}");
@@ -2388,7 +2385,7 @@ namespace HID.DisplayController
             }
 
             // Step 4: Set keep alive timer, if have muitiple suspend files, the alive timer is each file duration.
-            var timerResponse = await SendCmdSetKeepAliveTimerWithResponse(5);
+            var timerResponse = await SendCmdSetKeepAliveTimerWithResponse(5, 60);
             if (timerResponse?.IsSuccess != true)
             {
                 Console.WriteLine($"Set keep alive timer failed. Status: {timerResponse?.StatusCode}");
@@ -2401,7 +2398,7 @@ namespace HID.DisplayController
 
             // Step 5: (Optional) get max suspend media count to check current status. like below json response. suspendMediaActive array indicate which suspend media is active.
             // {"brightness": 80,"degree": 0,"osdState": 0,"keepAliveTimeout": 2,"maxSuspendMediaCount": 5,"displayInSleep": 0,"suspendMediaActive": [☻1,1,0,0,0]}
-            var maxMediaResponse = await SendCmdReadMaxSuspendMediaWithResponse();
+            var maxMediaResponse = await SendCmdReadMaxSuspendMediaWithResponse(sequenceNumber: 61);
             if (maxMediaResponse?.IsSuccess == true && !string.IsNullOrEmpty(maxMediaResponse.Value.ResponseData))
             {
                 Console.WriteLine($"Max suspend media response: {maxMediaResponse.Value.ResponseData}");
@@ -2412,7 +2409,7 @@ namespace HID.DisplayController
             Thread.Sleep(40000);
 
             Console.WriteLine("Exiting suspend mode by deleting all suspend media...");
-            bool clearSuccess = await ClearSuspendModeWithResponse();
+            bool clearSuccess = await ClearSuspendModeWithResponse(sequenceNumber: 62);
             if (!clearSuccess)
             {
                 Console.WriteLine("Failed to clear suspend mode");
@@ -2428,8 +2425,9 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="filePath">Path to the suspend video file</param>
         /// <param name="transferId">Unique transfer ID (0-59)</param>
+        /// <param name="sequenceNumber">Starting sequence number for commands</param>
         /// <returns>True if all steps completed successfully</returns>
-        public async Task<bool> SetSuspendModeWithResponse_back(string filePath, byte transferId = 1)
+        public async Task<bool> SetSuspendModeWithResponse_back(string filePath, byte transferId = 1, int sequenceNumber = 50)
         {
             if (!File.Exists(filePath))
             {
@@ -2447,7 +2445,7 @@ namespace HID.DisplayController
 
                 //// Pre-step: Delete all existing suspend media
                 //Console.WriteLine("Pre-step: Deleting all existing suspend media...");
-                //var deleteResponse = await SendCmdDeleteSuspendWithResponse("all" - 4);
+                //var deleteResponse = await SendCmdDeleteSuspendWithResponse("all", sequenceNumber - 4);
                 //if (deleteResponse?.IsSuccess != true)
                 //{
                 //    Console.WriteLine($"Delete suspend media failed. Status: {deleteResponse?.StatusCode}");
@@ -2460,7 +2458,7 @@ namespace HID.DisplayController
 
                 //// Pre-step: Set rotation to 0
                 //Console.WriteLine("Pre-step: Setting rotation to 0...");
-                //var rotationResponse = await SendCmdRotateWithResponse(0 - 3);
+                //var rotationResponse = await SendCmdRotateWithResponse(0, sequenceNumber - 3);
                 //if (rotationResponse?.IsSuccess != true)
                 //{
                 //    Console.WriteLine($"Set rotation failed. Status: {rotationResponse?.StatusCode}");
@@ -2482,7 +2480,7 @@ namespace HID.DisplayController
 
                 // Step 1: Disable real-time display mode
                 Console.WriteLine("Step 1: Disabling real-time display mode...");
-                var step1Response = await SendCmdRealTimeDisplayWithResponse(false);
+                var step1Response = await SendCmdRealTimeDisplayWithResponse(false, sequenceNumber);
                 if (step1Response?.IsSuccess != true)
                 {
                     Console.WriteLine($"Step 1 failed. Status: {step1Response?.StatusCode}");
@@ -2492,7 +2490,7 @@ namespace HID.DisplayController
 
                 // Step 2: Set suspend file configuration
                 Console.WriteLine($"Step 2: Setting suspend file configuration for {fileName}...");
-                var step2Response = await SendCmdSetSuspendWithResponse(fileName, fileSize + 1);
+                var step2Response = await SendCmdSetSuspendWithResponse(fileName, fileSize, sequenceNumber + 1);
                 if (step2Response?.IsSuccess != true)
                 {
                     Console.WriteLine($"Step 2 failed. Status: {step2Response?.StatusCode}");
@@ -2508,7 +2506,7 @@ namespace HID.DisplayController
                 // Step 4: Send suspend completion command with MD5 hash
                 Console.WriteLine("Step 4: Sending suspend completion command...");
                 string md5Hash = CalculateMD5Hash(filePath);
-                var step4Response = await SendCmdSuspendCompletedWithResponse(fileName, md5Hash + 2);
+                var step4Response = await SendCmdSuspendCompletedWithResponse(fileName, md5Hash, sequenceNumber + 2);
                 if (step4Response?.IsSuccess != true)
                 {
                     Console.WriteLine($"Step 4 failed. Status: {step4Response?.StatusCode}");
@@ -2520,7 +2518,7 @@ namespace HID.DisplayController
 
                 // Step 5: Disable real-time display mode again
                 Console.WriteLine("Step 5: Disabling real-time display mode again...");
-                var step5Response = await SendCmdRealTimeDisplayWithResponse(false);
+                var step5Response = await SendCmdRealTimeDisplayWithResponse(false, sequenceNumber + 3);
                 if (step5Response?.IsSuccess != true)
                 {
                     Console.WriteLine($"Step 5 failed. Status: {step5Response?.StatusCode}");
@@ -2531,7 +2529,7 @@ namespace HID.DisplayController
 
                 // Pre-step: Set brightness to 80
                 Console.WriteLine("Pre-step: Setting brightness to 80...");
-                var brightnessResponse = await SendCmdBrightnessWithResponse(80 - 2);
+                var brightnessResponse = await SendCmdBrightnessWithResponse(80, sequenceNumber - 2);
                 if (brightnessResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"Set brightness failed. Status: {brightnessResponse?.StatusCode}");
@@ -2544,7 +2542,7 @@ namespace HID.DisplayController
 
                 // Step 6: Set keep alive timer
                 Console.WriteLine("Step 6: Setting keep alive timer to 2 seconds...");
-                var timerResponse = await SendCmdSetKeepAliveTimerWithResponse(2 + 4);
+                var timerResponse = await SendCmdSetKeepAliveTimerWithResponse(2, sequenceNumber + 4);
                 if (timerResponse?.IsSuccess != true)
                 {
                     Console.WriteLine($"Step 6 failed. Status: {timerResponse?.StatusCode}");
@@ -2557,7 +2555,7 @@ namespace HID.DisplayController
 
                 // Step 7: Read maximum suspend media count again
                 Console.WriteLine("Step 7: Reading maximum suspend media count again...");
-                var step7Response = await SendCmdReadMaxSuspendMediaWithResponse();
+                var step7Response = await SendCmdReadMaxSuspendMediaWithResponse(sequenceNumber + 5);
                 if (step7Response?.IsSuccess != true)
                 {
                     Console.WriteLine($"Step 7 failed. Status: {step7Response?.StatusCode}");
@@ -2616,7 +2614,7 @@ namespace HID.DisplayController
 
                 // Step 1: Enable real-time display
                 Console.WriteLine("Enabling real-time display...");
-                var enableResponse = await SendCmdRealTimeDisplayWithResponse(true);
+                var enableResponse = await SendCmdRealTimeDisplayWithResponse(true, sequenceNumber: 40);
                 if (enableResponse?.IsSuccess != true)
                 {
                     Console.WriteLine("Failed to enable real-time display");
@@ -2624,9 +2622,9 @@ namespace HID.DisplayController
                 }
 
                 // Step 2: Set brightness to 80 or other value.
-                await SendCmdBrightnessWithResponse(80);
+                await SendCmdBrightnessWithResponse(80, sequenceNumber: 43);
                 // Set optimal settings
-                //await SendCmdSetKeepAliveTimerWithResponse(60: 23);
+                //await SendCmdSetKeepAliveTimerWithResponse(60, sequenceNumber: 23);
 
 
                 if (imagePaths.Count > 0)
@@ -2643,7 +2641,7 @@ namespace HID.DisplayController
                             // Step 3: Send image file, or can use SendFileTransfer to send image bytes array if image from memory.
                             SendFileFromDisk(imagePath, transferId: transferId);
                             // Step 4: Send keep-alive command to display the image.
-                            await SendCmdKeepAliveWithResponse(DateTimeOffset.UtcNow.ToUnixTimeSeconds() + cycle);
+                            await SendCmdKeepAliveWithResponse(DateTimeOffset.UtcNow.ToUnixTimeSeconds(), sequenceNumber: 40 + cycle);
 
                             transferId++;
                             if (transferId > 59) transferId = 2;
@@ -2655,7 +2653,7 @@ namespace HID.DisplayController
 
                 // Disable real-time display
                 Console.WriteLine("Disabling real-time display...");
-                await SendCmdRealTimeDisplayWithResponse(false);
+                await SendCmdRealTimeDisplayWithResponse(false, sequenceNumber: 20);
 
                 Console.WriteLine("=== Simple Real-Time Display Demo Completed ===");
                 return true;
