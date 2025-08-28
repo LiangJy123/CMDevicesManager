@@ -1,19 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using CMDevicesManager.ViewModels;
 using CMDevicesManager.Services;
+using System.Windows.Navigation;
 
 namespace CMDevicesManager.Pages
 {
@@ -26,6 +17,9 @@ namespace CMDevicesManager.Pages
         {
             InitializeComponent();
 
+            // Do not keep the Page alive in the navigation journal to avoid piling up timers/VMs
+            JournalEntry.SetKeepAlive(this, false);
+
             ISystemMetricsService service = new RealSystemMetricsService();
             DataContext = new HomeViewModel(service);
 
@@ -35,6 +29,15 @@ namespace CMDevicesManager.Pages
             {
                 if (e.Key is Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End)
                     e.Handled = true;
+            };
+
+            // Ensure resources are released when leaving the page
+            Unloaded += (_, __) =>
+            {
+                if (DataContext is HomeViewModel vm)
+                {
+                    vm.Dispose();
+                }
             };
         }
     }

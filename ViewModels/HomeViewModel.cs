@@ -16,6 +16,9 @@ namespace CMDevicesManager.ViewModels
         private readonly Timer _timer;
         private readonly Dispatcher _dispatcher;
 
+        private int _isUpdating; // prevent overlapping timer ticks
+        private volatile bool _disposed;
+
         public ObservableCollection<SensorCard> CoolingCards { get; } = new();
         public ObservableCollection<SensorCard> PowerCards { get; } = new();
         public ObservableCollection<SensorCard> SystemCards { get; } = new();
@@ -44,26 +47,62 @@ namespace CMDevicesManager.ViewModels
 
         private void Update()
         {
-            // Marshal to UI thread to ensure proper binding updates
-            _dispatcher.BeginInvoke(() =>
+            if (_disposed) return;
+
+            // Ensure we don't overlap timer callbacks if a previous one is still running
+            if (Interlocked.Exchange(ref _isUpdating, 1) == 1) return;
+
+            try
             {
-                CoolingCards[0].Value = _service.GetCpuTemperature();
-                CoolingCards[1].Value = _service.GetGpuTemperature();
+                // Collect metrics off the UI thread (Timer already runs on a ThreadPool thread)
+                double cpuTemp = _service.GetCpuTemperature();
+                double gpuTemp = _service.GetGpuTemperature();
 
-                PowerCards[0].Value = _service.GetCpuPower();
-                PowerCards[1].Value = _service.GetGpuPower();
+                double cpuPower = _service.GetCpuPower();
+                double gpuPower = _service.GetGpuPower();
 
-                SystemCards[0].Value = _service.GetCpuUsagePercent();
-                SystemCards[1].Value = _service.GetGpuUsagePercent();
-                SystemCards[2].Value = _service.GetMemoryUsagePercent();
+                double cpuUsage = _service.GetCpuUsagePercent();
+                double gpuUsage = _service.GetGpuUsagePercent();
+                double memUsage = _service.GetMemoryUsagePercent();
 
-                NetworkCards[0].Value = _service.GetNetDownloadKBs();
-                NetworkCards[1].Value = _service.GetNetUploadKBs();
-            });
+                double netDown = _service.GetNetDownloadKBs();
+                double netUp = _service.GetNetUploadKBs();
+
+                // Only marshal the assignment (which raises PropertyChanged) to the UI thread
+                _dispatcher.BeginInvoke(() =>
+                {
+                    if (_disposed) return;
+
+                    CoolingCards[0].Value = cpuTemp;
+                    CoolingCards[1].Value = gpuTemp;
+
+                    PowerCards[0].Value = cpuPower;
+                    PowerCards[1].Value = gpuPower;
+
+                    SystemCards[0].Value = cpuUsage;
+                    SystemCards[1].Value = gpuUsage;
+                    SystemCards[2].Value = memUsage;
+
+                    NetworkCards[0].Value = netDown;
+                    NetworkCards[1].Value = netUp;
+                });
+            }
+            catch
+            {
+                // Swallow to keep UI responsive; optionally log if you have a logger available here
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _isUpdating, 0);
+            }
         }
 
         public void Dispose()
         {
+            if (_disposed) return;
+            _disposed = true;
+
+            try { _timer.Change(Timeout.Infinite, Timeout.Infinite); } catch { /* ignore */ }
             _timer.Dispose();
             _service.Dispose();
         }
