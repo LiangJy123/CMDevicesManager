@@ -15,6 +15,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Application = System.Windows.Application;
+using MessageBox = System.Windows.MessageBox;
 
 namespace CMDevicesManager
 {
@@ -23,6 +25,11 @@ namespace CMDevicesManager
     /// </summary>
     public partial class MainWindow : Window
     {
+        // Cache single instances to avoid reinitialization on repeated clicks
+        private HomePage? _homePage;
+        private DevicePage? _devicePage;
+        private SettingsPage? _settingsPage;
+
         public MainWindow()
         {
             try
@@ -33,10 +40,10 @@ namespace CMDevicesManager
                 // Validate resources exist before using them
                 ValidateResources();
                 
-                // Navigate to homepage with error handling
+                // Navigate to homepage with error handling (use cached instance)
                 try
                 {
-                    MainFrame.Navigate(new HomePage());
+                    MainFrame.Navigate(GetHomePage());
                 }
                 catch (Exception ex)
                 {
@@ -52,6 +59,10 @@ namespace CMDevicesManager
                 throw; // Re-throw as this is a critical error
             }
         }
+
+        private HomePage GetHomePage() => _homePage ??= new HomePage();
+        private DevicePage GetDevicePage() => _devicePage ??= new DevicePage();
+        private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
 
         private void ValidateResources()
         {
@@ -90,18 +101,23 @@ namespace CMDevicesManager
             {
                 try
                 {
-                    // Use consistent navigation method and handle potential errors
+                    // Short-circuit if already on the requested page
+                    if (pagePath.Contains("HomePage") && MainFrame.Content is HomePage) return;
+                    if (pagePath.Contains("DevicePage") && MainFrame.Content is DevicePage) return;
+                    if (pagePath.Contains("SettingsPage") && MainFrame.Content is SettingsPage) return;
+
+                    // Use cached instances to avoid re-initializing pages/services/timers
                     if (pagePath.Contains("HomePage"))
                     {
-                        MainFrame.Navigate(new Pages.HomePage());
+                        MainFrame.Navigate(GetHomePage());
                     }
                     else if (pagePath.Contains("DevicePage"))
                     {
-                        MainFrame.Navigate(new Pages.DevicePage());
+                        MainFrame.Navigate(GetDevicePage());
                     }
                     else if (pagePath.Contains("SettingsPage"))
                     {
-                        MainFrame.Navigate(new Pages.SettingsPage());
+                        MainFrame.Navigate(GetSettingsPage());
                     }
                     else
                     {
@@ -113,7 +129,7 @@ namespace CMDevicesManager
                 {
                     Logger.Error($"Navigation failed to {pagePath}", ex);
                     // Fallback to HomePage if navigation fails
-                    MainFrame.Navigate(new Pages.HomePage());
+                    MainFrame.Navigate(GetHomePage());
                 }
             }
         }
@@ -148,10 +164,5 @@ namespace CMDevicesManager
         {
             WindowState = (WindowState == WindowState.Maximized) ? WindowState.Normal : WindowState.Maximized;
         }
-
-       
-
-
-        //可伸缩的界面,导航栏,背景,主题,页面,更新,
     }
 }
