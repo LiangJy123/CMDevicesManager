@@ -1,6 +1,6 @@
 ﻿// CMDevicesManager - System Hardware Monitoring Application
 // This logging utility is for debugging and diagnostic purposes only.
-// No sensitive data is logged. Encryption is disabled by default for transparency.
+// Encryption is optional and uses basic obfuscation to prevent casual viewing of logs.
 
 using System;
 using System.Collections.Concurrent;
@@ -31,10 +31,8 @@ namespace CMDevicesManager.Helper
         // 🔑 加密控制开关（调试时可以关闭）
         public static bool EnableEncryption { get; set; } = false;
 
-        // Remove hardcoded keys for security - encryption disabled by default
-        // If encryption is needed, keys should be generated dynamically or stored securely
-        private static readonly byte[] Key = GenerateSecureKey();
-        private static readonly byte[] IV = GenerateSecureIV();
+        private static readonly byte[] Key = Encoding.UTF8.GetBytes("1234567890abcdef1234567890abcdef"); // 32字节 AES Key
+        private static readonly byte[] IV = Encoding.UTF8.GetBytes("abcdef1234567890"); // 16字节 IV
 
         private static readonly CancellationTokenSource _cts = new CancellationTokenSource();
 
@@ -81,9 +79,8 @@ namespace CMDevicesManager.Helper
                 File.Delete(LogFile);
             }
 
-            // Encryption is disabled by default for security reasons
-            // Most applications don't need encrypted logs and it can trigger antivirus software
-            if (EnableEncryption && Key.Any(b => b != 0) && IV.Any(b => b != 0))
+            // Encryption is disabled by default for transparency
+            if (EnableEncryption)
             {
                 try
                 {
@@ -110,9 +107,6 @@ namespace CMDevicesManager.Helper
 
         private static byte[] Encrypt(byte[] data)
         {
-            if (!EnableEncryption || !Key.Any(b => b != 0) || !IV.Any(b => b != 0))
-                return data; // Return plain data if encryption is disabled or keys are empty
-
             using (var aes = Aes.Create())
             {
                 aes.Key = Key;
@@ -129,9 +123,6 @@ namespace CMDevicesManager.Helper
 
         private static byte[] Decrypt(byte[] data)
         {
-            if (!EnableEncryption || !Key.Any(b => b != 0) || !IV.Any(b => b != 0))
-                return data; // Return plain data if encryption is disabled or keys are empty
-
             using (var aes = Aes.Create())
             {
                 aes.Key = Key;
@@ -162,31 +153,6 @@ namespace CMDevicesManager.Helper
 
             string text = Encoding.UTF8.GetString(decrypted);
             return text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-        }
-
-        private static byte[] GenerateSecureKey()
-        {
-            // Generate a secure random key if encryption is enabled
-            // For security reasons, we disable encryption by default
-            if (!EnableEncryption)
-                return new byte[32]; // Return empty key when encryption is disabled
-            
-            using var rng = RandomNumberGenerator.Create();
-            byte[] key = new byte[32]; // 256-bit key
-            rng.GetBytes(key);
-            return key;
-        }
-
-        private static byte[] GenerateSecureIV()
-        {
-            // Generate a secure random IV if encryption is enabled
-            if (!EnableEncryption)
-                return new byte[16]; // Return empty IV when encryption is disabled
-                
-            using var rng = RandomNumberGenerator.Create();
-            byte[] iv = new byte[16]; // 128-bit IV
-            rng.GetBytes(iv);
-            return iv;
         }
 
         public static void Shutdown()
