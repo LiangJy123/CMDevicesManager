@@ -264,6 +264,8 @@ namespace HID.DisplayController
         /// </summary>
         public DisplayCtrlCapabilities? Capabilities { get; private set; }
 
+        // DeviceInfo property for reference
+        public DeviceInfo DeviceInfo => _device.GetDeviceInfo();
 
         /// <summary>
         /// Enhanced dispose method

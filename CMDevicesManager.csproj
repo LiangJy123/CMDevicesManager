@@ -10,6 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="HidProtocol\**" />
+    <EmbeddedResource Remove="HidProtocol\**" />
+    <None Remove="HidProtocol\**" />
+    <Page Remove="HidProtocol\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Resources\background.png" />
     <None Remove="Resources\icon\icon.ico" />
     <None Remove="Resources\icon\icon.png" />
@@ -23,7 +30,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="HidApi.Net" Version="1.2.0" />
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.5-pre441" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="HidProtocol\HidHelper\HidHelper.csproj" />
   </ItemGroup>
 
   <ItemGroup>

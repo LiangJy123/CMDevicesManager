@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Timer = System.Threading.Timer;
 
 namespace HID.DisplayController
 {
