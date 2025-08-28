@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="HAF700II - Device Control Protocol Specification-v0_2_1.pdf" />
+    <PackageReference Include="HidApi.Net" Version="1.2.0" />
   </ItemGroup>
 
 </Project>

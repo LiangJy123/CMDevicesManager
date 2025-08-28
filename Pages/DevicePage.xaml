@@ -6,10 +6,19 @@
       xmlns:local="clr-namespace:CMDevicesManager.Pages"
       mc:Ignorable="d" 
       d:DesignHeight="450" d:DesignWidth="800"
-      Title="{DynamicResource DevicePageTitle}">
+      Title="{DynamicResource DevicePageTitle}"
+      Loaded="Page_Loaded">
 
     <Grid Background="Transparent">
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header Section -->
+        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,20,0,30">
             <TextBlock Text="{DynamicResource DevicePageTitle}" 
                       FontSize="36" 
                       FontWeight="Bold" 
@@ -21,5 +30,309 @@
                       Foreground="White" 
                       HorizontalAlignment="Center"/>
         </StackPanel>
+
+        <!-- Error Message Section -->
+        <Border Grid.Row="1" 
+                Background="#44FF4444" 
+                BorderBrush="#FF6666" 
+                BorderThickness="1" 
+                CornerRadius="5" 
+                Margin="50,0,50,20"
+                x:Name="ErrorMessageBorder"
+                Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal" Margin="15,10">
+                <TextBlock Text="⚠" 
+                          FontSize="16" 
+                          Foreground="#FF6666" 
+                          VerticalAlignment="Center" 
+                          Margin="0,0,10,0"/>
+                <TextBlock x:Name="ErrorMessageTextBlock"
+                          Text="An error occurred while managing devices."
+                          FontSize="14" 
+                          Foreground="White" 
+                          TextWrapping="Wrap"
+                          VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Streaming Control Buttons Section -->
+        <Grid Grid.Row="2" Margin="50,0,50,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Demo Realtime Streaming Button -->
+            <Button x:Name="RealtimeStreamingButton"
+                    Grid.Column="0"
+                    Height="50"
+                    Background="#2A4A8B"
+                    BorderBrush="#4A6BAB"
+                    BorderThickness="1"
+                    Click="RealtimeStreamingButton_Click"
+                    ToolTip="Start real-time streaming demo - cycles through images with live display updates">
+
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="ButtonBorder"
+                                           Background="{TemplateBinding Background}"
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#4A6BAB"/>
+                                            <Setter Property="BorderBrush" Value="#6A8BCB"/>
+                                            <Setter TargetName="ButtonBorder" Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="#4A6BAB" 
+                                                                    BlurRadius="15" 
+                                                                    ShadowDepth="0" 
+                                                                    Opacity="0.8"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#1A3A7B"/>
+                                            <Setter Property="BorderBrush" Value="#2A4A8B"/>
+                                            <Setter TargetName="ButtonBorder" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Background" Value="#444444"/>
+                                            <Setter Property="BorderBrush" Value="#666666"/>
+                                            <Setter Property="Opacity" Value="0.6"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                    </Style>
+                </Button.Style>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock x:Name="RealtimeIcon" 
+                              Text="📺" 
+                              FontSize="18" 
+                              VerticalAlignment="Center" 
+                              Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="Demo Realtime Streaming" 
+                                  FontSize="14" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="White"
+                                  HorizontalAlignment="Center"/>
+                        <TextBlock Text="Live image cycling display" 
+                                  FontSize="11" 
+                                  Foreground="#CCCCCC"
+                                  HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+
+            <!-- Offline Streaming Button -->
+            <Button x:Name="OfflineStreamingButton"
+                    Grid.Column="2"
+                    Height="50"
+                    Background="#8B4A2A"
+                    BorderBrush="#AB6A4A"
+                    BorderThickness="1"
+                    Click="OfflineStreamingButton_Click"
+                    ToolTip="Start offline streaming demo - sets up suspend mode with media files for offline playback">
+
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="ButtonBorder"
+                                           Background="{TemplateBinding Background}"
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#CB6A4A"/>
+                                            <Setter Property="BorderBrush" Value="#EB8A6A"/>
+                                            <Setter TargetName="ButtonBorder" Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="#CB6A4A" 
+                                                                    BlurRadius="15" 
+                                                                    ShadowDepth="0" 
+                                                                    Opacity="0.8"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#7B3A1A"/>
+                                            <Setter Property="BorderBrush" Value="#8B4A2A"/>
+                                            <Setter TargetName="ButtonBorder" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Background" Value="#444444"/>
+                                            <Setter Property="BorderBrush" Value="#666666"/>
+                                            <Setter Property="Opacity" Value="0.6"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                    </Style>
+                </Button.Style>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock x:Name="OfflineIcon" 
+                              Text="💾" 
+                              FontSize="18" 
+                              VerticalAlignment="Center" 
+                              Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="Offline Streaming Demo" 
+                                  FontSize="14" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="White"
+                                  HorizontalAlignment="Center"/>
+                        <TextBlock Text="Suspend mode media playback" 
+                                  FontSize="11" 
+                                  Foreground="#CCCCCC"
+                                  HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Devices List Section -->
+        <Grid Grid.Row="3" Margin="50,0,50,50">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" 
+                      Text="Connected Devices" 
+                      FontSize="20" 
+                      FontWeight="SemiBold" 
+                      Foreground="White" 
+                      Margin="0,0,0,15"/>
+
+            <ListBox x:Name="DevicesListBox" 
+                    Grid.Row="1"
+                    Background="Transparent"
+                    BorderBrush="#333333"
+                    BorderThickness="1"
+                    Foreground="White"
+                    ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                    ScrollViewer.VerticalScrollBarVisibility="Disabled">
+
+                <!-- Change the ItemsPanel to display items horizontally -->
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Margin" Value="10,2"/>
+                        <Setter Property="Padding" Value="15,10"/>
+                        <Setter Property="Width" Value="250"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border Background="{TemplateBinding Background}"
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter Margin="{TemplateBinding Padding}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#2A2A2A"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#404040"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Status Indicator -->
+                            <Ellipse Grid.Row="0"
+                                    Width="10" Height="10" 
+                                    Fill="#00FF00" 
+                                    Margin="0,0,0,10" 
+                                    HorizontalAlignment="Center"/>
+
+                            <!-- Device Information -->
+                            <StackPanel Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center">
+                                <!-- Product Name -->
+                                <TextBlock Text="{Binding ProductString}" 
+                                          FontSize="14" 
+                                          FontWeight="SemiBold"
+                                          Foreground="White" 
+                                          Margin="0,0,0,5"
+                                          TextAlignment="Center"
+                                          TextWrapping="Wrap"/>
+
+                                <!-- Serial Number -->
+                                <TextBlock FontSize="11" 
+                                          Foreground="#CCCCCC"
+                                          TextAlignment="Center"
+                                          Margin="0,0,0,3">
+                                    <Run Text="Serial: " FontWeight="Medium"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding SerialNumber}" FontFamily="Consolas"/>
+                                </TextBlock>
+
+                                <!-- VID/PID Information -->
+                                <TextBlock FontSize="10" 
+                                          Foreground="#999999"
+                                          Margin="0,2,0,0"
+                                          TextAlignment="Center">
+                                    <Run Text="VID:"/>
+                                    <Run Text="{Binding VendorId, StringFormat=0x{0:X4}}" FontFamily="Consolas"/>
+                                    <LineBreak/>
+                                    <Run Text="PID:"/>
+                                    <Run Text="{Binding ProductId, StringFormat=0x{0:X4}}" FontFamily="Consolas"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+
+            </ListBox>
+        </Grid>
     </Grid>
 </Page>
