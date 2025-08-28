@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Windows.Threading;
 using CMDevicesManager.Models;
 using CMDevicesManager.Services;
 using Timer = System.Threading.Timer;
@@ -13,6 +14,10 @@ namespace CMDevicesManager.ViewModels
     {
         private readonly ISystemMetricsService _service;
         private readonly Timer _timer;
+        private readonly Dispatcher _dispatcher;
+
+        private int _isUpdating; // prevent overlapping timer ticks
+        private volatile bool _disposed;
 
         public ObservableCollection<SensorCard> CoolingCards { get; } = new();
         public ObservableCollection<SensorCard> PowerCards { get; } = new();
@@ -22,9 +27,10 @@ namespace CMDevicesManager.ViewModels
         public HomeViewModel(ISystemMetricsService service)
         {
             _service = service;
+            _dispatcher = Dispatcher.CurrentDispatcher;
 
-            CoolingCards.Add(new SensorCard("CPU", _service.CpuName, "°C", "\uE9CA"));
-            CoolingCards.Add(new SensorCard("GPU", _service.PrimaryGpuName, "°C", "\uE9CA"));
+            CoolingCards.Add(new SensorCard("CPU", _service.CpuName, "Â°C", "\uE9CA"));
+            CoolingCards.Add(new SensorCard("GPU", _service.PrimaryGpuName, "Â°C", "\uE9CA"));
 
             PowerCards.Add(new SensorCard("CPU", _service.CpuName, "W", "\uE945"));
             PowerCards.Add(new SensorCard("GPU", _service.PrimaryGpuName, "W", "\uE945"));
@@ -41,22 +47,62 @@ namespace CMDevicesManager.ViewModels
 
         private void Update()
         {
-            CoolingCards[0].Value = _service.GetCpuTemperature();
-            CoolingCards[1].Value = _service.GetGpuTemperature();
+            if (_disposed) return;
 
-            PowerCards[0].Value = _service.GetCpuPower();
-            PowerCards[1].Value = _service.GetGpuPower();
+            // Ensure we don't overlap timer callbacks if a previous one is still running
+            if (Interlocked.Exchange(ref _isUpdating, 1) == 1) return;
 
-            SystemCards[0].Value = _service.GetCpuUsagePercent();
-            SystemCards[1].Value = _service.GetGpuUsagePercent();
-            SystemCards[2].Value = _service.GetMemoryUsagePercent();
+            try
+            {
+                // Collect metrics off the UI thread (Timer already runs on a ThreadPool thread)
+                double cpuTemp = _service.GetCpuTemperature();
+                double gpuTemp = _service.GetGpuTemperature();
 
-            NetworkCards[0].Value = _service.GetNetDownloadKBs();
-            NetworkCards[1].Value = _service.GetNetUploadKBs();
+                double cpuPower = _service.GetCpuPower();
+                double gpuPower = _service.GetGpuPower();
+
+                double cpuUsage = _service.GetCpuUsagePercent();
+                double gpuUsage = _service.GetGpuUsagePercent();
+                double memUsage = _service.GetMemoryUsagePercent();
+
+                double netDown = _service.GetNetDownloadKBs();
+                double netUp = _service.GetNetUploadKBs();
+
+                // Only marshal the assignment (which raises PropertyChanged) to the UI thread
+                _dispatcher.BeginInvoke(() =>
+                {
+                    if (_disposed) return;
+
+                    CoolingCards[0].Value = cpuTemp;
+                    CoolingCards[1].Value = gpuTemp;
+
+                    PowerCards[0].Value = cpuPower;
+                    PowerCards[1].Value = gpuPower;
+
+                    SystemCards[0].Value = cpuUsage;
+                    SystemCards[1].Value = gpuUsage;
+                    SystemCards[2].Value = memUsage;
+
+                    NetworkCards[0].Value = netDown;
+                    NetworkCards[1].Value = netUp;
+                });
+            }
+            catch
+            {
+                // Swallow to keep UI responsive; optionally log if you have a logger available here
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _isUpdating, 0);
+            }
         }
 
         public void Dispose()
         {
+            if (_disposed) return;
+            _disposed = true;
+
+            try { _timer.Change(Timeout.Infinite, Timeout.Infinite); } catch { /* ignore */ }
             _timer.Dispose();
             _service.Dispose();
         }

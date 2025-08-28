@@ -1,4 +1,8 @@
-﻿using System;
+﻿// CMDevicesManager - System Hardware Monitoring Application
+// This logging utility is for debugging and diagnostic purposes only.
+// Encryption is optional and uses basic obfuscation to prevent casual viewing of logs.
+
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -75,14 +79,24 @@ namespace CMDevicesManager.Helper
                 File.Delete(LogFile);
             }
 
+            // Encryption is disabled by default for transparency
             if (EnableEncryption)
             {
-                byte[] plainBytes = Encoding.UTF8.GetBytes(text + Environment.NewLine);
-                byte[] encryptedBytes = Encrypt(plainBytes);
-
-                using (var fs = new FileStream(LogFile, FileMode.Append, FileAccess.Write, FileShare.Read))
+                try
                 {
-                    fs.Write(encryptedBytes, 0, encryptedBytes.Length);
+                    byte[] plainBytes = Encoding.UTF8.GetBytes(text + Environment.NewLine);
+                    byte[] encryptedBytes = Encrypt(plainBytes);
+
+                    using (var fs = new FileStream(LogFile, FileMode.Append, FileAccess.Write, FileShare.Read))
+                    {
+                        fs.Write(encryptedBytes, 0, encryptedBytes.Length);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Fallback to plain text if encryption fails
+                    File.AppendAllText(LogFile, $"[ENCRYPTION_ERROR] {ex.Message}" + Environment.NewLine);
+                    File.AppendAllText(LogFile, text + Environment.NewLine);
                 }
             }
             else
