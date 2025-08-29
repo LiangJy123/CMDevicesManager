@@ -12,7 +12,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Top toolbar (keep Back/Export/Size here) -->
+        <!-- Top toolbar -->
         <DockPanel Grid.Row="0" Margin="16" LastChildFill="False">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,12,0" HorizontalAlignment="Left">
                 <Button Click="Back_Click" Margin="0,0,8,0" Padding="12,6">
@@ -38,28 +38,44 @@
         <!-- Main content: Left (tools) | Center (canvas) | Right (properties) -->
         <Grid Grid.Row="1" Margin="16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220"/>   <!-- Left tools -->
-                <ColumnDefinition Width="*"/>     <!-- Center canvas -->
-                <ColumnDefinition Width="340"/>   <!-- Right properties -->
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="340"/>
             </Grid.ColumnDefinitions>
 
             <!-- LEFT: tools -->
             <Border Grid.Column="0" Background="#232323" CornerRadius="8" Padding="12" Margin="0,0,12,0">
                 <StackPanel>
-                    <TextBlock Text="Add" Foreground="#FFF" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <TextBlock Text="Common" Foreground="#FFF" FontWeight="SemiBold" Margin="0,0,0,8"/>
                     <Button Click="AddText_Click" Margin="0,0,0,8" Padding="12,6">Add Text</Button>
                     <Button Click="AddImage_Click" Margin="0,0,0,8" Padding="12,6">Add Image</Button>
+                    <Button Click="AddClock_Click" Margin="0,0,0,8" Padding="12,6">Add Date</Button>
+
                     <Separator Margin="0,8,0,8"/>
-                    <Button Click="ClearCanvas_Click" Padding="12,6">Clear</Button>
+                    <TextBlock Text="System Info" Foreground="#FFF" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                    <!-- Dynamic system info buttons -->
+                    <ItemsControl ItemsSource="{Binding SystemInfoItems}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding DisplayName}"
+                                        Margin="0,0,0,8"
+                                        Padding="12,6"
+                                        Click="AddSystemInfoButton_Click"
+                                        Tag="{Binding Kind}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Separator Margin="0,8,0,8"/>
+                    <Button Click="ClearCanvas_Click" Padding="12,6">Clear All</Button>
                 </StackPanel>
             </Border>
 
             <!-- CENTER: square designer surface (scaled to fit) -->
             <Border Grid.Column="1" Background="#2B2B2B" CornerRadius="8" Padding="24" >
                 <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <!-- Fixed-size root for pixel-precise render -->
                     <Grid x:Name="DesignRoot" Width="{Binding CanvasSize}" Height="{Binding CanvasSize}">
-                        <!-- Background color + optional background image -->
                         <Grid>
                             <Rectangle x:Name="BgColorRect" Fill="{Binding BackgroundBrush}" />
                             <Image x:Name="BgImage"
@@ -67,8 +83,6 @@
                                    Stretch="UniformToFill"
                                    Opacity="{Binding BackgroundImageOpacity}"/>
                         </Grid>
-
-                        <!-- Editable layers -->
                         <Canvas x:Name="DesignCanvas" Background="Transparent" ClipToBounds="True"/>
                     </Grid>
                 </Viewbox>
@@ -78,30 +92,6 @@
             <ScrollViewer Grid.Column="2" Margin="12,0,0,0" VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="8">
 
-                    <TextBlock Text="Background" FontWeight="SemiBold" Foreground="#FFF" Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                        <TextBlock Text="#" VerticalAlignment="Center" Foreground="#DDD" Margin="0,0,6,0"/>
-                        <TextBox Text="{Binding BackgroundHex, UpdateSourceTrigger=PropertyChanged}" Width="100" />
-                        <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4" BorderBrush="#555" BorderThickness="1">
-                            <Border.Background>
-                                <SolidColorBrush Color="{Binding BackgroundColor}"/>
-                            </Border.Background>
-                        </Border>
-                        <Button Click="PickBackgroundColor_Click" Margin="8,0,0,0" Padding="8,4">Pick</Button>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                        <Button Click="PickBackgroundImage_Click" Padding="8,4">Background Image</Button>
-                        <Button Click="ClearBackgroundImage_Click" Margin="8,0,0,0" Padding="8,4">Clear</Button>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="Image Opacity" Width="100" VerticalAlignment="Center" Foreground="#DDD"/>
-                        <Slider Minimum="0" Maximum="1" Value="{Binding BackgroundImageOpacity}" Width="160"/>
-                        <TextBlock Text="{Binding BackgroundImageOpacity, StringFormat={}{0:P0}}" Margin="8,0,0,0" Foreground="#DDD" VerticalAlignment="Center"/>
-                    </StackPanel>
-
-                    <Separator Margin="0,12,0,12"/>
-
                     <TextBlock Text="Selected Element" FontWeight="SemiBold" Foreground="#FFF" Margin="0,0,0,8"/>
                     <TextBlock Text="{Binding SelectedInfo}" Foreground="#DDD" Margin="0,0,0,8"/>
 
@@ -109,7 +99,9 @@
                     <StackPanel x:Name="TextProps"
                                 Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="Text" Foreground="#DDD"/>
-                        <TextBox Text="{Binding SelectedText, UpdateSourceTrigger=PropertyChanged}" Margin="0,4,0,8"/>
+                        <TextBox Text="{Binding SelectedText, UpdateSourceTrigger=PropertyChanged}"
+                                 IsReadOnly="{Binding IsSelectedTextReadOnly}"
+                                 Margin="0,4,0,8"/>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock Text="Font Size" Width="100" Foreground="#DDD" VerticalAlignment="Center"/>
                             <Slider Minimum="8" Maximum="120" Value="{Binding SelectedFontSize}" Width="160"/>
