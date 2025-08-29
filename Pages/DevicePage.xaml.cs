@@ -13,11 +13,15 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.IO;
+using System.Threading;
+using System.Timers; // Add this for Timer
 
 using HID.DisplayController;
 using HidApi;
 using Path = System.IO.Path;
 using Color = System.Windows.Media.Color;
+
+using CMDevicesManager.Utilities;
 
 namespace CMDevicesManager.Pages
 {
@@ -28,10 +32,18 @@ namespace CMDevicesManager.Pages
     {
         private MultiDeviceManager? _multiDeviceManager;
         private bool _isStreamingInProgress = false;
+        private int _streamedImageCount = 0;
+        private CancellationTokenSource? _streamingCancellationSource;
+
+        // Keep-alive timer functionality
+        private System.Timers.Timer? _keepAliveTimer;
+        private readonly object _keepAliveTimerLock = new object();
+        private bool _keepAliveEnabled = false;
 
         public DevicePage()
         {
             InitializeComponent();
+            // ExtractGifFramesExample();
         }
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
@@ -53,6 +65,7 @@ namespace CMDevicesManager.Pages
                                 DevicesListBox.Items.Add(ev.Device);
                                 HideErrorMessage(); // Hide error message when devices are successfully added
                                 UpdateButtonStates(); // Update button states when devices change
+                                UpdateActiveDeviceCount(); // Update the device count in image viewer
                             }
                         }
                         catch (Exception ex)
@@ -76,6 +89,7 @@ namespace CMDevicesManager.Pages
                             {
                                 DevicesListBox.Items.Remove(deviceToRemove);
                                 UpdateButtonStates(); // Update button states when devices change
+                                UpdateActiveDeviceCount(); // Update the device count in image viewer
                             }
                         }
                         catch (Exception ex)
@@ -109,6 +123,7 @@ namespace CMDevicesManager.Pages
 
                 // Update button states initially
                 UpdateButtonStates();
+                UpdateActiveDeviceCount();
             }
             catch (Exception ex)
             {
@@ -117,7 +132,204 @@ namespace CMDevicesManager.Pages
         }
 
         /// <summary>
-        /// Handle realtime streaming button click
+        /// Start the keep-alive timer to send packets every 4 seconds
+        /// </summary>
+        private void StartKeepAliveTimer()
+        {
+            lock (_keepAliveTimerLock)
+            {
+                if (_keepAliveTimer != null)
+                {
+                    _keepAliveTimer.Stop();
+                    _keepAliveTimer.Dispose();
+                }
+
+                _keepAliveEnabled = true;
+                _keepAliveTimer = new System.Timers.Timer(4000); // 4 seconds interval
+                _keepAliveTimer.Elapsed += OnKeepAliveTimerElapsed;
+                _keepAliveTimer.AutoReset = true;
+                _keepAliveTimer.Start();
+
+                Console.WriteLine("Keep-alive timer started (4-second intervals)");
+            }
+        }
+
+        /// <summary>
+        /// Stop the keep-alive timer
+        /// </summary>
+        private void StopKeepAliveTimer()
+        {
+            lock (_keepAliveTimerLock)
+            {
+                _keepAliveEnabled = false;
+
+                if (_keepAliveTimer != null)
+                {
+                    _keepAliveTimer.Stop();
+                    _keepAliveTimer.Dispose();
+                    _keepAliveTimer = null;
+                    Console.WriteLine("Keep-alive timer stopped");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Handle keep-alive timer elapsed event
+        /// </summary>
+        private async void OnKeepAliveTimerElapsed(object? sender, ElapsedEventArgs e)
+        {
+            if (!_keepAliveEnabled || _multiDeviceManager == null)
+            {
+                return;
+            }
+
+            try
+            {
+                // Send keep-alive packet to all devices
+                long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var results = await _multiDeviceManager.SendKeepAliveOnAllDevices(timestamp);
+
+                int successCount = results.Values.Count(success => success);
+                Console.WriteLine($"Keep-alive sent to {successCount}/{results.Count} devices at {DateTime.Now:HH:mm:ss}");
+
+                // Optionally update UI to show keep-alive status
+                Dispatcher.Invoke(() =>
+                {
+                    // You could update a status indicator here if needed
+                    // For example, briefly flash the streaming indicator or update a timestamp
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending keep-alive: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Send an immediate keep-alive packet to all devices
+        /// </summary>
+        private async Task SendKeepAlivePacket()
+        {
+            if (_multiDeviceManager == null)
+            {
+                return;
+            }
+
+            try
+            {
+                long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var results = await _multiDeviceManager.SendKeepAliveOnAllDevices(timestamp);
+
+                int successCount = results.Values.Count(success => success);
+                Console.WriteLine($"Manual keep-alive sent to {successCount}/{results.Count} devices");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending manual keep-alive: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Update the active device count in the image viewer
+        /// </summary>
+        private void UpdateActiveDeviceCount()
+        {
+            ActiveDeviceCount.Text = DevicesListBox.Items.Count.ToString();
+        }
+
+        /// <summary>
+        /// Update streaming image viewer with current image
+        /// </summary>
+        /// <param name="imagePath">Path to the current image being streamed</param>
+        private void UpdateStreamingImageViewer(string imagePath)
+        {
+            try
+            {
+                if (File.Exists(imagePath))
+                {
+                    // Create BitmapImage to display the current streaming image
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad; // Load immediately to avoid file locks
+                    bitmap.EndInit();
+                    bitmap.Freeze(); // Make thread-safe
+
+                    // Update UI on the UI thread
+                    Dispatcher.Invoke(() =>
+                    {
+                        StreamingImageViewer.Source = bitmap;
+                        StreamingImageViewer.Visibility = Visibility.Visible;
+                        PlaceholderContent.Visibility = Visibility.Collapsed;
+                        LoadingIndicator.Visibility = Visibility.Collapsed;
+
+                        // Update image info
+                        CurrentImageName.Text = Path.GetFileName(imagePath);
+                        ImageDimensions.Text = $"{bitmap.PixelWidth} × {bitmap.PixelHeight}";
+
+                        // Update image counter
+                        _streamedImageCount++;
+                        ImageCounter.Text = _streamedImageCount.ToString();
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to update streaming image viewer: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Show streaming status indicator
+        /// </summary>
+        /// <param name="isStreaming">Whether streaming is active</param>
+        private void ShowStreamingStatus(bool isStreaming)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (isStreaming)
+                {
+                    StreamingStatusIndicator.Visibility = Visibility.Visible;
+                    LoadingIndicator.Visibility = Visibility.Visible;
+                    PlaceholderContent.Visibility = Visibility.Collapsed;
+                }
+                else
+                {
+                    StreamingStatusIndicator.Visibility = Visibility.Collapsed;
+                    LoadingIndicator.Visibility = Visibility.Collapsed;
+
+                    // Reset to placeholder if no image is loaded
+                    if (StreamingImageViewer.Source == null)
+                    {
+                        PlaceholderContent.Visibility = Visibility.Visible;
+                        StreamingImageViewer.Visibility = Visibility.Collapsed;
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// Reset the streaming image viewer
+        /// </summary>
+        private void ResetStreamingImageViewer()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                StreamingImageViewer.Source = null;
+                StreamingImageViewer.Visibility = Visibility.Collapsed;
+                PlaceholderContent.Visibility = Visibility.Visible;
+                LoadingIndicator.Visibility = Visibility.Collapsed;
+                StreamingStatusIndicator.Visibility = Visibility.Collapsed;
+
+                CurrentImageName.Text = "No image loaded";
+                ImageDimensions.Text = "";
+                _streamedImageCount = 0;
+                ImageCounter.Text = "0";
+            });
+        }
+
+        /// <summary>
+        /// Enhanced realtime streaming with synchronized image viewer and keep-alive timer
         /// </summary>
         private async void RealtimeStreamingButton_Click(object sender, RoutedEventArgs e)
         {
@@ -143,11 +355,16 @@ namespace CMDevicesManager.Pages
             try
             {
                 _isStreamingInProgress = true;
+                _streamingCancellationSource = new CancellationTokenSource();
                 UpdateButtonStates();
                 HideErrorMessage();
+                ShowStreamingStatus(true);
+
+                // Start the keep-alive timer for automatic 4-second intervals
+                StartKeepAliveTimer();
 
                 // Show status message
-                ShowStatusMessage($"Starting realtime streaming demo on {activeControllers.Count} device(s)...");
+                ShowStatusMessage($"Starting realtime streaming with keep-alive on {activeControllers.Count} device(s)...");
 
                 // Set up image directory path (you may want to make this configurable)
                 string imageDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "HidProtocol", "resources", "realtime");
@@ -169,12 +386,12 @@ namespace CMDevicesManager.Pages
                     }
                 }
 
-                // Execute realtime streaming on all devices
+                // Execute enhanced realtime streaming with synchronized image viewer
                 var results = await _multiDeviceManager.ExecuteOnAllDevices(async controller =>
                 {
                     try
                     {
-                        bool success = await controller.SimpleRealTimeDisplayDemo(imageDirectory, 20);
+                        bool success = await EnhancedRealTimeDisplayDemo(controller, imageDirectory, 20, _streamingCancellationSource.Token);
                         return success;
                     }
                     catch (Exception ex)
@@ -201,8 +418,136 @@ namespace CMDevicesManager.Pages
             }
             finally
             {
+                // Stop the keep-alive timer when streaming ends
+                StopKeepAliveTimer();
+
                 _isStreamingInProgress = false;
+                ShowStreamingStatus(false);
                 UpdateButtonStates();
+                _streamingCancellationSource?.Dispose();
+                _streamingCancellationSource = null;
+            }
+        }
+
+        /// <summary>
+        /// Enhanced real-time display demo with synchronized image viewer updates and keep-alive support
+        /// </summary>
+        /// <param name="controller">Display controller</param>
+        /// <param name="imageDirectory">Directory containing images</param>
+        /// <param name="cycleCount">Number of image cycles</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>True if demo completed successfully</returns>
+        private async Task<bool> EnhancedRealTimeDisplayDemo(DisplayController controller, string? imageDirectory = null, int cycleCount = 5, CancellationToken cancellationToken = default)
+        {
+            Console.WriteLine("=== Enhanced Real-Time Display Demo with Keep-Alive Support ===");
+
+            try
+            {
+                List<string> imagePaths = new List<string>();
+
+                // Initialize the images path list
+                if (!string.IsNullOrEmpty(imageDirectory) && Directory.Exists(imageDirectory))
+                {
+                    var supportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp" };
+                    var files = Directory.GetFiles(imageDirectory)
+                                         .Where(f => supportedExtensions.Contains(Path.GetExtension(f)))
+                                         .ToList();
+                    if (files.Count > 0)
+                    {
+                        Console.WriteLine($"Found {files.Count} images in directory: {imageDirectory}");
+                        imagePaths.AddRange(files);
+                    }
+                    else
+                    {
+                        Console.WriteLine($"No supported image files found in directory: {imageDirectory}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("No valid image directory provided, using default images.");
+                }
+
+                // Ensure device is awake
+                var wakeResponse = await controller.SendCmdDisplayInSleepWithResponse(false);
+                if (wakeResponse?.IsSuccess != true)
+                {
+                    Console.WriteLine("Failed to wake device from sleep");
+                    return false;
+                }
+                await Task.Delay(1500); // Wait for device to wake up
+
+                // Step 1: Enable real-time display
+                Console.WriteLine("Enabling real-time display...");
+                var enableResponse = await controller.SendCmdRealTimeDisplayWithResponse(true);
+                if (enableResponse?.IsSuccess != true)
+                {
+                    Console.WriteLine("Failed to enable real-time display");
+                    return false;
+                }
+
+                // Send initial keep-alive packet
+                await controller.SendCmdKeepAliveWithResponse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                Console.WriteLine("Initial keep-alive packet sent");
+
+                // Step 2: Set brightness to 80
+                await controller.SendCmdBrightnessWithResponse(80);
+
+                // Set keep-alive timer to a reasonable value (higher than our 4-second interval)
+                await controller.SendCmdSetKeepAliveTimerWithResponse(60); // 10 seconds device timeout
+
+                if (imagePaths.Count > 0)
+                {
+                    Console.WriteLine($"Cycling through {imagePaths.Count} images, {cycleCount} times...");
+                    Console.WriteLine("Keep-alive packets will be sent automatically every 4 seconds");
+
+                    byte transferId = 0;
+                    for (int cycle = 0; cycle < cycleCount && !cancellationToken.IsCancellationRequested; cycle++)
+                    {
+                        foreach (var imagePath in imagePaths)
+                        {
+                            if (cancellationToken.IsCancellationRequested) break;
+
+                            Console.WriteLine($"[SENDING] Sending: {Path.GetFileName(imagePath)}");
+
+                            // Step 3: Send image file
+                            controller.SendFileFromDisk(imagePath, transferId: transferId);
+
+                            // Update the synchronized image viewer
+                            UpdateStreamingImageViewer(imagePath);
+
+                            if (transferId < 4)
+                            {
+                                // For the first image, wait a bit longer to ensure device is ready
+                                await Task.Delay(10, cancellationToken); // 3 seconds for first image
+                            }
+                            else
+                            {
+                                // Wait a shorter time for subsequent images
+                                await Task.Delay(1000, cancellationToken); // 2 seconds for other images
+                            }
+
+                            transferId++;
+                            if (transferId > 59) transferId = 4;
+                        }
+                    }
+                }
+
+                // Disable real-time display
+                Console.WriteLine("Disabling real-time display...");
+                await controller.SendCmdRealTimeDisplayWithResponse(false);
+
+                Console.WriteLine("=== Enhanced Real-Time Display Demo Completed ===");
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine("Real-time display demo was cancelled");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Enhanced demo failed: {ex.Message}");
+                return false;
             }
         }
 
@@ -235,6 +580,9 @@ namespace CMDevicesManager.Pages
                 _isStreamingInProgress = true;
                 UpdateButtonStates();
                 HideErrorMessage();
+
+                // Reset image viewer for offline mode
+                ResetStreamingImageViewer();
 
                 // Show status message
                 ShowStatusMessage($"Starting offline streaming demo on {activeControllers.Count} device(s)...");
@@ -401,6 +749,41 @@ namespace CMDevicesManager.Pages
         private void HideErrorMessage()
         {
             ErrorMessageBorder.Visibility = Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// Cleanup resources when page is unloaded
+        /// </summary>
+        private void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // Stop keep-alive timer when page is unloaded
+            StopKeepAliveTimer();
+        }
+
+        private async Task ExtractGifFramesExample()
+        {
+            string gifPath = @"E:\github\CMDevicesManager\HidProtocol\resources\gif\LCD-A.gif";
+            string outputDir = @"E:\github\CMDevicesManager\HidProtocol\resources\gif\LCD-AFrame";
+
+            Console.WriteLine("=== GIF Frame Extraction Example ===");
+
+            int[] frameDurations = MyImageConverter.GetGifFrameDurations(gifPath);
+
+            var gifInfo = MyImageConverter.GetGifInfo(gifPath);
+
+            // Extract all frames
+            string[] frameFiles = await MyImageConverter.ExtractGifFramesToJpegAsync(
+                gifPath,
+                outputDir,
+                quality: 90,
+                fileNamePrefix: "frame"
+            );
+
+            Console.WriteLine($"Extracted {frameFiles.Length} frames:");
+            foreach (var frame in frameFiles)
+            {
+                Console.WriteLine($"  - {Path.GetFileName(frame)}");
+            }
         }
     }
 }

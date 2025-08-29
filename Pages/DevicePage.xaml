@@ -17,22 +17,24 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
         <!-- Header Section -->
-        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,20,0,30">
+        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" HorizontalAlignment="Center" Margin="0,20,0,30">
             <TextBlock Text="{DynamicResource DevicePageTitle}" 
-                      FontSize="36" 
+                      FontSize="24" 
                       FontWeight="Bold" 
                       Foreground="White" 
                       HorizontalAlignment="Center"
                       Margin="0,0,0,20"/>
-            <TextBlock Text="{DynamicResource DeviceText}" 
-                      FontSize="18" 
-                      Foreground="White" 
-                      HorizontalAlignment="Center"/>
         </StackPanel>
 
         <!-- Error Message Section -->
-        <Border Grid.Row="1" 
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
                 Background="#44FF4444" 
                 BorderBrush="#FF6666" 
                 BorderThickness="1" 
@@ -56,7 +58,7 @@
         </Border>
 
         <!-- Streaming Control Buttons Section -->
-        <Grid Grid.Row="2" Margin="50,0,50,20">
+        <Grid Grid.Row="2" Grid.Column="0" Margin="50,0,50,20">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="20"/>
@@ -128,12 +130,12 @@
                               VerticalAlignment="Center" 
                               Margin="0,0,10,0"/>
                     <StackPanel>
-                        <TextBlock Text="Demo Realtime Streaming" 
+                        <TextBlock Text="Realtime" 
                                   FontSize="14" 
                                   FontWeight="SemiBold" 
                                   Foreground="White"
                                   HorizontalAlignment="Center"/>
-                        <TextBlock Text="Live image cycling display" 
+                        <TextBlock Text="Live display" 
                                   FontSize="11" 
                                   Foreground="#CCCCCC"
                                   HorizontalAlignment="Center"/>
@@ -206,12 +208,12 @@
                               VerticalAlignment="Center" 
                               Margin="0,0,10,0"/>
                     <StackPanel>
-                        <TextBlock Text="Offline Streaming Demo" 
+                        <TextBlock Text="Offline" 
                                   FontSize="14" 
                                   FontWeight="SemiBold" 
                                   Foreground="White"
                                   HorizontalAlignment="Center"/>
-                        <TextBlock Text="Suspend mode media playback" 
+                        <TextBlock Text="Offline mode" 
                                   FontSize="11" 
                                   Foreground="#CCCCCC"
                                   HorizontalAlignment="Center"/>
@@ -220,8 +222,171 @@
             </Button>
         </Grid>
 
+        <!-- Streaming Image Viewer Section -->
+        <Border Grid.Row="2" Grid.Column="2" Grid.RowSpan="2"
+                Background="#1A1A1A"
+                BorderBrush="#444444"
+                BorderThickness="2"
+                CornerRadius="8"
+                Margin="0,0,50,50">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Image Viewer Header -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="15,15,15,10">
+                    <TextBlock Text="📺" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="Live Stream View" 
+                              FontSize="14" 
+                              FontWeight="SemiBold" 
+                              Foreground="White" 
+                              VerticalAlignment="Center"/>
+                    <Border Background="#2A4A8B" 
+                           CornerRadius="10" 
+                           Padding="6,2" 
+                           Margin="10,0,0,0"
+                           x:Name="StreamingStatusIndicator"
+                           Visibility="Collapsed">
+                        <TextBlock Text="LIVE" 
+                                  FontSize="9" 
+                                  FontWeight="Bold" 
+                                  Foreground="White"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Image Display Area -->
+                <Border Grid.Row="1" 
+                       Background="#0A0A0A" 
+                       BorderBrush="#333333" 
+                       BorderThickness="1"
+                       CornerRadius="4" 
+                       Margin="15,0,15,10">
+                    <Grid>
+                        <!-- Default placeholder content -->
+                        <StackPanel x:Name="PlaceholderContent"
+                                   HorizontalAlignment="Center" 
+                                   VerticalAlignment="Center">
+                            <TextBlock Text="🖼️" 
+                                      FontSize="48" 
+                                      HorizontalAlignment="Center" 
+                                      Foreground="#666666"
+                                      Margin="0,0,0,10"/>
+                            <TextBlock Text="No streaming content" 
+                                      FontSize="12" 
+                                      Foreground="#888888"
+                                      HorizontalAlignment="Center"/>
+                            <TextBlock Text="Start streaming to see live images" 
+                                      FontSize="10" 
+                                      Foreground="#666666"
+                                      HorizontalAlignment="Center"
+                                      Margin="0,5,0,0"/>
+                        </StackPanel>
+
+                        <!-- Image viewer -->
+                        <Image x:Name="StreamingImageViewer" 
+                              Stretch="Uniform"
+                              StretchDirection="DownOnly"
+                              Visibility="Collapsed">
+                            <Image.Effect>
+                                <DropShadowEffect Color="Black" 
+                                                BlurRadius="10" 
+                                                ShadowDepth="3" 
+                                                Opacity="0.5"/>
+                            </Image.Effect>
+                        </Image>
+
+                        <!-- Loading indicator -->
+                        <StackPanel x:Name="LoadingIndicator"
+                                   HorizontalAlignment="Center" 
+                                   VerticalAlignment="Center"
+                                   Visibility="Collapsed">
+                            <Grid Width="40" Height="40" Margin="0,0,0,10">
+                                <Ellipse Width="40" Height="40" 
+                                        Stroke="#4A6BAB" 
+                                        StrokeThickness="3" 
+                                        StrokeDashArray="25,25"
+                                        RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform>
+                                        <RotateTransform x:Name="LoadingRotation"/>
+                                    </Ellipse.RenderTransform>
+                                    <Ellipse.Triggers>
+                                        <EventTrigger RoutedEvent="Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <DoubleAnimation Storyboard.TargetName="LoadingRotation"
+                                                                   Storyboard.TargetProperty="Angle"
+                                                                   From="0" To="360" Duration="0:0:2"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Ellipse.Triggers>
+                                </Ellipse>
+                            </Grid>
+                            <TextBlock Text="Loading stream..." 
+                                      FontSize="11" 
+                                      Foreground="#4A6BAB"
+                                      HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Image Info Panel -->
+                <StackPanel Grid.Row="2" Margin="15,0,15,15">
+                    <Border Background="#2A2A2A" 
+                           BorderBrush="#444444" 
+                           BorderThickness="1" 
+                           CornerRadius="4" 
+                           Padding="10,8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Current image info -->
+                            <StackPanel Grid.Row="0">
+                                <TextBlock x:Name="CurrentImageName" 
+                                          Text="No image loaded" 
+                                          FontSize="11" 
+                                          FontWeight="Medium"
+                                          Foreground="White"
+                                          TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="ImageDimensions" 
+                                          Text="" 
+                                          FontSize="10" 
+                                          Foreground="#CCCCCC"
+                                          Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <!-- Stream stats -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                                <TextBlock Text="Images: " 
+                                          FontSize="9" 
+                                          Foreground="#888888"/>
+                                <TextBlock x:Name="ImageCounter" 
+                                          Text="0" 
+                                          FontSize="9" 
+                                          Foreground="#CCCCCC"/>
+                                <TextBlock Text=" • Active devices: " 
+                                          FontSize="9" 
+                                          Foreground="#888888"
+                                          Margin="8,0,0,0"/>
+                                <TextBlock x:Name="ActiveDeviceCount" 
+                                          Text="0" 
+                                          FontSize="9" 
+                                          Foreground="#CCCCCC"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Devices List Section -->
-        <Grid Grid.Row="3" Margin="50,0,50,50">
+        <Grid Grid.Row="3" Grid.Column="0" Margin="50,0,50,50">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
