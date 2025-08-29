@@ -1,6 +1,9 @@
 using CMDevicesManager.Models;
+using CMDevicesManager.Services;
 using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
@@ -11,8 +14,10 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
+using Button = System.Windows.Controls.Button;
 using Color = System.Windows.Media.Color;
 using Cursors = System.Windows.Input.Cursors;
 using Image = System.Windows.Controls.Image;
@@ -24,12 +29,32 @@ using WF = System.Windows.Forms;
 
 namespace CMDevicesManager.Pages
 {
-    /// <summary>
-    /// Interaction logic for DeviceConfigPage.xaml
-    /// </summary>
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
         private readonly DeviceInfo _device;
+
+        // System info service + live text update
+        private readonly ISystemMetricsService _metrics;
+        private readonly DispatcherTimer _liveTimer;
+
+        // Dynamic system info buttons
+        public ObservableCollection<SystemInfoItem> SystemInfoItems { get; } = new();
+
+        // Live text registry
+        private sealed class LiveTextItem
+        {
+            public Border Border { get; init; } = null!;
+            public TextBlock Text { get; init; } = null!;
+            public LiveInfoKind Kind { get; init; }
+        }
+        private readonly List<LiveTextItem> _liveItems = new();
+
+        public enum LiveInfoKind
+        {
+            CpuUsage,
+            GpuUsage,
+            DateTime
+        }
 
         // Design surface config
         private int _canvasSize = 512;
@@ -47,7 +72,7 @@ namespace CMDevicesManager.Pages
         public string BackgroundHex { get => _backgroundHex; set { if (_backgroundHex != value) { _backgroundHex = value; if (TryParseHexColor(value, out var c)) BackgroundColor = c; OnPropertyChanged(); } } }
 
         // Selection
-        private Border? _selected;                 // wrapper of element
+        private Border? _selected;
         private ScaleTransform? _selScale;
         private TranslateTransform? _selTranslate;
 
@@ -56,8 +81,9 @@ namespace CMDevicesManager.Pages
         public string SelectedInfo { get => _selectedInfo; set { _selectedInfo = value; OnPropertyChanged(); } }
         public bool IsAnySelected => _selected != null;
         public bool IsTextSelected => _selected?.Child is TextBlock;
+        public bool IsSelectedTextReadOnly => _selected?.Tag is LiveInfoKind; // live text can't edit content
 
-        // Selected props (Two-way with UI)
+        // Selected props
         private double _selectedScale = 1.0;
         public double SelectedScale { get => _selectedScale; set { _selectedScale = Math.Clamp(value, 0.1, 5); ApplySelectedScale(); ClampSelectedIntoCanvas(); OnPropertyChanged(); } }
         private double _selectedOpacity = 1.0;
@@ -65,7 +91,20 @@ namespace CMDevicesManager.Pages
 
         // Text props
         private string _selectedText = string.Empty;
-        public string SelectedText { get => _selectedText; set { _selectedText = value; if (_selected?.Child is TextBlock tb) tb.Text = value; UpdateSelectedInfo(); OnPropertyChanged(); } }
+        public string SelectedText
+        {
+            get => _selectedText;
+            set
+            {
+                _selectedText = value;
+                if (_selected?.Child is TextBlock tb && _selected?.Tag is not LiveInfoKind)
+                {
+                    tb.Text = value;
+                }
+                UpdateSelectedInfo();
+                OnPropertyChanged();
+            }
+        }
         private double _selectedFontSize = 24;
         public double SelectedFontSize { get => _selectedFontSize; set { _selectedFontSize = value; if (_selected?.Child is TextBlock tb) tb.FontSize = value; OnPropertyChanged(); } }
         private Color _selectedTextColor = Colors.White;
@@ -86,6 +125,12 @@ namespace CMDevicesManager.Pages
         private void OnPropertyChanged([CallerMemberName] string? p = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
+            if (p is nameof(_selected))
+            {
+                OnPropertyChanged(nameof(IsAnySelected));
+                OnPropertyChanged(nameof(IsTextSelected));
+                OnPropertyChanged(nameof(IsSelectedTextReadOnly));
+            }
         }
 
         public DeviceConfigPage(DeviceInfo device)
@@ -94,23 +139,136 @@ namespace CMDevicesManager.Pages
             InitializeComponent();
             DataContext = this;
 
-            // Ensure default export folder exists (optional)
+            // Metrics service
+            _metrics = new RealSystemMetricsService();
+
+            // Build dynamic system info buttons
+            BuildSystemInfoButtons();
+
+            // Ensure default export folder exists
             try { Directory.CreateDirectory(OutputFolder); } catch { /* ignore */ }
 
-            // Canvas-level handlers for deselecting, wheel-scaling
+            // Canvas handlers
             DesignCanvas.PreviewMouseLeftButtonDown += DesignCanvas_PreviewMouseLeftButtonDown;
             DesignCanvas.PreviewMouseWheel += DesignCanvas_PreviewMouseWheel;
+
+            // Live timer
+            _liveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _liveTimer.Tick += LiveTimer_Tick;
+            _liveTimer.Start();
+
+            Unloaded += DeviceConfigPage_Unloaded;
         }
+
+        private void DeviceConfigPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            try { _liveTimer.Stop(); } catch { }
+            try { _metrics.Dispose(); } catch { }
+        }
+
+        private void BuildSystemInfoButtons()
+        {
+            SystemInfoItems.Clear();
+
+            // CPU is generally available
+            SystemInfoItems.Add(new SystemInfoItem(LiveInfoKind.CpuUsage, $"CPU Usage ({_metrics.CpuName})"));
+
+            // GPU: add only if likely present
+            var gpuName = (_metrics as RealSystemMetricsService)?.PrimaryGpuName ?? "GPU";
+            var gpuVal = _metrics.GetGpuUsagePercent();
+            if (!string.Equals(gpuName, "GPU", StringComparison.OrdinalIgnoreCase) || gpuVal > 0)
+            {
+                SystemInfoItems.Add(new SystemInfoItem(LiveInfoKind.GpuUsage, $"GPU Usage ({gpuName})"));
+            }
+        }
+
+        public sealed record SystemInfoItem(LiveInfoKind Kind, string DisplayName);
 
         private void Back_Click(object sender, RoutedEventArgs e)
         {
-            if (NavigationService?.CanGoBack == true)
+            if (NavigationService?.CanGoBack == true) NavigationService.GoBack();
+            else NavigationService?.Navigate(new DevicePage());
+        }
+
+        // ===================== Add Date (live, read-only) =====================
+        private void AddClock_Click(object sender, RoutedEventArgs e)
+        {
+            var tb = new TextBlock
             {
-                NavigationService.GoBack();
+                Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                Foreground = Brushes.White,
+                FontSize = 32,
+                FontWeight = FontWeights.SemiBold
+            };
+
+            var border = AddElement(tb, "Date/Time");
+
+            // Mark as live and register
+            border.Tag = LiveInfoKind.DateTime;
+            _liveItems.Add(new LiveTextItem { Border = border, Text = tb, Kind = LiveInfoKind.DateTime });
+
+            // If selected now, lock editing and reflect value
+            if (_selected == border)
+            {
+                OnPropertyChanged(nameof(IsSelectedTextReadOnly));
+                _selectedText = tb.Text;
+                OnPropertyChanged(nameof(SelectedText));
             }
-            else
+        }
+
+        // ===================== System Info click -> add live text =====================
+        private void AddSystemInfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not LiveInfoKind kind) return;
+
+            var tb = new TextBlock
             {
-                NavigationService?.Navigate(new DevicePage());
+                Text = kind == LiveInfoKind.CpuUsage ? $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%" : $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%",
+                Foreground = Brushes.White,
+                FontSize = 32,
+                FontWeight = FontWeights.SemiBold
+            };
+
+            var border = AddElement(tb, kind == LiveInfoKind.CpuUsage ? "CPU Usage" : "GPU Usage");
+
+            // Mark as live and register
+            border.Tag = kind;
+            _liveItems.Add(new LiveTextItem { Border = border, Text = tb, Kind = kind });
+
+            // If selected now, make text box read-only
+            if (_selected == border)
+            {
+                OnPropertyChanged(nameof(IsSelectedTextReadOnly));
+                _selectedText = tb.Text; // reflect into right panel
+            }
+        }
+
+        private void LiveTimer_Tick(object? sender, EventArgs e)
+        {
+            // Read once per tick
+            double cpu = _metrics.GetCpuUsagePercent();
+            double gpu = _metrics.GetGpuUsagePercent();
+            string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
+            foreach (var item in _liveItems.ToArray())
+            {
+                string text = item.Kind switch
+                {
+                    LiveInfoKind.CpuUsage => $"CPU {Math.Round(cpu)}%",
+                    LiveInfoKind.GpuUsage => $"GPU {Math.Round(gpu)}%",
+                    LiveInfoKind.DateTime => now,
+                    _ => item.Text.Text
+                };
+
+                item.Text.Text = text;
+
+                if (_selected == item.Border)
+                {
+                    // Update right panel display (read-only textbox)
+                    _selectedText = text;
+                    OnPropertyChanged(nameof(SelectedText));
+                    UpdateSelectedInfo();
+                }
             }
         }
 
@@ -148,6 +306,7 @@ namespace CMDevicesManager.Pages
         private void ClearCanvas_Click(object sender, RoutedEventArgs e)
         {
             DesignCanvas.Children.Clear();
+            _liveItems.Clear();
             SetSelected(null);
         }
 
@@ -156,7 +315,6 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                // Temporarily remove selection highlight for clean export
                 var prevBorderBrush = _selected?.BorderBrush;
                 var prevBorderThickness = _selected?.BorderThickness;
                 if (_selected != null)
@@ -165,13 +323,11 @@ namespace CMDevicesManager.Pages
                     _selected.BorderThickness = new Thickness(0);
                 }
 
-                // Render DesignRoot at CanvasSize x CanvasSize
                 var rtb = new RenderTargetBitmap(CanvasSize, CanvasSize, 96, 96, PixelFormats.Pbgra32);
                 DesignRoot.Measure(new Size(CanvasSize, CanvasSize));
                 DesignRoot.Arrange(new Rect(0, 0, CanvasSize, CanvasSize));
                 rtb.Render(DesignRoot);
 
-                // Restore selection border
                 if (_selected != null && prevBorderBrush != null && prevBorderThickness != null)
                 {
                     _selected.BorderBrush = prevBorderBrush;
@@ -228,7 +384,6 @@ namespace CMDevicesManager.Pages
             BackgroundImagePath = null;
         }
 
-        // ===================== Selected text color =====================
         private void PickSelectedTextColor_Click(object sender, RoutedEventArgs e)
         {
             if (_selected?.Child is not TextBlock) return;
@@ -265,6 +420,11 @@ namespace CMDevicesManager.Pages
         private void DeleteSelected_Click(object sender, RoutedEventArgs e)
         {
             if (_selected == null) return;
+
+            // Unregister live item if any
+            var live = _liveItems.FirstOrDefault(i => i.Border == _selected);
+            if (live != null) _liveItems.Remove(live);
+
             DesignCanvas.Children.Remove(_selected);
             SetSelected(null);
         }
@@ -284,10 +444,10 @@ namespace CMDevicesManager.Pages
         }
 
         // ===================== Element creation / selection =====================
-        private void AddElement(FrameworkElement element, string label)
+        private Border AddElement(FrameworkElement element, string label)
         {
             element.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-            element.VerticalAlignment = System.Windows.VerticalAlignment.Top;
+            element.VerticalAlignment = VerticalAlignment.Top;
 
             var border = new Border
             {
@@ -298,7 +458,6 @@ namespace CMDevicesManager.Pages
                 Cursor = Cursors.SizeAll
             };
 
-            // Transform group: Scale then Translate
             var tg = new TransformGroup();
             var scale = new ScaleTransform(1, 1);
             var translate = new TranslateTransform(0, 0);
@@ -306,7 +465,6 @@ namespace CMDevicesManager.Pages
             tg.Children.Add(translate);
             border.RenderTransform = tg;
 
-            // Events
             border.PreviewMouseLeftButtonDown += Item_PreviewMouseLeftButtonDown;
             border.PreviewMouseLeftButtonUp += Item_PreviewMouseLeftButtonUp;
             border.PreviewMouseMove += Item_PreviewMouseMove;
@@ -314,7 +472,6 @@ namespace CMDevicesManager.Pages
             border.MouseEnter += (_, __) => { if (_selected != border) border.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 30, 144, 255)); };
             border.MouseLeave += (_, __) => { if (_selected != border) border.BorderBrush = Brushes.Transparent; };
 
-            // Add and initialize after loaded
             DesignCanvas.Children.Add(border);
             border.Loaded += (_, __) =>
             {
@@ -328,7 +485,7 @@ namespace CMDevicesManager.Pages
                 {
                     if (element is Image)
                     {
-                        // Scale to cover the canvas (like UniformToFill) and center
+                        // Cover canvas & center
                         double scaleToCover = (w > 0 && h > 0) ? Math.Max(CanvasSize / w, CanvasSize / h) : 1.0;
                         sc.ScaleX = sc.ScaleY = scaleToCover;
                         SelectedScale = scaleToCover;
@@ -340,7 +497,6 @@ namespace CMDevicesManager.Pages
                     }
                     else
                     {
-                        // Center non-image elements at 1:1
                         SelectedScale = 1.0;
                         tr.X = (CanvasSize - w) / 2.0;
                         tr.Y = (CanvasSize - h) / 2.0;
@@ -350,11 +506,12 @@ namespace CMDevicesManager.Pages
                 ClampIntoCanvas(border);
                 UpdateSelectedInfo();
             };
+
+            return border;
         }
 
         private void SelectElement(Border border)
         {
-            // Clear previous highlight
             if (_selected != null && _selected != border)
             {
                 _selected.BorderBrush = Brushes.Transparent;
@@ -388,8 +545,7 @@ namespace CMDevicesManager.Pages
             }
 
             UpdateSelectedInfo();
-            OnPropertyChanged(nameof(IsAnySelected));
-            OnPropertyChanged(nameof(IsTextSelected));
+            OnPropertyChanged(nameof(_selected));
         }
 
         private void SetSelected(Border? border)
@@ -415,8 +571,7 @@ namespace CMDevicesManager.Pages
                 SelectedInfo = "None";
             }
 
-            OnPropertyChanged(nameof(IsAnySelected));
-            OnPropertyChanged(nameof(IsTextSelected));
+            OnPropertyChanged(nameof(_selected));
         }
 
         private void UpdateSelectedInfo()
@@ -428,7 +583,20 @@ namespace CMDevicesManager.Pages
             }
             if (_selected.Child is TextBlock)
             {
-                SelectedInfo = $"Text: \"{SelectedText}\"";
+                if (_selected.Tag is LiveInfoKind k)
+                {
+                    SelectedInfo = k switch
+                    {
+                        LiveInfoKind.CpuUsage => "CPU Usage",
+                        LiveInfoKind.GpuUsage => "GPU Usage",
+                        LiveInfoKind.DateTime => "Date/Time",
+                        _ => "Live Text"
+                    };
+                }
+                else
+                {
+                    SelectedInfo = $"Text: \"{SelectedText}\"";
+                }
             }
             else if (_selected.Child is Image img)
             {
@@ -482,7 +650,6 @@ namespace CMDevicesManager.Pages
             var newX = _dragStartX + dx;
             var newY = _dragStartY + dy;
 
-            // Clamp to canvas
             (newX, newY) = GetClampedPosition(_selected, newX, newY);
 
             _selTranslate.X = newX;
@@ -503,7 +670,6 @@ namespace CMDevicesManager.Pages
 
         private void DesignCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Deselect only if clicking empty space (the canvas itself)
             if (e.Source == DesignCanvas)
             {
                 SetSelected(null);
