@@ -17,13 +17,13 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Application = System.Windows.Application;
 using MessageBox = System.Windows.MessageBox;
-
+using MicaWPF.Controls;
 namespace CMDevicesManager
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : MicaWindow
     {
         // Cache single instances to avoid reinitialization on repeated clicks
         private HomePage? _homePage;
