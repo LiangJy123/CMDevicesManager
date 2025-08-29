@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MicaWPF.Controls;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,7 +18,7 @@ namespace CMDevicesManager
     /// <summary>
     /// Interaction logic for SplashWindow.xaml
     /// </summary>
-    public partial class SplashWindow : Window
+    public partial class SplashWindow : MicaWindow
     {
         public SplashWindow()
         {
