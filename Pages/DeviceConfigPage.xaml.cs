@@ -31,7 +31,7 @@ namespace CMDevicesManager.Pages
 {
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
-        private readonly DeviceInfo _device;
+        private readonly DeviceInfos _device;
 
         // System info service + live text update
         private readonly ISystemMetricsService _metrics;
@@ -133,7 +133,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        public DeviceConfigPage(DeviceInfo device)
+        public DeviceConfigPage(DeviceInfos device)
         {
             _device = device ?? throw new ArgumentNullException(nameof(device));
             InitializeComponent();
