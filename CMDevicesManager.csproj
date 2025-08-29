@@ -58,4 +58,10 @@
     </Resource>
   </ItemGroup>
 
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy &quot;$(ProjectDir)hidapidll\hidapi.dll&quot; &quot;$(TargetDir)&quot; /Y /I"
+          ContinueOnError="false"
+          IgnoreExitCode="false" />
+  </Target>
+
 </Project>
