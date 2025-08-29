@@ -29,7 +29,7 @@ namespace CMDevicesManager.Pages
     /// </summary>
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
-        private readonly DeviceInfo _device;
+        private readonly DeviceInfos _device;
 
         // Design surface config
         private int _canvasSize = 512;
@@ -88,7 +88,7 @@ namespace CMDevicesManager.Pages
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
         }
 
-        public DeviceConfigPage(DeviceInfo device)
+        public DeviceConfigPage(DeviceInfos device)
         {
             _device = device ?? throw new ArgumentNullException(nameof(device));
             InitializeComponent();
