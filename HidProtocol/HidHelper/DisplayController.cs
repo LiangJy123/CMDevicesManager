@@ -1575,10 +1575,11 @@ namespace HID.DisplayController
         public async Task<DisplayResponse?> SendCmdKeepAliveWithResponse(long timestamp)
         {
             uint currentSeqNumber = _currentSeqNumber;
+            ulong datetimeSeconds = (ulong)(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             var parameters = new { timestamp = timestamp };
             string jsonContent = System.Text.Json.JsonSerializer.Serialize(parameters);
             int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
-            string jsonPayload = $"STATE timestamp 1\r\nSeqNumber={currentSeqNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+            string jsonPayload = $"STATE timestamp 1\r\nSeqNumber={currentSeqNumber}\r\nDate={datetimeSeconds}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
             _currentSeqNumber++;
             // if _currentSeqNumber exceeds uint.MaxValue, reset to 1
             if (_currentSeqNumber == (uint.MaxValue - 1))
