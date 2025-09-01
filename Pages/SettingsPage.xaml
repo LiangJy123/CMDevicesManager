@@ -54,6 +54,50 @@
                 </StackPanel>
             </Border>
 
+            <!-- Font Settings Section -->
+            <Border Background="#FF2A2A2A" 
+                   CornerRadius="8" 
+                   Padding="20" 
+                   Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource FontLabel}" 
+                              FontSize="20" 
+                              FontWeight="SemiBold" 
+                              Foreground="White" 
+                              Margin="0,0,0,15"/>
+                    
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="DefaultFontRadio" 
+                                    Content="{DynamicResource DefaultFont}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Margin="0,0,30,0"
+                                    Checked="FontRadio_Checked"
+                                    Tag="default"/>
+                        <RadioButton x:Name="NotoSansFontRadio" 
+                                    Content="{DynamicResource NotoSansFont}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Margin="0,0,30,0"
+                                    Checked="FontRadio_Checked"
+                                    Tag="noto-sans"/>
+                        <RadioButton x:Name="NotoSansCJKFontRadio" 
+                                    Content="{DynamicResource NotoSansCJKFont}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Margin="0,0,30,0"
+                                    Checked="FontRadio_Checked"
+                                    Tag="noto-sans-cjk"/>
+                        <RadioButton x:Name="RubikFontRadio" 
+                                    Content="{DynamicResource RubikFont}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Checked="FontRadio_Checked"
+                                    Tag="rubik"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
         </StackPanel>
     </Grid>
 </Page>
