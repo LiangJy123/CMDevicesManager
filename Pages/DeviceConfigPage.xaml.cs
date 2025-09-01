@@ -200,6 +200,8 @@ namespace CMDevicesManager.Pages
                 FontSize = 32,
                 FontWeight = FontWeights.SemiBold
             };
+            // Apply current app font family
+            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
             var border = AddElement(tb, "Date/Time");
 
@@ -228,6 +230,8 @@ namespace CMDevicesManager.Pages
                 FontSize = 32,
                 FontWeight = FontWeights.SemiBold
             };
+            // Apply current app font family
+            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
             var border = AddElement(tb, kind == LiveInfoKind.CpuUsage ? "CPU Usage" : "GPU Usage");
 
@@ -282,6 +286,8 @@ namespace CMDevicesManager.Pages
                 FontSize = 32,
                 FontWeight = FontWeights.SemiBold
             };
+            // Apply current app font family
+            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
             AddElement(tb, "Text");
         }
 

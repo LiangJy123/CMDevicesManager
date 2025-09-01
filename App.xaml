@@ -13,6 +13,8 @@
                 <mica:ControlsDictionary />
                 <ResourceDictionary Source="/Language/StringResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <!-- App-wide font family resource -->
+            <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
             <!-- Other app resources here -->
         </ResourceDictionary>
     </Application.Resources>
