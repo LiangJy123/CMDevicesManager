@@ -15,7 +15,8 @@
     
     <!-- Settings Page -->
     <sys:String x:Key="LanguageLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">语言设置</sys:String>
-    <sys:String x:Key="ChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">中文</sys:String>
+    <sys:String x:Key="ChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">简体中文</sys:String>
+    <sys:String x:Key="TraditionalChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">繁体中文</sys:String>
     <sys:String x:Key="EnglishLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">English</sys:String>
     <sys:String x:Key="ApplySettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">应用设置</sys:String>
     
