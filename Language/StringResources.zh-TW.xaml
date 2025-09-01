@@ -1,0 +1,26 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Navigation Menu -->
+    <sys:String x:Key="HomeText" xmlns:sys="clr-namespace:System;assembly=mscorlib">首頁</sys:String>
+    <sys:String x:Key="DeviceText" xmlns:sys="clr-namespace:System;assembly=mscorlib">設備</sys:String>
+    <sys:String x:Key="SettingsText" xmlns:sys="clr-namespace:System;assembly=mscorlib">設定</sys:String>
+    
+    <!-- Main Window -->
+    <sys:String x:Key="AppTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cooler Master</sys:String>
+    
+    <!-- Pages -->
+    <sys:String x:Key="HomePageTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">主頁</sys:String>
+    <sys:String x:Key="DevicePageTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">設備管理</sys:String>
+    <sys:String x:Key="SettingsPageTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">設定</sys:String>
+    
+    <!-- Settings Page -->
+    <sys:String x:Key="LanguageLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">語言設定</sys:String>
+    <sys:String x:Key="ChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">簡體中文</sys:String>
+    <sys:String x:Key="TraditionalChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">繁體中文</sys:String>
+    <sys:String x:Key="EnglishLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">English</sys:String>
+    <sys:String x:Key="ApplySettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">套用設定</sys:String>
+    
+    <!-- Common -->
+    <sys:String x:Key="HelloText" xmlns:sys="clr-namespace:System;assembly=mscorlib">您好</sys:String>
+    <sys:String x:Key="WelcomeText" xmlns:sys="clr-namespace:System;assembly=mscorlib">歡迎使用 Cooler Master 設備管理器</sys:String>
+</ResourceDictionary>

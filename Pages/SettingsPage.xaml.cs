@@ -38,6 +38,9 @@ namespace CMDevicesManager.Pages
                 case "en-us":
                     EnglishRadio.IsChecked = true;
                     break;
+                case "zh-tw":
+                    TraditionalChineseRadio.IsChecked = true;
+                    break;
                 case "zh-cn":
                 default:
                     ChineseRadio.IsChecked = true;

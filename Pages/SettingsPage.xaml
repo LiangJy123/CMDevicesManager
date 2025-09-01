@@ -37,6 +37,13 @@
                                     Margin="0,0,30,0"
                                     Checked="LanguageRadio_Checked"
                                     Tag="zh-cn"/>
+                        <RadioButton x:Name="TraditionalChineseRadio" 
+                                    Content="{DynamicResource TraditionalChineseLanguage}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Margin="0,0,30,0"
+                                    Checked="LanguageRadio_Checked"
+                                    Tag="zh-tw"/>
                         <RadioButton x:Name="EnglishRadio" 
                                     Content="{DynamicResource EnglishLanguage}"
                                     Foreground="White"
