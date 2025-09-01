@@ -1,37 +1,34 @@
-﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿    <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Navigation Menu -->
     <sys:String x:Key="HomeText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Home</sys:String>
     <sys:String x:Key="DeviceText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Device</sys:String>
     <sys:String x:Key="SettingsText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Settings</sys:String>
-
+    
     <!-- Main Window -->
     <sys:String x:Key="AppTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cooler Master</sys:String>
-
+    
     <!-- Pages -->
     <sys:String x:Key="HomePageTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Home Page</sys:String>
     <sys:String x:Key="DevicePageTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Device Management</sys:String>
     <sys:String x:Key="SettingsPageTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Settings</sys:String>
-
+    
     <!-- Settings Page -->
     <sys:String x:Key="LanguageLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Language Settings</sys:String>
     <sys:String x:Key="ChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Simplified Chinese</sys:String>
     <sys:String x:Key="TraditionalChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Traditional Chinese</sys:String>
     <sys:String x:Key="EnglishLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">English</sys:String>
-
     <sys:String x:Key="FontLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Font Settings</sys:String>
     <sys:String x:Key="DefaultFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">System Default</sys:String>
-    <sys:String x:Key="SegoeUIVariableFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Segoe UI Variable</sys:String>
     <sys:String x:Key="NotoSansFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Noto Sans</sys:String>
-    <sys:String x:Key="NotoSansCJKFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Noto Sans CJK (auto by language)</sys:String>
-    <sys:String x:Key="InterFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Inter</sys:String>
-    <sys:String x:Key="RobotoFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Roboto</sys:String>
+    <sys:String x:Key="NotoSansCJKFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Noto Sans CJK</sys:String>
     <sys:String x:Key="RubikFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Rubik</sys:String>
-    <sys:String x:Key="NotoSerifFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Noto Serif</sys:String>
-    <sys:String x:Key="NotoSerifCJKFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Noto Serif CJK (auto by language)</sys:String>
-    <sys:String x:Key="JetBrainsMonoFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">JetBrains Mono (monospace)</sys:String>
-    <sys:String x:Key="CascadiaMonoFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cascadia Mono (monospace)</sys:String>
+    <sys:String x:Key="ApplySettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">Apply Settings</sys:String>
 
+    <!-- Update -->
+    <sys:String x:Key="UpdateLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Update</sys:String>
+    <sys:String x:Key="CheckUpdate" xmlns:sys="clr-namespace:System;assembly=mscorlib">Check for Updates</sys:String>
+    
     <!-- Common -->
     <sys:String x:Key="HelloText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Hello</sys:String>
     <sys:String x:Key="WelcomeText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Welcome to Cooler Master Device Manager</sys:String>

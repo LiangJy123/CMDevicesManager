@@ -5,7 +5,7 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:CMDevicesManager.Pages"
       mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
+     
       FontFamily="{DynamicResource AppFontFamily}"
       Title="{DynamicResource SettingsPageTitle}">
 
@@ -30,7 +30,7 @@
                               Foreground="White" 
                               Margin="0,0,0,15"/>
                     
-                    <WrapPanel ItemHeight="32" ItemWidth="220">
+                    <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="ChineseRadio" 
                                     Content="{DynamicResource ChineseLanguage}"
                                     Foreground="White"
@@ -49,10 +49,9 @@
                                     Content="{DynamicResource EnglishLanguage}"
                                     Foreground="White"
                                     FontSize="16"
-                                    Margin="0,0,30,0"
                                     Checked="LanguageRadio_Checked"
                                     Tag="en-us"/>
-                    </WrapPanel>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 
@@ -68,7 +67,7 @@
                               Foreground="White" 
                               Margin="0,0,0,15"/>
                     
-                    <WrapPanel ItemHeight="32" ItemWidth="220">
+                    <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="DefaultFontRadio" 
                                     Content="{DynamicResource DefaultFont}"
                                     Foreground="White"
@@ -76,15 +75,6 @@
                                     Margin="0,0,30,0"
                                     Checked="FontRadio_Checked"
                                     Tag="default"/>
-
-                        <!-- Sans -->
-                        <RadioButton x:Name="SegoeUIVariableFontRadio" 
-                                    Content="{DynamicResource SegoeUIVariableFont}"
-                                    Foreground="White"
-                                    FontSize="16"
-                                    Margin="0,0,30,0"
-                                    Checked="FontRadio_Checked"
-                                    Tag="segoe-ui-variable"/>
                         <RadioButton x:Name="NotoSansFontRadio" 
                                     Content="{DynamicResource NotoSansFont}"
                                     Foreground="White"
@@ -99,62 +89,35 @@
                                     Margin="0,0,30,0"
                                     Checked="FontRadio_Checked"
                                     Tag="noto-sans-cjk"/>
-                        <RadioButton x:Name="InterFontRadio" 
-                                    Content="{DynamicResource InterFont}"
-                                    Foreground="White"
-                                    FontSize="16"
-                                    Margin="0,0,30,0"
-                                    Checked="FontRadio_Checked"
-                                    Tag="inter"/>
-                        <RadioButton x:Name="RobotoFontRadio" 
-                                    Content="{DynamicResource RobotoFont}"
-                                    Foreground="White"
-                                    FontSize="16"
-                                    Margin="0,0,30,0"
-                                    Checked="FontRadio_Checked"
-                                    Tag="roboto"/>
                         <RadioButton x:Name="RubikFontRadio" 
                                     Content="{DynamicResource RubikFont}"
                                     Foreground="White"
                                     FontSize="16"
-                                    Margin="0,0,30,0"
                                     Checked="FontRadio_Checked"
                                     Tag="rubik"/>
-
-                        <!-- Serif -->
-                        <RadioButton x:Name="NotoSerifFontRadio" 
-                                    Content="{DynamicResource NotoSerifFont}"
-                                    Foreground="White"
-                                    FontSize="16"
-                                    Margin="0,0,30,0"
-                                    Checked="FontRadio_Checked"
-                                    Tag="noto-serif"/>
-                        <RadioButton x:Name="NotoSerifCJKFontRadio" 
-                                    Content="{DynamicResource NotoSerifCJKFont}"
-                                    Foreground="White"
-                                    FontSize="16"
-                                    Margin="0,0,30,0"
-                                    Checked="FontRadio_Checked"
-                                    Tag="noto-serif-cjk"/>
-
-                        <!-- Mono -->
-                        <RadioButton x:Name="JetBrainsMonoFontRadio" 
-                                    Content="{DynamicResource JetBrainsMonoFont}"
-                                    Foreground="White"
-                                    FontSize="16"
-                                    Margin="0,0,30,0"
-                                    Checked="FontRadio_Checked"
-                                    Tag="jetbrains-mono"/>
-                        <RadioButton x:Name="CascadiaMonoFontRadio" 
-                                    Content="{DynamicResource CascadiaMonoFont}"
-                                    Foreground="White"
-                                    FontSize="16"
-                                    Margin="0,0,30,0"
-                                    Checked="FontRadio_Checked"
-                                    Tag="cascadia-mono"/>
-                    </WrapPanel>
+                    </StackPanel>
                 </StackPanel>
             </Border>
+
+            <!-- Update Section -->
+            <Border Background="#FF2A2A2A"
+                    CornerRadius="8"
+                    Padding="20"
+                    Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource UpdateLabel}"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="White"
+                               Margin="0,0,0,15"/>
+                    <Button x:Name="UpdateButton"
+                            Content="{DynamicResource CheckUpdate}"
+                            Width="180"
+                            Height="36"
+                            Click="UpdateButton_Click"/>
+                </StackPanel>
+            </Border>
+
         </StackPanel>
     </Grid>
 </Page>
