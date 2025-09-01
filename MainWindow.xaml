@@ -15,7 +15,9 @@
         WindowStartupLocation="CenterScreen"
      
         Title="MasterCTRL"  
-      Background="Transparent" Loaded="Window_Loaded" ><!---->
+      Background="Transparent" 
+        FontFamily="{DynamicResource AppFontFamily}"
+        Loaded="Window_Loaded" ><!---->
     <Grid>
         <Border Background="#FF111114" BorderBrush="#FF111114" BorderThickness="5" CornerRadius="8,8,8,8" >
 

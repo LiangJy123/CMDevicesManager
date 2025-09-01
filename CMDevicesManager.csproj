@@ -59,6 +59,9 @@
     <Resource Include="Fonts\Rubik-Regular.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Fonts\Rubik-Bold.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Resources\background.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>

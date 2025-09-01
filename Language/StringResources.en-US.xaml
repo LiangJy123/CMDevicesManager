@@ -18,6 +18,11 @@
     <sys:String x:Key="ChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Simplified Chinese</sys:String>
     <sys:String x:Key="TraditionalChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Traditional Chinese</sys:String>
     <sys:String x:Key="EnglishLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">English</sys:String>
+    <sys:String x:Key="FontLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Font Settings</sys:String>
+    <sys:String x:Key="DefaultFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">System Default</sys:String>
+    <sys:String x:Key="NotoSansFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Noto Sans</sys:String>
+    <sys:String x:Key="NotoSansCJKFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Noto Sans CJK</sys:String>
+    <sys:String x:Key="RubikFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Rubik</sys:String>
     <sys:String x:Key="ApplySettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">Apply Settings</sys:String>
     
     <!-- Common -->
