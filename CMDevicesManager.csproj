@@ -30,6 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="FFMpegCore" Version="5.2.0" />
     <PackageReference Include="HidApi.Net" Version="1.2.0" />
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.5-pre441" />
   </ItemGroup>
