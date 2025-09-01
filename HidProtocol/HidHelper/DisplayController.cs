@@ -1109,6 +1109,9 @@ namespace HID.DisplayController
                     int result = _device.ReadTimeout(buffer.AsSpan(), 1000); // 1 second timeout
                     if (result > 0)
                     {
+                        // debug out the first 32 bytes
+                        Console.WriteLine($"*****[DEBUG] Received {result} bytes: {Convert.ToHexString(buffer, 0, Math.Min(result, 32))}");
+
                         ProcessResponse(buffer, result);
                     }
                 }
@@ -1448,6 +1451,9 @@ namespace HID.DisplayController
             // Set up temporary event handler
             EventHandler<DisplayResponse> handler = (sender, resp) =>
             {
+                // debug log
+                Console.WriteLine($"<-======= Received response for SeqNumber: {resp.AckNumber} \n================================================================\n\n");
+
                 if (resp.AckNumber == (sequenceNumber + 1))
                 {
                     response = resp;
@@ -1460,6 +1466,8 @@ namespace HID.DisplayController
 
             try
             {
+                // debug log
+                Console.WriteLine($"=======-> Sending command, SeqNumber: {sequenceNumber}. jsonPayload: \n{jsonPayload} \n================================================================\n\n");
                 // Send the command
                 SendDisplayCtrlSsrCommandCommand(jsonPayload);
 
