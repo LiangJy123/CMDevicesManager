@@ -26,6 +26,7 @@ namespace CMDevicesManager.Pages
         {
             InitializeComponent();
             LoadCurrentLanguageSettings();
+            LoadCurrentFontSettings();
         }
 
         private void LoadCurrentLanguageSettings()
@@ -48,6 +49,29 @@ namespace CMDevicesManager.Pages
             }
         }
 
+        private void LoadCurrentFontSettings()
+        {
+            // Set the current font radio button based on user config
+            string currentFont = UserConfigManager.Current.FontFamily.ToLowerInvariant();
+            
+            switch (currentFont)
+            {
+                case "noto-sans":
+                    NotoSansFontRadio.IsChecked = true;
+                    break;
+                case "noto-sans-cjk":
+                    NotoSansCJKFontRadio.IsChecked = true;
+                    break;
+                case "rubik":
+                    RubikFontRadio.IsChecked = true;
+                    break;
+                case "default":
+                default:
+                    DefaultFontRadio.IsChecked = true;
+                    break;
+            }
+        }
+
         private void LanguageRadio_Checked(object sender, RoutedEventArgs e)
         {
             if (sender is System.Windows.Controls.RadioButton radio && radio.Tag is string languageCode)
@@ -59,6 +83,20 @@ namespace CMDevicesManager.Pages
                 UserConfigManager.Save();
                 
                 Logger.Info($"Language changed to: {languageCode}");
+            }
+        }
+
+        private void FontRadio_Checked(object sender, RoutedEventArgs e)
+        {
+            if (sender is System.Windows.Controls.RadioButton radio && radio.Tag is string fontFamily)
+            {
+                // Change font immediately
+                FontSwitch.ChangeFont(fontFamily);
+                
+                // Save the configuration
+                UserConfigManager.Save();
+                
+                Logger.Info($"Font changed to: {fontFamily}");
             }
         }
     }
