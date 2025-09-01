@@ -73,10 +73,10 @@
                 </StackPanel>
             </Border>
 
-            <!-- CENTER: square designer surface (scaled to fit) -->
-            <Border Grid.Column="1" Background="#2B2B2B" CornerRadius="8" Padding="24" >
-                <Viewbox Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Grid x:Name="DesignRoot" Width="{Binding CanvasSize}" Height="{Binding CanvasSize}">
+            <!-- CENTER: fixed 512x512 designer surface, centered -->
+            <Border Grid.Column="1" Background="Transparent" CornerRadius="8"  Padding="24">
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid x:Name="DesignRoot" Width="512" Height="512">
                         <Grid>
                             <Rectangle x:Name="BgColorRect" Fill="{Binding BackgroundBrush}" />
                             <Image x:Name="BgImage"
@@ -84,9 +84,9 @@
                                    Stretch="UniformToFill"
                                    Opacity="{Binding BackgroundImageOpacity}"/>
                         </Grid>
-                        <Canvas x:Name="DesignCanvas" Background="Transparent" ClipToBounds="True"/>
+                        <Canvas x:Name="DesignCanvas" Background="Transparent" Width="512" Height="512" ClipToBounds="True"/>
                     </Grid>
-                </Viewbox>
+                </Grid>
             </Border>
 
             <!-- RIGHT: properties panel -->
