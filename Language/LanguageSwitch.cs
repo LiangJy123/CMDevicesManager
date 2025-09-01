@@ -19,9 +19,6 @@ namespace CMDevicesManager.Language
                 case "en-us":
                     dict.Source = new Uri("Language/StringResources.en-US.xaml", UriKind.Relative);
                     break;
-                case "zh-tw":
-                    dict.Source = new Uri("Language/StringResources.zh-TW.xaml", UriKind.Relative);
-                    break;
                 case "zh-cn":
                 default:
                     dict.Source = new Uri("Language/StringResources.xaml", UriKind.Relative);

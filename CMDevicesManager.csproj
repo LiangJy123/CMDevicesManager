@@ -17,11 +17,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Fonts\FangZheng.ttf" />
+    <None Remove="Fonts\FangZhengFangSongJianTi-1.ttf" />
     <None Remove="Fonts\NotoSans-Regular.ttf" />
     <None Remove="Fonts\NotoSansCJK-Regular.ttc" />
     <None Remove="Fonts\NotoSansTC-Bold.ttf" />
+    <None Remove="Fonts\OpenSans-Regular.ttf" />
+    <None Remove="Fonts\OpenSans-SemiBold.ttf" />
+    <None Remove="Fonts\Raleway-Medium.ttf" />
+    <None Remove="Fonts\Raleway-SemiBold.ttf" />
+    <None Remove="Fonts\Roboto-Medium.ttf" />
+    <None Remove="Fonts\Roboto-Regular.ttf" />
     <None Remove="Fonts\Rubik-Bold.ttf" />
     <None Remove="Fonts\Rubik-Regular.ttf" />
+    <None Remove="Fonts\Saira-Regular.ttf" />
+    <None Remove="Fonts\Saira-SemiBold.ttf" />
     <None Remove="Resources\background.png" />
     <None Remove="Resources\icon\icon.ico" />
     <None Remove="Resources\icon\icon.png" />
@@ -31,6 +41,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Fonts\FangZheng.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Fonts\NotoSansTC-Bold.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
@@ -56,10 +69,34 @@
     <Resource Include="Fonts\NotoSansCJK-Regular.ttc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Fonts\OpenSans-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\OpenSans-SemiBold.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\Raleway-Medium.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\Raleway-SemiBold.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\Roboto-Medium.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\Roboto-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Fonts\Rubik-Regular.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Fonts\Rubik-Bold.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\Saira-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Fonts\Saira-SemiBold.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resources\background.png">

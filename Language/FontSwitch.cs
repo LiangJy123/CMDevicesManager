@@ -1,12 +1,9 @@
-using CMDevicesManager.Helper;
+﻿using CMDevicesManager.Helper;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 using Application = System.Windows.Application;
+using FontFamily = System.Windows.Media.FontFamily;
 
 namespace CMDevicesManager.Language
 {
@@ -14,18 +11,20 @@ namespace CMDevicesManager.Language
     {
         static public void ChangeFont(string fontFamily)
         {
-            FontFamily selectedFont = fontFamily.ToLowerInvariant() switch
+            string normalized = (fontFamily ?? "default").ToLowerInvariant();
+
+            FontFamily selectedFont = normalized switch
             {
                 "noto-sans" => new FontFamily("./Fonts/#Noto Sans"),
                 "noto-sans-cjk" => new FontFamily("./Fonts/#Noto Sans CJK SC"),
                 "rubik" => new FontFamily("./Fonts/#Rubik"),
-                "default" or _ => new FontFamily("Segoe UI") // System default
+                "cascadia-mono" => new FontFamily("Cascadia Mono"),
+                // Default now uses Cascadia Mono
+                "default" or _ => new FontFamily("Cascadia Mono")
             };
 
-            // Apply font globally to application resources
             Application.Current.Resources["AppFontFamily"] = selectedFont;
-
-            UserConfigManager.Current.FontFamily = fontFamily.ToLowerInvariant();
+            UserConfigManager.Current.FontFamily = normalized;
         }
     }
 }
