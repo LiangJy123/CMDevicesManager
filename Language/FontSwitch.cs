@@ -16,9 +16,9 @@ namespace CMDevicesManager.Language
         {
             FontFamily selectedFont = fontFamily.ToLowerInvariant() switch
             {
-                "noto-sans" => new FontFamily("pack://application:,,,/Fonts/#Noto Sans"),
-                "noto-sans-cjk" => new FontFamily("pack://application:,,,/Fonts/#Noto Sans CJK SC"),
-                "rubik" => new FontFamily("pack://application:,,,/Fonts/#Rubik"),
+                "noto-sans" => new FontFamily("./Fonts/#Noto Sans"),
+                "noto-sans-cjk" => new FontFamily("./Fonts/#Noto Sans CJK SC"),
+                "rubik" => new FontFamily("./Fonts/#Rubik"),
                 "default" or _ => new FontFamily("Segoe UI") // System default
             };
 
