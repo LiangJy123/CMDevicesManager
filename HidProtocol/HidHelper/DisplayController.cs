@@ -1,6 +1,7 @@
 ﻿using HidApi;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -223,7 +224,7 @@ namespace HID.DisplayController
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to parse DeviceStatus from JSON: {ex.Message}");
+                Debug.WriteLine($"Failed to parse DeviceStatus from JSON: {ex.Message}");
                 return null;
             }
         }
@@ -287,7 +288,7 @@ namespace HID.DisplayController
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DisplayController] Error opening HID device (VID=0x{vendorId:X4}, PID=0x{productId:X4}, SN={serialNumber}): {ex.Message}");
+                Debug.WriteLine($"[DisplayController] Error opening HID device (VID=0x{vendorId:X4}, PID=0x{productId:X4}, SN={serialNumber}): {ex.Message}");
                 throw; // Rethrow so callers can handle initialization failure
             }
         }
@@ -306,7 +307,7 @@ namespace HID.DisplayController
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DisplayController] Error opening HID device at path '{devicePath}': {ex.Message}");
+                Debug.WriteLine($"[DisplayController] Error opening HID device at path '{devicePath}': {ex.Message}");
                 throw; // Rethrow so callers can handle initialization failure
             }
         }
@@ -324,19 +325,19 @@ namespace HID.DisplayController
                 // Load device capabilities
                 Capabilities = GetDisplayCtrlCapabilities(debug: false);
 
-                Console.WriteLine($"[DisplayController] Device initialized successfully");
+                Debug.WriteLine($"[DisplayController] Device initialized successfully");
                 if (DeviceFWInfo != null)
                 {
-                    Console.WriteLine($"[DisplayController] Device Info: {DeviceFWInfo}");
+                    Debug.WriteLine($"[DisplayController] Device Info: {DeviceFWInfo}");
                 }
                 if (Capabilities != null)
                 {
-                    Console.WriteLine($"[DisplayController] Capabilities: {Capabilities}");
+                    Debug.WriteLine($"[DisplayController] Capabilities: {Capabilities}");
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DisplayController] Warning: Failed to initialize device properties: {ex.Message}");
+                Debug.WriteLine($"[DisplayController] Warning: Failed to initialize device properties: {ex.Message}");
                 // Set to null if initialization fails
                 DeviceFWInfo = null;
                 Capabilities = null;
@@ -364,31 +365,31 @@ namespace HID.DisplayController
 
                 if (response?.IsSuccess == true && !string.IsNullOrEmpty(response.Value.ResponseData))
                 {
-                    Console.WriteLine($"Device status raw response: {response.Value.ResponseData}");
+                    Debug.WriteLine($"Device status raw response: {response.Value.ResponseData}");
 
                     // Parse the JSON response into DeviceStatus
                     var deviceStatus = DeviceStatus.FromJson(response.Value.ResponseData);
 
                     if (deviceStatus.HasValue)
                     {
-                        Console.WriteLine($"Device status parsed: {deviceStatus.Value}");
+                        Debug.WriteLine($"Device status parsed: {deviceStatus.Value}");
                         return deviceStatus.Value;
                     }
                     else
                     {
-                        Console.WriteLine("Failed to parse device status from response");
+                        Debug.WriteLine("Failed to parse device status from response");
                     }
                 }
                 else
                 {
-                    Console.WriteLine($"Failed to get device status. Status code: {response?.StatusCode}");
+                    Debug.WriteLine($"Failed to get device status. Status code: {response?.StatusCode}");
                 }
 
                 return null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting device status: {ex.Message}");
+                Debug.WriteLine($"Error getting device status: {ex.Message}");
                 return null;
             }
         }
@@ -399,15 +400,15 @@ namespace HID.DisplayController
 
             if (data == null || data.Length < 3)
             {
-                Console.WriteLine("Failed to get display capabilities or data is too short.");
+                Debug.WriteLine("Failed to get display capabilities or data is too short.");
                 return null;
             }
 
             if (debug)
             {
                 // Debug: Print raw data
-                Console.WriteLine($"Raw capabilities data length: {data.Length}");
-                Console.WriteLine($"Raw data: {Convert.ToHexString(data)}");
+                Debug.WriteLine($"Raw capabilities data length: {data.Length}");
+                Debug.WriteLine($"Raw data: {Convert.ToHexString(data)}");
             }
 
             // Parse the TLV (Tag-Length-Value) structure starting from byte 1
@@ -438,11 +439,11 @@ namespace HID.DisplayController
                 // Check if we have enough data for this TLV entry
                 if (offset + 2 + length > data.Length)
                 {
-                    if (debug) Console.WriteLine($"Insufficient data for TLV entry: tag=0x{tag:X2}, length={length}, remaining={data.Length - offset - 2}");
+                    if (debug) Debug.WriteLine($"Insufficient data for TLV entry: tag=0x{tag:X2}, length={length}, remaining={data.Length - offset - 2}");
                     break;
                 }
 
-                if (debug) Console.WriteLine($"Parsing TLV: tag=0x{tag:X2}, length={length}, offset={offset}");
+                if (debug) Debug.WriteLine($"Parsing TLV: tag=0x{tag:X2}, length={length}, offset={offset}");
 
                 // Parse based on tag
                 switch (tag)
@@ -453,7 +454,7 @@ namespace HID.DisplayController
                             byte displayModeValue = data[offset + 3]; // Skip tag, length, and first byte
                             offModeSupported = (displayModeValue & 0x01) != 0;
                             ssrModeSupported = (displayModeValue & 0x02) != 0;
-                            if (debug) Console.WriteLine($"Display mode: off={offModeSupported}, ssr={ssrModeSupported}");
+                            if (debug) Debug.WriteLine($"Display mode: off={offModeSupported}, ssr={ssrModeSupported}");
                         }
                         break;
 
@@ -461,7 +462,7 @@ namespace HID.DisplayController
                         if (length == 1)
                         {
                             ssrVsInterface = data[offset + 2];
-                            if (debug) Console.WriteLine($"SSR VS Interface: {ssrVsInterface}");
+                            if (debug) Debug.WriteLine($"SSR VS Interface: {ssrVsInterface}");
                         }
                         break;
 
@@ -469,7 +470,7 @@ namespace HID.DisplayController
                         if (length == 2)
                         {
                             ssrVsWidth = (ushort)((data[offset + 3] << 8) | data[offset + 2]);
-                            if (debug) Console.WriteLine($"SSR VS Width: {ssrVsWidth}");
+                            if (debug) Debug.WriteLine($"SSR VS Width: {ssrVsWidth}");
                         }
                         break;
 
@@ -477,7 +478,7 @@ namespace HID.DisplayController
                         if (length == 2)
                         {
                             ssrVsHeight = (ushort)((data[offset + 3] << 8) | data[offset + 2]);
-                            if (debug) Console.WriteLine($"SSR VS Height: {ssrVsHeight}");
+                            if (debug) Debug.WriteLine($"SSR VS Height: {ssrVsHeight}");
                         }
                         break;
 
@@ -485,7 +486,7 @@ namespace HID.DisplayController
                         if (length == 1)
                         {
                             ssrVsFormat = data[offset + 2];
-                            if (debug) Console.WriteLine($"SSR VS Format: 0x{ssrVsFormat:X2}");
+                            if (debug) Debug.WriteLine($"SSR VS Format: 0x{ssrVsFormat:X2}");
                         }
                         break;
 
@@ -493,7 +494,7 @@ namespace HID.DisplayController
                         if (length == 1)
                         {
                             ssrVsMaxFps = data[offset + 2];
-                            if (debug) Console.WriteLine($"SSR VS Max FPS: {ssrVsMaxFps}");
+                            if (debug) Debug.WriteLine($"SSR VS Max FPS: {ssrVsMaxFps}");
                         }
                         break;
 
@@ -501,7 +502,7 @@ namespace HID.DisplayController
                         if (length == 1)
                         {
                             ssrVsTransferInterface = data[offset + 2];
-                            if (debug) Console.WriteLine($"SSR VS Transfer Interface: {ssrVsTransferInterface}");
+                            if (debug) Debug.WriteLine($"SSR VS Transfer Interface: {ssrVsTransferInterface}");
                         }
                         break;
 
@@ -509,7 +510,7 @@ namespace HID.DisplayController
                         if (length == 1)
                         {
                             ssrVsFwSupportRotation = data[offset + 2];
-                            if (debug) Console.WriteLine($"SSR VS FW Support Rotation: 0x{ssrVsFwSupportRotation:X2}");
+                            if (debug) Debug.WriteLine($"SSR VS FW Support Rotation: 0x{ssrVsFwSupportRotation:X2}");
                         }
                         break;
 
@@ -517,7 +518,7 @@ namespace HID.DisplayController
                         if (length == 4)
                         {
                             ssrVsMaxFileSize = (uint)((data[offset + 5] << 24) | (data[offset + 4] << 16) | (data[offset + 3] << 8) | data[offset + 2]);
-                            if (debug) Console.WriteLine($"SSR VS Max File Size: {ssrVsMaxFileSize} MB");
+                            if (debug) Debug.WriteLine($"SSR VS Max File Size: {ssrVsMaxFileSize} MB");
                         }
                         break;
 
@@ -525,7 +526,7 @@ namespace HID.DisplayController
                         if (length == 2)
                         {
                             ssrVsMaxFrameCnt = (ushort)((data[offset + 3] << 8) | data[offset + 2]);
-                            if (debug) Console.WriteLine($"SSR VS Max Frame Count: {ssrVsMaxFrameCnt}");
+                            if (debug) Debug.WriteLine($"SSR VS Max Frame Count: {ssrVsMaxFrameCnt}");
                         }
                         break;
 
@@ -533,7 +534,7 @@ namespace HID.DisplayController
                         if (length == 2)
                         {
                             ssrVsHwDecodeSupport = (ushort)((data[offset + 2] << 8) | data[offset + 3]);
-                            if (debug) Console.WriteLine($"SSR VS HW Decode Support: 0x{ssrVsHwDecodeSupport:X4}");
+                            if (debug) Debug.WriteLine($"SSR VS HW Decode Support: 0x{ssrVsHwDecodeSupport:X4}");
                         }
                         break;
 
@@ -541,7 +542,7 @@ namespace HID.DisplayController
                         if (length == 1)
                         {
                             ssrVsHwSupportOverlay = data[offset + 2];
-                            if (debug) Console.WriteLine($"SSR VS HW Support Overlay: {ssrVsHwSupportOverlay}");
+                            if (debug) Debug.WriteLine($"SSR VS HW Support Overlay: {ssrVsHwSupportOverlay}");
                         }
                         break;
 
@@ -549,12 +550,12 @@ namespace HID.DisplayController
                         if (length == 1)
                         {
                             ssrVsCmdFormat = data[offset + 2];
-                            if (debug) Console.WriteLine($"SSR VS Cmd Format: {ssrVsCmdFormat}");
+                            if (debug) Debug.WriteLine($"SSR VS Cmd Format: {ssrVsCmdFormat}");
                         }
                         break;
 
                     default:
-                        if (debug) Console.WriteLine($"Unknown TLV tag: 0x{tag:X2}");
+                        if (debug) Debug.WriteLine($"Unknown TLV tag: 0x{tag:X2}");
                         break;
                 }
 
@@ -593,7 +594,7 @@ namespace HID.DisplayController
             // 0 major, [0-99]. 1 minor, [0-9]. 2 revision, [0-9]. 3 build, [0-255].
             if (info == null || info.Length < 7)
             {
-                Console.WriteLine("Failed to get device info or data is too short.");
+                Debug.WriteLine("Failed to get device info or data is too short.");
                 return null;
             }
 
@@ -629,7 +630,7 @@ namespace HID.DisplayController
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DisplayController] Error sending subcommand 0x{subcommandId:X2}: {ex.Message}");
+                Debug.WriteLine($"[DisplayController] Error sending subcommand 0x{subcommandId:X2}: {ex.Message}");
             }
         }
 
@@ -641,7 +642,7 @@ namespace HID.DisplayController
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DisplayController] Error getting manufacturer: {ex.Message}");
+                Debug.WriteLine($"[DisplayController] Error getting manufacturer: {ex.Message}");
                 return "Unknown";
             }
         }
@@ -705,7 +706,7 @@ namespace HID.DisplayController
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DisplayController] Error sending display control SSR command: {ex.Message}");
+                Debug.WriteLine($"[DisplayController] Error sending display control SSR command: {ex.Message}");
             }
         }
 
@@ -874,7 +875,7 @@ namespace HID.DisplayController
                 throw new ArgumentException("File too large - would require more than 65535 blocks", nameof(fileData));
             }
 
-            Console.WriteLine($"Starting file transfer: {fileData.Length} bytes in {totalBlocks} blocks");
+            Debug.WriteLine($"Starting file transfer: {fileData.Length} bytes in {totalBlocks} blocks");
 
             // Send each block
             for (int blockIndex = 0; blockIndex < totalBlocks; blockIndex++)
@@ -887,13 +888,13 @@ namespace HID.DisplayController
 
                 SendFileTransferBlock(transferId, (ushort)totalBlocks, (ushort)blockIndex, fileType, blockData);
 
-                //Console.WriteLine($"Sent block {blockIndex + 1}/{totalBlocks} ({currentBlockSize} bytes)");
+                //Debug.WriteLine($"Sent block {blockIndex + 1}/{totalBlocks} ({currentBlockSize} bytes)");
 
                 // Small delay between blocks to avoid overwhelming the device
                 //Thread.Sleep(10);
             }
 
-            Console.WriteLine("File transfer completed");
+            Debug.WriteLine("File transfer completed");
         }
 
         /// <summary>
@@ -967,7 +968,7 @@ namespace HID.DisplayController
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DisplayController] Error sending file transfer report: {ex.Message}");
+                Debug.WriteLine($"[DisplayController] Error sending file transfer report: {ex.Message}");
             }
         }
 
@@ -1001,7 +1002,7 @@ namespace HID.DisplayController
             // Read file data
             byte[] fileData = File.ReadAllBytes(filePath);
 
-            Console.WriteLine($"Transferring file: {Path.GetFileName(filePath)} ({fileData.Length} bytes, type: {fileType})");
+            Debug.WriteLine($"Transferring file: {Path.GetFileName(filePath)} ({fileData.Length} bytes, type: {fileType})");
 
             // Send the file
             SendFileTransfer(fileData, fileType, transferId, blockSize);
@@ -1075,7 +1076,7 @@ namespace HID.DisplayController
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Response listener error: {ex.Message}");
+                        Debug.WriteLine($"Response listener error: {ex.Message}");
                         await Task.Delay(1000); // Wait before retrying
                     }
                 }
@@ -1106,21 +1107,25 @@ namespace HID.DisplayController
                 try
                 {
                     // Use ReadTimeout with timeout to avoid blocking indefinitely
-                    int result = _device.ReadTimeout(buffer.AsSpan(), 1000); // 1 second timeout
+                    //int result = _device.ReadTimeout(buffer.AsSpan(), 1000); // 1 second timeout
+                    int result = _device.Read(buffer.AsSpan()); // 1 second timeout
                     if (result > 0)
                     {
+                        // debug out the first 32 bytes
+                        Debug.WriteLine($"*****[DEBUG] Received {result} bytes: {Convert.ToHexString(buffer, 0, Math.Min(result, 32))}");
+
                         ProcessResponse(buffer, result);
                     }
                 }
                 catch (HidException ex)
                 {
                     // HID specific exceptions
-                    Console.WriteLine($"HID read error: {ex.Message}");
+                    Debug.WriteLine($"HID read error: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
                     // Other exceptions
-                    Console.WriteLine($"Read error: {ex.Message}");
+                    Debug.WriteLine($"Read error: {ex.Message}");
                 }
             });
         }
@@ -1145,7 +1150,7 @@ namespace HID.DisplayController
                     int actualLength = length;
                     if (!ValidateAndParseResponse(buffer, length, ref actualLength))
                     {
-                        Console.WriteLine("[DEBUG] Invalid response data");
+                        Debug.WriteLine("[DEBUG] Invalid response data");
                         return;
                     }
 
@@ -1155,7 +1160,7 @@ namespace HID.DisplayController
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error processing response: {ex.Message}");
+                Debug.WriteLine($"Error processing response: {ex.Message}");
             }
         }
 
@@ -1170,7 +1175,7 @@ namespace HID.DisplayController
         {
             if (length < 6) // Minimum: ReportID + 0x5A + length(2) + checksum + end 0x5A
             {
-                Console.WriteLine($"[DEBUG] Response too short: {length} bytes");
+                Debug.WriteLine($"[DEBUG] Response too short: {length} bytes");
                 return false;
             }
 
@@ -1185,32 +1190,32 @@ namespace HID.DisplayController
             byte reportId = buffer[0];
             if (reportId != ResponseReportID)
             {
-                Console.WriteLine($"[DEBUG] Wrong report ID: 0x{reportId:X2}, expected: 0x{ResponseReportID:X2}");
+                Debug.WriteLine($"[DEBUG] Wrong report ID: 0x{reportId:X2}, expected: 0x{ResponseReportID:X2}");
                 return false;
             }
 
             byte startMarker = buffer[1];
             if (startMarker != StartEndMarker5A)
             {
-                Console.WriteLine($"[DEBUG] Wrong start marker: 0x{startMarker:X2}, expected: 0x{StartEndMarker5A:X2}");
+                Debug.WriteLine($"[DEBUG] Wrong start marker: 0x{startMarker:X2}, expected: 0x{StartEndMarker5A:X2}");
                 return false;
             }
 
             // Read the length field (big-endian: [2] = high byte, [3] = low byte)
             // Length represents the distance from 1st "5a" to 2nd "5a" (Ex: length is 0x009A, highbyte is 0x00, lowbyte is 0x9A)
             ushort declaredLength = (ushort)((buffer[2] << 8) | buffer[3]);
-            //Console.WriteLine($"[DEBUG] Declared length: {declaredLength} (from 1st 5A to 2nd 5A)");
+            //Debug.WriteLine($"[DEBUG] Declared length: {declaredLength} (from 1st 5A to 2nd 5A)");
 
             // Find the last 0x5A byte (end marker) in the buffer
             int endMarkerIndex = Array.LastIndexOf(buffer, StartEndMarker5A, length - 1);
 
             if (endMarkerIndex == -1 || endMarkerIndex <= 1) // Should not be the start marker
             {
-                Console.WriteLine($"[DEBUG] End marker 0x5A not found or invalid position");
+                Debug.WriteLine($"[DEBUG] End marker 0x5A not found or invalid position");
                 return false;
             }
 
-            //Console.WriteLine($"[DEBUG] End marker found at index: {endMarkerIndex}");
+            //Debug.WriteLine($"[DEBUG] End marker found at index: {endMarkerIndex}");
 
             // Validate the declared length against actual structure
             // declaredLength should equal the distance from start marker (index 1) to end marker
@@ -1218,7 +1223,7 @@ namespace HID.DisplayController
 
             if (declaredLength != actualDistanceFrom5ATo5A)
             {
-                //Console.WriteLine($"[DEBUG] Length mismatch: declared={declaredLength}, actual distance from 5A to 5A={actualDistanceFrom5ATo5A}");
+                //Debug.WriteLine($"[DEBUG] Length mismatch: declared={declaredLength}, actual distance from 5A to 5A={actualDistanceFrom5ATo5A}");
                 // Allow small tolerance for different implementations
                 if (Math.Abs(declaredLength - actualDistanceFrom5ATo5A) > 2)
                 {
@@ -1234,12 +1239,12 @@ namespace HID.DisplayController
 
             if (jsonEndIndex < jsonStartIndex)
             {
-                Console.WriteLine($"[DEBUG] Invalid payload structure: json area too small");
+                Debug.WriteLine($"[DEBUG] Invalid payload structure: json area too small");
                 return false;
             }
 
             int jsonPayloadLength = jsonEndIndex - jsonStartIndex + 1;
-            //Console.WriteLine($"[DEBUG] JSON payload length: {jsonPayloadLength}, checksum at index: {checksumIndex}");
+            //Debug.WriteLine($"[DEBUG] JSON payload length: {jsonPayloadLength}, checksum at index: {checksumIndex}");
 
             // Validate checksum: sum of length(2 bytes) + JSON payload, take lowest 8 bits
             byte expectedChecksum = 0;
@@ -1261,15 +1266,15 @@ namespace HID.DisplayController
 
             if (expectedChecksum != actualChecksum)
             {
-                //Console.WriteLine($"[DEBUG] Checksum mismatch: expected=0x{expectedChecksum:X2}, actual=0x{actualChecksum:X2}");
+                //Debug.WriteLine($"[DEBUG] Checksum mismatch: expected=0x{expectedChecksum:X2}, actual=0x{actualChecksum:X2}");
                 //return false;
             }
 
             // Update actualLength to the position right after the end marker
             actualLength = endMarkerIndex + 1;
 
-            //Console.WriteLine($"[DEBUG] Response validation successful!");
-            //Console.WriteLine($"[DEBUG] Structure: ReportID[{buffer[0]:X2}] + StartMarker[{buffer[1]:X2}] + Length[{declaredLength}] + JSON[{jsonPayloadLength}] + Checksum[{actualChecksum:X2}] + EndMarker[{buffer[endMarkerIndex]:X2}]");
+            //Debug.WriteLine($"[DEBUG] Response validation successful!");
+            //Debug.WriteLine($"[DEBUG] Structure: ReportID[{buffer[0]:X2}] + StartMarker[{buffer[1]:X2}] + Length[{declaredLength}] + JSON[{jsonPayloadLength}] + Checksum[{actualChecksum:X2}] + EndMarker[{buffer[endMarkerIndex]:X2}]");
 
             return true;
         }
@@ -1286,7 +1291,7 @@ namespace HID.DisplayController
             // Validate basic structure first
             if (buffer[0] != ResponseReportID || buffer[1] != StartEndMarker5A)
             {
-                Console.WriteLine("[DEBUG] Invalid response structure");
+                Debug.WriteLine("[DEBUG] Invalid response structure");
                 return;
             }
 
@@ -1330,16 +1335,16 @@ namespace HID.DisplayController
                     // Fire the response received event
                     ResponseReceived?.Invoke(this, response.Value);
 
-                    Console.WriteLine($"Response received, AckNumber: {response.Value.AckNumber} - Status: {response.Value.StatusCode}");
+                    Debug.WriteLine($"Response received, AckNumber: {response.Value.AckNumber} - Status: {response.Value.StatusCode}");
                     if (!string.IsNullOrEmpty(response.Value.ResponseData))
                     {
-                        Console.WriteLine($"Response data: {response.Value.ResponseData}");
+                        Debug.WriteLine($"Response data: {response.Value.ResponseData}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error parsing display control response: {ex.Message}");
+                Debug.WriteLine($"Error parsing display control response: {ex.Message}");
             }
         }
 
@@ -1428,7 +1433,7 @@ namespace HID.DisplayController
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error parsing HTTP response: {ex.Message}");
+                Debug.WriteLine($"Error parsing HTTP response: {ex.Message}");
                 return null;
             }
         }
@@ -1448,6 +1453,9 @@ namespace HID.DisplayController
             // Set up temporary event handler
             EventHandler<DisplayResponse> handler = (sender, resp) =>
             {
+                // debug log
+                Debug.WriteLine($"<-======= Received response for SeqNumber: {resp.AckNumber} \n================================================================\n\n");
+
                 if (resp.AckNumber == (sequenceNumber + 1))
                 {
                     response = resp;
@@ -1460,6 +1468,8 @@ namespace HID.DisplayController
 
             try
             {
+                // debug log
+                Debug.WriteLine($"=======-> Sending command, SeqNumber: {sequenceNumber}. jsonPayload: \n{jsonPayload} \n================================================================\n\n");
                 // Send the command
                 SendDisplayCtrlSsrCommandCommand(jsonPayload);
 
@@ -1575,10 +1585,11 @@ namespace HID.DisplayController
         public async Task<DisplayResponse?> SendCmdKeepAliveWithResponse(long timestamp)
         {
             uint currentSeqNumber = _currentSeqNumber;
+            ulong datetimeSeconds = (ulong)(DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             var parameters = new { timestamp = timestamp };
             string jsonContent = System.Text.Json.JsonSerializer.Serialize(parameters);
             int contentLength = Encoding.UTF8.GetByteCount(jsonContent);
-            string jsonPayload = $"STATE timestamp 1\r\nSeqNumber={currentSeqNumber}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
+            string jsonPayload = $"STATE timestamp 1\r\nSeqNumber={currentSeqNumber}\r\nDate={datetimeSeconds}\r\nContentType=json\r\nContentLength={contentLength}\r\n\r\n{jsonContent}";
             _currentSeqNumber++;
             // if _currentSeqNumber exceeds uint.MaxValue, reset to 1
             if (_currentSeqNumber == (uint.MaxValue - 1))
@@ -1787,7 +1798,7 @@ namespace HID.DisplayController
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to parse serial number response: {ex.Message}");
+                    Debug.WriteLine($"Failed to parse serial number response: {ex.Message}");
                 }
             }
 
@@ -1813,7 +1824,7 @@ namespace HID.DisplayController
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Failed to parse color SKU response: {ex.Message}");
+                    Debug.WriteLine($"Failed to parse color SKU response: {ex.Message}");
                 }
             }
 
@@ -1830,7 +1841,7 @@ namespace HID.DisplayController
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"Background file not found: {filePath}");
+                Debug.WriteLine($"Background file not found: {filePath}");
                 return false;
             }
 
@@ -1840,40 +1851,40 @@ namespace HID.DisplayController
                 string fileName = fileInfo.Name;
                 int fileSize = (int)fileInfo.Length;
 
-                Console.WriteLine($"Setting background with response handling: {fileName} ({fileSize} bytes)");
+                Debug.WriteLine($"Setting background with response handling: {fileName} ({fileSize} bytes)");
 
                 // Step 1: Send background transport command with response
                 var transportResponse = await SendCmdSetBackgroundWithResponse(fileName, fileSize);
                 if (transportResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Background transport command failed. Status: {transportResponse?.StatusCode}");
+                    Debug.WriteLine($"Background transport command failed. Status: {transportResponse?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine($"Background transport command successful. Response: {transportResponse.Value.ResponseData}");
+                Debug.WriteLine($"Background transport command successful. Response: {transportResponse.Value.ResponseData}");
 
                 // Wait for device to process
                 Thread.Sleep(1500);
 
                 // Step 2: Transfer the actual file data
                 SendFileFromDisk(filePath, transferId);
-                Console.WriteLine("Background file data transfer completed");
+                Debug.WriteLine("Background file data transfer completed");
 
                 // Step 3: Send completion command with response
                 string md5Hash = CalculateMD5Hash(filePath);
                 var completionResponse = await SendCmdBackgroundCompletedWithResponse(fileName, md5Hash + 1);
                 if (completionResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Background completion command failed. Status: {completionResponse?.StatusCode}");
+                    Debug.WriteLine($"Background completion command failed. Status: {completionResponse?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine($"Background completion command successful. Response: {completionResponse.Value.ResponseData}");
+                Debug.WriteLine($"Background completion command successful. Response: {completionResponse.Value.ResponseData}");
 
-                Console.WriteLine("Background setup with response handling completed successfully!");
+                Debug.WriteLine("Background setup with response handling completed successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in background setup with response: {ex.Message}");
+                Debug.WriteLine($"Error in background setup with response: {ex.Message}");
                 return false;
             }
         }
@@ -1888,7 +1899,7 @@ namespace HID.DisplayController
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"Powerup media file not found: {filePath}");
+                Debug.WriteLine($"Powerup media file not found: {filePath}");
                 return false;
             }
 
@@ -1898,40 +1909,40 @@ namespace HID.DisplayController
                 string fileName = fileInfo.Name;
                 int fileSize = (int)fileInfo.Length;
 
-                Console.WriteLine($"Setting powerup media with response handling: {fileName} ({fileSize} bytes)");
+                Debug.WriteLine($"Setting powerup media with response handling: {fileName} ({fileSize} bytes)");
 
                 // Step 1: Send powerup media transport command with response
                 var transportResponse = await SendCmdSetPowerupMediaWithResponse(fileName, fileSize);
                 if (transportResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Powerup media transport command failed. Status: {transportResponse?.StatusCode}");
+                    Debug.WriteLine($"Powerup media transport command failed. Status: {transportResponse?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine($"Powerup media transport command successful. Response: {transportResponse.Value.ResponseData}");
+                Debug.WriteLine($"Powerup media transport command successful. Response: {transportResponse.Value.ResponseData}");
 
                 // Wait for device to process
                 Thread.Sleep(1500);
 
                 // Step 2: Transfer the actual file data
                 SendFileFromDisk(filePath, transferId);
-                Console.WriteLine("Powerup media file data transfer completed");
+                Debug.WriteLine("Powerup media file data transfer completed");
 
                 // Step 3: Send completion command with response
                 string md5Hash = CalculateMD5Hash(filePath);
                 var completionResponse = await SendCmdPowerupMediaCompletedWithResponse(fileName, md5Hash + 1);
                 if (completionResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Powerup media completion command failed. Status: {completionResponse?.StatusCode}");
+                    Debug.WriteLine($"Powerup media completion command failed. Status: {completionResponse?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine($"Powerup media completion command successful. Response: {completionResponse.Value.ResponseData}");
+                Debug.WriteLine($"Powerup media completion command successful. Response: {completionResponse.Value.ResponseData}");
 
-                Console.WriteLine("Powerup media setup with response handling completed successfully!");
+                Debug.WriteLine("Powerup media setup with response handling completed successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in powerup media setup with response: {ex.Message}");
+                Debug.WriteLine($"Error in powerup media setup with response: {ex.Message}");
                 return false;
             }
         }
@@ -1946,7 +1957,7 @@ namespace HID.DisplayController
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"Firmware file not found: {filePath}");
+                Debug.WriteLine($"Firmware file not found: {filePath}");
                 return false;
             }
 
@@ -1956,37 +1967,37 @@ namespace HID.DisplayController
                 string fileName = fileInfo.Name;
                 int fileSize = (int)fileInfo.Length;
 
-                Console.WriteLine($"Starting firmware upgrade with response handling: {fileName} ({fileSize} bytes)");
+                Debug.WriteLine($"Starting firmware upgrade with response handling: {fileName} ({fileSize} bytes)");
 
                 // Step 1: Send firmware upgrade transport command with response
                 var transportResponse = await SendCmdFirmwareUpgradeWithResponse(fileName, fileSize);
                 if (transportResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Firmware upgrade transport command failed. Status: {transportResponse?.StatusCode}");
+                    Debug.WriteLine($"Firmware upgrade transport command failed. Status: {transportResponse?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine($"Firmware upgrade transport command successful. Response: {transportResponse.Value.ResponseData}");
+                Debug.WriteLine($"Firmware upgrade transport command successful. Response: {transportResponse.Value.ResponseData}");
 
                 // Step 2: Transfer the actual file data
                 SendFileFromDisk(filePath, transferId);
-                Console.WriteLine("Firmware file data transfer completed");
+                Debug.WriteLine("Firmware file data transfer completed");
 
                 // Step 3: Send completion command with response
                 string md5Hash = CalculateMD5Hash(filePath);
                 var completionResponse = await SendCmdFirmwareUpgradeCompletedWithResponse(fileName, md5Hash + 1);
                 if (completionResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Firmware upgrade completion command failed. Status: {completionResponse?.StatusCode}");
+                    Debug.WriteLine($"Firmware upgrade completion command failed. Status: {completionResponse?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine($"Firmware upgrade completion command successful. Response: {completionResponse.Value.ResponseData}");
+                Debug.WriteLine($"Firmware upgrade completion command successful. Response: {completionResponse.Value.ResponseData}");
 
-                Console.WriteLine("Firmware upgrade with response handling completed successfully!");
+                Debug.WriteLine("Firmware upgrade with response handling completed successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in firmware upgrade with response: {ex.Message}");
+                Debug.WriteLine($"Error in firmware upgrade with response: {ex.Message}");
                 return false;
             }
         }
@@ -2025,7 +2036,7 @@ namespace HID.DisplayController
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"OSD file not found: {filePath}");
+                Debug.WriteLine($"OSD file not found: {filePath}");
                 return false;
             }
 
@@ -2035,40 +2046,40 @@ namespace HID.DisplayController
                 string fileName = fileInfo.Name;
                 int fileSize = (int)fileInfo.Length;
 
-                Console.WriteLine($"Setting OSD with response handling: {fileName} ({fileSize} bytes)");
+                Debug.WriteLine($"Setting OSD with response handling: {fileName} ({fileSize} bytes)");
 
                 // Step 1: Send OSD transport command with response
                 var transportResponse = await SendCmdSetOsdWithResponse(fileName, fileSize);
                 if (transportResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"OSD transport command failed. Status: {transportResponse?.StatusCode}");
+                    Debug.WriteLine($"OSD transport command failed. Status: {transportResponse?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine($"OSD transport command successful. Response: {transportResponse.Value.ResponseData}");
+                Debug.WriteLine($"OSD transport command successful. Response: {transportResponse.Value.ResponseData}");
 
                 // Wait for device to process
                 Thread.Sleep(1500);
 
                 // Step 2: Transfer the actual file data
                 SendFileFromDisk(filePath, transferId);
-                Console.WriteLine("OSD file data transfer completed");
+                Debug.WriteLine("OSD file data transfer completed");
 
                 // Step 3: Send completion command with response
                 string md5Hash = CalculateMD5Hash(filePath);
                 var completionResponse = await SendCmdOsdCompletedWithResponse(fileName, md5Hash + 1);
                 if (completionResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"OSD completion command failed. Status: {completionResponse?.StatusCode}");
+                    Debug.WriteLine($"OSD completion command failed. Status: {completionResponse?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine($"OSD completion command successful. Response: {completionResponse.Value.ResponseData}");
+                Debug.WriteLine($"OSD completion command successful. Response: {completionResponse.Value.ResponseData}");
 
-                Console.WriteLine("OSD setup with response handling completed successfully!");
+                Debug.WriteLine("OSD setup with response handling completed successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in OSD setup with response: {ex.Message}");
+                Debug.WriteLine($"Error in OSD setup with response: {ex.Message}");
                 return false;
             }
         }
@@ -2084,7 +2095,7 @@ namespace HID.DisplayController
             var step1Response = await SendCmdRealTimeDisplayWithResponse(false);
             if (step1Response?.IsSuccess != true)
             {
-                Console.WriteLine($"SetSuspendModeWithResponse. Status: {step1Response?.StatusCode}");
+                Debug.WriteLine($"SetSuspendModeWithResponse. Status: {step1Response?.StatusCode}");
                 return false;
             }
             return true;
@@ -2100,7 +2111,7 @@ namespace HID.DisplayController
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"Suspend file not found: {filePath}");
+                Debug.WriteLine($"Suspend file not found: {filePath}");
                 return false;
             }
 
@@ -2110,40 +2121,40 @@ namespace HID.DisplayController
                 string fileName = fileInfo.Name;
                 int fileSize = (int)fileInfo.Length;
 
-                Console.WriteLine($"Sending suspend file with response handling: {fileName} ({fileSize} bytes)");
+                Debug.WriteLine($"Sending suspend file with response handling: {fileName} ({fileSize} bytes)");
 
                 // Step 1: Set suspend file configuration
-                Console.WriteLine($"Step 1: Setting suspend file configuration for {fileName}...");
+                Debug.WriteLine($"Step 1: Setting suspend file configuration for {fileName}...");
                 var step1Response = await SendCmdSetSuspendWithResponse(fileName, fileSize);
                 if (step1Response?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Step 1 failed. Status: {step1Response?.StatusCode}");
+                    Debug.WriteLine($"Step 1 failed. Status: {step1Response?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine("Step 1 successful");
+                Debug.WriteLine("Step 1 successful");
 
                 // Step 2: Transfer the actual file data
-                Console.WriteLine("Step 2: Transferring suspend file data...");
+                Debug.WriteLine("Step 2: Transferring suspend file data...");
                 SendFileFromDisk(filePath, transferId);
-                Console.WriteLine("Suspend file data transfer completed");
+                Debug.WriteLine("Suspend file data transfer completed");
 
                 // Step 3: Send suspend completion command with MD5 hash
-                Console.WriteLine("Step 3: Sending suspend completion command...");
+                Debug.WriteLine("Step 3: Sending suspend completion command...");
                 string md5Hash = CalculateMD5Hash(filePath);
                 var step3Response = await SendCmdSuspendCompletedWithResponse(fileName, md5Hash + 1);
                 if (step3Response?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Step 3 failed. Status: {step3Response?.StatusCode}");
+                    Debug.WriteLine($"Step 3 failed. Status: {step3Response?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine("Step 3 successful");
+                Debug.WriteLine("Step 3 successful");
 
-                Console.WriteLine($"Suspend file {fileName} sent successfully!");
+                Debug.WriteLine($"Suspend file {fileName} sent successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending suspend file: {ex.Message}");
+                Debug.WriteLine($"Error sending suspend file: {ex.Message}");
                 return false;
             }
         }
@@ -2158,23 +2169,23 @@ namespace HID.DisplayController
         {
             if (filePaths == null || filePaths.Count == 0)
             {
-                Console.WriteLine("No files provided to send");
+                Debug.WriteLine("No files provided to send");
                 return false;
             }
 
-            Console.WriteLine($"Sending {filePaths.Count} suspend files...");
+            Debug.WriteLine($"Sending {filePaths.Count} suspend files...");
 
             for (int i = 0; i < filePaths.Count; i++)
             {
                 string filePath = filePaths[i];
                 byte transferId = (byte)((startingTransferId + i) % 60); // Ensure within valid range
 
-                Console.WriteLine($"Processing file {i + 1}/{filePaths.Count}: {Path.GetFileName(filePath)}");
+                Debug.WriteLine($"Processing file {i + 1}/{filePaths.Count}: {Path.GetFileName(filePath)}");
 
                 bool success = await SendSuspendFileWithResponse(filePath, transferId);
                 if (!success)
                 {
-                    Console.WriteLine($"Failed to send file {i + 1}: {Path.GetFileName(filePath)}");
+                    Debug.WriteLine($"Failed to send file {i + 1}: {Path.GetFileName(filePath)}");
                     return false;
                 }
 
@@ -2182,7 +2193,7 @@ namespace HID.DisplayController
                 await Task.Delay(100);
             }
 
-            Console.WriteLine("All suspend files sent successfully!");
+            Debug.WriteLine("All suspend files sent successfully!");
             return true;
         }
 
@@ -2195,30 +2206,30 @@ namespace HID.DisplayController
         {
             try
             {
-                Console.WriteLine($"Deleting suspend media: {fileName}");
+                Debug.WriteLine($"Deleting suspend media: {fileName}");
 
                 var deleteResponse = await SendCmdDeleteSuspendWithResponse(fileName);
                 if (deleteResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Delete suspend media failed. Status: {deleteResponse?.StatusCode}");
+                    Debug.WriteLine($"Delete suspend media failed. Status: {deleteResponse?.StatusCode}");
                     if (!string.IsNullOrEmpty(deleteResponse?.ResponseData))
                     {
-                        Console.WriteLine($"Error details: {deleteResponse.Value.ResponseData}");
+                        Debug.WriteLine($"Error details: {deleteResponse.Value.ResponseData}");
                     }
                     return false;
                 }
 
-                Console.WriteLine($"Successfully deleted suspend media: {fileName}");
+                Debug.WriteLine($"Successfully deleted suspend media: {fileName}");
                 if (!string.IsNullOrEmpty(deleteResponse.Value.ResponseData))
                 {
-                    Console.WriteLine($"Response: {deleteResponse.Value.ResponseData}");
+                    Debug.WriteLine($"Response: {deleteResponse.Value.ResponseData}");
                 }
 
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting suspend files: {ex.Message}");
+                Debug.WriteLine($"Error deleting suspend files: {ex.Message}");
                 return false;
             }
         }
@@ -2234,22 +2245,22 @@ namespace HID.DisplayController
         {
             if (fileNames == null || fileNames.Count == 0)
             {
-                Console.WriteLine("No files provided to delete");
+                Debug.WriteLine("No files provided to delete");
                 return false;
             }
 
-            Console.WriteLine($"Deleting {fileNames.Count} suspend files...");
+            Debug.WriteLine($"Deleting {fileNames.Count} suspend files...");
 
             for (int i = 0; i < fileNames.Count; i++)
             {
                 string fileName = fileNames[i];
 
-                Console.WriteLine($"Deleting file {i + 1}/{fileNames.Count}: {fileName}");
+                Debug.WriteLine($"Deleting file {i + 1}/{fileNames.Count}: {fileName}");
 
                 bool success = await DeleteSuspendFilesWithResponse(fileName);
                 if (!success)
                 {
-                    Console.WriteLine($"Failed to delete file {i + 1}: {fileName}");
+                    Debug.WriteLine($"Failed to delete file {i + 1}: {fileName}");
                     return false;
                 }
 
@@ -2257,7 +2268,7 @@ namespace HID.DisplayController
                 await Task.Delay(100);
             }
 
-            Console.WriteLine("All suspend files deleted successfully!");
+            Debug.WriteLine("All suspend files deleted successfully!");
             return true;
         }
 
@@ -2269,7 +2280,7 @@ namespace HID.DisplayController
         {
             try
             {
-                Console.WriteLine("Clearing suspend mode by deleting all suspend media...");
+                Debug.WriteLine("Clearing suspend mode by deleting all suspend media...");
 
                 // Delete all suspend media
                 bool deleteSuccess = await DeleteSuspendFilesWithResponse("all");
@@ -2282,11 +2293,11 @@ namespace HID.DisplayController
                 Thread.Sleep(100);
 
                 // Optional: Read status to confirm
-                Console.WriteLine("Reading suspend media status after deletion...");
+                Debug.WriteLine("Reading suspend media status after deletion...");
                 var statusResponse = await SendCmdReadMaxSuspendMediaWithResponse();
                 if (statusResponse?.IsSuccess == true && !string.IsNullOrEmpty(statusResponse.Value.ResponseData))
                 {
-                    Console.WriteLine($"Suspend media status: {statusResponse.Value.ResponseData}");
+                    Debug.WriteLine($"Suspend media status: {statusResponse.Value.ResponseData}");
                     // {"brightness": 80,"degree": 0,"osdState": 0,"keepAliveTimeout": 5,"maxSuspendMediaCount": 5,"displayInSleep": 0,"suspendMediaActive": [☻0,0,0,0,0]}
                     // Get the [☻0,0,0,0,0] value
                     try
@@ -2295,21 +2306,21 @@ namespace HID.DisplayController
                         if (jsonResponse?.ContainsKey("suspendMediaActive") == true)
                         {
                             var activeArray = jsonResponse["suspendMediaActive"].ToString();
-                            Console.WriteLine($"Current suspend media active status: {activeArray}");
+                            Debug.WriteLine($"Current suspend media active status: {activeArray}");
                         }
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Failed to parse suspend media status response: {ex.Message}");
+                        Debug.WriteLine($"Failed to parse suspend media status response: {ex.Message}");
                     }
                 }
 
-                Console.WriteLine("Suspend mode cleared successfully!");
+                Debug.WriteLine("Suspend mode cleared successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error clearing suspend mode: {ex.Message}");
+                Debug.WriteLine($"Error clearing suspend mode: {ex.Message}");
                 return false;
             }
         }
@@ -2324,7 +2335,7 @@ namespace HID.DisplayController
         {
             if (indices == null || indices.Count == 0)
             {
-                Console.WriteLine("No indices provided to delete");
+                Debug.WriteLine("No indices provided to delete");
                 return false;
             }
 
@@ -2334,7 +2345,7 @@ namespace HID.DisplayController
             {
                 if (index < 1)
                 {
-                    Console.WriteLine($"Invalid index: {index}. Indices must be 1-based.");
+                    Debug.WriteLine($"Invalid index: {index}. Indices must be 1-based.");
                     return false;
                 }
 
@@ -2343,7 +2354,7 @@ namespace HID.DisplayController
                 fileNames.Add(fileName);
             }
 
-            Console.WriteLine($"Deleting suspend files by indices: [{string.Join(", ", indices)}]");
+            Debug.WriteLine($"Deleting suspend files by indices: [{string.Join(", ", indices)}]");
             return await DeleteMultipleSuspendFilesWithResponse(fileNames, startingSequenceNumber);
         }
 
@@ -2372,33 +2383,33 @@ namespace HID.DisplayController
             bool filesSuccess = await SendMultipleSuspendFilesWithResponse(filesToTransfer, startingTransferId: 2);
             if (!filesSuccess)
             {
-                Console.WriteLine("Failed to send suspend files");
+                Debug.WriteLine("Failed to send suspend files");
                 return false;
             }
 
             // Step 3: Set brightness to 80 or other value.
-            Console.WriteLine("Setting brightness to 80...");
+            Debug.WriteLine("Setting brightness to 80...");
             var brightnessResponse = await SendCmdBrightnessWithResponse(80);
             if (brightnessResponse?.IsSuccess != true)
             {
-                Console.WriteLine($"Set brightness failed. Status: {brightnessResponse?.StatusCode}");
+                Debug.WriteLine($"Set brightness failed. Status: {brightnessResponse?.StatusCode}");
                 // Continue anyway as this might not be critical
             }
             else
             {
-                Console.WriteLine("Set brightness successful");
+                Debug.WriteLine("Set brightness successful");
             }
 
             // Step 4: Set keep alive timer, if have muitiple suspend files, the alive timer is each file duration.
             var timerResponse = await SendCmdSetKeepAliveTimerWithResponse(5);
             if (timerResponse?.IsSuccess != true)
             {
-                Console.WriteLine($"Set keep alive timer failed. Status: {timerResponse?.StatusCode}");
+                Debug.WriteLine($"Set keep alive timer failed. Status: {timerResponse?.StatusCode}");
                 // Continue anyway as this might not be critical
             }
             else
             {
-                Console.WriteLine("Set keep alive timer successful");
+                Debug.WriteLine("Set keep alive timer successful");
             }
 
             // Step 5: (Optional) get max suspend media count to check current status. like below json response. suspendMediaActive array indicate which suspend media is active.
@@ -2406,22 +2417,22 @@ namespace HID.DisplayController
             var maxMediaResponse = await SendCmdReadMaxSuspendMediaWithResponse();
             if (maxMediaResponse?.IsSuccess == true && !string.IsNullOrEmpty(maxMediaResponse.Value.ResponseData))
             {
-                Console.WriteLine($"Max suspend media response: {maxMediaResponse.Value.ResponseData}");
+                Debug.WriteLine($"Max suspend media response: {maxMediaResponse.Value.ResponseData}");
             }
 
             // Sleep 20 seconds, then call delete suspend media command to exit suspend mode.
-            Console.WriteLine("Entering suspend mode for 40 seconds...");
+            Debug.WriteLine("Entering suspend mode for 40 seconds...");
             Thread.Sleep(40000);
 
-            Console.WriteLine("Exiting suspend mode by deleting all suspend media...");
+            Debug.WriteLine("Exiting suspend mode by deleting all suspend media...");
             bool clearSuccess = await ClearSuspendModeWithResponse();
             if (!clearSuccess)
             {
-                Console.WriteLine("Failed to clear suspend mode");
+                Debug.WriteLine("Failed to clear suspend mode");
                 return false;
             }
 
-            Console.WriteLine("Suspend mode demo completed successfully!");
+            Debug.WriteLine("Suspend mode demo completed successfully!");
             return true;
         }
 
@@ -2435,7 +2446,7 @@ namespace HID.DisplayController
         {
             if (!File.Exists(filePath))
             {
-                Console.WriteLine($"Suspend file not found: {filePath}");
+                Debug.WriteLine($"Suspend file not found: {filePath}");
                 return false;
             }
 
@@ -2445,137 +2456,137 @@ namespace HID.DisplayController
                 string fileName = fileInfo.Name;
                 int fileSize = (int)fileInfo.Length;
 
-                Console.WriteLine($"Setting suspend mode with response handling: {fileName} ({fileSize} bytes)");
+                Debug.WriteLine($"Setting suspend mode with response handling: {fileName} ({fileSize} bytes)");
 
                 //// Pre-step: Delete all existing suspend media
-                //Console.WriteLine("Pre-step: Deleting all existing suspend media...");
+                //Debug.WriteLine("Pre-step: Deleting all existing suspend media...");
                 //var deleteResponse = await SendCmdDeleteSuspendWithResponse("all" - 4);
                 //if (deleteResponse?.IsSuccess != true)
                 //{
-                //    Console.WriteLine($"Delete suspend media failed. Status: {deleteResponse?.StatusCode}");
+                //    Debug.WriteLine($"Delete suspend media failed. Status: {deleteResponse?.StatusCode}");
                 //    // Continue anyway as this might not be critical
                 //}
                 //else
                 //{
-                //    Console.WriteLine("Delete suspend media successful");
+                //    Debug.WriteLine("Delete suspend media successful");
                 //}
 
                 //// Pre-step: Set rotation to 0
-                //Console.WriteLine("Pre-step: Setting rotation to 0...");
+                //Debug.WriteLine("Pre-step: Setting rotation to 0...");
                 //var rotationResponse = await SendCmdRotateWithResponse(0 - 3);
                 //if (rotationResponse?.IsSuccess != true)
                 //{
-                //    Console.WriteLine($"Set rotation failed. Status: {rotationResponse?.StatusCode}");
+                //    Debug.WriteLine($"Set rotation failed. Status: {rotationResponse?.StatusCode}");
                 //    // Continue anyway as this might not be critical
                 //}
                 //else
                 //{
-                //    Console.WriteLine("Set rotation successful");
+                //    Debug.WriteLine("Set rotation successful");
                 //}
 
 
                 //// Pre-step: Read maximum suspend media count
-                //Console.WriteLine("Pre-step: Reading maximum suspend media count...");
+                //Debug.WriteLine("Pre-step: Reading maximum suspend media count...");
                 //var maxMediaResponse = await SendCmdReadMaxSuspendMediaWithResponse(sequenceNumber - 1);
                 //if (maxMediaResponse?.IsSuccess == true && !string.IsNullOrEmpty(maxMediaResponse.Value.ResponseData))
                 //{
-                //    Console.WriteLine($"Max suspend media response: {maxMediaResponse.Value.ResponseData}");
+                //    Debug.WriteLine($"Max suspend media response: {maxMediaResponse.Value.ResponseData}");
                 //}
 
                 // Step 1: Disable real-time display mode
-                Console.WriteLine("Step 1: Disabling real-time display mode...");
+                Debug.WriteLine("Step 1: Disabling real-time display mode...");
                 var step1Response = await SendCmdRealTimeDisplayWithResponse(false);
                 if (step1Response?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Step 1 failed. Status: {step1Response?.StatusCode}");
+                    Debug.WriteLine($"Step 1 failed. Status: {step1Response?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine("Step 1 successful");
+                Debug.WriteLine("Step 1 successful");
 
                 // Step 2: Set suspend file configuration
-                Console.WriteLine($"Step 2: Setting suspend file configuration for {fileName}...");
+                Debug.WriteLine($"Step 2: Setting suspend file configuration for {fileName}...");
                 var step2Response = await SendCmdSetSuspendWithResponse(fileName, fileSize + 1);
                 if (step2Response?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Step 2 failed. Status: {step2Response?.StatusCode}");
+                    Debug.WriteLine($"Step 2 failed. Status: {step2Response?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine("Step 2 successful");
+                Debug.WriteLine("Step 2 successful");
 
                 // Step 3: Transfer the actual file data
-                Console.WriteLine("Step 3: Transferring suspend file data...");
+                Debug.WriteLine("Step 3: Transferring suspend file data...");
                 SendFileFromDisk(filePath, transferId);
-                Console.WriteLine("Suspend file data transfer completed");
+                Debug.WriteLine("Suspend file data transfer completed");
 
                 // Step 4: Send suspend completion command with MD5 hash
-                Console.WriteLine("Step 4: Sending suspend completion command...");
+                Debug.WriteLine("Step 4: Sending suspend completion command...");
                 string md5Hash = CalculateMD5Hash(filePath);
                 var step4Response = await SendCmdSuspendCompletedWithResponse(fileName, md5Hash + 2);
                 if (step4Response?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Step 4 failed. Status: {step4Response?.StatusCode}");
+                    Debug.WriteLine($"Step 4 failed. Status: {step4Response?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine("Step 4 successful");
+                Debug.WriteLine("Step 4 successful");
 
                 Thread.Sleep(200);
 
                 // Step 5: Disable real-time display mode again
-                Console.WriteLine("Step 5: Disabling real-time display mode again...");
+                Debug.WriteLine("Step 5: Disabling real-time display mode again...");
                 var step5Response = await SendCmdRealTimeDisplayWithResponse(false);
                 if (step5Response?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Step 5 failed. Status: {step5Response?.StatusCode}");
+                    Debug.WriteLine($"Step 5 failed. Status: {step5Response?.StatusCode}");
                     return false;
                 }
-                Console.WriteLine("Step 5 successful");
+                Debug.WriteLine("Step 5 successful");
 
 
                 // Pre-step: Set brightness to 80
-                Console.WriteLine("Pre-step: Setting brightness to 80...");
+                Debug.WriteLine("Pre-step: Setting brightness to 80...");
                 var brightnessResponse = await SendCmdBrightnessWithResponse(80 - 2);
                 if (brightnessResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Set brightness failed. Status: {brightnessResponse?.StatusCode}");
+                    Debug.WriteLine($"Set brightness failed. Status: {brightnessResponse?.StatusCode}");
                     // Continue anyway as this might not be critical
                 }
                 else
                 {
-                    Console.WriteLine("Set brightness successful");
+                    Debug.WriteLine("Set brightness successful");
                 }
 
                 // Step 6: Set keep alive timer
-                Console.WriteLine("Step 6: Setting keep alive timer to 2 seconds...");
+                Debug.WriteLine("Step 6: Setting keep alive timer to 2 seconds...");
                 var timerResponse = await SendCmdSetKeepAliveTimerWithResponse(2 + 4);
                 if (timerResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Step 6 failed. Status: {timerResponse?.StatusCode}");
+                    Debug.WriteLine($"Step 6 failed. Status: {timerResponse?.StatusCode}");
                     // Continue anyway as this might not be critical
                 }
                 else
                 {
-                    Console.WriteLine("Step 6 successful");
+                    Debug.WriteLine("Step 6 successful");
                 }
 
                 // Step 7: Read maximum suspend media count again
-                Console.WriteLine("Step 7: Reading maximum suspend media count again...");
+                Debug.WriteLine("Step 7: Reading maximum suspend media count again...");
                 var step7Response = await SendCmdReadMaxSuspendMediaWithResponse();
                 if (step7Response?.IsSuccess != true)
                 {
-                    Console.WriteLine($"Step 7 failed. Status: {step7Response?.StatusCode}");
+                    Debug.WriteLine($"Step 7 failed. Status: {step7Response?.StatusCode}");
                     // Continue anyway as this is just a status check
                 }
                 else
                 {
-                    Console.WriteLine($"Step 7 successful. Response: {step7Response.Value.ResponseData}");
+                    Debug.WriteLine($"Step 7 successful. Response: {step7Response.Value.ResponseData}");
                 }
 
-                Console.WriteLine("Suspend mode setup with response handling completed successfully!");
+                Debug.WriteLine("Suspend mode setup with response handling completed successfully!");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error setting suspend mode: {ex.Message}");
+                Debug.WriteLine($"Error setting suspend mode: {ex.Message}");
                 return false;
             }
         }
@@ -2588,7 +2599,7 @@ namespace HID.DisplayController
         /// <returns>True if demo completed successfully</returns>
         public async Task<bool> SimpleRealTimeDisplayDemo(string? imageDirectory = null, int cycleCount = 5)
         {
-            Console.WriteLine("=== Simple Real-Time Display Demo ===");
+            Debug.WriteLine("=== Simple Real-Time Display Demo ===");
 
             try
             {
@@ -2602,26 +2613,26 @@ namespace HID.DisplayController
                                          .ToList();
                     if (files.Count > 0)
                     {
-                        Console.WriteLine($"Found {files.Count} images in directory: {imageDirectory}");
+                        Debug.WriteLine($"Found {files.Count} images in directory: {imageDirectory}");
                         imagePaths.AddRange(files);
                     }
                     else
                     {
-                        Console.WriteLine($"No supported image files found in directory: {imageDirectory}");
+                        Debug.WriteLine($"No supported image files found in directory: {imageDirectory}");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("No valid image directory provided, using default images.");
+                    Debug.WriteLine("No valid image directory provided, using default images.");
                 }
 
 
                 // Step 1: Enable real-time display
-                Console.WriteLine("Enabling real-time display...");
+                Debug.WriteLine("Enabling real-time display...");
                 var enableResponse = await SendCmdRealTimeDisplayWithResponse(true);
                 if (enableResponse?.IsSuccess != true)
                 {
-                    Console.WriteLine("Failed to enable real-time display");
+                    Debug.WriteLine("Failed to enable real-time display");
                     return false;
                 }
 
@@ -2633,14 +2644,14 @@ namespace HID.DisplayController
 
                 if (imagePaths.Count > 0)
                 {
-                    Console.WriteLine($"Cycling through {imagePaths.Count} images, {cycleCount} times...");
+                    Debug.WriteLine($"Cycling through {imagePaths.Count} images, {cycleCount} times...");
 
                     byte transferId = 2;
                     for (int cycle = 0; cycle < cycleCount; cycle++)
                     {
                         foreach (var imagePath in imagePaths)
                         {
-                            Console.WriteLine($"[SENDING] Sending: {Path.GetFileName(imagePath)}");
+                            Debug.WriteLine($"[SENDING] Sending: {Path.GetFileName(imagePath)}");
 
                             // Step 3: Send image file, or can use SendFileTransfer to send image bytes array if image from memory.
                             SendFileFromDisk(imagePath, transferId: transferId);
@@ -2656,15 +2667,15 @@ namespace HID.DisplayController
                 }
 
                 // Disable real-time display
-                Console.WriteLine("Disabling real-time display...");
+                Debug.WriteLine("Disabling real-time display...");
                 await SendCmdRealTimeDisplayWithResponse(false);
 
-                Console.WriteLine("=== Simple Real-Time Display Demo Completed ===");
+                Debug.WriteLine("=== Simple Real-Time Display Demo Completed ===");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Demo failed: {ex.Message}");
+                Debug.WriteLine($"Demo failed: {ex.Message}");
                 return false;
             }
         }
