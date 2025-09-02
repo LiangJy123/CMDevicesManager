@@ -1,11 +1,88 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using HID.DisplayController;
 using HidApi;
 using System.Text;
-
-using HID.DisplayController;
+using System.Timers;
 
 
 Console.WriteLine("Hello, World!");
+
+Device device = new Device(0x2516, 0x0228);
+Console.WriteLine(device.GetManufacturer());
+
+// Create a cancellation token to gracefully stop the thread
+using var cancellationTokenSource = new CancellationTokenSource();
+var cancellationToken = cancellationTokenSource.Token;
+
+// Create and start the HID reading thread
+var hidReadingThread = new Thread(() => HidReadingWorker(device, cancellationToken))
+{
+    Name = "HidReadingThread",
+    IsBackground = true
+};
+
+hidReadingThread.Start();
+
+// Main thread continues here - you can add other logic
+Console.WriteLine("HID reading started on background thread. Press any key to stop...");
+Console.ReadKey();
+
+// Signal the thread to stop
+cancellationTokenSource.Cancel();
+
+// Wait for the thread to finish (with timeout)
+if (!hidReadingThread.Join(TimeSpan.FromSeconds(5)))
+{
+    Console.WriteLine("Thread did not stop gracefully, forcing abort...");
+}
+
+Console.WriteLine("HID reading stopped.");
+
+// Worker method for the HID reading thread
+static void HidReadingWorker(Device device, CancellationToken cancellationToken)
+{
+    byte[] buffer = new byte[1024];
+
+    while (!cancellationToken.IsCancellationRequested)
+    {
+        try
+        {
+            // Use ReadTimeout with timeout to avoid blocking indefinitely
+            int result = device.ReadTimeout(buffer.AsSpan(), 1000); // 1 second timeout
+
+            if (result > 0)
+            {
+                // debug out the first 32 bytes
+                Console.WriteLine($"*****[DEBUG] Received {result} bytes: {Convert.ToHexString(buffer, 0, Math.Min(result, 32))}");
+            }
+            else if (result == 0)
+            {
+                Console.WriteLine("No data available");
+            }
+        }
+        catch (HidException ex)
+        {
+            // HID specific exceptions
+            Console.WriteLine($"HID read error: {ex.Message}");
+
+            // If it's a critical error, you might want to break the loop
+            if (ex.Message.Contains("device disconnected", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Device disconnected, stopping HID reading thread.");
+                break;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Other exceptions
+            Console.WriteLine($"Read error: {ex.Message}");
+        }
+    }
+
+    Console.WriteLine("HID reading thread stopped.");
+}
+
+
 if (false)
 {
     Console.WriteLine("=== HID Device Monitoring Demo  For Single Device===");
@@ -41,7 +118,7 @@ if (false)
     };
 
     // Monitor specific devices (your display controller VID/PID)
-    deviceMonitor.SetDeviceFilter(0x2516, 0x0228);
+    deviceMonitor.SetDeviceFilter(0x2516, 0x0228,0xffff);
     deviceMonitor.MonitoringInterval = 500; // Check every 500ms
 
     Console.WriteLine("Starting HID device monitoring...");
@@ -183,7 +260,7 @@ if (false)
 
 }
 
-if (true)
+if (false)
 {
 
     Console.WriteLine("=== HID Multi-Device Management Demo ===");
@@ -265,29 +342,150 @@ if (true)
     Console.ReadLine();
 
 
-    // Targeted Device Operations
-    // Execute on specific devices by serial number
-    var serialNumbers = new[] { "1870989178c08180", "1870989178c08181" };
-    var results = await multiDeviceManager.ExecuteOnSpecificDevices(serialNumbers, async controller =>
-    {
-        await controller.SendCmdBrightnessWithResponse(50);
-        return true;
-    });
+    //// Targeted Device Operations
+    //// Execute on specific devices by serial number
+    //var serialNumbers = new[] { "1870989178c08180", "1870989178c08181" };
+    //var results = await multiDeviceManager.ExecuteOnSpecificDevices(serialNumbers, async controller =>
+    //{
+    //    await controller.SendCmdBrightnessWithResponse(50);
+    //    return true;
+    //});
+
+    //// Custom Batch Operations
+    //// Custom operation on all devices
+    //var results2 = await multiDeviceManager.ExecuteOnAllDevices(async controller =>
+    //{
+    //    return await controller.SendCmdRotateWithResponse(180);
+
+    //}, timeout: TimeSpan.FromSeconds(10));
+
+    //// Output results
+    //foreach (var result in results2)
+    //{
+    //    Console.WriteLine($"Device {result.Key}: {(result.Value ? "SUCCESS" : "FAILED")}");
+    //}
+
+    KeepAliveTimer? keepAliveTimer = null;
 
     // Custom Batch Operations
-    // Custom operation on all devices
-    var results2 = await multiDeviceManager.ExecuteOnAllDevices(async controller =>
+    // Set realtime ModeDemo
+    var results4 = await multiDeviceManager.ExecuteOnAllDevices(async controller =>
     {
-        return await controller.SendCmdRotateWithResponse(180);
-        
+        Console.WriteLine("=== Simple Real-Time Display Demo ===");
+        // Get current app exe directory
+        string appExeDirectory = AppContext.BaseDirectory;
+        string imageDirectory = Path.Combine(appExeDirectory, "resources", "realtime");
+        // check if directory exists, otherwise use hardcoded path
+        if (!Directory.Exists(imageDirectory))
+        {
+            imageDirectory = @"E:\github\CMDevicesManager\HidProtocol\resources\realtime";
+            //imageDirectory = @"E:\github\CMDevicesManager\HidProtocol\resources\gif\LCD-AFrame";
+        }
+
+        int cycleCount = 20; // Number of times to cycle through images
+        try
+        {
+            List<string> imagePaths = new List<string>();
+            // Init the images path list
+            if (!string.IsNullOrEmpty(imageDirectory) && Directory.Exists(imageDirectory))
+            {
+                var supportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp" };
+                var files = Directory.GetFiles(imageDirectory)
+                                     .Where(f => supportedExtensions.Contains(Path.GetExtension(f)))
+                                     .ToList();
+                if (files.Count > 0)
+                {
+                    Console.WriteLine($"Found {files.Count} images in directory: {imageDirectory}");
+                    imagePaths.AddRange(files);
+                }
+                else
+                {
+                    Console.WriteLine($"No supported image files found in directory: {imageDirectory}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("No valid image directory provided, using default images.");
+            }
+
+
+            // Step 1: Enable real-time display
+            Console.WriteLine("Enabling real-time display...");
+            var enableResponse = await controller.SendCmdRealTimeDisplayWithResponse(true);
+            if (enableResponse?.IsSuccess != true)
+            {
+                Console.WriteLine("Failed to enable real-time display");
+                return false;
+            }
+
+
+            // Create the keep-alive timer
+            keepAliveTimer = new KeepAliveTimer(async () =>
+            {
+                var response = await controller.SendCmdKeepAliveWithResponse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                Console.WriteLine($"Keep-alive sent. Success: {response?.IsSuccess}");
+            }, intervalSeconds: 4.0);
+
+            // Start the timer (sends first command immediately)
+            await keepAliveTimer.StartAsync();
+
+
+            // Step 2: Set brightness to 80 or other value.
+            await controller.SendCmdBrightnessWithResponse(80);
+            // Set optimal settings
+            //await SendCmdSetKeepAliveTimerWithResponse(60: 23);
+            //await Task.Delay(4000); // Short delay to ensure command is processed
+
+
+            if (imagePaths.Count > 0)
+            {
+                Console.WriteLine($"Cycling through {imagePaths.Count} images, {cycleCount} times...");
+
+                byte transferId = 2;
+                for (int cycle = 0; cycle < cycleCount; cycle++)
+                {
+                    foreach (var imagePath in imagePaths)
+                    {
+                        Console.WriteLine($"[SENDING] Sending: {Path.GetFileName(imagePath)}");
+
+                        // Step 3: Send image file, or can use SendFileTransfer to send image bytes array if image from memory.
+                        controller.SendFileFromDisk(imagePath, transferId: transferId);
+                        // Step 4: Send keep-alive command to display the image.
+                        //await controller.SendCmdKeepAliveWithResponse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+
+                        transferId++;
+                        if (transferId > 59) transferId = 2;
+
+                        await Task.Delay(1200); // 1.5 second between images
+                    }
+                }
+            }
+
+            // Disable real-time display
+            Console.WriteLine("Disabling real-time display...");
+            await controller.SendCmdRealTimeDisplayWithResponse(false);
+
+
+            // Clean up the timer
+            keepAliveTimer?.Stop();
+            keepAliveTimer?.Dispose();
+
+            Console.WriteLine("=== Simple Real-Time Display Demo Completed ===");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Demo failed: {ex.Message}");
+            // Clean up the timer
+            keepAliveTimer?.Stop();
+            keepAliveTimer?.Dispose();
+            return false;
+        }
     }, timeout: TimeSpan.FromSeconds(10));
 
-    // Output results
-    foreach (var result in results2)
-    {
-        Console.WriteLine($"Device {result.Key}: {(result.Value ? "SUCCESS" : "FAILED")}");
-    }
 
+    Console.WriteLine("Press Enter to run...");
+    Console.ReadLine();
 
 
     // Custom Batch Operations
@@ -374,95 +572,6 @@ if (true)
         return true;
     }, timeout: TimeSpan.FromSeconds(10));
 
-    // sleet 5 seconds between demos
-    Thread.Sleep(40000);
-
-    // Custom Batch Operations
-    // Set Suspend ModeDemo
-    var results4 = await multiDeviceManager.ExecuteOnAllDevices(async controller =>
-    {
-        Console.WriteLine("=== Simple Real-Time Display Demo ===");
-        string imageDirectory = @"E:\github\CMDevicesManager\HidProtocol\resources\realtime";
-        int cycleCount = 20; // Number of times to cycle through images
-        try
-        {
-            List<string> imagePaths = new List<string>();
-            // Init the images path list
-            if (!string.IsNullOrEmpty(imageDirectory) && Directory.Exists(imageDirectory))
-            {
-                var supportedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".bmp" };
-                var files = Directory.GetFiles(imageDirectory)
-                                     .Where(f => supportedExtensions.Contains(Path.GetExtension(f)))
-                                     .ToList();
-                if (files.Count > 0)
-                {
-                    Console.WriteLine($"Found {files.Count} images in directory: {imageDirectory}");
-                    imagePaths.AddRange(files);
-                }
-                else
-                {
-                    Console.WriteLine($"No supported image files found in directory: {imageDirectory}");
-                }
-            }
-            else
-            {
-                Console.WriteLine("No valid image directory provided, using default images.");
-            }
-
-
-            // Step 1: Enable real-time display
-            Console.WriteLine("Enabling real-time display...");
-            var enableResponse = await controller.SendCmdRealTimeDisplayWithResponse(true);
-            if (enableResponse?.IsSuccess != true)
-            {
-                Console.WriteLine("Failed to enable real-time display");
-                return false;
-            }
-
-            // Step 2: Set brightness to 80 or other value.
-            await controller.SendCmdBrightnessWithResponse(80);
-            // Set optimal settings
-            //await SendCmdSetKeepAliveTimerWithResponse(60: 23);
-
-
-            if (imagePaths.Count > 0)
-            {
-                Console.WriteLine($"Cycling through {imagePaths.Count} images, {cycleCount} times...");
-
-                byte transferId = 2;
-                for (int cycle = 0; cycle < cycleCount; cycle++)
-                {
-                    foreach (var imagePath in imagePaths)
-                    {
-                        Console.WriteLine($"[SENDING] Sending: {Path.GetFileName(imagePath)}");
-
-                        // Step 3: Send image file, or can use SendFileTransfer to send image bytes array if image from memory.
-                        controller.SendFileFromDisk(imagePath, transferId: transferId);
-                        // Step 4: Send keep-alive command to display the image.
-                        await controller.SendCmdKeepAliveWithResponse(DateTimeOffset.UtcNow.ToUnixTimeSeconds() + cycle);
-
-                        transferId++;
-                        if (transferId > 59) transferId = 2;
-
-                        await Task.Delay(50); // 1.5 second between images
-                    }
-                }
-            }
-
-            // Disable real-time display
-            Console.WriteLine("Disabling real-time display...");
-            await controller.SendCmdRealTimeDisplayWithResponse(false);
-
-            Console.WriteLine("=== Simple Real-Time Display Demo Completed ===");
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Demo failed: {ex.Message}");
-            return false;
-        }
-    }, timeout: TimeSpan.FromSeconds(10));
-
     // press enter to exit
     Console.WriteLine("Press Enter to exit...");
     Console.ReadLine();
@@ -470,3 +579,60 @@ if (true)
     // Clean shutdown
     multiDeviceManager.Dispose();
 }
+
+
+// Add this class to handle the keep-alive timer
+public class KeepAliveTimer : IDisposable
+{
+    private readonly System.Timers.Timer _timer;
+    private readonly Func<Task> _keepAliveAction;
+    private bool _disposed;
+
+    public KeepAliveTimer(Func<Task> keepAliveAction, double intervalSeconds = 4.0)
+    {
+        _keepAliveAction = keepAliveAction ?? throw new ArgumentNullException(nameof(keepAliveAction));
+
+        _timer = new System.Timers.Timer(intervalSeconds * 1000); // Convert to milliseconds
+        _timer.Elapsed += OnTimerElapsed;
+        _timer.AutoReset = true;
+    }
+
+    public async Task StartAsync()
+    {
+        // Send first keep-alive immediately
+        await _keepAliveAction();
+
+        // Start the timer for subsequent calls
+        _timer.Start();
+        Console.WriteLine($"Keep-alive timer started. Will send commands every {_timer.Interval / 1000} seconds.");
+    }
+
+    public void Stop()
+    {
+        _timer.Stop();
+        Console.WriteLine("Keep-alive timer stopped.");
+    }
+
+    private async void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        try
+        {
+            await _keepAliveAction();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending keep-alive command: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        if (!_disposed)
+        {
+            _timer?.Stop();
+            _timer?.Dispose();
+            _disposed = true;
+        }
+    }
+}
+
