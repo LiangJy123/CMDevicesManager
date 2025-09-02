@@ -6,6 +6,83 @@ using System.Timers;
 
 
 Console.WriteLine("Hello, World!");
+
+Device device = new Device(0x2516, 0x0228);
+Console.WriteLine(device.GetManufacturer());
+
+// Create a cancellation token to gracefully stop the thread
+using var cancellationTokenSource = new CancellationTokenSource();
+var cancellationToken = cancellationTokenSource.Token;
+
+// Create and start the HID reading thread
+var hidReadingThread = new Thread(() => HidReadingWorker(device, cancellationToken))
+{
+    Name = "HidReadingThread",
+    IsBackground = true
+};
+
+hidReadingThread.Start();
+
+// Main thread continues here - you can add other logic
+Console.WriteLine("HID reading started on background thread. Press any key to stop...");
+Console.ReadKey();
+
+// Signal the thread to stop
+cancellationTokenSource.Cancel();
+
+// Wait for the thread to finish (with timeout)
+if (!hidReadingThread.Join(TimeSpan.FromSeconds(5)))
+{
+    Console.WriteLine("Thread did not stop gracefully, forcing abort...");
+}
+
+Console.WriteLine("HID reading stopped.");
+
+// Worker method for the HID reading thread
+static void HidReadingWorker(Device device, CancellationToken cancellationToken)
+{
+    byte[] buffer = new byte[1024];
+
+    while (!cancellationToken.IsCancellationRequested)
+    {
+        try
+        {
+            // Use ReadTimeout with timeout to avoid blocking indefinitely
+            int result = device.ReadTimeout(buffer.AsSpan(), 1000); // 1 second timeout
+
+            if (result > 0)
+            {
+                // debug out the first 32 bytes
+                Console.WriteLine($"*****[DEBUG] Received {result} bytes: {Convert.ToHexString(buffer, 0, Math.Min(result, 32))}");
+            }
+            else if (result == 0)
+            {
+                Console.WriteLine("No data available");
+            }
+        }
+        catch (HidException ex)
+        {
+            // HID specific exceptions
+            Console.WriteLine($"HID read error: {ex.Message}");
+
+            // If it's a critical error, you might want to break the loop
+            if (ex.Message.Contains("device disconnected", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Device disconnected, stopping HID reading thread.");
+                break;
+            }
+        }
+        catch (Exception ex)
+        {
+            // Other exceptions
+            Console.WriteLine($"Read error: {ex.Message}");
+        }
+    }
+
+    Console.WriteLine("HID reading thread stopped.");
+}
+
+
 if (false)
 {
     Console.WriteLine("=== HID Device Monitoring Demo  For Single Device===");
@@ -183,7 +260,7 @@ if (false)
 
 }
 
-if (true)
+if (false)
 {
 
     Console.WriteLine("=== HID Multi-Device Management Demo ===");
@@ -558,3 +635,4 @@ public class KeepAliveTimer : IDisposable
         }
     }
 }
+
