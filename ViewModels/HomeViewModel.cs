@@ -43,7 +43,7 @@ namespace CMDevicesManager.ViewModels
             NetworkCards.Add(new SensorCard("Upload", "KB/s", "KB/s", "\uE83A"));
 
             // Issue when switch page to device page, disable timer to avoid exception
-            //_timer = new Timer(_ => Update(), null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            _timer = new Timer(_ => Update(), null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
         }
 
         private void Update()
@@ -103,8 +103,8 @@ namespace CMDevicesManager.ViewModels
             if (_disposed) return;
             _disposed = true;
 
-            //try { _timer.Change(Timeout.Infinite, Timeout.Infinite); } catch { /* ignore */ }
-            //_timer.Dispose();
+            try { _timer.Change(Timeout.Infinite, Timeout.Infinite); } catch { /* ignore */ }
+            _timer.Dispose();
             _service.Dispose();
         }
 
