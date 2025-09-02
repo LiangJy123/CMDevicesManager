@@ -17,8 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-<<<<<<< HEAD
-=======
     <None Remove="Fonts\FangZheng.ttf" />
     <None Remove="Fonts\FangZhengFangSongJianTi-1.ttf" />
     <None Remove="Fonts\NotoSans-Regular.ttf" />
@@ -34,7 +32,6 @@
     <None Remove="Fonts\Rubik-Regular.ttf" />
     <None Remove="Fonts\Saira-Regular.ttf" />
     <None Remove="Fonts\Saira-SemiBold.ttf" />
->>>>>>> main
     <None Remove="Resources\background.png" />
     <None Remove="Resources\icon\icon.ico" />
     <None Remove="Resources\icon\icon.png" />
@@ -68,8 +65,6 @@
   </ItemGroup>
 
   <ItemGroup>
-<<<<<<< HEAD
-=======
     <Resource Include="Fonts\NotoSans-Regular.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
@@ -106,7 +101,6 @@
     <Resource Include="Fonts\Saira-SemiBold.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
->>>>>>> main
     <Resource Include="Resources\background.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
