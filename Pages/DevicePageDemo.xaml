@@ -1,0 +1,994 @@
+﻿<Page x:Class="CMDevicesManager.Pages.DevicePageDemo"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:CMDevicesManager.Pages"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="{DynamicResource DevicePageTitle}"
+      Loaded="Page_Loaded">
+
+    <Grid Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Header Section -->
+        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" HorizontalAlignment="Center" Margin="0,20,0,30">
+            <TextBlock Text="{DynamicResource DevicePageTitle}" 
+                      FontSize="24" 
+                      FontWeight="Bold" 
+                      Foreground="White" 
+                      HorizontalAlignment="Center"
+                      Margin="0,0,0,20"/>
+        </StackPanel>
+
+        <!-- Error Message Section -->
+        <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3"
+                Background="#44FF4444" 
+                BorderBrush="#FF6666" 
+                BorderThickness="1" 
+                CornerRadius="5" 
+                Margin="50,0,50,20"
+                x:Name="ErrorMessageBorder"
+                Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal" Margin="15,10">
+                <TextBlock Text="⚠" 
+                          FontSize="16" 
+                          Foreground="#FF6666" 
+                          VerticalAlignment="Center" 
+                          Margin="0,0,10,0"/>
+                <TextBlock x:Name="ErrorMessageTextBlock"
+                          Text="An error occurred while managing devices."
+                          FontSize="14" 
+                          Foreground="White" 
+                          TextWrapping="Wrap"
+                          VerticalAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Streaming Control Buttons Section -->
+        <Grid Grid.Row="2" Grid.Column="0" Margin="50,0,50,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Demo Realtime Streaming Button -->
+            <Button x:Name="RealtimeStreamingButton"
+                    Grid.Column="0"
+                    Height="50"
+                    Background="#2A4A8B"
+                    BorderBrush="#4A6BAB"
+                    BorderThickness="1"
+                    Click="RealtimeStreamingButton_Click"
+                    ToolTip="Start real-time streaming demo - cycles through images with live display updates">
+
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="ButtonBorder"
+                                           Background="{TemplateBinding Background}"
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#4A6BAB"/>
+                                            <Setter Property="BorderBrush" Value="#6A8BCB"/>
+                                            <Setter TargetName="ButtonBorder" Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="#4A6BAB" 
+                                                                    BlurRadius="15" 
+                                                                    ShadowDepth="0" 
+                                                                    Opacity="0.8"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#1A3A7B"/>
+                                            <Setter Property="BorderBrush" Value="#2A4A8B"/>
+                                            <Setter TargetName="ButtonBorder" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Background" Value="#444444"/>
+                                            <Setter Property="BorderBrush" Value="#666666"/>
+                                            <Setter Property="Opacity" Value="0.6"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                    </Style>
+                </Button.Style>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock x:Name="RealtimeIcon" 
+                              Text="📺" 
+                              FontSize="18" 
+                              VerticalAlignment="Center" 
+                              Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="Realtime" 
+                                  FontSize="14" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="White"
+                                  HorizontalAlignment="Center"/>
+                        <TextBlock Text="Live display" 
+                                  FontSize="11" 
+                                  Foreground="#CCCCCC"
+                                  HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+
+            <!-- MP4 Streaming Button -->
+            <Button x:Name="Mp4StreamingButton"
+                    Grid.Column="2"
+                    Height="50"
+                    Background="#4A2A8B"
+                    BorderBrush="#6A4AAB"
+                    BorderThickness="1"
+                    Click="Mp4StreamingButton_Click"
+                    ToolTip="Start MP4 streaming demo - decode and stream video frames in real-time">
+
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="ButtonBorder"
+                                           Background="{TemplateBinding Background}"
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#6A4AAB"/>
+                                            <Setter Property="BorderBrush" Value="#8A6ACB"/>
+                                            <Setter TargetName="ButtonBorder" Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="#6A4AAB" 
+                                                                    BlurRadius="15" 
+                                                                    ShadowDepth="0" 
+                                                                    Opacity="0.8"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#3A1A7B"/>
+                                            <Setter Property="BorderBrush" Value="#4A2A8B"/>
+                                            <Setter TargetName="ButtonBorder" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Background" Value="#444444"/>
+                                            <Setter Property="BorderBrush" Value="#666666"/>
+                                            <Setter Property="Opacity" Value="0.6"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                    </Style>
+                </Button.Style>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="🎬" 
+                              FontSize="18" 
+                              VerticalAlignment="Center" 
+                              Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="MP4" 
+                                  FontSize="14" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="White"
+                                  HorizontalAlignment="Center"/>
+                        <TextBlock Text="Video stream" 
+                                  FontSize="11" 
+                                  Foreground="#CCCCCC"
+                                  HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+
+            <!-- Offline Streaming Button -->
+            <Button x:Name="OfflineStreamingButton"
+                    Grid.Column="4"
+                    Height="50"
+                    Background="#8B4A2A"
+                    BorderBrush="#AB6A4A"
+                    BorderThickness="1"
+                    Click="OfflineStreamingButton_Click"
+                    ToolTip="Start offline streaming demo - sets up suspend mode with media files for offline playback">
+
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="ButtonBorder"
+                                           Background="{TemplateBinding Background}"
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#CB6A4A"/>
+                                            <Setter Property="BorderBrush" Value="#EB8A6A"/>
+                                            <Setter TargetName="ButtonBorder" Property="Effect">
+                                                <Setter.Value>
+                                                    <DropShadowEffect Color="#CB6A4A" 
+                                                                    BlurRadius="15" 
+                                                                    ShadowDepth="0" 
+                                                                    Opacity="0.8"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter Property="Background" Value="#7B3A1A"/>
+                                            <Setter Property="BorderBrush" Value="#8B4A2A"/>
+                                            <Setter TargetName="ButtonBorder" Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Background" Value="#444444"/>
+                                            <Setter Property="BorderBrush" Value="#666666"/>
+                                            <Setter Property="Opacity" Value="0.6"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+                    </Style>
+                </Button.Style>
+
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock x:Name="OfflineIcon" 
+                              Text="💾" 
+                              FontSize="18" 
+                              VerticalAlignment="Center" 
+                              Margin="0,0,10,0"/>
+                    <StackPanel>
+                        <TextBlock Text="Offline" 
+                                  FontSize="14" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="White"
+                                  HorizontalAlignment="Center"/>
+                        <TextBlock Text="Offline mode" 
+                                  FontSize="11" 
+                                  Foreground="#CCCCCC"
+                                  HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Display Controls Section (NEW) -->
+        <Grid Grid.Row="3" Grid.Column="0" Margin="50,0,50,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Rotation Control -->
+            <Border Grid.Column="0"
+                    Background="#2A2A2A"
+                    BorderBrush="#444444"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="15,10">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="🔄" 
+                                  FontSize="16" 
+                                  VerticalAlignment="Center" 
+                                  Margin="0,0,8,0"/>
+                        <TextBlock Text="Display Rotation" 
+                                  FontSize="14" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="White" 
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Rotation buttons for 0, 90, 180, 270 degrees -->
+                        <Button x:Name="Rotation0Button"
+                                Grid.Column="0"
+                                Content="0°"
+                                Height="32"
+                                Margin="0,0,2,0"
+                                Background="#404040"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Foreground="White"
+                                FontSize="11"
+                                FontWeight="Medium"
+                                Click="RotationButton_Click"
+                                Tag="0"
+                                ToolTip="Rotate display to 0 degrees">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                       BorderBrush="{TemplateBinding BorderBrush}"
+                                                       BorderThickness="{TemplateBinding BorderThickness}"
+                                                       CornerRadius="4">
+                                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                                    VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#505050"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter Property="Background" Value="#2A4A8B"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <Button x:Name="Rotation90Button"
+                                Grid.Column="1"
+                                Content="90°"
+                                Height="32"
+                                Margin="2,0,2,0"
+                                Background="#404040"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Foreground="White"
+                                FontSize="11"
+                                FontWeight="Medium"
+                                Click="RotationButton_Click"
+                                Tag="90"
+                                ToolTip="Rotate display to 90 degrees">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                       BorderBrush="{TemplateBinding BorderBrush}"
+                                                       BorderThickness="{TemplateBinding BorderThickness}"
+                                                       CornerRadius="4">
+                                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                                    VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#505050"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter Property="Background" Value="#2A4A8B"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <Button x:Name="Rotation180Button"
+                                Grid.Column="2"
+                                Content="180°"
+                                Height="32"
+                                Margin="2,0,2,0"
+                                Background="#404040"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Foreground="White"
+                                FontSize="11"
+                                FontWeight="Medium"
+                                Click="RotationButton_Click"
+                                Tag="180"
+                                ToolTip="Rotate display to 180 degrees">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                       BorderBrush="{TemplateBinding BorderBrush}"
+                                                       BorderThickness="{TemplateBinding BorderThickness}"
+                                                       CornerRadius="4">
+                                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                                    VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#505050"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter Property="Background" Value="#2A4A8B"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+
+                        <Button x:Name="Rotation270Button"
+                                Grid.Column="3"
+                                Content="270°"
+                                Height="32"
+                                Margin="2,0,0,0"
+                                Background="#404040"
+                                BorderBrush="#666666"
+                                BorderThickness="1"
+                                Foreground="White"
+                                FontSize="11"
+                                FontWeight="Medium"
+                                Click="RotationButton_Click"
+                                Tag="270"
+                                ToolTip="Rotate display to 270 degrees">
+                            <Button.Style>
+                                <Style TargetType="Button">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}"
+                                                       BorderBrush="{TemplateBinding BorderBrush}"
+                                                       BorderThickness="{TemplateBinding BorderThickness}"
+                                                       CornerRadius="4">
+                                                    <ContentPresenter HorizontalAlignment="Center" 
+                                                                    VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#505050"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsPressed" Value="True">
+                                                        <Setter Property="Background" Value="#2A4A8B"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </Grid>
+
+                    <!-- Current rotation display -->
+                    <TextBlock x:Name="CurrentRotationText"
+                              Text="Current: 0°"
+                              FontSize="10"
+                              Foreground="#CCCCCC"
+                              HorizontalAlignment="Center"
+                              Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Brightness Control -->
+            <Border Grid.Column="2"
+                    Background="#2A2A2A"
+                    BorderBrush="#444444"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="15,10">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="💡" 
+                                  FontSize="16" 
+                                  VerticalAlignment="Center" 
+                                  Margin="0,0,8,0"/>
+                        <TextBlock Text="Display Brightness" 
+                                  FontSize="14" 
+                                  FontWeight="SemiBold" 
+                                  Foreground="White" 
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Brightness slider -->
+                    <!-- Remove the Style reference for SliderButtonStyle and SliderThumbStyle, or define them in App.xaml or Page.Resources -->
+                    <Slider x:Name="BrightnessSlider"
+                        Minimum="0"
+                        Maximum="100"
+                        Value="80"
+                        TickFrequency="10"
+                        IsSnapToTickEnabled="True"
+                        Margin="0,0,0,8"
+                        ValueChanged="BrightnessSlider_ValueChanged"
+                        ToolTip="Adjust display brightness (0-100%)"/>
+                    <!-- Brightness value display and quick set buttons -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock x:Name="BrightnessValueText"
+                                  Grid.Column="0"
+                                  Text="80%"
+                                  FontSize="12"
+                                  FontWeight="Medium"
+                                  Foreground="White"
+                                  VerticalAlignment="Center"/>
+
+                        <!-- Quick brightness buttons -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Content="25%"
+                                    Height="20"
+                                    Width="30"
+                                    Margin="2,0"
+                                    Background="#404040"
+                                    BorderBrush="#666666"
+                                    BorderThickness="1"
+                                    Foreground="White"
+                                    FontSize="9"
+                                    Click="QuickBrightnessButton_Click"
+                                    Tag="25"
+                                    ToolTip="Set brightness to 25%">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                                           CornerRadius="2">
+                                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                                        VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#505050"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter Property="Background" Value="#4A6BAB"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button Content="50%"
+                                    Height="20"
+                                    Width="30"
+                                    Margin="2,0"
+                                    Background="#404040"
+                                    BorderBrush="#666666"
+                                    BorderThickness="1"
+                                    Foreground="White"
+                                    FontSize="9"
+                                    Click="QuickBrightnessButton_Click"
+                                    Tag="50"
+                                    ToolTip="Set brightness to 50%">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                                           CornerRadius="2">
+                                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                                        VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#505050"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter Property="Background" Value="#4A6BAB"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+
+                            <Button Content="100%"
+                                    Height="20"
+                                    Width="32"
+                                    Margin="2,0"
+                                    Background="#404040"
+                                    BorderBrush="#666666"
+                                    BorderThickness="1"
+                                    Foreground="White"
+                                    FontSize="9"
+                                    Click="QuickBrightnessButton_Click"
+                                    Tag="100"
+                                    ToolTip="Set brightness to 100%">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}"
+                                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                                           CornerRadius="2">
+                                                        <ContentPresenter HorizontalAlignment="Center" 
+                                                                        VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#505050"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter Property="Background" Value="#4A6BAB"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Streaming Image Viewer Section -->
+        <Border Grid.Row="3" Grid.Column="2" Grid.RowSpan="2"
+                Background="#1A1A1A"
+                BorderBrush="#444444"
+                BorderThickness="2"
+                CornerRadius="8"
+                Margin="0,0,50,50">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Image Viewer Header -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="15,15,15,10">
+                    <TextBlock Text="📺" FontSize="16" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="Live Stream View" 
+                              FontSize="14" 
+                              FontWeight="SemiBold" 
+                              Foreground="White" 
+                              VerticalAlignment="Center"/>
+                    <Border Background="#2A4A8B" 
+                           CornerRadius="10" 
+                           Padding="6,2" 
+                           Margin="10,0,0,0"
+                           x:Name="StreamingStatusIndicator"
+                           Visibility="Collapsed">
+                        <TextBlock Text="LIVE" 
+                                  FontSize="9" 
+                                  FontWeight="Bold" 
+                                  Foreground="White"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- Image Display Area -->
+                <Border Grid.Row="1" 
+                       Background="#0A0A0A" 
+                       BorderBrush="#333333" 
+                       BorderThickness="1"
+                       CornerRadius="4" 
+                       Margin="15,0,15,10">
+                    <Grid>
+                        <!-- Default placeholder content -->
+                        <StackPanel x:Name="PlaceholderContent"
+                                   HorizontalAlignment="Center" 
+                                   VerticalAlignment="Center">
+                            <TextBlock Text="🖼️" 
+                                      FontSize="48" 
+                                      HorizontalAlignment="Center" 
+                                      Foreground="#666666"
+                                      Margin="0,0,0,10"/>
+                            <TextBlock Text="No streaming content" 
+                                      FontSize="12" 
+                                      Foreground="#888888"
+                                      HorizontalAlignment="Center"/>
+                            <TextBlock Text="Start streaming to see live images" 
+                                      FontSize="10" 
+                                      Foreground="#666666"
+                                      HorizontalAlignment="Center"
+                                      Margin="0,5,0,0"/>
+                        </StackPanel>
+
+                        <!-- Image viewer -->
+                        <Image x:Name="StreamingImageViewer" 
+                              Stretch="Uniform"
+                              StretchDirection="DownOnly"
+                              Visibility="Collapsed">
+                            <Image.Effect>
+                                <DropShadowEffect Color="Black" 
+                                                BlurRadius="10" 
+                                                ShadowDepth="3" 
+                                                Opacity="0.5"/>
+                            </Image.Effect>
+                        </Image>
+
+                        <!-- Loading indicator -->
+                        <StackPanel x:Name="LoadingIndicator"
+                                   HorizontalAlignment="Center" 
+                                   VerticalAlignment="Center"
+                                   Visibility="Collapsed">
+                            <Grid Width="40" Height="40" Margin="0,0,0,10">
+                                <Ellipse Width="40" Height="40" 
+                                        Stroke="#4A6BAB" 
+                                        StrokeThickness="3" 
+                                        StrokeDashArray="25,25"
+                                        RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform>
+                                        <RotateTransform x:Name="LoadingRotation"/>
+                                    </Ellipse.RenderTransform>
+                                    <Ellipse.Triggers>
+                                        <EventTrigger RoutedEvent="Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <DoubleAnimation Storyboard.TargetName="LoadingRotation"
+                                                                   Storyboard.TargetProperty="Angle"
+                                                                   From="0" To="360" Duration="0:0:2"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Ellipse.Triggers>
+                                </Ellipse>
+                            </Grid>
+                            <TextBlock Text="Loading stream..." 
+                                      FontSize="11" 
+                                      Foreground="#4A6BAB"
+                                      HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Image Info Panel -->
+                <StackPanel Grid.Row="2" Margin="15,0,15,15">
+                    <Border Background="#2A2A2A" 
+                           BorderBrush="#444444" 
+                           BorderThickness="1" 
+                           CornerRadius="4" 
+                           Padding="10,8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Current image info -->
+                            <StackPanel Grid.Row="0">
+                                <TextBlock x:Name="CurrentImageName" 
+                                          Text="No image loaded" 
+                                          FontSize="11" 
+                                          FontWeight="Medium"
+                                          Foreground="White"
+                                          TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="ImageDimensions" 
+                                          Text="" 
+                                          FontSize="10" 
+                                          Foreground="#CCCCCC"
+                                          Margin="0,2,0,0"/>
+                            </StackPanel>
+
+                            <!-- Stream stats -->
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0">
+                                <TextBlock Text="Images: " 
+                                          FontSize="9" 
+                                          Foreground="#888888"/>
+                                <TextBlock x:Name="ImageCounter" 
+                                          Text="0" 
+                                          FontSize="9" 
+                                          Foreground="#CCCCCC"/>
+                                <TextBlock Text=" • Active devices: " 
+                                          FontSize="9" 
+                                          Foreground="#888888"
+                                          Margin="8,0,0,0"/>
+                                <TextBlock x:Name="ActiveDeviceCount" 
+                                          Text="0" 
+                                          FontSize="9" 
+                                          Foreground="#CCCCCC"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Devices List Section -->
+        <Grid Grid.Row="4" Grid.Column="0" Margin="50,0,50,50">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" 
+                      Text="Connected Devices" 
+                      FontSize="20" 
+                      FontWeight="SemiBold" 
+                      Foreground="White" 
+                      Margin="0,0,0,15"/>
+
+            <ListBox x:Name="DevicesListBox" 
+                    Grid.Row="1"
+                    Background="Transparent"
+                    BorderBrush="#333333"
+                    BorderThickness="1"
+                    Foreground="White"
+                    ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                    ScrollViewer.VerticalScrollBarVisibility="Disabled">
+
+                <!-- Change the ItemsPanel to display items horizontally -->
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Margin" Value="10,2"/>
+                        <Setter Property="Padding" Value="15,10"/>
+                        <Setter Property="Width" Value="250"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border Background="{TemplateBinding Background}"
+                                           BorderBrush="{TemplateBinding BorderBrush}"
+                                           BorderThickness="{TemplateBinding BorderThickness}"
+                                           CornerRadius="8">
+                                        <ContentPresenter Margin="{TemplateBinding Padding}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#2A2A2A"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#404040"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Status Indicator -->
+                            <Ellipse Grid.Row="0"
+                                    Width="10" Height="10" 
+                                    Fill="#00FF00" 
+                                    Margin="0,0,0,10" 
+                                    HorizontalAlignment="Center"/>
+
+                            <!-- Device Information -->
+                            <StackPanel Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center">
+                                <!-- Product Name -->
+                                <TextBlock Text="{Binding ProductString}" 
+                                          FontSize="14" 
+                                          FontWeight="SemiBold"
+                                          Foreground="White" 
+                                          Margin="0,0,0,5"
+                                          TextAlignment="Center"
+                                          TextWrapping="Wrap"/>
+
+                                <!-- Serial Number -->
+                                <TextBlock FontSize="11" 
+                                          Foreground="#CCCCCC"
+                                          TextAlignment="Center"
+                                          Margin="0,0,0,3">
+                                    <Run Text="Serial: " FontWeight="Medium"/>
+                                    <LineBreak/>
+                                    <Run Text="{Binding SerialNumber}" FontFamily="Consolas"/>
+                                </TextBlock>
+
+                                <!-- VID/PID Information -->
+                                <TextBlock FontSize="10" 
+                                          Foreground="#999999"
+                                          Margin="0,2,0,0"
+                                          TextAlignment="Center">
+                                    <Run Text="VID:"/>
+                                    <Run Text="{Binding VendorId, StringFormat=0x{0:X4}}" FontFamily="Consolas"/>
+                                    <LineBreak/>
+                                    <Run Text="PID:"/>
+                                    <Run Text="{Binding ProductId, StringFormat=0x{0:X4}}" FontFamily="Consolas"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+
+            </ListBox>
+        </Grid>
+    </Grid>
+
+    <!-- Add slider styles in page resources -->
+    <Page.Resources>
+        <Style x:Key="SliderButtonStyle" TargetType="RepeatButton">
+            <Setter Property="SnapsToDevicePixels" Value="true"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="IsTabStop" Value="false"/>
+            <Setter Property="Focusable" Value="false"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Height="4" Background="{TemplateBinding Background}" CornerRadius="2"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SliderThumbStyle" TargetType="Thumb">
+            <Setter Property="SnapsToDevicePixels" Value="true"/>
+            <Setter Property="OverridesDefaultStyle" Value="true"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Ellipse Height="16" Width="16" Fill="#4A6BAB" Stroke="#6A8BCB" StrokeThickness="1"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Page.Resources>
+</Page>

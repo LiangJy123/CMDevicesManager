@@ -65,6 +65,14 @@ namespace HID.DisplayController
         public ushort ProductIdFilter { get; set; } = 0;
 
         /// <summary>
+<<<<<<< HEAD
+        /// Gets or sets the usage Page filter (0 = monitor all usage page)
+        /// </summary>
+        public ushort UsagePageFilter { get; set; } = 0;
+
+        /// <summary>
+=======
+>>>>>>> main
         /// Gets whether the monitor is currently running
         /// </summary>
         public bool IsMonitoring { get; private set; }
@@ -135,12 +143,20 @@ namespace HID.DisplayController
         /// </summary>
         /// <param name="vendorId">Vendor ID (0 for all)</param>
         /// <param name="productId">Product ID (0 for all)</param>
+<<<<<<< HEAD
+        public void SetDeviceFilter(ushort vendorId = 0x2516, ushort productId = 0x0228, ushort usagePage = 0xFFFF)
+=======
         public void SetDeviceFilter(ushort vendorId, ushort productId)
+>>>>>>> main
         {
             lock (_lockObject)
             {
                 VendorIdFilter = vendorId;
                 ProductIdFilter = productId;
+<<<<<<< HEAD
+                UsagePageFilter = usagePage;
+=======
+>>>>>>> main
 
                 if (IsMonitoring)
                 {
@@ -257,7 +273,15 @@ namespace HID.DisplayController
         {
             try
             {
+<<<<<<< HEAD
+                var hidlist = Hid.Enumerate(VendorIdFilter, ProductIdFilter).ToList();
+                // check the usage page need to be 0xFFFF.
+                hidlist = hidlist.Where(d => d.UsagePage == UsagePageFilter).ToList();
+                return hidlist;
+                //return Hid.Enumerate(VendorIdFilter, ProductIdFilter).ToList();
+=======
                 return Hid.Enumerate(VendorIdFilter, ProductIdFilter).ToList();
+>>>>>>> main
             }
             catch (Exception ex)
             {

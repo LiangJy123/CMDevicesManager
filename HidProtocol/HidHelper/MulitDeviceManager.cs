@@ -29,13 +29,21 @@ namespace HID.DisplayController
         /// </summary>
         public event EventHandler<ControllerErrorEventArgs>? ControllerError;
 
+<<<<<<< HEAD
+        public MultiDeviceManager(ushort vendorId = 0x2516, ushort productId = 0x0228, ushort usagePage = 0xFFFF)
+=======
         public MultiDeviceManager(ushort vendorId = 0x2516, ushort productId = 0x0228)
+>>>>>>> main
         {
             _activeControllers = new ConcurrentDictionary<string, DisplayController>();
             _deviceMonitor = new HidDeviceMonitor();
 
             // Set up device monitoring for specific VID/PID
+<<<<<<< HEAD
+            _deviceMonitor.SetDeviceFilter(vendorId, productId, usagePage);
+=======
             _deviceMonitor.SetDeviceFilter(vendorId, productId);
+>>>>>>> main
 
             // Wire up events
             _deviceMonitor.DeviceConnected += OnDeviceConnected;
