@@ -97,6 +97,14 @@
                                 <TextBlock Text="{DynamicResource DeviceText}" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
 
                             </StackPanel>
+                        </ListBoxItem>                        
+                        <ListBoxItem Tag="Pages/DevicePageDemo.xaml" Padding="10">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="20" VerticalAlignment="Center"/>
+
+                                <TextBlock Text="Demo" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
+
+                            </StackPanel>
                         </ListBoxItem>
                         <!-- Settings 按钮固定在底部 -->
                         <ListBoxItem Tag="Pages/SettingsPage.xaml" Padding="10" VerticalAlignment="Bottom">
