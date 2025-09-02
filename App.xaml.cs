@@ -40,6 +40,10 @@ namespace CMDevicesManager
                 Logger.Info("Initializing language settings");
                 CMDevicesManager.Language.LanguageSwitch.ChangeLanguage(UserConfigManager.Current.Language);
 
+                // Initialize font based on user configuration
+                Logger.Info("Initializing font settings");
+                CMDevicesManager.Language.FontSwitch.ChangeFont(UserConfigManager.Current.FontFamily);
+
                 // 显示启动窗口
                 var splash = new SplashWindow();
                 var main = new MainWindow();

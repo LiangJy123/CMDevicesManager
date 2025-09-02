@@ -186,9 +186,18 @@ namespace CMDevicesManager.Services
                     {
                         cache = resolver();
                     }
+                    if (cache == null || cache.Hardware == null)
+                    {
+                        LogMissing(cache);
+                        return 0;
+                    }
+                    try { cache.Hardware.Update(); }
+                    catch (Exception ex)
+                    {
+                        Logger.Error("cache.Hardware.Update() crash", ex);
+                        return 0;
+                    }
                     
-                    // Update the specific hardware for this sensor
-                    cache?.Hardware?.Update();
 
                     var value = cache?.Value;
                     if (value.HasValue)

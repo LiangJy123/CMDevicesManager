@@ -5,7 +5,8 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:CMDevicesManager.Pages"
       mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
+     
+      FontFamily="{DynamicResource AppFontFamily}"
       Title="{DynamicResource SettingsPageTitle}">
 
     <Grid Background="Transparent">
@@ -37,6 +38,13 @@
                                     Margin="0,0,30,0"
                                     Checked="LanguageRadio_Checked"
                                     Tag="zh-cn"/>
+                        <RadioButton x:Name="TraditionalChineseRadio" 
+                                    Content="{DynamicResource TraditionalChineseLanguage}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Margin="0,0,30,0"
+                                    Checked="LanguageRadio_Checked"
+                                    Tag="zh-tw"/>
                         <RadioButton x:Name="EnglishRadio" 
                                     Content="{DynamicResource EnglishLanguage}"
                                     Foreground="White"
@@ -44,6 +52,69 @@
                                     Checked="LanguageRadio_Checked"
                                     Tag="en-us"/>
                     </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Font Settings Section -->
+            <Border Background="#FF2A2A2A" 
+                   CornerRadius="8" 
+                   Padding="20" 
+                   Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource FontLabel}" 
+                              FontSize="20" 
+                              FontWeight="SemiBold" 
+                              Foreground="White" 
+                              Margin="0,0,0,15"/>
+                    
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="DefaultFontRadio" 
+                                    Content="{DynamicResource DefaultFont}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Margin="0,0,30,0"
+                                    Checked="FontRadio_Checked"
+                                    Tag="default"/>
+                        <RadioButton x:Name="NotoSansFontRadio" 
+                                    Content="{DynamicResource NotoSansFont}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Margin="0,0,30,0"
+                                    Checked="FontRadio_Checked"
+                                    Tag="noto-sans"/>
+                        <RadioButton x:Name="NotoSansCJKFontRadio" 
+                                    Content="{DynamicResource NotoSansCJKFont}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Margin="0,0,30,0"
+                                    Checked="FontRadio_Checked"
+                                    Tag="noto-sans-cjk"/>
+                        <RadioButton x:Name="RubikFontRadio" 
+                                    Content="{DynamicResource RubikFont}"
+                                    Foreground="White"
+                                    FontSize="16"
+                                    Checked="FontRadio_Checked"
+                                    Tag="rubik"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Update Section -->
+            <Border Background="#FF2A2A2A"
+                    CornerRadius="8"
+                    Padding="20"
+                    Margin="0,0,0,20">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource UpdateLabel}"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="White"
+                               Margin="0,0,0,15"/>
+                    <Button x:Name="UpdateButton"
+                            Content="{DynamicResource CheckUpdate}"
+                            Width="180"
+                            Height="36"
+                            Click="UpdateButton_Click"/>
                 </StackPanel>
             </Border>
 

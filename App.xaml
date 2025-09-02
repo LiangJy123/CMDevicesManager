@@ -2,15 +2,17 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:CMDevicesManager"
-            
-          
-             >
+            xmlns:mica="clr-namespace:MicaWPF.Styles;assembly=MicaWPF">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <!-- Default language resources will be loaded dynamically by LanguageSwitch -->
+                <mica:ThemeDictionary Theme="Auto" DesignModeTheme="Light" />
+                <mica:ControlsDictionary />
                 <ResourceDictionary Source="/Language/StringResources.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <!-- App-wide font family resource: default to Cascadia Mono -->
+            <FontFamily x:Key="AppFontFamily">Cascadia Mono</FontFamily>
             <!-- Other app resources here -->
         </ResourceDictionary>
     </Application.Resources>

@@ -15,9 +15,19 @@
     
     <!-- Settings Page -->
     <sys:String x:Key="LanguageLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">语言设置</sys:String>
-    <sys:String x:Key="ChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">中文</sys:String>
+    <sys:String x:Key="ChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">简体中文</sys:String>
+    <sys:String x:Key="TraditionalChineseLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">繁体中文</sys:String>
     <sys:String x:Key="EnglishLanguage" xmlns:sys="clr-namespace:System;assembly=mscorlib">English</sys:String>
+    <sys:String x:Key="FontLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">字体设置</sys:String>
+    <sys:String x:Key="DefaultFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">系统默认</sys:String>
+    <sys:String x:Key="NotoSansFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Noto Sans</sys:String>
+    <sys:String x:Key="NotoSansCJKFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Noto Sans CJK</sys:String>
+    <sys:String x:Key="RubikFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Rubik</sys:String>
     <sys:String x:Key="ApplySettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">应用设置</sys:String>
+
+    <!-- Update -->
+    <sys:String x:Key="UpdateLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">更新</sys:String>
+    <sys:String x:Key="CheckUpdate" xmlns:sys="clr-namespace:System;assembly=mscorlib">检查更新</sys:String>
     
     <!-- Common -->
     <sys:String x:Key="HelloText" xmlns:sys="clr-namespace:System;assembly=mscorlib">你好</sys:String>
