@@ -195,6 +195,7 @@ namespace CMDevicesManager.Services
                     catch (Exception ex)
                     {
                         Logger.Error("cache.Hardware.Update() crash", ex);
+                        cache=null;
                         return 0;
                     }
                     

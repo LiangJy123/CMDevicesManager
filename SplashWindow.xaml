@@ -19,14 +19,35 @@
         <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
             <!-- GIF 动画，可以用 Image 播放 -->
             
-
-                <!-- 金属光泽文字 -->
+            <!-- 创建多层文字实现3D效果 -->
+            <Grid>
+                <!-- 底层阴影 - 深灰色 -->
                 <TextBlock Text="{DynamicResource AppTitle}" 
-                       FontSize="52"
-                       FontWeight="Bold"
-                       HorizontalAlignment="Center"
+                           FontSize="52"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
                            VerticalAlignment="Center"
-                       Margin="0,0,0,0">
+                           Margin="2,2,0,0"
+                           Foreground="#333333"
+                           Opacity="0.8"/>
+                
+                <!-- 中层阴影 - 中灰色 -->
+                <TextBlock Text="{DynamicResource AppTitle}" 
+                           FontSize="52"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Margin="1,1,0,0"
+                           Foreground="#666666"
+                           Opacity="0.6"/>
+
+                <!-- 顶层主文字 - 金属光泽 -->
+                <TextBlock Text="{DynamicResource AppTitle}" 
+                           FontSize="52"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Margin="0,0,0,0">
                     <TextBlock.Foreground>
                         <LinearGradientBrush x:Name="ShinyBrush" StartPoint="0,1" EndPoint="1,0">
                             <GradientStop Color="#FFBC41E9" Offset="0.0"/>
@@ -35,7 +56,18 @@
                         </LinearGradientBrush>
                     </TextBlock.Foreground>
                 </TextBlock>
+                
+                <!-- 高光层 - 白色微光 -->
+                <TextBlock Text="{DynamicResource AppTitle}" 
+                           FontSize="52"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Margin="-1,-1,0,0"
+                           Foreground="White"
+                           Opacity="0.15"/>
             </Grid>
+        </Grid>
         </Border>
     </Grid>
     <!-- 动画 -->

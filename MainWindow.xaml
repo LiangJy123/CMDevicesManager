@@ -4,25 +4,48 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CMDevicesManager"
-      xmlns:controls="clr-namespace:MicaWPF.Controls;assembly=MicaWPF"
+        xmlns:controls="clr-namespace:MicaWPF.Controls;assembly=MicaWPF"
         mc:Ignorable="d"
         Height="800" Width="1200"
-        
         WindowStyle="None"
         AllowsTransparency="True"
         ResizeMode="CanResize"
         MinWidth="1500" MinHeight="800"
         WindowStartupLocation="CenterScreen"
-     
         Title="MasterCTRL"  
-      Background="Transparent" 
         FontFamily="{DynamicResource AppFontFamily}"
-        Loaded="Window_Loaded" ><!---->
+        Background="{DynamicResource MaterialDesignPaper}"
+        Loaded="Window_Loaded" >
+    
+    <controls:MicaWindow.Resources>
+        <!-- 定义带有浅色阴影的按钮样式 -->
+        <Style x:Key="TitleBarButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="40"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="LightGray" Direction="320" ShadowDepth="2" Opacity="0.5" BlurRadius="4"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#33FFFFFF"/>
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect Color="White" Direction="320" ShadowDepth="3" Opacity="0.7" BlurRadius="6"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </controls:MicaWindow.Resources>
+    
     <Grid>
         <Border Background="#FF111114" BorderBrush="#FF111114" BorderThickness="5" CornerRadius="8,8,8,8" >
-
             <Grid>
-
                 <Grid.RowDefinitions>
                     <!-- 自定义标题栏 -->
                     <RowDefinition Height="35"/>
@@ -41,11 +64,10 @@
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
                         <!--<Image Source="/Resources/SplashGIF.gif" Width="35" Height="25"/>-->
                         <TextBlock Text="{DynamicResource AppTitle}"
-                          
-                           FontWeight="Bold"
-                           FontSize="20"
-                           VerticalAlignment="Center"
-                           Margin="5,0,0,0">
+                                   FontWeight="Bold"
+                                   FontSize="20"
+                                   VerticalAlignment="Center"
+                                   Margin="5,0,0,0">
                             <TextBlock.Foreground>
                                 <LinearGradientBrush x:Name="ShinyBrush" StartPoint="0,1" EndPoint="1,0">
                                     <GradientStop Color="#FFBC41E9" Offset="0.0"/>
@@ -58,15 +80,9 @@
 
                     <!-- 右边：控制按钮 -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button Content="—" Width="40" Height="30" 
-                        Background="Transparent" Foreground="White"
-                        BorderThickness="0" Click="Minimize_Click"/>
-                        <Button Content="▢" Width="40" Height="30" 
-                        Background="Transparent" Foreground="White"
-                        BorderThickness="0" Click="Maximize_Click"/>
-                        <Button Content="✕" Width="40" Height="30" 
-                        Background="Transparent" Foreground="White"
-                        BorderThickness="0" Click="Close_Click"/>
+                        <Button Content="—" Style="{StaticResource TitleBarButtonStyle}" Click="Minimize_Click"/>
+                        <Button Content="▢" Style="{StaticResource TitleBarButtonStyle}" Click="Maximize_Click"/>
+                        <Button Content="✕" Style="{StaticResource TitleBarButtonStyle}" Click="Close_Click"/>
                     </StackPanel>
                 </Grid>
 
@@ -74,7 +90,7 @@
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
                         <!-- 左侧导航栏 -->
-                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="120"/>
                         <!-- 主内容 -->
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
@@ -85,42 +101,26 @@
                         <ListBoxItem Tag="Pages/HomePage.xaml" Padding="10">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE80F;" FontSize="20" VerticalAlignment="Center"/>
-
                                 <TextBlock Text="{DynamicResource HomeText}" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
-
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem Tag="Pages/DevicePage.xaml" Padding="10">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="20" VerticalAlignment="Center"/>
-
                                 <TextBlock Text="{DynamicResource DeviceText}" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
-
                             </StackPanel>
                         </ListBoxItem>
                         <!-- Settings 按钮固定在底部 -->
                         <ListBoxItem Tag="Pages/SettingsPage.xaml" Padding="10" VerticalAlignment="Bottom">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="20" VerticalAlignment="Center"/>
-
                                 <TextBlock Text="{DynamicResource SettingsText}" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
-
                             </StackPanel>
                         </ListBoxItem>
                     </ListBox>
 
-
                     <!-- 内容区 Grid -->
                     <Grid Grid.Column="1" >
-                        <!-- 背景图片 -->
-
-                        <!-- Change the ImageSource to use a pack URI for proper resource resolution --><!--
-                        <Grid.Background>
-                            <ImageBrush ImageSource="pack://application:,,,/Resources/background.png" 
-                        Stretch="UniformToFill"/>
-                        </Grid.Background>-->
-
-
                         <!-- 主内容 Frame -->
                         <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" Background="Transparent"/>
                     </Grid>
@@ -128,6 +128,7 @@
             </Grid>
         </Border>
     </Grid>
+    
     <!-- 动画 -->
     <controls:MicaWindow.Triggers>
         <EventTrigger RoutedEvent="Window.Loaded">
@@ -154,5 +155,4 @@
             </BeginStoryboard>
         </EventTrigger>
     </controls:MicaWindow.Triggers>
-
 </controls:MicaWindow>
