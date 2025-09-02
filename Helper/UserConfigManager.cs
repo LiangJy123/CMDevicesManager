@@ -17,6 +17,8 @@ namespace CMDevicesManager.Helper
         public string BackgroundPath { get; set; } = string.Empty;
         public string Theme { get; set; } = "Light";
         public string Language { get; set; } = "zh-cn";
+        // Default to Cascadia Mono
+        public string FontFamily { get; set; } = "cascadia-mono";
     }
     public static class UserConfigManager
     {
