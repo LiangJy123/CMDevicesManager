@@ -193,27 +193,27 @@ namespace CMDevicesManager.Pages
         // ===================== Add Date (live, read-only) =====================
         private void AddClock_Click(object sender, RoutedEventArgs e)
         {
-            var tb = new TextBlock
+            var textBlock = new TextBlock
             {
                 Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                Foreground = Brushes.White,
-                FontSize = 32,
+                FontSize = 20,
+                Foreground = new SolidColorBrush(Colors.Black), 
                 FontWeight = FontWeights.SemiBold
             };
             // Apply current app font family
-            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+            textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
-            var border = AddElement(tb, "Date/Time");
+            var border = AddElement(textBlock, "Date/Time");
 
             // Mark as live and register
             border.Tag = LiveInfoKind.DateTime;
-            _liveItems.Add(new LiveTextItem { Border = border, Text = tb, Kind = LiveInfoKind.DateTime });
+            _liveItems.Add(new LiveTextItem { Border = border, Text = textBlock, Kind = LiveInfoKind.DateTime });
 
             // If selected now, lock editing and reflect value
             if (_selected == border)
             {
                 OnPropertyChanged(nameof(IsSelectedTextReadOnly));
-                _selectedText = tb.Text;
+                _selectedText = textBlock.Text;
                 OnPropertyChanged(nameof(SelectedText));
             }
         }
@@ -221,29 +221,32 @@ namespace CMDevicesManager.Pages
         // ===================== System Info click -> add live text =====================
         private void AddSystemInfoButton_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button btn || btn.Tag is not LiveInfoKind kind) return;
+            if (sender is not FrameworkElement fe || fe.Tag is not LiveInfoKind kind) return;
 
-            var tb = new TextBlock
+            var displayText = kind == LiveInfoKind.CpuUsage ? $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%" : $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
+
+            var textBlock = new TextBlock
             {
-                Text = kind == LiveInfoKind.CpuUsage ? $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%" : $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%",
-                Foreground = Brushes.White,
-                FontSize = 32,
+                Text = displayText,
+                FontSize = 18,
+                Foreground = new SolidColorBrush(Colors.Black), 
+                Tag = kind,
                 FontWeight = FontWeights.SemiBold
             };
             // Apply current app font family
-            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+            textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
-            var border = AddElement(tb, kind == LiveInfoKind.CpuUsage ? "CPU Usage" : "GPU Usage");
+            var border = AddElement(textBlock, kind == LiveInfoKind.CpuUsage ? "CPU Usage" : "GPU Usage");
 
             // Mark as live and register
             border.Tag = kind;
-            _liveItems.Add(new LiveTextItem { Border = border, Text = tb, Kind = kind });
+            _liveItems.Add(new LiveTextItem { Border = border, Text = textBlock, Kind = kind });
 
             // If selected now, make text box read-only
             if (_selected == border)
             {
                 OnPropertyChanged(nameof(IsSelectedTextReadOnly));
-                _selectedText = tb.Text; // reflect into right panel
+                _selectedText = textBlock.Text; // reflect into right panel
             }
         }
 
@@ -279,16 +282,16 @@ namespace CMDevicesManager.Pages
         // ===================== Add / Clear =====================
         private void AddText_Click(object sender, RoutedEventArgs e)
         {
-            var tb = new TextBlock
+            var textBlock = new TextBlock
             {
-                Text = "Text",
-                Foreground = Brushes.White,
-                FontSize = 32,
+                Text = "Sample Text",
+                FontSize = 24,
+                Foreground = new SolidColorBrush(Colors.Black), 
                 FontWeight = FontWeights.SemiBold
             };
             // Apply current app font family
-            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-            AddElement(tb, "Text");
+            textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+            AddElement(textBlock, "Text");
         }
 
         private void AddImage_Click(object sender, RoutedEventArgs e)
@@ -357,7 +360,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // ===================== Background =====================
+        // ===================== Background ×=====================
         private void PickBackgroundColor_Click(object sender, RoutedEventArgs e)
         {
             using var dlg = new WF.ColorDialog

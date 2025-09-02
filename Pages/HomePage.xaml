@@ -9,24 +9,9 @@
       mc:Ignorable="d"
       FontFamily="{DynamicResource AppFontFamily}"
       Background="Transparent"
-      d:DataContext="{d:DesignInstance vm:HomeViewModel}"
-      ScrollViewer.VerticalScrollBarVisibility="Disabled"
-      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+      d:DataContext="{d:DesignInstance vm:HomeViewModel}">
 
     <Page.Resources>
-        <!-- Remove Page’s built-in ScrollViewer -->
-        <Style x:Key="NoScrollPageStyle" TargetType="Page">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Page">
-                        <Border Background="{TemplateBinding Background}">
-                            <ContentPresenter/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
         <!-- Colors -->
         <SolidColorBrush x:Key="CardBg" Color="#232834"/>
         <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
@@ -36,6 +21,22 @@
         <SolidColorBrush x:Key="ValueBrush" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="AccentDown" Color="#38D6BD"/>
         <SolidColorBrush x:Key="AccentUp" Color="#F45B89"/>
+
+        <!-- Shadow effect for cards -->
+        <DropShadowEffect x:Key="CardShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="8" 
+                          Opacity="0.4" 
+                          BlurRadius="20"/>
+
+        <!-- Lighter shadow for inner elements -->
+        <DropShadowEffect x:Key="LightShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="4" 
+                          Opacity="0.3" 
+                          BlurRadius="10"/>
 
         <!-- Fixed-size card style (scaled from previous design by 1.5x) -->
         <Style x:Key="CardBorderStyle" TargetType="Border">
@@ -48,6 +49,7 @@
             <Setter Property="MaxWidth" Value="630"/>
             <Setter Property="Padding" Value="24"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
         </Style>
 
         <!-- Sensor card template (unit bottom-aligned with number) -->
@@ -72,7 +74,14 @@
                                    DockPanel.Dock="Right"
                                    FontFamily="Segoe MDL2 Assets"
                                    Foreground="#F45B89"
-                                   FontSize="27"/>
+                                   FontSize="27">
+                            <TextBlock.Effect>
+                                <DropShadowEffect Color="#F45B89" 
+                                                  ShadowDepth="0" 
+                                                  BlurRadius="10" 
+                                                  Opacity="0.6"/>
+                            </TextBlock.Effect>
+                        </TextBlock>
                     </DockPanel>
 
                     <!-- SubTitle -->
@@ -132,6 +141,12 @@
                                     </Style.Triggers>
                                 </Style>
                             </ctrl:RingProgressBar.Style>
+                            <ctrl:RingProgressBar.Effect>
+                                <DropShadowEffect Color="#38D6BD" 
+                                                  ShadowDepth="0" 
+                                                  BlurRadius="15" 
+                                                  Opacity="0.4"/>
+                            </ctrl:RingProgressBar.Effect>
                         </ctrl:RingProgressBar>
                     </Grid>
                 </Grid>
@@ -144,142 +159,168 @@
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
             <Setter Property="Margin" Value="0,24,0,6"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="Black" 
+                                      Direction="270" 
+                                      ShadowDepth="2" 
+                                      Opacity="0.3" 
+                                      BlurRadius="4"/>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Page.Resources>
 
-    <Page.Style>
-        <StaticResource ResourceKey="NoScrollPageStyle"/>
-    </Page.Style>
+    <!-- ScrollViewer with hidden scrollbars but enabled scrolling -->
+    <ScrollViewer VerticalScrollBarVisibility="Hidden" 
+                  HorizontalScrollBarVisibility="Hidden"
+                  PanningMode="VerticalOnly">
+        <Grid Margin="10,10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-    <!-- No ScrollViewer: no right scrollbar -->
-    <Grid Margin="10,10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+            <!-- Cooling -->
+            <TextBlock Grid.Row="1" Text="Cooling" Style="{StaticResource SectionHeader}" />
+            <ItemsControl Grid.Row="2" ItemsSource="{Binding CoolingCards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel IsItemsHost="True"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
 
+            <!-- Power -->
+            <TextBlock Grid.Row="3" Text="Power" Style="{StaticResource SectionHeader}" />
+            <ItemsControl Grid.Row="4" ItemsSource="{Binding PowerCards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel IsItemsHost="True"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
 
-        <!-- Cooling -->
-        <TextBlock Grid.Row="1" Text="Cooling" Style="{StaticResource SectionHeader}" />
-        <ItemsControl Grid.Row="2" ItemsSource="{Binding CoolingCards}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel IsItemsHost="True"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-        </ItemsControl>
+            <!-- System -->
+            <TextBlock Grid.Row="5" Text="System" Style="{StaticResource SectionHeader}" />
+            <ItemsControl Grid.Row="6" ItemsSource="{Binding SystemCards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel IsItemsHost="True"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
 
-        <!-- Power -->
-        <TextBlock Grid.Row="3" Text="Power" Style="{StaticResource SectionHeader}" />
-        <ItemsControl Grid.Row="4" ItemsSource="{Binding PowerCards}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel IsItemsHost="True"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-        </ItemsControl>
+            <!-- Network -->
+            <TextBlock Grid.Row="7" Text="Network" Style="{StaticResource SectionHeader}" />
+            <Border Grid.Row="8" Style="{StaticResource CardBorderStyle}" HorizontalAlignment="Left">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-        <!-- System -->
-        <TextBlock Grid.Row="5" Text="System" Style="{StaticResource SectionHeader}" />
-        <ItemsControl Grid.Row="6" ItemsSource="{Binding SystemCards}">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel IsItemsHost="True"/>
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-        </ItemsControl>
+                    <TextBlock Text="NETWORK"
+                               Foreground="{StaticResource SubtitleBrush}"
+                               FontWeight="SemiBold" FontSize="14"
+                               Margin="0,0,0,10"/>
 
-        <!-- Network -->
-        <TextBlock Grid.Row="7" Text="Network" Style="{StaticResource SectionHeader}" />
-        <Border Grid.Row="8" Style="{StaticResource CardBorderStyle}" HorizontalAlignment="Left">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="18"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                <TextBlock Text="NETWORK"
-                           Foreground="{StaticResource SubtitleBrush}"
-                           FontWeight="SemiBold" FontSize="14"
-                           Margin="0,0,0,10"/>
+                        <!-- Download tile -->
+                        <Border Grid.Column="0" Background="{StaticResource CardBgAlt}" 
+                                CornerRadius="12" Padding="16"
+                                Effect="{StaticResource LightShadow}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="22" Height="22" Fill="{StaticResource AccentDown}" Opacity="0.9">
+                                        <Ellipse.Effect>
+                                            <DropShadowEffect Color="#38D6BD" 
+                                                              ShadowDepth="0" 
+                                                              BlurRadius="8" 
+                                                              Opacity="0.6"/>
+                                        </Ellipse.Effect>
+                                    </Ellipse>
+                                    <TextBlock Text="Download" Margin="8,2,0,0"
+                                               Foreground="{StaticResource SubtitleBrush}" FontSize="14"/>
+                                </StackPanel>
 
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="18"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <!-- Download tile -->
-                    <Border Grid.Column="0" Background="{StaticResource CardBgAlt}" CornerRadius="12" Padding="16">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="22" Height="22" Fill="{StaticResource AccentDown}" Opacity="0.9"/>
-                                <TextBlock Text="Download" Margin="8,2,0,0"
-                                           Foreground="{StaticResource SubtitleBrush}" FontSize="14"/>
-                            </StackPanel>
-
-                            <!-- bottom-aligned value + unit -->
-                            <Grid Grid.Row="1" VerticalAlignment="Bottom">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="{Binding NetworkCards[0].Value, StringFormat={}{0:F0}}"
-                                           Foreground="{StaticResource ValueBrush}"
-                                           FontSize="28" FontWeight="SemiBold"
-                                           VerticalAlignment="Bottom"/>
-                                <TextBlock Grid.Column="1" Text=" KB/s"
-                                           Foreground="{StaticResource SubtitleBrush}" FontSize="12"
-                                           Margin="6,0,0,2" VerticalAlignment="Bottom"/>
+                                <!-- bottom-aligned value + unit -->
+                                <Grid Grid.Row="1" VerticalAlignment="Bottom">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding NetworkCards[0].Value, StringFormat={}{0:F0}}"
+                                               Foreground="{StaticResource ValueBrush}"
+                                               FontSize="28" FontWeight="SemiBold"
+                                               VerticalAlignment="Bottom"/>
+                                    <TextBlock Grid.Column="1" Text=" KB/s"
+                                               Foreground="{StaticResource SubtitleBrush}" FontSize="12"
+                                               Margin="6,0,0,2" VerticalAlignment="Bottom"/>
+                                </Grid>
                             </Grid>
-                        </Grid>
-                    </Border>
+                        </Border>
 
-                    <!-- Upload tile -->
-                    <Border Grid.Column="2" Background="{StaticResource CardBgAlt}" CornerRadius="12" Padding="16">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            <StackPanel Orientation="Horizontal">
-                                <Ellipse Width="22" Height="22" Fill="{StaticResource AccentUp}" Opacity="0.9"/>
-                                <TextBlock Text="Upload" Margin="8,2,0,0"
-                                           Foreground="{StaticResource SubtitleBrush}" FontSize="14"/>
-                            </StackPanel>
+                        <!-- Upload tile -->
+                        <Border Grid.Column="2" Background="{StaticResource CardBgAlt}" 
+                                CornerRadius="12" Padding="16"
+                                Effect="{StaticResource LightShadow}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="22" Height="22" Fill="{StaticResource AccentUp}" Opacity="0.9">
+                                        <Ellipse.Effect>
+                                            <DropShadowEffect Color="#F45B89" 
+                                                              ShadowDepth="0" 
+                                                              BlurRadius="8" 
+                                                              Opacity="0.6"/>
+                                        </Ellipse.Effect>
+                                    </Ellipse>
+                                    <TextBlock Text="Upload" Margin="8,2,0,0"
+                                               Foreground="{StaticResource SubtitleBrush}" FontSize="14"/>
+                                </StackPanel>
 
-                            <!-- bottom-aligned value + unit -->
-                            <Grid Grid.Row="1" VerticalAlignment="Bottom">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="{Binding NetworkCards[1].Value, StringFormat={}{0:F0}}"
-                                           Foreground="{StaticResource ValueBrush}"
-                                           FontSize="28" FontWeight="SemiBold"
-                                           VerticalAlignment="Bottom"/>
-                                <TextBlock Grid.Column="1" Text=" KB/s"
-                                           Foreground="{StaticResource SubtitleBrush}" FontSize="12"
-                                           Margin="6,0,0,2" VerticalAlignment="Bottom"/>
+                                <!-- bottom-aligned value + unit -->
+                                <Grid Grid.Row="1" VerticalAlignment="Bottom">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding NetworkCards[1].Value, StringFormat={}{0:F0}}"
+                                               Foreground="{StaticResource ValueBrush}"
+                                               FontSize="28" FontWeight="SemiBold"
+                                               VerticalAlignment="Bottom"/>
+                                    <TextBlock Grid.Column="1" Text=" KB/s"
+                                               Foreground="{StaticResource SubtitleBrush}" FontSize="12"
+                                               Margin="6,0,0,2" VerticalAlignment="Bottom"/>
+                                </Grid>
                             </Grid>
-                        </Grid>
-                    </Border>
+                        </Border>
+                    </Grid>
                 </Grid>
-            </Grid>
-        </Border>
-    </Grid>
+            </Border>
+        </Grid>
+    </ScrollViewer>
 </Page>

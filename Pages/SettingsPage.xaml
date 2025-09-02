@@ -4,10 +4,37 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:CMDevicesManager.Pages"
+      xmlns:controls="clr-namespace:MicaWPF.Controls;assembly=MicaWPF"
       mc:Ignorable="d" 
      
       FontFamily="{DynamicResource AppFontFamily}"
       Title="{DynamicResource SettingsPageTitle}">
+
+    <Page.Resources>
+        <!-- Shadow effect for cards -->
+        <DropShadowEffect x:Key="CardShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="8" 
+                          Opacity="0.4" 
+                          BlurRadius="20"/>
+
+        <!-- Lighter shadow for inner elements -->
+        <DropShadowEffect x:Key="LightShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="4" 
+                          Opacity="0.3" 
+                          BlurRadius="10"/>
+
+        <!-- Title text shadow -->
+        <DropShadowEffect x:Key="TitleShadow" 
+                          Color="Black" 
+                          Direction="270" 
+                          ShadowDepth="2" 
+                          Opacity="0.3" 
+                          BlurRadius="4"/>
+    </Page.Resources>
 
     <Grid Background="Transparent">
         <StackPanel Margin="50" VerticalAlignment="Top">
@@ -16,13 +43,15 @@
                       FontSize="36" 
                       FontWeight="Bold" 
                       Foreground="White" 
-                      Margin="0,0,0,30"/>
+                      Margin="0,0,0,30"
+                      Effect="{StaticResource TitleShadow}"/>
 
             <!-- Language Settings Section -->
             <Border Background="#FF2A2A2A" 
                    CornerRadius="8" 
                    Padding="20" 
-                   Margin="0,0,0,20">
+                   Margin="0,0,0,20"
+                   Effect="{StaticResource CardShadow}">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource LanguageLabel}" 
                               FontSize="20" 
@@ -37,20 +66,41 @@
                                     FontSize="16"
                                     Margin="0,0,30,0"
                                     Checked="LanguageRadio_Checked"
-                                    Tag="zh-cn"/>
+                                    Tag="zh-cn">
+                            <RadioButton.Effect>
+                                <DropShadowEffect Color="White" 
+                                                  ShadowDepth="0" 
+                                                  BlurRadius="3" 
+                                                  Opacity="0.3"/>
+                            </RadioButton.Effect>
+                        </RadioButton>
                         <RadioButton x:Name="TraditionalChineseRadio" 
                                     Content="{DynamicResource TraditionalChineseLanguage}"
                                     Foreground="White"
                                     FontSize="16"
                                     Margin="0,0,30,0"
                                     Checked="LanguageRadio_Checked"
-                                    Tag="zh-tw"/>
+                                    Tag="zh-tw">
+                            <RadioButton.Effect>
+                                <DropShadowEffect Color="White" 
+                                                  ShadowDepth="0" 
+                                                  BlurRadius="3" 
+                                                  Opacity="0.3"/>
+                            </RadioButton.Effect>
+                        </RadioButton>
                         <RadioButton x:Name="EnglishRadio" 
                                     Content="{DynamicResource EnglishLanguage}"
                                     Foreground="White"
                                     FontSize="16"
                                     Checked="LanguageRadio_Checked"
-                                    Tag="en-us"/>
+                                    Tag="en-us">
+                            <RadioButton.Effect>
+                                <DropShadowEffect Color="White" 
+                                                  ShadowDepth="0" 
+                                                  BlurRadius="3" 
+                                                  Opacity="0.3"/>
+                            </RadioButton.Effect>
+                        </RadioButton>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -59,7 +109,8 @@
             <Border Background="#FF2A2A2A" 
                    CornerRadius="8" 
                    Padding="20" 
-                   Margin="0,0,0,20">
+                   Margin="0,0,0,20"
+                   Effect="{StaticResource CardShadow}">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource FontLabel}" 
                               FontSize="20" 
@@ -74,27 +125,55 @@
                                     FontSize="16"
                                     Margin="0,0,30,0"
                                     Checked="FontRadio_Checked"
-                                    Tag="default"/>
+                                    Tag="default">
+                            <RadioButton.Effect>
+                                <DropShadowEffect Color="White" 
+                                                  ShadowDepth="0" 
+                                                  BlurRadius="3" 
+                                                  Opacity="0.3"/>
+                            </RadioButton.Effect>
+                        </RadioButton>
                         <RadioButton x:Name="NotoSansFontRadio" 
                                     Content="{DynamicResource NotoSansFont}"
                                     Foreground="White"
                                     FontSize="16"
                                     Margin="0,0,30,0"
                                     Checked="FontRadio_Checked"
-                                    Tag="noto-sans"/>
+                                    Tag="noto-sans">
+                            <RadioButton.Effect>
+                                <DropShadowEffect Color="White" 
+                                                  ShadowDepth="0" 
+                                                  BlurRadius="3" 
+                                                  Opacity="0.3"/>
+                            </RadioButton.Effect>
+                        </RadioButton>
                         <RadioButton x:Name="NotoSansCJKFontRadio" 
                                     Content="{DynamicResource NotoSansCJKFont}"
                                     Foreground="White"
                                     FontSize="16"
                                     Margin="0,0,30,0"
                                     Checked="FontRadio_Checked"
-                                    Tag="noto-sans-cjk"/>
+                                    Tag="noto-sans-cjk">
+                            <RadioButton.Effect>
+                                <DropShadowEffect Color="White" 
+                                                  ShadowDepth="0" 
+                                                  BlurRadius="3" 
+                                                  Opacity="0.3"/>
+                            </RadioButton.Effect>
+                        </RadioButton>
                         <RadioButton x:Name="RubikFontRadio" 
                                     Content="{DynamicResource RubikFont}"
                                     Foreground="White"
                                     FontSize="16"
                                     Checked="FontRadio_Checked"
-                                    Tag="rubik"/>
+                                    Tag="rubik">
+                            <RadioButton.Effect>
+                                <DropShadowEffect Color="White" 
+                                                  ShadowDepth="0" 
+                                                  BlurRadius="3" 
+                                                  Opacity="0.3"/>
+                            </RadioButton.Effect>
+                        </RadioButton>
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -103,18 +182,27 @@
             <Border Background="#FF2A2A2A"
                     CornerRadius="8"
                     Padding="20"
-                    Margin="0,0,0,20">
+                    Margin="0,0,0,20"
+                    Effect="{StaticResource CardShadow}">
                 <StackPanel>
                     <TextBlock Text="{DynamicResource UpdateLabel}"
                                FontSize="20"
                                FontWeight="SemiBold"
                                Foreground="White"
                                Margin="0,0,0,15"/>
-                    <Button x:Name="UpdateButton"
+                    <controls:Button x:Name="UpdateButton"
                             Content="{DynamicResource CheckUpdate}"
                             Width="180"
                             Height="36"
-                            Click="UpdateButton_Click"/>
+                            Click="UpdateButton_Click">
+                        <controls:Button.Effect>
+                            <DropShadowEffect Color="White" 
+                                              Direction="270" 
+                                              ShadowDepth="2" 
+                                              Opacity="0.5" 
+                                              BlurRadius="6"/>
+                        </controls:Button.Effect>
+                    </controls:Button>
                 </StackPanel>
             </Border>
 
