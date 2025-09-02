@@ -118,7 +118,7 @@ if (false)
     };
 
     // Monitor specific devices (your display controller VID/PID)
-    deviceMonitor.SetDeviceFilter(0x2516, 0x0228);
+    deviceMonitor.SetDeviceFilter(0x2516, 0x0228,0xffff);
     deviceMonitor.MonitoringInterval = 500; // Check every 500ms
 
     Console.WriteLine("Starting HID device monitoring...");

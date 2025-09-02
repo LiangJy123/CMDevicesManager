@@ -1100,7 +1100,6 @@ namespace HID.DisplayController
         private async Task ListenForResponse()
         {
             byte[] buffer = new byte[1024];
-            _device.SetNonBlocking(true);
 
             // Read response using the correct method signature
             await Task.Run(() =>
