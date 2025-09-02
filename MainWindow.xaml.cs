@@ -28,6 +28,7 @@ namespace CMDevicesManager
         // Cache single instances to avoid reinitialization on repeated clicks
         private HomePage? _homePage;
         private DevicePage? _devicePage;
+        private DevicePageDemo? _devicePageDemo;
         private SettingsPage? _settingsPage;
 
         public MainWindow()
@@ -62,6 +63,7 @@ namespace CMDevicesManager
 
         private HomePage GetHomePage() => _homePage ??= new HomePage();
         private DevicePage GetDevicePage() => _devicePage ??= new DevicePage();
+        private DevicePageDemo GetDevicePageDemo() => _devicePageDemo ??= new DevicePageDemo();
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
 
         private void ValidateResources()
@@ -101,21 +103,29 @@ namespace CMDevicesManager
             {
                 try
                 {
+                    // "Pages/DevicePageDemo.xaml" to "DevicePageDemo"
+                    pagePath = pagePath.Replace("Pages/", "").Replace(".xaml", "");
+
                     // Short-circuit if already on the requested page
-                    if (pagePath.Contains("HomePage") && MainFrame.Content is HomePage) return;
-                    if (pagePath.Contains("DevicePage") && MainFrame.Content is DevicePage) return;
-                    if (pagePath.Contains("SettingsPage") && MainFrame.Content is SettingsPage) return;
+                    if (pagePath.Equals("HomePage") && MainFrame.Content is HomePage) return;
+                    if (pagePath.Equals("DevicePage") && MainFrame.Content is DevicePage) return;
+                    if (pagePath.Equals("DevicePageDemo") && MainFrame.Content is DevicePageDemo) return;
+                    if (pagePath.Equals("SettingsPage") && MainFrame.Content is SettingsPage) return;
 
                     // Use cached instances to avoid re-initializing pages/services/timers
-                    if (pagePath.Contains("HomePage"))
+                    if (pagePath.Equals("HomePage"))
                     {
                         MainFrame.Navigate(GetHomePage());
                     }
-                    else if (pagePath.Contains("DevicePage"))
+                    else if (pagePath.Equals("DevicePage"))
                     {
                         MainFrame.Navigate(GetDevicePage());
                     }
-                    else if (pagePath.Contains("SettingsPage"))
+                    else if (pagePath.Equals("DevicePageDemo"))
+                    {
+                        MainFrame.Navigate(GetDevicePageDemo());
+                    }
+                    else if (pagePath.Equals("SettingsPage"))
                     {
                         MainFrame.Navigate(GetSettingsPage());
                     }
