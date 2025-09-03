@@ -147,17 +147,32 @@
         </Grid.RowDefinitions>
 
         <!-- Top toolbar -->
-        <DockPanel Grid.Row="0" Margin="16" LastChildFill="False">
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,12,0" HorizontalAlignment="Left">
-                <Button Click="Back_Click" Margin="0,0,8,0" Style="{StaticResource SmallButtonStyle}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                        <TextBlock Text="Back"/>
-                    </StackPanel>
-                </Button>
-            </StackPanel>
+        <Grid Grid.Row="0" Margin="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
+            <!-- Left: Back button -->
+            <Button Grid.Column="0" Click="Back_Click" Margin="0,0,8,0" Style="{StaticResource SmallButtonStyle}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                    <TextBlock Text="Back"/>
+                </StackPanel>
+            </Button>
+
+            <!-- Center: Page title -->
+            <TextBlock Grid.Column="1"
+                      Text="屏幕自定义编辑" 
+                      FontSize="20" 
+                      FontWeight="SemiBold" 
+                      Foreground="{StaticResource TitleBrush}"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
+
+            <!-- Right: Export controls -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
                 <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
                 <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" 
                          Width="64" Margin="0,0,8,0" 
@@ -169,7 +184,7 @@
                     </StackPanel>
                 </Button>
             </StackPanel>
-        </DockPanel>
+        </Grid>
 
         <!-- Main content: Left (tools) | Center (canvas) | Right (properties) -->
         <Grid Grid.Row="1" Margin="16,0,16,16">
@@ -186,10 +201,30 @@
                 <StackPanel>
                     <TextBlock Text="Common" FontWeight="SemiBold" Margin="0,0,0,8" 
                                Foreground="{StaticResource TitleBrush}" FontSize="16"/>
-                    <Button Style="{StaticResource ActionButtonStyle}" Click="AddText_Click">Add Text</Button>
-                    <Button Style="{StaticResource ActionButtonStyle}" Click="AddImage_Click">Add Image</Button>
-                    <Button Style="{StaticResource ActionButtonStyle}" Click="AddClock_Click">Add Date</Button>
-                    <Button Style="{StaticResource ActionButtonStyle}" Click="AddMp4_Click">Add MP4</Button>
+                    <Button Style="{StaticResource ActionButtonStyle}" Click="AddText_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8D2;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                            <TextBlock Text="Add Text"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ActionButtonStyle}" Click="AddImage_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8B9;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                            <TextBlock Text="Add Image"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ActionButtonStyle}" Click="AddClock_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE121;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                            <TextBlock Text="Add Date"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ActionButtonStyle}" Click="AddMp4_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                            <TextBlock Text="Add MP4"/>
+                        </StackPanel>
+                    </Button>
 
                     <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,12,0,12"/>
                     
@@ -210,8 +245,34 @@
 
                     <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,12,0,12"/>
                     
+                    <TextBlock Text="Operator" FontWeight="SemiBold" Margin="0,0,0,8" 
+            Foreground="{StaticResource TitleBrush}" FontSize="16"/>
+
+                   
                     <Button Style="{StaticResource ActionButtonStyle}" 
-                            Background="#CC4444" Click="ClearCanvas_Click">Clear All</Button>
+                            Background="#CC4444" Click="ClearCanvas_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                            <TextBlock Text="Clear All"/>
+                        </StackPanel>
+                    </Button>
+
+                    <Button Style="{StaticResource ActionButtonStyle}" 
+                            Background="#4A7ACC"
+                            Click="LoadConfig_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE118;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                            <TextBlock Text="导入配置"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource ActionButtonStyle}" 
+                            Background="#4A7ACC"
+                            Click="SaveConfig_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE105;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                            <TextBlock Text="保存配置"/>
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Border>
 
