@@ -492,7 +492,7 @@ namespace CMDevicesManager.Pages
             var border = new Border
             {
                 BorderBrush = Brushes.Transparent,
-                BorderThickness = new Thickness(2),
+                BorderThickness = new Thickness(0),
                 Child = element,
                 RenderTransformOrigin = new Point(0.5, 0.5),
                 Cursor = Cursors.SizeAll
