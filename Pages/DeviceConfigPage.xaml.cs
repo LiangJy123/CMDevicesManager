@@ -1000,6 +1000,16 @@ namespace CMDevicesManager.Pages
             _mp4Timer?.Stop();
         }
 
+        private void LoadConfig_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void SaveConfig_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+
         public void ResumeVideoPlayback()
         {
             _mp4Timer?.Start();
