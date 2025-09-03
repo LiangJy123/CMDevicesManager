@@ -29,14 +29,16 @@ namespace CMDevicesManager
                 {
                     Icon = new Icon(stream),
                     Visible = true,
-                    Text = "CMDevicesManager - Hardware Monitoring Tool"
+                    Text = Application.Current.FindResource("TrayTooltip")?.ToString() ?? "CMDevicesManager - Hardware Monitoring Tool"
                 };
                 
                 // 托盘菜单 with clearer descriptions
                 var contextMenu = new ContextMenuStrip();
-                contextMenu.Items.Add("Show Main Window", null, (s, ev) => ShowMainWindow());
+                var showWindowText = Application.Current.FindResource("ShowMainWindow")?.ToString() ?? "Show Main Window";
+                var exitAppText = Application.Current.FindResource("ExitApplication")?.ToString() ?? "Exit Application";
+                contextMenu.Items.Add(showWindowText, null, (s, ev) => ShowMainWindow());
                 contextMenu.Items.Add("-"); // Separator
-                contextMenu.Items.Add("Exit Application", null, (s, ev) => ExitApp());
+                contextMenu.Items.Add(exitAppText, null, (s, ev) => ExitApp());
                 _notifyIcon.ContextMenuStrip = contextMenu;
 
                 // 双击托盘图标 → 显示主界面
@@ -44,7 +46,8 @@ namespace CMDevicesManager
 
                 // Show balloon tip to inform user about system tray functionality
                 _notifyIcon.BalloonTipTitle = "CMDevicesManager";
-                _notifyIcon.BalloonTipText = "Application is running in system tray. Double-click to open or right-click for options.";
+                var trayBalloonMsg = Application.Current.FindResource("AppRunningInTray")?.ToString() ?? "Application is running in system tray. Double-click to open or right-click for options.";
+                _notifyIcon.BalloonTipText = trayBalloonMsg;
                 _notifyIcon.BalloonTipIcon = ToolTipIcon.Info;
                 _notifyIcon.ShowBalloonTip(3000); // Show for 3 seconds
             }
@@ -82,7 +85,8 @@ namespace CMDevicesManager
 
         private void ShowSettings()
         {
-            System.Windows.MessageBox.Show("这里打开设置窗口");
+            var settingsPlaceholder = Application.Current.FindResource("OpenSettingsPlaceholder")?.ToString() ?? "Open settings window here";
+            System.Windows.MessageBox.Show(settingsPlaceholder);
         }
 
         private void ExitApp()
@@ -98,12 +102,15 @@ namespace CMDevicesManager
             if (!_isExit)
             {
                 // Ask user for confirmation before minimizing to tray
-                var result = MessageBox.Show(
+                var confirmationMsg = Application.Current.FindResource("CloseConfirmationMessage")?.ToString() ?? 
                     "Do you want to minimize to system tray or exit the application?\n\n" +
                     "Click 'Yes' to minimize to tray (app keeps running)\n" +
                     "Click 'No' to exit completely\n" +
-                    "Click 'Cancel' to return to the application",
-                    "Close Confirmation",
+                    "Click 'Cancel' to return to the application";
+                var confirmationTitle = Application.Current.FindResource("CloseConfirmation")?.ToString() ?? "Close Confirmation";
+                var result = MessageBox.Show(
+                    confirmationMsg,
+                    confirmationTitle,
                     MessageBoxButton.YesNoCancel,
                     MessageBoxImage.Question);
 
@@ -117,7 +124,8 @@ namespace CMDevicesManager
                         if (_notifyIcon != null)
                         {
                             _notifyIcon.BalloonTipTitle = "CMDevicesManager";
-                            _notifyIcon.BalloonTipText = "Application minimized to system tray. Double-click the tray icon to restore.";
+                            var minimizedMsg = Application.Current.FindResource("AppMinimizedToTray")?.ToString() ?? "Application minimized to system tray. Double-click the tray icon to restore.";
+                            _notifyIcon.BalloonTipText = minimizedMsg;
                             _notifyIcon.ShowBalloonTip(2000);
                         }
                         break;
