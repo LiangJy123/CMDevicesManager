@@ -36,6 +36,7 @@ using Application = System.Windows.Application;
 using TextBox = System.Windows.Controls.TextBox;
 using Orientation = System.Windows.Controls.Orientation;
 using static CMDevicesManager.Pages.DeviceConfigPage;
+using ListBox = System.Windows.Controls.ListBox;
 
 namespace CMDevicesManager.Pages
 {
@@ -156,6 +157,99 @@ namespace CMDevicesManager.Pages
         }
     }
 
+    // Add this new dialog class after ConfigNameDialog
+    public class ConfigSelectionDialog : Window
+    {
+        private ListBox _configListBox;
+        public CanvasConfiguration? SelectedConfig { get; private set; }
+        public string? SelectedConfigPath { get; private set; }
+
+        public ConfigSelectionDialog(List<(string path, CanvasConfiguration config)> configs)
+        {
+            Title = "选择配置";
+            Width = 500;
+            Height = 400;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
+
+            var grid = new Grid { Margin = new Thickness(20) };
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // Create ListBox for configs
+            _configListBox = new ListBox
+            {
+                Margin = new Thickness(0, 0, 0, 20),
+                DisplayMemberPath = "Name",
+                SelectedValuePath = "Config"
+            };
+
+            // Create items for ListBox
+            var items = configs.Select(c => new
+            {
+                Name = $"{c.config.ConfigName} - {Path.GetFileNameWithoutExtension(c.path)}",
+                Config = c.config,
+                Path = c.path
+            }).ToList();
+
+            _configListBox.ItemsSource = items;
+            _configListBox.MouseDoubleClick += (s, e) => 
+            {
+                if (_configListBox.SelectedItem != null)
+                {
+                    AcceptSelection();
+                }
+            };
+
+            Grid.SetRow(_configListBox, 0);
+            grid.Children.Add(_configListBox);
+
+            // Button panel
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right
+            };
+
+            var loadButton = new Button
+            {
+                Content = "加载",
+                Width = 80,
+                Height = 30,
+                Margin = new Thickness(0, 0, 10, 0),
+                IsDefault = true
+            };
+            loadButton.Click += (s, e) => AcceptSelection();
+
+            var cancelButton = new Button
+            {
+                Content = "取消",
+                Width = 80,
+                Height = 30,
+                IsCancel = true
+            };
+            cancelButton.Click += (s, e) => DialogResult = false;
+
+            buttonPanel.Children.Add(loadButton);
+            buttonPanel.Children.Add(cancelButton);
+            Grid.SetRow(buttonPanel, 1);
+            grid.Children.Add(buttonPanel);
+
+            Content = grid;
+        }
+
+        private void AcceptSelection()
+        {
+            if (_configListBox.SelectedItem != null)
+            {
+                dynamic selected = _configListBox.SelectedItem;
+                SelectedConfig = selected.Config;
+                SelectedConfigPath = selected.Path;
+                DialogResult = true;
+            }
+        }
+    }
+
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
         private readonly DeviceInfos _device;
@@ -241,7 +335,7 @@ namespace CMDevicesManager.Pages
         public string SelectedTextHex { get => _selectedTextHex; set { if (_selectedTextHex != value) { _selectedTextHex = value; if (TryParseHexColor(value, out var c)) SelectedTextColor = c; OnPropertyChanged(); } } }
 
         // Export
-        private string _outputFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "CMDevicesManager");
+        private string _outputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager");
         public string OutputFolder { get => _outputFolder; set { _outputFolder = value; OnPropertyChanged(); } }
 
         // Dragging
@@ -287,6 +381,10 @@ namespace CMDevicesManager.Pages
             }
         }
 
+        // Add this property for the resources directory
+        private string ResourcesFolder => Path.Combine(OutputFolder, "Resources");
+
+        // Update the constructor to create resources folder
         public DeviceConfigPage(DeviceInfos device)
         {
             _device = device ?? throw new ArgumentNullException(nameof(device));
@@ -299,8 +397,13 @@ namespace CMDevicesManager.Pages
             // Build dynamic system info buttons
             BuildSystemInfoButtons();
 
-            // Ensure default export folder exists
-            try { Directory.CreateDirectory(OutputFolder); } catch { /* ignore */ }
+            // Ensure default export folder and resources folder exist
+            try 
+            { 
+                Directory.CreateDirectory(OutputFolder); 
+                Directory.CreateDirectory(ResourcesFolder);
+            } 
+            catch { /* ignore */ }
 
             // Canvas handlers
             DesignCanvas.PreviewMouseLeftButtonDown += DesignCanvas_PreviewMouseLeftButtonDown;
@@ -312,6 +415,119 @@ namespace CMDevicesManager.Pages
             _liveTimer.Start();
 
             Unloaded += DeviceConfigPage_Unloaded;
+        }
+
+        // Add helper method to copy file with unique name
+        private string CopyResourceToAppFolder(string sourcePath, string resourceType)
+        {
+            try
+            {
+                var fileName = Path.GetFileName(sourcePath);
+                var extension = Path.GetExtension(fileName);
+                var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+                
+                // Create subfolder for resource type
+                var typeFolder = Path.Combine(ResourcesFolder, resourceType);
+                Directory.CreateDirectory(typeFolder);
+                
+                // Generate unique filename
+                var destPath = Path.Combine(typeFolder, fileName);
+                int counter = 1;
+                
+                while (File.Exists(destPath))
+                {
+                    var newName = $"{nameWithoutExtension}_{counter}{extension}";
+                    destPath = Path.Combine(typeFolder, newName);
+                    counter++;
+                }
+                
+                // Copy the file
+                File.Copy(sourcePath, destPath, true);
+                Logger.Info($"Copied {resourceType} resource to: {destPath}");
+                
+                return destPath;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to copy {resourceType} resource: {ex.Message}");
+                // Return original path if copy fails
+                return sourcePath;
+            }
+        }
+
+        // Add helper method to get relative path
+        private string GetRelativePath(string fullPath)
+        {
+            try
+            {
+                var appDir = new Uri(OutputFolder);
+                var fileUri = new Uri(fullPath);
+                var relativeUri = appDir.MakeRelativeUri(fileUri);
+                return Uri.UnescapeDataString(relativeUri.ToString());
+            }
+            catch
+            {
+                // If we can't make it relative, return the file name
+                return Path.GetFileName(fullPath);
+            }
+        }
+
+        // Add helper method to resolve relative path
+        private string ResolveRelativePath(string relativePath)
+        {
+            try
+            {
+                // If it's already an absolute path and exists, return it
+                if (Path.IsPathRooted(relativePath) && File.Exists(relativePath))
+                    return relativePath;
+
+                // Try to resolve relative to OutputFolder
+                var fullPath = Path.Combine(OutputFolder, relativePath);
+                if (File.Exists(fullPath))
+                    return fullPath;
+
+                // Try to resolve relative to Resources folder
+                fullPath = Path.Combine(ResourcesFolder, relativePath);
+                if (File.Exists(fullPath))
+                    return fullPath;
+
+                // Try each resource subfolder
+                foreach (var subFolder in new[] { "Images", "Videos", "Backgrounds" })
+                {
+                    fullPath = Path.Combine(ResourcesFolder, subFolder, relativePath);
+                    if (File.Exists(fullPath))
+                        return fullPath;
+                }
+
+                // Return original if we can't find it
+                return relativePath;
+            }
+            catch
+            {
+                return relativePath;
+            }
+        }
+
+        public void PauseVideoPlayback()
+        {
+            _mp4Timer?.Stop();
+        }
+
+        public void ResumeVideoPlayback()
+        {
+            _mp4Timer?.Start();
+        }
+
+        public void SeekVideoFrame(int frameIndex)
+        {
+            if (_currentVideoFrames != null && frameIndex >= 0 && frameIndex < _currentVideoFrames.Count)
+            {
+                _currentFrameIndex = frameIndex;
+                if (_currentVideoImage != null)
+                {
+                    UpdateVideoFrame(_currentVideoImage, _currentVideoFrames[_currentFrameIndex]);
+                }
+            }
         }
 
         private void DeviceConfigPage_Unloaded(object sender, RoutedEventArgs e)
@@ -458,12 +674,15 @@ namespace CMDevicesManager.Pages
             };
             if (dlg.ShowDialog() == true)
             {
+                // Copy image to app folder
+                var copiedPath = CopyResourceToAppFolder(dlg.FileName, "Images");
+                
                 var img = new Image
                 {
-                    Source = new BitmapImage(new Uri(dlg.FileName)),
+                    Source = new BitmapImage(new Uri(copiedPath)),
                     Stretch = Stretch.Uniform
                 };
-                AddElement(img, System.IO.Path.GetFileName(dlg.FileName));
+                AddElement(img, System.IO.Path.GetFileName(copiedPath));
             }
         }
 
@@ -549,7 +768,9 @@ namespace CMDevicesManager.Pages
             };
             if (dlg.ShowDialog() == true)
             {
-                BackgroundImagePath = dlg.FileName;
+                // Copy background image to app folder
+                var copiedPath = CopyResourceToAppFolder(dlg.FileName, "Backgrounds");
+                BackgroundImagePath = copiedPath;
             }
         }
 
@@ -965,19 +1186,20 @@ namespace CMDevicesManager.Pages
 
             try
             {
+                // Copy video to app folder first
+                Mouse.OverrideCursor = Cursors.Wait;
+                var copiedPath = CopyResourceToAppFolder(dlg.FileName, "Videos");
+                
                 // Get video information
-                var videoInfo = await VideoConverter.GetMp4InfoAsync(dlg.FileName);
+                var videoInfo = await VideoConverter.GetMp4InfoAsync(copiedPath);
                 if (videoInfo == null)
                 {
                     MessageBox.Show("Failed to read video information", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                // Show loading indicator
-                Mouse.OverrideCursor = Cursors.Wait;
-
                 // Extract all frames to memory
-                var frames = await ExtractMp4FramesToMemory(dlg.FileName);
+                var frames = await ExtractMp4FramesToMemory(copiedPath);
                 if (frames == null || frames.Count == 0)
                 {
                     MessageBox.Show("Failed to extract video frames", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -999,18 +1221,18 @@ namespace CMDevicesManager.Pages
                 UpdateVideoFrame(image, _currentVideoFrames[0]);
 
                 // Add to canvas
-                var border = AddElement(image, $"MP4: {System.IO.Path.GetFileName(dlg.FileName)}");
+                var border = AddElement(image, $"MP4: {System.IO.Path.GetFileName(copiedPath)}");
                 
                 // Store references
                 _currentVideoImage = image;
                 _currentVideoBorder = border;
 
-                // Mark as video element
+                // Mark as video element with copied path
                 border.Tag = new VideoElementInfo 
                 { 
                     Kind = LiveInfoKind.VideoPlayback,
                     VideoInfo = videoInfo,
-                    FilePath = dlg.FileName,
+                    FilePath = copiedPath, // Use the copied path
                     TotalFrames = frames.Count
                 };
 
@@ -1138,6 +1360,7 @@ namespace CMDevicesManager.Pages
         }
 
         // Configuration Save/Load Methods
+        // Update SaveConfig_Click to use timestamp-based filename
         private void SaveConfig_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1163,7 +1386,7 @@ namespace CMDevicesManager.Pages
                     ConfigName = CurrentConfigName,
                     CanvasSize = CanvasSize,
                     BackgroundColor = BackgroundHex,
-                    BackgroundImagePath = BackgroundImagePath,
+                    BackgroundImagePath = BackgroundImagePath != null ? GetRelativePath(BackgroundImagePath) : null,
                     BackgroundImageOpacity = BackgroundImageOpacity
                 };
 
@@ -1206,12 +1429,16 @@ namespace CMDevicesManager.Pages
                             if (border.Tag is VideoElementInfo videoInfo)
                             {
                                 elemConfig.Type = "Video";
-                                elemConfig.VideoPath = videoInfo.FilePath;
+                                elemConfig.VideoPath = GetRelativePath(videoInfo.FilePath);
                             }
                             else if (img.Source is BitmapImage bitmapImg)
                             {
-                                elemConfig.Type = "Image";
-                                elemConfig.ImagePath = bitmapImg.UriSource?.LocalPath ?? bitmapImg.UriSource?.ToString();
+                                var imagePath = bitmapImg.UriSource?.LocalPath ?? bitmapImg.UriSource?.ToString();
+                                if (!string.IsNullOrEmpty(imagePath))
+                                {
+                                    elemConfig.Type = "Image";
+                                    elemConfig.ImagePath = GetRelativePath(imagePath);
+                                }
                             }
                         }
 
@@ -1219,11 +1446,12 @@ namespace CMDevicesManager.Pages
                     }
                 }
 
-                // Save to file
+                // Save to file with timestamp-based filename
                 var configFolder = Path.Combine(OutputFolder, "Configs");
                 Directory.CreateDirectory(configFolder);
                 
-                var fileName = $"{SanitizeFileName(CurrentConfigName)}.json";
+                // Use timestamp for filename to avoid conflicts and special characters
+                var fileName = $"config_{DateTime.Now:yyyyMMdd_HHmmss}.json";
                 var filePath = Path.Combine(configFolder, fileName);
                 
                 var json = JsonSerializer.Serialize(config, new JsonSerializerOptions 
@@ -1234,7 +1462,7 @@ namespace CMDevicesManager.Pages
                 
                 File.WriteAllText(filePath, json);
                 
-                MessageBox.Show($"配置已保存: {fileName}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"配置已保存: {CurrentConfigName}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -1246,27 +1474,62 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                var dlg = new OpenFileDialog
+                var configFolder = Path.Combine(OutputFolder, "Configs");
+                if (!Directory.Exists(configFolder))
                 {
-                    Title = "选择配置文件",
-                    Filter = "JSON Files|*.json|All Files|*.*",
-                    InitialDirectory = Path.Combine(OutputFolder, "Configs")
-                };
+                    Directory.CreateDirectory(configFolder);
+                }
 
-                if (dlg.ShowDialog() != true)
-                    return;
-
-                var json = File.ReadAllText(dlg.FileName);
-                var config = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
+                // Load all config files
+                var configFiles = Directory.GetFiles(configFolder, "*.json");
+                if (configFiles.Length == 0)
                 {
-                    Converters = { new JsonStringEnumConverter() }
-                });
-
-                if (config == null)
-                {
-                    MessageBox.Show("无效的配置文件", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("没有找到任何配置文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
+
+                // Parse all configs
+                var configs = new List<(string path, CanvasConfiguration config)>();
+                foreach (var file in configFiles)
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(file);
+                        var config_tmp = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
+                        {
+                            Converters = { new JsonStringEnumConverter() }
+                        });
+
+                        if (config_tmp != null)
+                        {
+                            configs.Add((file, config_tmp));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Info($"Failed to load config file {file}: {ex.Message}");
+                    }
+                }
+
+                if (configs.Count == 0)
+                {
+                    MessageBox.Show("没有找到有效的配置文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Show selection dialog
+                var selectionDialog = new ConfigSelectionDialog(configs);
+                if (Application.Current.MainWindow != null)
+                {
+                    selectionDialog.Owner = Application.Current.MainWindow;
+                }
+
+                if (selectionDialog.ShowDialog() != true || selectionDialog.SelectedConfig == null)
+                {
+                    return;
+                }
+
+                var config = selectionDialog.SelectedConfig;
 
                 // Clear current canvas
                 DesignCanvas.Children.Clear();
@@ -1278,7 +1541,17 @@ namespace CMDevicesManager.Pages
                 CurrentConfigName = config.ConfigName;
                 CanvasSize = config.CanvasSize;
                 BackgroundHex = config.BackgroundColor;
-                BackgroundImagePath = config.BackgroundImagePath;
+                
+                // Resolve relative path for background image
+                if (!string.IsNullOrEmpty(config.BackgroundImagePath))
+                {
+                    BackgroundImagePath = ResolveRelativePath(config.BackgroundImagePath);
+                }
+                else
+                {
+                    BackgroundImagePath = null;
+                }
+                
                 BackgroundImageOpacity = config.BackgroundImageOpacity;
 
                 // Restore elements
@@ -1328,45 +1601,61 @@ namespace CMDevicesManager.Pages
                             break;
                             
                         case "Image":
-                            if (!string.IsNullOrEmpty(elemConfig.ImagePath) && File.Exists(elemConfig.ImagePath))
+                            if (!string.IsNullOrEmpty(elemConfig.ImagePath))
                             {
-                                var img = new Image
+                                var resolvedPath = ResolveRelativePath(elemConfig.ImagePath);
+                                if (File.Exists(resolvedPath))
                                 {
-                                    Source = new BitmapImage(new Uri(elemConfig.ImagePath)),
-                                    Stretch = Stretch.Uniform
-                                };
-                                element = img;
+                                    var img = new Image
+                                    {
+                                        Source = new BitmapImage(new Uri(resolvedPath)),
+                                        Stretch = Stretch.Uniform
+                                    };
+                                    element = img;
+                                }
+                                else
+                                {
+                                    Logger.Info($"Image file not found: {resolvedPath}");
+                                }
                             }
                             break;
                             
                         case "Video":
-                            if (!string.IsNullOrEmpty(elemConfig.VideoPath) && File.Exists(elemConfig.VideoPath))
+                            if (!string.IsNullOrEmpty(elemConfig.VideoPath))
                             {
-                                // Manually trigger video loading for the stored path
-                                var videoInfo = await VideoConverter.GetMp4InfoAsync(elemConfig.VideoPath);
-                                if (videoInfo != null)
+                                var resolvedPath = ResolveRelativePath(elemConfig.VideoPath);
+                                if (File.Exists(resolvedPath))
                                 {
-                                    Mouse.OverrideCursor = Cursors.Wait;
-                                    var frames = await ExtractMp4FramesToMemory(elemConfig.VideoPath);
-                                    Mouse.OverrideCursor = null;
-                                    
-                                    if (frames != null && frames.Count > 0)
+                                    // Manually trigger video loading for the stored path
+                                    var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedPath);
+                                    if (videoInfo != null)
                                     {
-                                        _currentVideoFrames = frames;
-                                        _currentFrameIndex = 0;
-
-                                        var videoImage = new Image
+                                        Mouse.OverrideCursor = Cursors.Wait;
+                                        var frames = await ExtractMp4FramesToMemory(resolvedPath);
+                                        Mouse.OverrideCursor = null;
+                                        
+                                        if (frames != null && frames.Count > 0)
                                         {
-                                            Stretch = Stretch.Uniform,
-                                            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                                            VerticalAlignment = VerticalAlignment.Top
-                                        };
-                                        
-                                        UpdateVideoFrame(videoImage, frames[0]);
-                                        element = videoImage;
-                                        
-                                        // Will set up video after adding to canvas
+                                            _currentVideoFrames = frames;
+                                            _currentFrameIndex = 0;
+
+                                            var videoImage = new Image
+                                            {
+                                                Stretch = Stretch.Uniform,
+                                                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                                                VerticalAlignment = VerticalAlignment.Top
+                                            };
+                                            
+                                            UpdateVideoFrame(videoImage, frames[0]);
+                                            element = videoImage;
+                                            
+                                            // Will set up video after adding to canvas
+                                        }
                                     }
+                                }
+                                else
+                                {
+                                    Logger.Info($"Video file not found: {resolvedPath}");
                                 }
                             }
                             break;
@@ -1392,14 +1681,15 @@ namespace CMDevicesManager.Pages
                             _currentVideoImage = videoImg;
                             _currentVideoBorder = border;
                             
-                            var videoInfo = await VideoConverter.GetMp4InfoAsync(elemConfig.VideoPath!);
+                            var resolvedVideoPath = ResolveRelativePath(elemConfig.VideoPath!);
+                            var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedVideoPath);
                             if (videoInfo != null)
                             {
                                 border.Tag = new VideoElementInfo
                                 {
                                     Kind = LiveInfoKind.VideoPlayback,
                                     VideoInfo = videoInfo,
-                                    FilePath = elemConfig.VideoPath!,
+                                    FilePath = resolvedVideoPath,
                                     TotalFrames = _currentVideoFrames?.Count ?? 0
                                 };
                                 
@@ -1414,29 +1704,6 @@ namespace CMDevicesManager.Pages
             catch (Exception ex)
             {
                 MessageBox.Show($"加载配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        // Video playback control methods (optional - for pause/play functionality)
-        public void PauseVideoPlayback()
-        {
-            _mp4Timer?.Stop();
-        }
-
-        public void ResumeVideoPlayback()
-        {
-            _mp4Timer?.Start();
-        }
-
-        public void SeekVideoFrame(int frameIndex)
-        {
-            if (_currentVideoFrames != null && frameIndex >= 0 && frameIndex < _currentVideoFrames.Count)
-            {
-                _currentFrameIndex = frameIndex;
-                if (_currentVideoImage != null)
-                {
-                    UpdateVideoFrame(_currentVideoImage, _currentVideoFrames[_currentFrameIndex]);
-                }
             }
         }
     }
