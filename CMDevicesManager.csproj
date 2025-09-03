@@ -65,7 +65,7 @@
     <PackageReference Include="FFMpegCore" Version="5.2.0" />
     <PackageReference Include="HidApi.Net" Version="1.2.0" />
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.5-pre441" />
-    <PackageReference Include="MaterialDesignThemes" Version="5.3.0-ci1105" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
     <PackageReference Include="MicaWPF" Version="6.3.0" />
   </ItemGroup>
 
