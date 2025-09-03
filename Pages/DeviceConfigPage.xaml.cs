@@ -1,5 +1,6 @@
 using CMDevicesManager.Models;
 using CMDevicesManager.Services;
+using System.Windows.Media.Animation;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -26,6 +27,9 @@ using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using Point = System.Windows.Point;
 using Size = System.Windows.Size;
 using WF = System.Windows.Forms;
+using CMDevicesManager.Utilities;
+using MessageBox = System.Windows.MessageBox;
+using CMDevicesManager.Helper;
 
 namespace CMDevicesManager.Pages
 {
@@ -53,7 +57,8 @@ namespace CMDevicesManager.Pages
         {
             CpuUsage,
             GpuUsage,
-            DateTime
+            DateTime,
+            VideoPlayback // <- Added new enum value for video playback
         }
 
         // Design surface config
@@ -121,6 +126,13 @@ namespace CMDevicesManager.Pages
         private Point _dragStart;
         private double _dragStartX, _dragStartY;
 
+        // Video playback fields
+        private DispatcherTimer? _mp4Timer;
+        private List<VideoFrameData>? _currentVideoFrames;
+        private int _currentFrameIndex = 0;
+        private Image? _currentVideoImage;
+        private Border? _currentVideoBorder;
+
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? p = null)
         {
@@ -164,6 +176,7 @@ namespace CMDevicesManager.Pages
         {
             try { _liveTimer.Stop(); } catch { }
             try { _metrics.Dispose(); } catch { }
+            StopVideoPlayback(); // Stop video playback when page unloads
         }
 
         private void BuildSystemInfoButtons()
@@ -324,25 +337,34 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                var prevBorderBrush = _selected?.BorderBrush;
-                var prevBorderThickness = _selected?.BorderThickness;
-                if (_selected != null)
+                // Store all borders' states
+                var borderStates = new List<(Border border, Brush brush, Thickness thickness)>();
+                
+                // Hide all element borders before rendering
+                foreach (UIElement child in DesignCanvas.Children)
                 {
-                    _selected.BorderBrush = Brushes.Transparent;
-                    _selected.BorderThickness = new Thickness(0);
+                    if (child is Border border)
+                    {
+                        borderStates.Add((border, border.BorderBrush, border.BorderThickness));
+                        border.BorderBrush = Brushes.Transparent;
+                        border.BorderThickness = new Thickness(0);
+                    }
                 }
 
+                // Render the canvas
                 var rtb = new RenderTargetBitmap(CanvasSize, CanvasSize, 96, 96, PixelFormats.Pbgra32);
                 DesignRoot.Measure(new Size(CanvasSize, CanvasSize));
                 DesignRoot.Arrange(new Rect(0, 0, CanvasSize, CanvasSize));
                 rtb.Render(DesignRoot);
 
-                if (_selected != null && prevBorderBrush != null && prevBorderThickness != null)
+                // Restore all borders' states
+                foreach (var (border, brush, thickness) in borderStates)
                 {
-                    _selected.BorderBrush = prevBorderBrush;
-                    _selected.BorderThickness = prevBorderThickness.Value;
+                    border.BorderBrush = brush;
+                    border.BorderThickness = thickness;
                 }
 
+                // Save the image
                 Directory.CreateDirectory(OutputFolder);
                 var name = (_device?.Name ?? "Device");
                 var file = System.IO.Path.Combine(OutputFolder, $"{SanitizeFileName(name)}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
@@ -429,6 +451,15 @@ namespace CMDevicesManager.Pages
         private void DeleteSelected_Click(object sender, RoutedEventArgs e)
         {
             if (_selected == null) return;
+
+            // Stop video playback if deleting a video element
+            if (_selected == _currentVideoBorder)
+            {
+                StopVideoPlayback();
+                _currentVideoFrames = null;
+                _currentVideoImage = null;
+                _currentVideoBorder = null;
+            }
 
             // Unregister live item if any
             var live = _liveItems.FirstOrDefault(i => i.Border == _selected);
@@ -590,7 +621,12 @@ namespace CMDevicesManager.Pages
                 SelectedInfo = "None";
                 return;
             }
-            if (_selected.Child is TextBlock)
+            
+            if (_selected.Tag is VideoElementInfo videoInfo)
+            {
+                SelectedInfo = $"Video: Frame {_currentFrameIndex + 1}/{videoInfo.TotalFrames}";
+            }
+            else if (_selected.Child is TextBlock)
             {
                 if (_selected.Tag is LiveInfoKind k)
                 {
@@ -770,6 +806,215 @@ namespace CMDevicesManager.Pages
             foreach (var c in Path.GetInvalidFileNameChars())
                 name = name.Replace(c, '_');
             return name;
+        }
+
+        // ===================== Video Playback =====================
+        private async void AddMp4_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new OpenFileDialog
+            {
+                Title = "Select MP4 Video",
+                Filter = "MP4 Files|*.mp4|All Files|*.*"
+            };
+            
+            if (dlg.ShowDialog() != true)
+                return;
+
+            try
+            {
+                // Get video information
+                var videoInfo = await VideoConverter.GetMp4InfoAsync(dlg.FileName);
+                if (videoInfo == null)
+                {
+                    MessageBox.Show("Failed to read video information", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Show loading indicator
+                Mouse.OverrideCursor = Cursors.Wait;
+
+                // Extract all frames to memory
+                var frames = await ExtractMp4FramesToMemory(dlg.FileName);
+                if (frames == null || frames.Count == 0)
+                {
+                    MessageBox.Show("Failed to extract video frames", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                _currentVideoFrames = frames;
+                _currentFrameIndex = 0;
+
+                // Create image element for video display
+                var image = new Image
+                {
+                    Stretch = Stretch.Uniform,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top
+                };
+                Mouse.OverrideCursor = Cursors.Arrow;
+                // Display first frame
+                UpdateVideoFrame(image, _currentVideoFrames[0]);
+
+                // Add to canvas
+                var border = AddElement(image, $"MP4: {System.IO.Path.GetFileName(dlg.FileName)}");
+                
+                // Store references
+                _currentVideoImage = image;
+                _currentVideoBorder = border;
+
+                // Mark as video element
+                border.Tag = new VideoElementInfo 
+                { 
+                    Kind = LiveInfoKind.VideoPlayback,
+                    VideoInfo = videoInfo,
+                    FilePath = dlg.FileName,
+                    TotalFrames = frames.Count
+                };
+
+                // Start frame timer
+                StartVideoPlayback(videoInfo.FrameRate);
+
+                // Update UI
+                if (_selected == border)
+                {
+                    OnPropertyChanged(nameof(IsSelectedTextReadOnly));
+                    UpdateSelectedInfo();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load MP4: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
+        }
+
+        private sealed class VideoElementInfo
+        {
+            public LiveInfoKind Kind { get; init; }
+            public VideoInfo? VideoInfo { get; init; }
+            public string FilePath { get; init; } = string.Empty;
+            public int TotalFrames { get; init; }
+        }
+
+        private async Task<List<VideoFrameData>> ExtractMp4FramesToMemory(string mp4Path)
+        {
+            var frames = new List<VideoFrameData>();
+            
+            try
+            {
+                await foreach (var frame in VideoConverter.ExtractMp4FramesToJpegRealTimeAsync(
+                    mp4Path, 
+                    quality: 85,
+                    CancellationToken.None))
+                {
+                    frames.Add(frame);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to extract MP4 frames: {ex.Message}");
+                return new List<VideoFrameData>();
+            }
+
+            return frames;
+        }
+
+        private void UpdateVideoFrame(Image image, VideoFrameData frameData)
+        {
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                
+                using (var stream = new System.IO.MemoryStream(frameData.JpegData))
+                {
+                    bitmap.StreamSource = stream;
+                    bitmap.EndInit();
+                }
+                
+                bitmap.Freeze();
+                image.Source = bitmap;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to update video frame: {ex.Message}");
+            }
+        }
+
+        private void StartVideoPlayback(double frameRate)
+        {
+            StopVideoPlayback();
+            
+            int intervalMs = (int)(1000.0 / frameRate);
+            _mp4Timer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(intervalMs)
+            };
+            
+            _mp4Timer.Tick += Mp4Timer_Tick;
+            _mp4Timer.Start();
+        }
+
+        private void StopVideoPlayback()
+        {
+            if (_mp4Timer != null)
+            {
+                _mp4Timer.Stop();
+                _mp4Timer.Tick -= Mp4Timer_Tick;
+                _mp4Timer = null;
+            }
+        }
+
+        private void Mp4Timer_Tick(object? sender, EventArgs e)
+        {
+            if (_currentVideoFrames == null || _currentVideoImage == null)
+            {
+                StopVideoPlayback();
+                return;
+            }
+
+            // Move to next frame
+            _currentFrameIndex++;
+            if (_currentFrameIndex >= _currentVideoFrames.Count)
+            {
+                _currentFrameIndex = 0; // Loop back to start
+            }
+
+            // Update displayed frame
+            UpdateVideoFrame(_currentVideoImage, _currentVideoFrames[_currentFrameIndex]);
+
+            // Update info if this video is selected
+            if (_selected == _currentVideoBorder)
+            {
+                UpdateSelectedInfo();
+            }
+        }
+
+        // Video playback control methods (optional - for pause/play functionality)
+        public void PauseVideoPlayback()
+        {
+            _mp4Timer?.Stop();
+        }
+
+        public void ResumeVideoPlayback()
+        {
+            _mp4Timer?.Start();
+        }
+
+        public void SeekVideoFrame(int frameIndex)
+        {
+            if (_currentVideoFrames != null && frameIndex >= 0 && frameIndex < _currentVideoFrames.Count)
+            {
+                _currentFrameIndex = frameIndex;
+                if (_currentVideoImage != null)
+                {
+                    UpdateVideoFrame(_currentVideoImage, _currentVideoFrames[_currentFrameIndex]);
+                }
+            }
         }
     }
 }

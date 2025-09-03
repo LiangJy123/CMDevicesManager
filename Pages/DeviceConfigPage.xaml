@@ -84,10 +84,10 @@
         <!-- Top toolbar -->
         <DockPanel Grid.Row="0" Margin="16" LastChildFill="False">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" Margin="0,0,12,0" HorizontalAlignment="Left">
-                <Button Click="Back_Click" Margin="0,0,8,0" Padding="12,6" Style="{StaticResource LightShadowButtonStyle}">
+                <Button Click="Back_Click" Margin="0,0,8,0" Padding="12,6" Style="{StaticResource LightShadowButtonStyle}" Background="#FF5AA2D0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                        <TextBlock Text="Back"/>
+                        <TextBlock Text="Back" />
                     </StackPanel>
                 </Button>
             </StackPanel>
@@ -95,7 +95,7 @@
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right">
                 <TextBlock Text="Size:" VerticalAlignment="Center" Foreground="white" Margin="0,0,6,0"/>
                 <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" Width="64" Margin="0,0,8,0"/>
-                <Button Style="{StaticResource LightShadowSecondaryButtonStyle}" Click="Export_Click" Padding="12,6">
+                <Button Style="{StaticResource LightShadowSecondaryButtonStyle}" Background="#FFE4FF54" Click="Export_Click" Padding="12,6">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="Export PNG" Margin="0,0,6,0"/>
                         <TextBlock Text="&#xE118;" FontFamily="Segoe MDL2 Assets"/>
@@ -124,6 +124,8 @@
                             Click="AddImage_Click" Margin="0,0,0,8" Padding="12,6">Add Image</Button>
                     <Button Style="{StaticResource LightShadowSecondaryButtonStyle}" Background="#FF3A7E00"
                             Click="AddClock_Click" Margin="0,0,0,8" Padding="12,6">Add Date</Button>
+                    <Button Style="{StaticResource LightShadowSecondaryButtonStyle}" Background="#FF3A7E00"
+                            Click="AddMp4_Click" Margin="0,0,0,8" Padding="12,6">Add MP4</Button>
 
                     <Separator Margin="0,8,0,8"/>
                     <TextBlock Text="System Info" Foreground="white" FontWeight="SemiBold" Margin="0,0,0,8"/>
@@ -145,7 +147,7 @@
 
                     <Separator Margin="0,8,0,8"/>
                     <Button Style="{StaticResource LightShadowSecondaryButtonStyle}" 
-                            Click="ClearCanvas_Click" Padding="12,6">Clear All</Button>
+                            Click="ClearCanvas_Click" Padding="12,6" Background="#FFE4FF54">Clear All</Button>
                 </StackPanel>
             </Border>
 
