@@ -1,4 +1,4 @@
-using CMDevicesManager.Models;
+﻿using CMDevicesManager.Models;
 using CMDevicesManager.Services;
 using System.Windows.Media.Animation;
 using Microsoft.Win32;
@@ -30,9 +30,132 @@ using WF = System.Windows.Forms;
 using CMDevicesManager.Utilities;
 using MessageBox = System.Windows.MessageBox;
 using CMDevicesManager.Helper;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Application = System.Windows.Application;
+using TextBox = System.Windows.Controls.TextBox;
+using Orientation = System.Windows.Controls.Orientation;
+using static CMDevicesManager.Pages.DeviceConfigPage;
 
 namespace CMDevicesManager.Pages
 {
+    // Configuration data models
+    public class CanvasConfiguration
+    {
+        public string ConfigName { get; set; } = "Untitled";
+        public int CanvasSize { get; set; }
+        public string BackgroundColor { get; set; } = "#000000";
+        public string? BackgroundImagePath { get; set; }
+        public double BackgroundImageOpacity { get; set; }
+        public List<ElementConfiguration> Elements { get; set; } = new();
+    }
+
+    public class ElementConfiguration
+    {
+        public string Type { get; set; } = "";
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double Scale { get; set; }
+        public double Opacity { get; set; }
+        public int ZIndex { get; set; }
+        
+        // Text properties
+        public string? Text { get; set; }
+        public double? FontSize { get; set; }
+        public string? TextColor { get; set; }
+        
+        // Image properties
+        public string? ImagePath { get; set; }
+        
+        // Live info properties
+        public LiveInfoKind? LiveKind { get; set; }
+        
+        // Video properties
+        public string? VideoPath { get; set; }
+    }
+
+    // Input dialog for configuration name
+    public class ConfigNameDialog : Window
+    {
+        private TextBox _nameTextBox;
+        public string ConfigName { get; private set; } = "";
+
+        public ConfigNameDialog(string defaultName = "")
+        {
+            Title = "配置名称";
+            Width = 400;
+            Height = 180;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            ResizeMode = ResizeMode.NoResize;
+            
+            var grid = new Grid { Margin = new Thickness(20) };
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var label = new TextBlock 
+            { 
+                Text = "请输入配置名称：", 
+                Margin = new Thickness(0, 0, 0, 10),
+                FontSize = 14
+            };
+            Grid.SetRow(label, 0);
+            grid.Children.Add(label);
+
+            _nameTextBox = new TextBox 
+            { 
+                Text = defaultName,
+                Margin = new Thickness(0, 0, 0, 20),
+                FontSize = 14,
+                Padding = new Thickness(5)
+            };
+            Grid.SetRow(_nameTextBox, 1);
+            grid.Children.Add(_nameTextBox);
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right
+            };
+            
+            var okButton = new Button 
+            { 
+                Content = "确定", 
+                Width = 80, 
+                Height = 30,
+                Margin = new Thickness(0, 0, 10, 0),
+                IsDefault = true
+            };
+            okButton.Click += (s, e) => 
+            {
+                ConfigName = _nameTextBox.Text?.Trim() ?? "";
+                DialogResult = true;
+            };
+            
+            var cancelButton = new Button 
+            { 
+                Content = "取消", 
+                Width = 80, 
+                Height = 30,
+                IsCancel = true
+            };
+            cancelButton.Click += (s, e) => DialogResult = false;
+            
+            buttonPanel.Children.Add(okButton);
+            buttonPanel.Children.Add(cancelButton);
+            Grid.SetRow(buttonPanel, 2);
+            grid.Children.Add(buttonPanel);
+
+            Content = grid;
+            
+            Loaded += (s, e) => 
+            {
+                _nameTextBox.SelectAll();
+                _nameTextBox.Focus();
+            };
+        }
+    }
+
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
         private readonly DeviceInfos _device;
@@ -132,6 +255,25 @@ namespace CMDevicesManager.Pages
         private int _currentFrameIndex = 0;
         private Image? _currentVideoImage;
         private Border? _currentVideoBorder;
+
+        // Current configuration
+        private string _currentConfigName = "";
+        private string CurrentConfigName 
+        { 
+            get => _currentConfigName; 
+            set 
+            { 
+                _currentConfigName = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ConfigurationDisplayName));
+            }
+        }
+
+        // Property for displaying configuration status
+        public string ConfigurationDisplayName 
+        {
+            get => string.IsNullOrWhiteSpace(CurrentConfigName) ? "未保存的配置" : CurrentConfigName;
+        }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? p = null)
@@ -330,6 +472,7 @@ namespace CMDevicesManager.Pages
             DesignCanvas.Children.Clear();
             _liveItems.Clear();
             SetSelected(null);
+            CurrentConfigName = ""; // Reset configuration name
         }
 
         // ===================== Export =====================
@@ -382,7 +525,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // ===================== Background �=====================
+        // ===================== Background ×=====================
         private void PickBackgroundColor_Click(object sender, RoutedEventArgs e)
         {
             using var dlg = new WF.ColorDialog
@@ -994,20 +1137,290 @@ namespace CMDevicesManager.Pages
             }
         }
 
+        // Configuration Save/Load Methods
+        private void SaveConfig_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Ask for config name if not set
+                if (string.IsNullOrWhiteSpace(CurrentConfigName))
+                {
+                    var dialog = new ConfigNameDialog();
+                    if (Application.Current.MainWindow != null)
+                    {
+                        dialog.Owner = Application.Current.MainWindow;
+                    }
+                    
+                    if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.ConfigName))
+                    {
+                        return;
+                    }
+                    CurrentConfigName = dialog.ConfigName;
+                }
+
+                var config = new CanvasConfiguration
+                {
+                    ConfigName = CurrentConfigName,
+                    CanvasSize = CanvasSize,
+                    BackgroundColor = BackgroundHex,
+                    BackgroundImagePath = BackgroundImagePath,
+                    BackgroundImageOpacity = BackgroundImageOpacity
+                };
+
+                // Save all canvas elements
+                foreach (UIElement child in DesignCanvas.Children)
+                {
+                    if (child is Border border && GetTransforms(border, out var scale, out var translate))
+                    {
+                        var elemConfig = new ElementConfiguration
+                        {
+                            X = translate.X,
+                            Y = translate.Y,
+                            Scale = scale.ScaleX,
+                            Opacity = border.Opacity,
+                            ZIndex = Canvas.GetZIndex(border)
+                        };
+
+                        // Handle different element types
+                        if (border.Child is TextBlock tb)
+                        {
+                            elemConfig.Type = "Text";
+                            elemConfig.Text = tb.Text;
+                            elemConfig.FontSize = tb.FontSize;
+                            
+                            if (tb.Foreground is SolidColorBrush brush)
+                            {
+                                var color = brush.Color;
+                                elemConfig.TextColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                            }
+
+                            // Handle live info
+                            if (border.Tag is LiveInfoKind liveKind)
+                            {
+                                elemConfig.Type = "LiveText";
+                                elemConfig.LiveKind = liveKind;
+                            }
+                        }
+                        else if (border.Child is Image img)
+                        {
+                            if (border.Tag is VideoElementInfo videoInfo)
+                            {
+                                elemConfig.Type = "Video";
+                                elemConfig.VideoPath = videoInfo.FilePath;
+                            }
+                            else if (img.Source is BitmapImage bitmapImg)
+                            {
+                                elemConfig.Type = "Image";
+                                elemConfig.ImagePath = bitmapImg.UriSource?.LocalPath ?? bitmapImg.UriSource?.ToString();
+                            }
+                        }
+
+                        config.Elements.Add(elemConfig);
+                    }
+                }
+
+                // Save to file
+                var configFolder = Path.Combine(OutputFolder, "Configs");
+                Directory.CreateDirectory(configFolder);
+                
+                var fileName = $"{SanitizeFileName(CurrentConfigName)}.json";
+                var filePath = Path.Combine(configFolder, fileName);
+                
+                var json = JsonSerializer.Serialize(config, new JsonSerializerOptions 
+                { 
+                    WriteIndented = true,
+                    Converters = { new JsonStringEnumConverter() }
+                });
+                
+                File.WriteAllText(filePath, json);
+                
+                MessageBox.Show($"配置已保存: {fileName}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void LoadConfig_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dlg = new OpenFileDialog
+                {
+                    Title = "选择配置文件",
+                    Filter = "JSON Files|*.json|All Files|*.*",
+                    InitialDirectory = Path.Combine(OutputFolder, "Configs")
+                };
+
+                if (dlg.ShowDialog() != true)
+                    return;
+
+                var json = File.ReadAllText(dlg.FileName);
+                var config = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
+                {
+                    Converters = { new JsonStringEnumConverter() }
+                });
+
+                if (config == null)
+                {
+                    MessageBox.Show("无效的配置文件", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Clear current canvas
+                DesignCanvas.Children.Clear();
+                _liveItems.Clear();
+                SetSelected(null);
+                StopVideoPlayback();
+
+                // Apply configuration
+                CurrentConfigName = config.ConfigName;
+                CanvasSize = config.CanvasSize;
+                BackgroundHex = config.BackgroundColor;
+                BackgroundImagePath = config.BackgroundImagePath;
+                BackgroundImageOpacity = config.BackgroundImageOpacity;
+
+                // Restore elements
+                foreach (var elemConfig in config.Elements.OrderBy(e => e.ZIndex))
+                {
+                    FrameworkElement? element = null;
+                    
+                    switch (elemConfig.Type)
+                    {
+                        case "Text":
+                            var textBlock = new TextBlock
+                            {
+                                Text = elemConfig.Text ?? "Text",
+                                FontSize = elemConfig.FontSize ?? 24,
+                                FontWeight = FontWeights.SemiBold
+                            };
+                            textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+                            
+                            if (!string.IsNullOrEmpty(elemConfig.TextColor) && TryParseHexColor(elemConfig.TextColor, out var textColor))
+                            {
+                                textBlock.Foreground = new SolidColorBrush(textColor);
+                            }
+                            else
+                            {
+                                textBlock.Foreground = new SolidColorBrush(Colors.Black);
+                            }
+                            
+                            element = textBlock;
+                            break;
+                            
+                        case "LiveText":
+                            if (elemConfig.LiveKind.HasValue)
+                            {
+                                switch (elemConfig.LiveKind.Value)
+                                {
+                                    case LiveInfoKind.DateTime:
+                                        AddClock_Click(null, null);
+                                        break;
+                                    case LiveInfoKind.CpuUsage:
+                                    case LiveInfoKind.GpuUsage:
+                                        var button = new Button { Tag = elemConfig.LiveKind.Value };
+                                        AddSystemInfoButton_Click(button, null);
+                                        break;
+                                }
+                                continue; // Skip manual element creation as Add methods handle it
+                            }
+                            break;
+                            
+                        case "Image":
+                            if (!string.IsNullOrEmpty(elemConfig.ImagePath) && File.Exists(elemConfig.ImagePath))
+                            {
+                                var img = new Image
+                                {
+                                    Source = new BitmapImage(new Uri(elemConfig.ImagePath)),
+                                    Stretch = Stretch.Uniform
+                                };
+                                element = img;
+                            }
+                            break;
+                            
+                        case "Video":
+                            if (!string.IsNullOrEmpty(elemConfig.VideoPath) && File.Exists(elemConfig.VideoPath))
+                            {
+                                // Manually trigger video loading for the stored path
+                                var videoInfo = await VideoConverter.GetMp4InfoAsync(elemConfig.VideoPath);
+                                if (videoInfo != null)
+                                {
+                                    Mouse.OverrideCursor = Cursors.Wait;
+                                    var frames = await ExtractMp4FramesToMemory(elemConfig.VideoPath);
+                                    Mouse.OverrideCursor = null;
+                                    
+                                    if (frames != null && frames.Count > 0)
+                                    {
+                                        _currentVideoFrames = frames;
+                                        _currentFrameIndex = 0;
+
+                                        var videoImage = new Image
+                                        {
+                                            Stretch = Stretch.Uniform,
+                                            HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                                            VerticalAlignment = VerticalAlignment.Top
+                                        };
+                                        
+                                        UpdateVideoFrame(videoImage, frames[0]);
+                                        element = videoImage;
+                                        
+                                        // Will set up video after adding to canvas
+                                    }
+                                }
+                            }
+                            break;
+                    }
+
+                    if (element != null)
+                    {
+                        var border = AddElement(element, elemConfig.Type);
+                        
+                        // Apply saved transforms
+                        if (GetTransforms(border, out var scale, out var translate))
+                        {
+                            translate.X = elemConfig.X;
+                            translate.Y = elemConfig.Y;
+                            scale.ScaleX = scale.ScaleY = elemConfig.Scale;
+                            border.Opacity = elemConfig.Opacity;
+                            Canvas.SetZIndex(border, elemConfig.ZIndex);
+                        }
+                        
+                        // Handle video setup
+                        if (elemConfig.Type == "Video" && element is Image videoImg)
+                        {
+                            _currentVideoImage = videoImg;
+                            _currentVideoBorder = border;
+                            
+                            var videoInfo = await VideoConverter.GetMp4InfoAsync(elemConfig.VideoPath!);
+                            if (videoInfo != null)
+                            {
+                                border.Tag = new VideoElementInfo
+                                {
+                                    Kind = LiveInfoKind.VideoPlayback,
+                                    VideoInfo = videoInfo,
+                                    FilePath = elemConfig.VideoPath!,
+                                    TotalFrames = _currentVideoFrames?.Count ?? 0
+                                };
+                                
+                                StartVideoPlayback(videoInfo.FrameRate);
+                            }
+                        }
+                    }
+                }
+
+                MessageBox.Show($"配置已加载: {config.ConfigName}", "加载成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"加载配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         // Video playback control methods (optional - for pause/play functionality)
         public void PauseVideoPlayback()
         {
             _mp4Timer?.Stop();
-        }
-
-        private void LoadConfig_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void SaveConfig_Click(object sender, RoutedEventArgs e)
-        {
-
         }
 
         public void ResumeVideoPlayback()
