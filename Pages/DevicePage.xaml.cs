@@ -1,6 +1,5 @@
 ﻿using CMDevicesManager.Models;
 using HID.DisplayController;
-using HID.DisplayController;
 using HidApi;
 using System;
 using System.Collections.ObjectModel;
