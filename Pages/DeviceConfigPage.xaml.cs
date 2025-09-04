@@ -37,10 +37,12 @@ using TextBox = System.Windows.Controls.TextBox;
 using Orientation = System.Windows.Controls.Orientation;
 using static CMDevicesManager.Pages.DeviceConfigPage;
 using ListBox = System.Windows.Controls.ListBox;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CMDevicesManager.Pages
 {
-    // Configuration data models
+    // ================= Configuration Data Models =================
     public class CanvasConfiguration
     {
         public string ConfigName { get; set; } = "Untitled";
@@ -59,23 +61,25 @@ namespace CMDevicesManager.Pages
         public double Scale { get; set; }
         public double Opacity { get; set; }
         public int ZIndex { get; set; }
-        
-        // Text properties
+
+        // Text
         public string? Text { get; set; }
         public double? FontSize { get; set; }
         public string? TextColor { get; set; }
-        
-        // Image properties
+        public bool? UseTextGradient { get; set; }
+        public string? TextColor2 { get; set; }
+
+        // Image
         public string? ImagePath { get; set; }
-        
-        // Live info properties
+
+        // Live
         public LiveInfoKind? LiveKind { get; set; }
-        
-        // Video properties
+
+        // Video
         public string? VideoPath { get; set; }
     }
 
-    // Input dialog for configuration name
+    // ================= Simple Dialogs =================
     public class ConfigNameDialog : Window
     {
         private TextBox _nameTextBox;
@@ -88,14 +92,14 @@ namespace CMDevicesManager.Pages
             Height = 180;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             ResizeMode = ResizeMode.NoResize;
-            
+
             var grid = new Grid { Margin = new Thickness(20) };
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var label = new TextBlock 
-            { 
+            var label = new TextBlock
+            {
                 Text = Application.Current.FindResource("ConfigNamePrompt")?.ToString() ?? "Please enter configuration name:",
                 Margin = new Thickness(0, 0, 0, 10),
                 FontSize = 14
@@ -103,8 +107,8 @@ namespace CMDevicesManager.Pages
             Grid.SetRow(label, 0);
             grid.Children.Add(label);
 
-            _nameTextBox = new TextBox 
-            { 
+            _nameTextBox = new TextBox
+            {
                 Text = defaultName,
                 Margin = new Thickness(0, 0, 0, 20),
                 FontSize = 14,
@@ -115,41 +119,41 @@ namespace CMDevicesManager.Pages
 
             var buttonPanel = new StackPanel
             {
-                Orientation = Orientation.Horizontal,
+                Orientation = System.Windows.Controls.Orientation.Horizontal,
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Right
             };
-            
-            var okButton = new Button 
-            { 
+
+            var okButton = new Button
+            {
                 Content = Application.Current.FindResource("OkButton")?.ToString() ?? "OK",
-                Width = 80, 
+                Width = 80,
                 Height = 30,
                 Margin = new Thickness(0, 0, 10, 0),
                 IsDefault = true
             };
-            okButton.Click += (s, e) => 
+            okButton.Click += (s, e) =>
             {
                 ConfigName = _nameTextBox.Text?.Trim() ?? "";
                 DialogResult = true;
             };
-            
-            var cancelButton = new Button 
-            { 
+
+            var cancelButton = new Button
+            {
                 Content = Application.Current.FindResource("CancelButton")?.ToString() ?? "Cancel",
-                Width = 80, 
+                Width = 80,
                 Height = 30,
                 IsCancel = true
             };
             cancelButton.Click += (s, e) => DialogResult = false;
-            
+
             buttonPanel.Children.Add(okButton);
             buttonPanel.Children.Add(cancelButton);
             Grid.SetRow(buttonPanel, 2);
             grid.Children.Add(buttonPanel);
 
             Content = grid;
-            
-            Loaded += (s, e) => 
+
+            Loaded += (s, e) =>
             {
                 _nameTextBox.SelectAll();
                 _nameTextBox.Focus();
@@ -157,7 +161,6 @@ namespace CMDevicesManager.Pages
         }
     }
 
-    // Add this new dialog class after ConfigNameDialog
     public class ConfigSelectionDialog : Window
     {
         private ListBox _configListBox;
@@ -176,7 +179,6 @@ namespace CMDevicesManager.Pages
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // Create ListBox for configs
             _configListBox = new ListBox
             {
                 Margin = new Thickness(0, 0, 0, 20),
@@ -184,7 +186,6 @@ namespace CMDevicesManager.Pages
                 SelectedValuePath = "Config"
             };
 
-            // Create items for ListBox
             var items = configs.Select(c => new
             {
                 Name = $"{c.config.ConfigName} - {Path.GetFileNameWithoutExtension(c.path)}",
@@ -193,18 +194,14 @@ namespace CMDevicesManager.Pages
             }).ToList();
 
             _configListBox.ItemsSource = items;
-            _configListBox.MouseDoubleClick += (s, e) => 
+            _configListBox.MouseDoubleClick += (s, e) =>
             {
-                if (_configListBox.SelectedItem != null)
-                {
-                    AcceptSelection();
-                }
+                if (_configListBox.SelectedItem != null) AcceptSelection();
             };
 
             Grid.SetRow(_configListBox, 0);
             grid.Children.Add(_configListBox);
 
-            // Button panel
             var buttonPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -250,18 +247,15 @@ namespace CMDevicesManager.Pages
         }
     }
 
+    // ================= Main Page =================
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
         private readonly DeviceInfos _device;
-
-        // System info service + live text update
         private readonly ISystemMetricsService _metrics;
         private readonly DispatcherTimer _liveTimer;
 
-        // Dynamic system info buttons
         public ObservableCollection<SystemInfoItem> SystemInfoItems { get; } = new();
 
-        // Live text registry
         private sealed class LiveTextItem
         {
             public Border Border { get; init; } = null!;
@@ -275,14 +269,12 @@ namespace CMDevicesManager.Pages
             CpuUsage,
             GpuUsage,
             DateTime,
-            VideoPlayback // <- Added new enum value for video playback
+            VideoPlayback
         }
 
-        // Design surface config
         private int _canvasSize = 512;
         public int CanvasSize { get => _canvasSize; set { if (_canvasSize != value && value > 0) { _canvasSize = value; OnPropertyChanged(); } } }
 
-        // Background
         private Color _backgroundColor = Colors.Black;
         public Color BackgroundColor { get => _backgroundColor; set { _backgroundColor = value; OnPropertyChanged(); OnPropertyChanged(nameof(BackgroundBrush)); BackgroundHex = $"#{value.R:X2}{value.G:X2}{value.B:X2}"; } }
         public Brush BackgroundBrush => new SolidColorBrush(BackgroundColor);
@@ -293,25 +285,21 @@ namespace CMDevicesManager.Pages
         private string _backgroundHex = "#000000";
         public string BackgroundHex { get => _backgroundHex; set { if (_backgroundHex != value) { _backgroundHex = value; if (TryParseHexColor(value, out var c)) BackgroundColor = c; OnPropertyChanged(); } } }
 
-        // Selection
         private Border? _selected;
         private ScaleTransform? _selScale;
         private TranslateTransform? _selTranslate;
 
-        // Selected meta
         private string _selectedInfo = "None";
         public string SelectedInfo { get => _selectedInfo; set { _selectedInfo = value; OnPropertyChanged(); } }
         public bool IsAnySelected => _selected != null;
         public bool IsTextSelected => _selected?.Child is TextBlock;
-        public bool IsSelectedTextReadOnly => _selected?.Tag is LiveInfoKind; // live text can't edit content
+        public bool IsSelectedTextReadOnly => _selected?.Tag is LiveInfoKind;
 
-        // Selected props
         private double _selectedScale = 1.0;
         public double SelectedScale { get => _selectedScale; set { _selectedScale = Math.Clamp(value, 0.1, 5); ApplySelectedScale(); ClampSelectedIntoCanvas(); OnPropertyChanged(); } }
         private double _selectedOpacity = 1.0;
         public double SelectedOpacity { get => _selectedOpacity; set { _selectedOpacity = Math.Clamp(value, 0.1, 1); if (_selected != null) _selected.Opacity = _selectedOpacity; OnPropertyChanged(); } }
 
-        // Text props
         private string _selectedText = string.Empty;
         public string SelectedText
         {
@@ -319,10 +307,8 @@ namespace CMDevicesManager.Pages
             set
             {
                 _selectedText = value;
-                if (_selected?.Child is TextBlock tb && _selected?.Tag is not LiveInfoKind)
-                {
+                if (_selected?.Child is TextBlock tb && _selected.Tag is not LiveInfoKind)
                     tb.Text = value;
-                }
                 UpdateSelectedInfo();
                 OnPropertyChanged();
             }
@@ -330,50 +316,146 @@ namespace CMDevicesManager.Pages
         private double _selectedFontSize = 24;
         public double SelectedFontSize { get => _selectedFontSize; set { _selectedFontSize = value; if (_selected?.Child is TextBlock tb) tb.FontSize = value; OnPropertyChanged(); } }
         private Color _selectedTextColor = Colors.White;
-        public Color SelectedTextColor { get => _selectedTextColor; set { _selectedTextColor = value; if (_selected?.Child is TextBlock tb) tb.Foreground = new SolidColorBrush(value); SelectedTextHex = $"#{value.R:X2}{value.G:X2}{value.B:X2}"; OnPropertyChanged(); } }
+        public Color SelectedTextColor
+        {
+            get => _selectedTextColor;
+            set
+            {
+                _selectedTextColor = value;
+                ApplyTextColorOrGradient();
+                SelectedTextHex = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
+                OnPropertyChanged();
+            }
+        }
         private string _selectedTextHex = "#FFFFFF";
         public string SelectedTextHex { get => _selectedTextHex; set { if (_selectedTextHex != value) { _selectedTextHex = value; if (TryParseHexColor(value, out var c)) SelectedTextColor = c; OnPropertyChanged(); } } }
 
-        // Export
+        private bool _useTextGradient = false;
+        public bool UseTextGradient
+        {
+            get => _useTextGradient;
+            set
+            {
+                _useTextGradient = value;
+                ApplyTextColorOrGradient();
+                OnPropertyChanged();
+            }
+        }
+
+        private Color _selectedTextColor2 = Colors.White;
+        public Color SelectedTextColor2
+        {
+            get => _selectedTextColor2;
+            set
+            {
+                _selectedTextColor2 = value;
+                ApplyTextColorOrGradient();
+                SelectedTextHex2 = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
+                OnPropertyChanged();
+            }
+        }
+
+        private string _selectedTextHex2 = "#FFFFFF";
+        public string SelectedTextHex2
+        {
+            get => _selectedTextHex2;
+            set
+            {
+                if (_selectedTextHex2 != value)
+                {
+                    _selectedTextHex2 = value;
+                    if (TryParseHexColor(value, out var c))
+                        SelectedTextColor2 = c;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         private string _outputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager");
         public string OutputFolder { get => _outputFolder; set { _outputFolder = value; OnPropertyChanged(); } }
 
-        // Dragging
         private bool _isDragging;
         private Point _dragStart;
         private double _dragStartX, _dragStartY;
 
-        // Video playback fields
         private DispatcherTimer? _mp4Timer;
         private List<VideoFrameData>? _currentVideoFrames;
         private int _currentFrameIndex = 0;
         private Image? _currentVideoImage;
         private Border? _currentVideoBorder;
 
-        // Current configuration
         private string _currentConfigName = "";
-        private string CurrentConfigName 
-        { 
-            get => _currentConfigName; 
-            set 
-            { 
+        private string CurrentConfigName
+        {
+            get => _currentConfigName;
+            set
+            {
                 _currentConfigName = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(ConfigurationDisplayName));
             }
         }
 
-        // Property for displaying configuration status
-        public string ConfigurationDisplayName 
+        public string ConfigurationDisplayName
+            => string.IsNullOrWhiteSpace(CurrentConfigName)
+                ? (Application.Current.FindResource("UnsavedConfig")?.ToString() ?? "Unsaved Configuration")
+                : CurrentConfigName;
+
+        // Auto-move
+        private DispatcherTimer _autoMoveTimer;
+        private DateTime _lastAutoMoveTime = DateTime.Now;
+        private bool _isJoystickDragging;
+        private const double JoystickRadius = 60;
+        private const double KnobSize = 32;
+        private const double KnobCenterOffset = (120 - KnobSize) / 2.0; // 44
+        private bool _autoMoveEnabled;
+        private const double JoystickBaseSize = 120.0;
+        private const double JoystickKnobSize = 32.0;
+        private const double JoystickMaxOffset = (JoystickBaseSize - JoystickKnobSize) / 2.0; // 44
+        public bool AutoMoveEnabled
         {
-            get => string.IsNullOrWhiteSpace(CurrentConfigName) ? (Application.Current.FindResource("UnsavedConfig")?.ToString() ?? "Unsaved Configuration") : CurrentConfigName;
+            get => _autoMoveEnabled;
+            set
+            {
+                if (_autoMoveEnabled != value)
+                {
+                    _autoMoveEnabled = value;
+                    OnPropertyChanged();
+                    UpdateAutoMoveTimer();
+                }
+            }
+        }
+        private double _moveSpeed = 100;
+        public double MoveSpeed
+        {
+            get => _moveSpeed;
+            set
+            {
+                if (Math.Abs(_moveSpeed - value) > 0.001)
+                {
+                    _moveSpeed = Math.Max(0, value);
+                    OnPropertyChanged();
+                }
+            }
+        }
+        private double _moveDirX = 1;
+        public double MoveDirX
+        {
+            get => _moveDirX;
+            private set { if (Math.Abs(_moveDirX - value) > 0.0001) { _moveDirX = value; OnPropertyChanged(); } }
+        }
+        private double _moveDirY = 0;
+        public double MoveDirY
+        {
+            get => _moveDirY;
+            private set { if (Math.Abs(_moveDirY - value) > 0.0001) { _moveDirY = value; OnPropertyChanged(); } }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? p = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(p));
-            if (p is nameof(_selected))
+            if (p == nameof(_selected))
             {
                 OnPropertyChanged(nameof(IsAnySelected));
                 OnPropertyChanged(nameof(IsTextSelected));
@@ -381,10 +463,8 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // Add this property for the resources directory
         private string ResourcesFolder => Path.Combine(OutputFolder, "Resources");
 
-        // Update the constructor to create resources folder
         public DeviceConfigPage(DeviceInfos device)
         {
             _device = device ?? throw new ArgumentNullException(nameof(device));
@@ -401,11 +481,11 @@ namespace CMDevicesManager.Pages
             BuildSystemInfoButtons();
 
             // Ensure default export folder and resources folder exist
-            try 
-            { 
-                Directory.CreateDirectory(OutputFolder); 
+            try
+            {
+                Directory.CreateDirectory(OutputFolder);
                 Directory.CreateDirectory(ResourcesFolder);
-            } 
+            }
             catch { /* ignore */ }
 
             // Canvas handlers
@@ -417,184 +497,46 @@ namespace CMDevicesManager.Pages
             _liveTimer.Tick += LiveTimer_Tick;
             _liveTimer.Start();
 
+            // Auto-move timer (30 FPS)
+            _autoMoveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+            _autoMoveTimer.Tick += AutoMoveTimer_Tick;
+
             Unloaded += DeviceConfigPage_Unloaded;
         }
 
-        // Add helper method to copy file with unique name
-        private string CopyResourceToAppFolder(string sourcePath, string resourceType)
-        {
-            try
-            {
-                var fileName = Path.GetFileName(sourcePath);
-                var extension = Path.GetExtension(fileName);
-                var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-                
-                // Create subfolder for resource type
-                var typeFolder = Path.Combine(ResourcesFolder, resourceType);
-                Directory.CreateDirectory(typeFolder);
-                
-                // Generate unique filename
-                var destPath = Path.Combine(typeFolder, fileName);
-                int counter = 1;
-                
-                while (File.Exists(destPath))
-                {
-                    var newName = $"{nameWithoutExtension}_{counter}{extension}";
-                    destPath = Path.Combine(typeFolder, newName);
-                    counter++;
-                }
-                
-                // Copy the file
-                File.Copy(sourcePath, destPath, true);
-                Logger.Info($"Copied {resourceType} resource to: {destPath}");
-                
-                return destPath;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to copy {resourceType} resource: {ex.Message}");
-                // Return original path if copy fails
-                return sourcePath;
-            }
-        }
-
-        // Add helper method to get relative path
-        private string GetRelativePath(string fullPath)
-        {
-            try
-            {
-                // If the path is within the Resources folder, make it relative to OutputFolder
-                if (fullPath.StartsWith(ResourcesFolder, StringComparison.OrdinalIgnoreCase))
-                {
-                    // Get path relative to OutputFolder (not including "CMDevicesManager")
-                    return Path.GetRelativePath(OutputFolder, fullPath);
-                }
-                
-                // If the path is within OutputFolder but not in Resources
-                if (fullPath.StartsWith(OutputFolder, StringComparison.OrdinalIgnoreCase))
-                {
-                    return Path.GetRelativePath(OutputFolder, fullPath);
-                }
-                
-                // For paths outside OutputFolder, just return the filename
-                return Path.GetFileName(fullPath);
-            }
-            catch
-            {
-                // If we can't make it relative, return the file name
-                return Path.GetFileName(fullPath);
-            }
-        }
-
-        // Add helper method to resolve relative path
-        private string ResolveRelativePath(string relativePath)
-        {
-            try
-            {
-                // If it's already an absolute path and exists, return it
-                if (Path.IsPathRooted(relativePath) && File.Exists(relativePath))
-                    return relativePath;
-
-                // Try to resolve relative to OutputFolder
-                var fullPath = Path.Combine(OutputFolder, relativePath);
-                if (File.Exists(fullPath))
-                    return fullPath;
-
-                // Try to resolve relative to Resources folder
-                fullPath = Path.Combine(ResourcesFolder, relativePath);
-                if (File.Exists(fullPath))
-                    return fullPath;
-
-                // Try each resource subfolder
-                foreach (var subFolder in new[] { "Images", "Videos", "Backgrounds" })
-                {
-                    fullPath = Path.Combine(ResourcesFolder, subFolder, relativePath);
-                    if (File.Exists(fullPath))
-                        return fullPath;
-                }
-
-                // Return original if we can't find it
-                return relativePath;
-            }
-            catch
-            {
-                return relativePath;
-            }
-        }
-
-        public void PauseVideoPlayback()
-        {
-            _mp4Timer?.Stop();
-        }
-
-        public void ResumeVideoPlayback()
-        {
-            _mp4Timer?.Start();
-        }
-
-        public void SeekVideoFrame(int frameIndex)
-        {
-            if (_currentVideoFrames != null && frameIndex >= 0 && frameIndex < _currentVideoFrames.Count)
-            {
-                _currentFrameIndex = frameIndex;
-                if (_currentVideoImage != null)
-                {
-                    UpdateVideoFrame(_currentVideoImage, _currentVideoFrames[_currentFrameIndex]);
-                }
-            }
-        }
-
-        private void DeviceConfigPage_Unloaded(object sender, RoutedEventArgs e)
-        {
-            try { _liveTimer.Stop(); } catch { }
-            try { _metrics.Dispose(); } catch { }
-            StopVideoPlayback(); // Stop video playback when page unloads
-        }
-
+        // ================= System Info Buttons =================
         private void BuildSystemInfoButtons()
         {
             SystemInfoItems.Clear();
-
-            // CPU is generally available
             SystemInfoItems.Add(new SystemInfoItem(LiveInfoKind.CpuUsage, $"CPU Usage ({_metrics.CpuName})"));
-
-            // GPU: add only if likely present
             var gpuName = (_metrics as RealSystemMetricsService)?.PrimaryGpuName ?? "GPU";
             var gpuVal = _metrics.GetGpuUsagePercent();
             if (!string.Equals(gpuName, "GPU", StringComparison.OrdinalIgnoreCase) || gpuVal > 0)
-            {
                 SystemInfoItems.Add(new SystemInfoItem(LiveInfoKind.GpuUsage, $"GPU Usage ({gpuName})"));
-            }
         }
-
         public sealed record SystemInfoItem(LiveInfoKind Kind, string DisplayName);
 
+        // ================= Navigation =================
         private void Back_Click(object sender, RoutedEventArgs e)
         {
             if (NavigationService?.CanGoBack == true) NavigationService.GoBack();
             else NavigationService?.Navigate(new DevicePage());
         }
 
-        // ===================== Add Date (live, read-only) =====================
+        // ================= Live Text + Date =================
         private void AddClock_Click(object sender, RoutedEventArgs e)
         {
             var textBlock = new TextBlock
             {
                 Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                 FontSize = 20,
-                Foreground = new SolidColorBrush(Colors.Black), 
+                Foreground = new SolidColorBrush(Colors.Black),
                 FontWeight = FontWeights.SemiBold
             };
-            // Apply current app font family
             textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-
             var border = AddElement(textBlock, Application.Current.FindResource("DateTime")?.ToString() ?? "Date/Time");
-
-            // Mark as live and register
             border.Tag = LiveInfoKind.DateTime;
             _liveItems.Add(new LiveTextItem { Border = border, Text = textBlock, Kind = LiveInfoKind.DateTime });
-
-            // If selected now, lock editing and reflect value
             if (_selected == border)
             {
                 OnPropertyChanged(nameof(IsSelectedTextReadOnly));
@@ -603,43 +545,39 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // ===================== System Info click -> add live text =====================
         private void AddSystemInfoButton_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not FrameworkElement fe || fe.Tag is not LiveInfoKind kind) return;
 
-            var displayText = kind == LiveInfoKind.CpuUsage ? $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%" : $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
+            var displayText = kind == LiveInfoKind.CpuUsage
+                ? $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%"
+                : $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
 
             var textBlock = new TextBlock
             {
                 Text = displayText,
                 FontSize = 18,
-                Foreground = new SolidColorBrush(Colors.Black), 
+                Foreground = new SolidColorBrush(Colors.Black),
                 Tag = kind,
                 FontWeight = FontWeights.SemiBold
             };
-            // Apply current app font family
             textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
             var cpuUsageText = Application.Current.FindResource("CpuUsage")?.ToString() ?? "CPU Usage";
             var gpuUsageText = Application.Current.FindResource("GpuUsage")?.ToString() ?? "GPU Usage";
             var border = AddElement(textBlock, kind == LiveInfoKind.CpuUsage ? cpuUsageText : gpuUsageText);
-
-            // Mark as live and register
             border.Tag = kind;
             _liveItems.Add(new LiveTextItem { Border = border, Text = textBlock, Kind = kind });
 
-            // If selected now, make text box read-only
             if (_selected == border)
             {
                 OnPropertyChanged(nameof(IsSelectedTextReadOnly));
-                _selectedText = textBlock.Text; // reflect into right panel
+                _selectedText = textBlock.Text;
             }
         }
 
         private void LiveTimer_Tick(object? sender, EventArgs e)
         {
-            // Read once per tick
             double cpu = _metrics.GetCpuUsagePercent();
             double gpu = _metrics.GetGpuUsagePercent();
             string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
@@ -653,12 +591,10 @@ namespace CMDevicesManager.Pages
                     LiveInfoKind.DateTime => now,
                     _ => item.Text.Text
                 };
-
                 item.Text.Text = text;
 
                 if (_selected == item.Border)
                 {
-                    // Update right panel display (read-only textbox)
                     _selectedText = text;
                     OnPropertyChanged(nameof(SelectedText));
                     UpdateSelectedInfo();
@@ -666,17 +602,16 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // ===================== Add / Clear =====================
+        // ================= Add Elements =================
         private void AddText_Click(object sender, RoutedEventArgs e)
         {
             var textBlock = new TextBlock
             {
                 Text = Application.Current.FindResource("SampleText")?.ToString() ?? "Sample Text",
                 FontSize = 24,
-                Foreground = new SolidColorBrush(Colors.Black), 
+                Foreground = new SolidColorBrush(Colors.Black),
                 FontWeight = FontWeights.SemiBold
             };
-            // Apply current app font family
             textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
             AddElement(textBlock, "Text");
         }
@@ -690,15 +625,13 @@ namespace CMDevicesManager.Pages
             };
             if (dlg.ShowDialog() == true)
             {
-                // Copy image to app folder
                 var copiedPath = CopyResourceToAppFolder(dlg.FileName, "Images");
-                
                 var img = new Image
                 {
                     Source = new BitmapImage(new Uri(copiedPath)),
                     Stretch = Stretch.Uniform
                 };
-                AddElement(img, System.IO.Path.GetFileName(copiedPath));
+                AddElement(img, Path.GetFileName(copiedPath));
             }
         }
 
@@ -707,60 +640,10 @@ namespace CMDevicesManager.Pages
             DesignCanvas.Children.Clear();
             _liveItems.Clear();
             SetSelected(null);
-            CurrentConfigName = ""; // Reset configuration name
+            CurrentConfigName = "";
         }
 
-        // ===================== Export =====================
-        private void Export_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Store all borders' states
-                var borderStates = new List<(Border border, Brush brush, Thickness thickness)>();
-                
-                // Hide all element borders before rendering
-                foreach (UIElement child in DesignCanvas.Children)
-                {
-                    if (child is Border border)
-                    {
-                        borderStates.Add((border, border.BorderBrush, border.BorderThickness));
-                        border.BorderBrush = Brushes.Transparent;
-                        border.BorderThickness = new Thickness(0);
-                    }
-                }
-
-                // Render the canvas
-                var rtb = new RenderTargetBitmap(CanvasSize, CanvasSize, 96, 96, PixelFormats.Pbgra32);
-                DesignRoot.Measure(new Size(CanvasSize, CanvasSize));
-                DesignRoot.Arrange(new Rect(0, 0, CanvasSize, CanvasSize));
-                rtb.Render(DesignRoot);
-
-                // Restore all borders' states
-                foreach (var (border, brush, thickness) in borderStates)
-                {
-                    border.BorderBrush = brush;
-                    border.BorderThickness = thickness;
-                }
-
-                // Save the image
-                Directory.CreateDirectory(OutputFolder);
-                var name = (_device?.Name ?? "Device");
-                var file = System.IO.Path.Combine(OutputFolder, $"{SanitizeFileName(name)}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
-
-                var encoder = new PngBitmapEncoder();
-                encoder.Frames.Add(BitmapFrame.Create(rtb));
-                using var fs = File.Create(file);
-                encoder.Save(fs);
-
-                System.Windows.MessageBox.Show($"Exported: {file}", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show($"Export failed: {ex.Message}", "Export", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        // ===================== Background ×=====================
+        // ================= Background Color / Image (UI removed but keep logic) =================
         private void PickBackgroundColor_Click(object sender, RoutedEventArgs e)
         {
             using var dlg = new WF.ColorDialog
@@ -784,7 +667,6 @@ namespace CMDevicesManager.Pages
             };
             if (dlg.ShowDialog() == true)
             {
-                // Copy background image to app folder
                 var copiedPath = CopyResourceToAppFolder(dlg.FileName, "Backgrounds");
                 BackgroundImagePath = copiedPath;
             }
@@ -798,7 +680,6 @@ namespace CMDevicesManager.Pages
         private void PickSelectedTextColor_Click(object sender, RoutedEventArgs e)
         {
             if (_selected?.Child is not TextBlock) return;
-
             using var dlg = new WF.ColorDialog
             {
                 AllowFullOpen = true,
@@ -811,7 +692,22 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // ===================== Z-Order / Delete =====================
+        private void PickSelectedTextColor2_Click(object sender, RoutedEventArgs e)
+        {
+            if (_selected?.Child is not TextBlock) return;
+            using var dlg = new WF.ColorDialog
+            {
+                AllowFullOpen = true,
+                FullOpen = true,
+                Color = System.Drawing.Color.FromArgb(SelectedTextColor2.A, SelectedTextColor2.R, SelectedTextColor2.G, SelectedTextColor2.B)
+            };
+            if (dlg.ShowDialog() == WF.DialogResult.OK)
+            {
+                SelectedTextColor2 = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
+            }
+        }
+
+        // ================= Z-Order / Delete =================
         private void BringToFront_Click(object sender, RoutedEventArgs e)
         {
             if (_selected == null) return;
@@ -832,7 +728,6 @@ namespace CMDevicesManager.Pages
         {
             if (_selected == null) return;
 
-            // Stop video playback if deleting a video element
             if (_selected == _currentVideoBorder)
             {
                 StopVideoPlayback();
@@ -841,7 +736,6 @@ namespace CMDevicesManager.Pages
                 _currentVideoBorder = null;
             }
 
-            // Unregister live item if any
             var live = _liveItems.FirstOrDefault(i => i.Border == _selected);
             if (live != null) _liveItems.Remove(live);
 
@@ -863,11 +757,11 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // ===================== Element creation / selection =====================
+        // ================= Element Creation / Selection =================
         private Border AddElement(FrameworkElement element, string label)
         {
             element.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-            element.VerticalAlignment = VerticalAlignment.Top;
+            element.VerticalAlignment = System.Windows.VerticalAlignment.Top;
 
             var border = new Border
             {
@@ -897,7 +791,6 @@ namespace CMDevicesManager.Pages
             {
                 SelectElement(border);
                 SelectedOpacity = 1.0;
-
                 double w = border.ActualWidth;
                 double h = border.ActualHeight;
 
@@ -905,7 +798,6 @@ namespace CMDevicesManager.Pages
                 {
                     if (element is Image)
                     {
-                        // Cover canvas & center
                         double scaleToCover = (w > 0 && h > 0) ? Math.Max(CanvasSize / w, CanvasSize / h) : 1.0;
                         sc.ScaleX = sc.ScaleY = scaleToCover;
                         SelectedScale = scaleToCover;
@@ -922,7 +814,6 @@ namespace CMDevicesManager.Pages
                         tr.Y = (CanvasSize - h) / 2.0;
                     }
                 }
-
                 ClampIntoCanvas(border);
                 UpdateSelectedInfo();
             };
@@ -933,9 +824,7 @@ namespace CMDevicesManager.Pages
         private void SelectElement(Border border)
         {
             if (_selected != null && _selected != border)
-            {
                 _selected.BorderBrush = Brushes.Transparent;
-            }
 
             _selected = border;
             _selected.BorderBrush = Brushes.DodgerBlue;
@@ -953,13 +842,22 @@ namespace CMDevicesManager.Pages
             {
                 SelectedText = tb.Text;
                 SelectedFontSize = tb.FontSize;
-                if (tb.Foreground is SolidColorBrush scb)
+
+                if (tb.Foreground is LinearGradientBrush lgb && lgb.GradientStops.Count >= 2)
                 {
+                    UseTextGradient = true;
+                    SelectedTextColor = lgb.GradientStops[0].Color;
+                    SelectedTextColor2 = lgb.GradientStops[1].Color;
+                }
+                else if (tb.Foreground is SolidColorBrush scb)
+                {
+                    UseTextGradient = false;
                     var c = scb.Color;
                     SelectedTextColor = Color.FromArgb(c.A, c.R, c.G, c.B);
                 }
                 else
                 {
+                    UseTextGradient = false;
                     SelectedTextColor = Colors.White;
                 }
             }
@@ -971,9 +869,8 @@ namespace CMDevicesManager.Pages
         private void SetSelected(Border? border)
         {
             if (_selected != null)
-            {
                 _selected.BorderBrush = Brushes.Transparent;
-            }
+
             _selected = border;
             if (_selected != null) _selected.BorderBrush = Brushes.DodgerBlue;
 
@@ -1001,7 +898,7 @@ namespace CMDevicesManager.Pages
                 SelectedInfo = Application.Current.FindResource("None")?.ToString() ?? "None";
                 return;
             }
-            
+
             if (_selected.Tag is VideoElementInfo videoInfo)
             {
                 SelectedInfo = $"Video: Frame {_currentFrameIndex + 1}/{videoInfo.TotalFrames}";
@@ -1034,20 +931,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        private static bool GetTransforms(Border border, out ScaleTransform scale, out TranslateTransform translate)
-        {
-            if (border.RenderTransform is TransformGroup tg)
-            {
-                scale = tg.Children.OfType<ScaleTransform>().FirstOrDefault() ?? new ScaleTransform(1, 1);
-                translate = tg.Children.OfType<TranslateTransform>().FirstOrDefault() ?? new TranslateTransform(0, 0);
-                return true;
-            }
-            scale = new ScaleTransform(1, 1);
-            translate = new TranslateTransform(0, 0);
-            return false;
-        }
-
-        // ===================== Dragging & Canvas constraints =====================
+        // ================= Mouse Handling =================
         private void Item_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not Border b) return;
@@ -1067,7 +951,6 @@ namespace CMDevicesManager.Pages
         private void Item_PreviewMouseMove(object sender, MouseEventArgs e)
         {
             if (!_isDragging || _selected == null || _selTranslate == null) return;
-
             var p = e.GetPosition(DesignCanvas);
             var dx = p.X - _dragStart.X;
             var dy = p.Y - _dragStart.Y;
@@ -1076,7 +959,6 @@ namespace CMDevicesManager.Pages
             var newY = _dragStartY + dy;
 
             (newX, newY) = GetClampedPosition(_selected, newX, newY);
-
             _selTranslate.X = newX;
             _selTranslate.Y = newY;
             e.Handled = true;
@@ -1095,10 +977,7 @@ namespace CMDevicesManager.Pages
 
         private void DesignCanvas_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.Source == DesignCanvas)
-            {
-                SetSelected(null);
-            }
+            if (e.Source == DesignCanvas) SetSelected(null);
         }
 
         private void DesignCanvas_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
@@ -1111,12 +990,14 @@ namespace CMDevicesManager.Pages
             e.Handled = true;
         }
 
+        // ================= Clamp Helpers =================
         private (double X, double Y) GetClampedPosition(Border border, double x, double y)
         {
-            double scaledW = border.ActualWidth * (_selScale?.ScaleX ?? 1.0);
-            double scaledH = border.ActualHeight * (_selScale?.ScaleY ?? 1.0);
+            if (!GetTransforms(border, out var sc, out _)) return (x, y);
 
-            // Allow negative offsets when element is larger than the canvas
+            double scaledW = border.ActualWidth * sc.ScaleX;
+            double scaledH = border.ActualHeight * sc.ScaleY;
+
             double minX = Math.Min(0, CanvasSize - scaledW);
             double maxX = Math.Max(0, CanvasSize - scaledW);
             double minY = Math.Min(0, CanvasSize - scaledH);
@@ -1139,14 +1020,13 @@ namespace CMDevicesManager.Pages
             ClampIntoCanvas(_selected);
         }
 
-        // ===================== Helpers =====================
+        // ================= Color / Scale Helpers =================
         private static bool TryParseHexColor(string? hex, out Color color)
         {
             color = Colors.Transparent;
             if (string.IsNullOrWhiteSpace(hex)) return false;
             hex = hex.Trim();
             if (hex.StartsWith("#")) hex = hex[1..];
-
             try
             {
                 if (hex.Length == 6)
@@ -1167,8 +1047,7 @@ namespace CMDevicesManager.Pages
                     return true;
                 }
             }
-            catch { /* ignore */ }
-
+            catch { }
             return false;
         }
 
@@ -1188,7 +1067,7 @@ namespace CMDevicesManager.Pages
             return name;
         }
 
-        // ===================== Video Playback =====================
+        // ================= Video Playback =================
         private async void AddMp4_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new OpenFileDialog
@@ -1196,17 +1075,15 @@ namespace CMDevicesManager.Pages
                 Title = "Select MP4 Video",
                 Filter = "MP4 Files|*.mp4|All Files|*.*"
             };
-            
+
             if (dlg.ShowDialog() != true)
                 return;
 
             try
             {
-                // Copy video to app folder first
                 Mouse.OverrideCursor = Cursors.Wait;
                 var copiedPath = CopyResourceToAppFolder(dlg.FileName, "Videos");
-                
-                // Get video information
+
                 var videoInfo = await VideoConverter.GetMp4InfoAsync(copiedPath);
                 if (videoInfo == null)
                 {
@@ -1214,7 +1091,6 @@ namespace CMDevicesManager.Pages
                     return;
                 }
 
-                // Extract all frames to memory
                 var frames = await ExtractMp4FramesToMemory(copiedPath);
                 if (frames == null || frames.Count == 0)
                 {
@@ -1225,37 +1101,27 @@ namespace CMDevicesManager.Pages
                 _currentVideoFrames = frames;
                 _currentFrameIndex = 0;
 
-                // Create image element for video display
                 var image = new Image
                 {
-                    Stretch = Stretch.Uniform,
+                    Stretch = System.Windows.Media.Stretch.Uniform,
                     HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                    VerticalAlignment = VerticalAlignment.Top
+                    VerticalAlignment = System.Windows.VerticalAlignment.Top
                 };
-                Mouse.OverrideCursor = Cursors.Arrow;
-                // Display first frame
                 UpdateVideoFrame(image, _currentVideoFrames[0]);
 
-                // Add to canvas
-                var border = AddElement(image, $"MP4: {System.IO.Path.GetFileName(copiedPath)}");
-                
-                // Store references
+                var border = AddElement(image, $"MP4: {Path.GetFileName(copiedPath)}");
                 _currentVideoImage = image;
                 _currentVideoBorder = border;
 
-                // Mark as video element with copied path
-                border.Tag = new VideoElementInfo 
-                { 
+                border.Tag = new VideoElementInfo
+                {
                     Kind = LiveInfoKind.VideoPlayback,
                     VideoInfo = videoInfo,
-                    FilePath = copiedPath, // Use the copied path
+                    FilePath = copiedPath,
                     TotalFrames = frames.Count
                 };
 
-                // Start frame timer
                 StartVideoPlayback(videoInfo.FrameRate);
-
-                // Update UI
                 if (_selected == border)
                 {
                     OnPropertyChanged(nameof(IsSelectedTextReadOnly));
@@ -1283,11 +1149,10 @@ namespace CMDevicesManager.Pages
         private async Task<List<VideoFrameData>> ExtractMp4FramesToMemory(string mp4Path)
         {
             var frames = new List<VideoFrameData>();
-            
             try
             {
                 await foreach (var frame in VideoConverter.ExtractMp4FramesToJpegRealTimeAsync(
-                    mp4Path, 
+                    mp4Path,
                     quality: 85,
                     CancellationToken.None))
                 {
@@ -1299,7 +1164,6 @@ namespace CMDevicesManager.Pages
                 Logger.Error($"Failed to extract MP4 frames: {ex.Message}");
                 return new List<VideoFrameData>();
             }
-
             return frames;
         }
 
@@ -1310,13 +1174,11 @@ namespace CMDevicesManager.Pages
                 var bitmap = new BitmapImage();
                 bitmap.BeginInit();
                 bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                
-                using (var stream = new System.IO.MemoryStream(frameData.JpegData))
+                using (var stream = new MemoryStream(frameData.JpegData))
                 {
                     bitmap.StreamSource = stream;
                     bitmap.EndInit();
                 }
-                
                 bitmap.Freeze();
                 image.Source = bitmap;
             }
@@ -1329,13 +1191,8 @@ namespace CMDevicesManager.Pages
         private void StartVideoPlayback(double frameRate)
         {
             StopVideoPlayback();
-            
             int intervalMs = (int)(1000.0 / frameRate);
-            _mp4Timer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(intervalMs)
-            };
-            
+            _mp4Timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(intervalMs) };
             _mp4Timer.Tick += Mp4Timer_Tick;
             _mp4Timer.Start();
         }
@@ -1357,43 +1214,115 @@ namespace CMDevicesManager.Pages
                 StopVideoPlayback();
                 return;
             }
-
-            // Move to next frame
             _currentFrameIndex++;
             if (_currentFrameIndex >= _currentVideoFrames.Count)
-            {
-                _currentFrameIndex = 0; // Loop back to start
-            }
+                _currentFrameIndex = 0;
 
-            // Update displayed frame
             UpdateVideoFrame(_currentVideoImage, _currentVideoFrames[_currentFrameIndex]);
+            if (_selected == _currentVideoBorder) UpdateSelectedInfo();
+        }
 
-            // Update info if this video is selected
-            if (_selected == _currentVideoBorder)
+        public void PauseVideoPlayback() => _mp4Timer?.Stop();
+        public void ResumeVideoPlayback() => _mp4Timer?.Start();
+        public void SeekVideoFrame(int frameIndex)
+        {
+            if (_currentVideoFrames != null && frameIndex >= 0 && frameIndex < _currentVideoFrames.Count)
             {
-                UpdateSelectedInfo();
+                _currentFrameIndex = frameIndex;
+                if (_currentVideoImage != null)
+                    UpdateVideoFrame(_currentVideoImage, _currentVideoFrames[_currentFrameIndex]);
             }
         }
 
-        // Configuration Save/Load Methods
-        // Update SaveConfig_Click to use timestamp-based filename
+        // ================= Resource Copy Helpers =================
+        private string CopyResourceToAppFolder(string sourcePath, string resourceType)
+        {
+            try
+            {
+                var fileName = Path.GetFileName(sourcePath);
+                var extension = Path.GetExtension(fileName);
+                var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+
+                var typeFolder = Path.Combine(ResourcesFolder, resourceType);
+                Directory.CreateDirectory(typeFolder);
+
+                var destPath = Path.Combine(typeFolder, fileName);
+                int counter = 1;
+                while (File.Exists(destPath))
+                {
+                    var newName = $"{nameWithoutExtension}_{counter}{extension}";
+                    destPath = Path.Combine(typeFolder, newName);
+                    counter++;
+                }
+
+                File.Copy(sourcePath, destPath, true);
+                Logger.Info($"Copied {resourceType} resource to: {destPath}");
+                return destPath;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to copy {resourceType} resource: {ex.Message}");
+                return sourcePath;
+            }
+        }
+
+        private string GetRelativePath(string fullPath)
+        {
+            try
+            {
+                if (fullPath.StartsWith(ResourcesFolder, StringComparison.OrdinalIgnoreCase))
+                    return Path.GetRelativePath(OutputFolder, fullPath);
+
+                if (fullPath.StartsWith(OutputFolder, StringComparison.OrdinalIgnoreCase))
+                    return Path.GetRelativePath(OutputFolder, fullPath);
+
+                return Path.GetFileName(fullPath);
+            }
+            catch
+            {
+                return Path.GetFileName(fullPath);
+            }
+        }
+
+        private string ResolveRelativePath(string relativePath)
+        {
+            try
+            {
+                if (Path.IsPathRooted(relativePath) && File.Exists(relativePath))
+                    return relativePath;
+
+                var fullPath = Path.Combine(OutputFolder, relativePath);
+                if (File.Exists(fullPath)) return fullPath;
+
+                fullPath = Path.Combine(ResourcesFolder, relativePath);
+                if (File.Exists(fullPath)) return fullPath;
+
+                foreach (var subFolder in new[] { "Images", "Videos", "Backgrounds" })
+                {
+                    fullPath = Path.Combine(ResourcesFolder, subFolder, relativePath);
+                    if (File.Exists(fullPath)) return fullPath;
+                }
+
+                return relativePath;
+            }
+            catch
+            {
+                return relativePath;
+            }
+        }
+
+        // ================= Save Config =================
         private void SaveConfig_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // Ask for config name if not set
                 if (string.IsNullOrWhiteSpace(CurrentConfigName))
                 {
                     var dialog = new ConfigNameDialog();
                     if (Application.Current.MainWindow != null)
-                    {
                         dialog.Owner = Application.Current.MainWindow;
-                    }
-                    
                     if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.ConfigName))
-                    {
                         return;
-                    }
                     CurrentConfigName = dialog.ConfigName;
                 }
 
@@ -1406,7 +1335,6 @@ namespace CMDevicesManager.Pages
                     BackgroundImageOpacity = BackgroundImageOpacity
                 };
 
-                // Save all canvas elements
                 foreach (UIElement child in DesignCanvas.Children)
                 {
                     if (child is Border border && GetTransforms(border, out var scale, out var translate))
@@ -1420,20 +1348,27 @@ namespace CMDevicesManager.Pages
                             ZIndex = Canvas.GetZIndex(border)
                         };
 
-                        // Handle different element types
                         if (border.Child is TextBlock tb)
                         {
                             elemConfig.Type = "Text";
                             elemConfig.Text = tb.Text;
                             elemConfig.FontSize = tb.FontSize;
-                            
-                            if (tb.Foreground is SolidColorBrush brush)
+
+                            if (tb.Foreground is LinearGradientBrush lgb && lgb.GradientStops.Count >= 2)
                             {
-                                var color = brush.Color;
-                                elemConfig.TextColor = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+                                elemConfig.UseTextGradient = true;
+                                var c1 = lgb.GradientStops[0].Color;
+                                var c2 = lgb.GradientStops[1].Color;
+                                elemConfig.TextColor = $"#{c1.R:X2}{c1.G:X2}{c1.B:X2}";
+                                elemConfig.TextColor2 = $"#{c2.R:X2}{c2.G:X2}{c2.B:X2}";
+                            }
+                            else if (tb.Foreground is SolidColorBrush brush)
+                            {
+                                elemConfig.UseTextGradient = false;
+                                var c = brush.Color;
+                                elemConfig.TextColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
                             }
 
-                            // Handle live info
                             if (border.Tag is LiveInfoKind liveKind)
                             {
                                 elemConfig.Type = "LiveText";
@@ -1462,25 +1397,21 @@ namespace CMDevicesManager.Pages
                     }
                 }
 
-                // Save to file with timestamp-based filename
                 var configFolder = Path.Combine(OutputFolder, "Configs");
                 Directory.CreateDirectory(configFolder);
-                
-                // Use timestamp for filename to avoid conflicts and special characters
                 var fileName = $"config_{DateTime.Now:yyyyMMdd_HHmmss}.json";
                 var filePath = Path.Combine(configFolder, fileName);
-                
-                var json = JsonSerializer.Serialize(config, new JsonSerializerOptions 
-                { 
+
+                var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
+                {
                     WriteIndented = true,
                     Converters = { new JsonStringEnumConverter() }
                 });
-                
                 File.WriteAllText(filePath, json);
-                
-                var configSavedMsg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
-                var saveSuccessfulMsg = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
-                MessageBox.Show($"{configSavedMsg}: {CurrentConfigName}", saveSuccessfulMsg, MessageBoxButton.OK, MessageBoxImage.Information);
+
+                var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
+                var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
+                MessageBox.Show($"{msg}: {CurrentConfigName}", title, MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -1489,17 +1420,15 @@ namespace CMDevicesManager.Pages
             }
         }
 
+        // ================= Load Config =================
         private async void LoadConfig_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 var configFolder = Path.Combine(OutputFolder, "Configs");
                 if (!Directory.Exists(configFolder))
-                {
                     Directory.CreateDirectory(configFolder);
-                }
 
-                // Load all config files
                 var configFiles = Directory.GetFiles(configFolder, "*.json");
                 if (configFiles.Length == 0)
                 {
@@ -1509,26 +1438,22 @@ namespace CMDevicesManager.Pages
                     return;
                 }
 
-                // Parse all configs
                 var configs = new List<(string path, CanvasConfiguration config)>();
                 foreach (var file in configFiles)
                 {
                     try
                     {
                         var json = File.ReadAllText(file);
-                        var config_tmp = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
+                        var cfg = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
                         {
                             Converters = { new JsonStringEnumConverter() }
                         });
-
-                        if (config_tmp != null)
-                        {
-                            configs.Add((file, config_tmp));
-                        }
+                        if (cfg != null)
+                            configs.Add((file, cfg));
                     }
-                    catch (Exception ex)
+                    catch (Exception ex2)
                     {
-                        Logger.Info($"Failed to load config file {file}: {ex.Message}");
+                        Logger.Info($"Failed to load config file {file}: {ex2.Message}");
                     }
                 }
 
@@ -1540,113 +1465,126 @@ namespace CMDevicesManager.Pages
                     return;
                 }
 
-                // Show selection dialog
                 var selectionDialog = new ConfigSelectionDialog(configs);
                 if (Application.Current.MainWindow != null)
-                {
                     selectionDialog.Owner = Application.Current.MainWindow;
-                }
 
                 if (selectionDialog.ShowDialog() != true || selectionDialog.SelectedConfig == null)
-                {
                     return;
-                }
 
                 var config = selectionDialog.SelectedConfig;
 
-                // Clear current canvas
                 DesignCanvas.Children.Clear();
                 _liveItems.Clear();
                 SetSelected(null);
                 StopVideoPlayback();
 
-                // Apply configuration
                 CurrentConfigName = config.ConfigName;
                 CanvasSize = config.CanvasSize;
                 BackgroundHex = config.BackgroundColor;
-                
-                // Resolve relative path for background image
-                if (!string.IsNullOrEmpty(config.BackgroundImagePath))
-                {
-                    BackgroundImagePath = ResolveRelativePath(config.BackgroundImagePath);
-                }
-                else
-                {
-                    BackgroundImagePath = null;
-                }
-                
+                BackgroundImagePath = !string.IsNullOrEmpty(config.BackgroundImagePath)
+                    ? ResolveRelativePath(config.BackgroundImagePath)
+                    : null;
                 BackgroundImageOpacity = config.BackgroundImageOpacity;
 
-                // Restore elements
-                foreach (var elemConfig in config.Elements.OrderBy(e => e.ZIndex))
+                foreach (var elemConfig in config.Elements.OrderBy(ei => ei.ZIndex))
                 {
                     FrameworkElement? element = null;
                     Border? border = null;
-                    
+
                     switch (elemConfig.Type)
                     {
                         case "Text":
-                            var textBlock = new TextBlock
+                        {
+                            var tb = new TextBlock
                             {
                                 Text = elemConfig.Text ?? "Text",
                                 FontSize = elemConfig.FontSize ?? 24,
                                 FontWeight = FontWeights.SemiBold
                             };
-                            textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-                            
-                            if (!string.IsNullOrEmpty(elemConfig.TextColor) && TryParseHexColor(elemConfig.TextColor, out var textColor))
+                            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+
+                            if (elemConfig.UseTextGradient == true &&
+                                !string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                !string.IsNullOrEmpty(elemConfig.TextColor2) &&
+                                TryParseHexColor(elemConfig.TextColor, out var c1) &&
+                                TryParseHexColor(elemConfig.TextColor2, out var c2))
                             {
-                                textBlock.Foreground = new SolidColorBrush(textColor);
+                                var gradientBrush = new LinearGradientBrush
+                                {
+                                    StartPoint = new Point(0, 0),
+                                    EndPoint = new Point(1, 1)
+                                };
+                                gradientBrush.GradientStops.Add(new GradientStop(c1, 0.0));
+                                gradientBrush.GradientStops.Add(new GradientStop(c2, 1.0));
+                                tb.Foreground = gradientBrush;
+                            }
+                            else if (!string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                     TryParseHexColor(elemConfig.TextColor, out var tc))
+                            {
+                                tb.Foreground = new SolidColorBrush(tc);
                             }
                             else
                             {
-                                textBlock.Foreground = new SolidColorBrush(Colors.Black);
+                                tb.Foreground = new SolidColorBrush(Colors.Black);
                             }
-                            
-                            element = textBlock;
+                            element = tb;
                             break;
-                            
+                        }
                         case "LiveText":
+                        {
                             if (elemConfig.LiveKind.HasValue)
                             {
-                                // Create live text manually without using Add methods
-                                var liveTextBlock = new TextBlock
+                                var liveTb = new TextBlock
                                 {
                                     FontSize = elemConfig.FontSize ?? 20,
                                     FontWeight = FontWeights.SemiBold
                                 };
-                                liveTextBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-                                
-                                if (!string.IsNullOrEmpty(elemConfig.TextColor) && TryParseHexColor(elemConfig.TextColor, out var liveTextColor))
+                                liveTb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+
+                                if (elemConfig.UseTextGradient == true &&
+                                    !string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                    !string.IsNullOrEmpty(elemConfig.TextColor2) &&
+                                    TryParseHexColor(elemConfig.TextColor, out var lc1) &&
+                                    TryParseHexColor(elemConfig.TextColor2, out var lc2))
                                 {
-                                    liveTextBlock.Foreground = new SolidColorBrush(liveTextColor);
+                                    var gradientBrush = new LinearGradientBrush
+                                    {
+                                        StartPoint = new Point(0, 0),
+                                        EndPoint = new Point(1, 1)
+                                    };
+                                    gradientBrush.GradientStops.Add(new GradientStop(lc1, 0.0));
+                                    gradientBrush.GradientStops.Add(new GradientStop(lc2, 1.0));
+                                    liveTb.Foreground = gradientBrush;
+                                }
+                                else if (!string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                         TryParseHexColor(elemConfig.TextColor, out var liveTextColor))
+                                {
+                                    liveTb.Foreground = new SolidColorBrush(liveTextColor);
                                 }
                                 else
                                 {
-                                    liveTextBlock.Foreground = new SolidColorBrush(Colors.Black);
+                                    liveTb.Foreground = new SolidColorBrush(Colors.Black);
                                 }
-                                
-                                // Set initial text based on type
+
                                 switch (elemConfig.LiveKind.Value)
                                 {
                                     case LiveInfoKind.DateTime:
-                                        liveTextBlock.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                                        liveTb.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         break;
                                     case LiveInfoKind.CpuUsage:
-                                        liveTextBlock.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
-                                        liveTextBlock.Tag = LiveInfoKind.CpuUsage;
+                                        liveTb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
                                         break;
                                     case LiveInfoKind.GpuUsage:
-                                        liveTextBlock.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
-                                        liveTextBlock.Tag = LiveInfoKind.GpuUsage;
+                                        liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
                                         break;
                                 }
-                                
-                                element = liveTextBlock;
+                                element = liveTb;
                             }
                             break;
-                            
+                        }
                         case "Image":
+                        {
                             if (!string.IsNullOrEmpty(elemConfig.ImagePath))
                             {
                                 var resolvedPath = ResolveRelativePath(elemConfig.ImagePath);
@@ -1660,7 +1598,7 @@ namespace CMDevicesManager.Pages
                                         bitmap.UriSource = new Uri(resolvedPath, UriKind.Absolute);
                                         bitmap.EndInit();
                                         bitmap.Freeze();
-                                        
+
                                         var img = new Image
                                         {
                                             Source = bitmap,
@@ -1679,21 +1617,21 @@ namespace CMDevicesManager.Pages
                                 }
                             }
                             break;
-                            
+                        }
                         case "Video":
+                        {
                             if (!string.IsNullOrEmpty(elemConfig.VideoPath))
                             {
                                 var resolvedPath = ResolveRelativePath(elemConfig.VideoPath);
                                 if (File.Exists(resolvedPath))
                                 {
-                                    // Manually trigger video loading for the stored path
                                     var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedPath);
                                     if (videoInfo != null)
                                     {
                                         Mouse.OverrideCursor = Cursors.Wait;
                                         var frames = await ExtractMp4FramesToMemory(resolvedPath);
                                         Mouse.OverrideCursor = null;
-                                        
+
                                         if (frames != null && frames.Count > 0)
                                         {
                                             _currentVideoFrames = frames;
@@ -1705,23 +1643,20 @@ namespace CMDevicesManager.Pages
                                                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
                                                 VerticalAlignment = VerticalAlignment.Top
                                             };
-                                            
                                             UpdateVideoFrame(videoImage, frames[0]);
                                             element = videoImage;
+
+                                            var tempBorder = new Border(); // created later
                                         }
                                     }
                                 }
-                                else
-                                {
-                                    Logger.Info($"Video file not found: {resolvedPath}");
-                                }
                             }
                             break;
+                        }
                     }
 
                     if (element != null)
                     {
-                        // Create border manually to control position
                         element.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
                         element.VerticalAlignment = VerticalAlignment.Top;
 
@@ -1735,7 +1670,6 @@ namespace CMDevicesManager.Pages
                             Opacity = elemConfig.Opacity
                         };
 
-                        // Apply saved transforms
                         var tg = new TransformGroup();
                         var scale = new ScaleTransform(elemConfig.Scale, elemConfig.Scale);
                         var translate = new TranslateTransform(elemConfig.X, elemConfig.Y);
@@ -1743,7 +1677,6 @@ namespace CMDevicesManager.Pages
                         tg.Children.Add(translate);
                         border.RenderTransform = tg;
 
-                        // Set up event handlers
                         border.PreviewMouseLeftButtonDown += Item_PreviewMouseLeftButtonDown;
                         border.PreviewMouseLeftButtonUp += Item_PreviewMouseLeftButtonUp;
                         border.PreviewMouseMove += Item_PreviewMouseMove;
@@ -1751,28 +1684,25 @@ namespace CMDevicesManager.Pages
                         border.MouseEnter += (_, __) => { if (_selected != border) border.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 30, 144, 255)); };
                         border.MouseLeave += (_, __) => { if (_selected != border) border.BorderBrush = Brushes.Transparent; };
 
-                        // Add to canvas and set Z-index
                         DesignCanvas.Children.Add(border);
                         Canvas.SetZIndex(border, elemConfig.ZIndex);
-                        
-                        // Handle live text registration
+
                         if (elemConfig.Type == "LiveText" && elemConfig.LiveKind.HasValue)
                         {
                             border.Tag = elemConfig.LiveKind.Value;
-                            _liveItems.Add(new LiveTextItem 
-                            { 
-                                Border = border, 
-                                Text = (TextBlock)element, 
-                                Kind = elemConfig.LiveKind.Value 
+                            _liveItems.Add(new LiveTextItem
+                            {
+                                Border = border,
+                                Text = (TextBlock)element,
+                                Kind = elemConfig.LiveKind.Value
                             });
                         }
-                        
-                        // Handle video setup
+
                         if (elemConfig.Type == "Video" && element is Image videoImg)
                         {
                             _currentVideoImage = videoImg;
                             _currentVideoBorder = border;
-                            
+
                             var resolvedVideoPath = ResolveRelativePath(elemConfig.VideoPath!);
                             var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedVideoPath);
                             if (videoInfo != null)
@@ -1784,23 +1714,212 @@ namespace CMDevicesManager.Pages
                                     FilePath = resolvedVideoPath,
                                     TotalFrames = _currentVideoFrames?.Count ?? 0
                                 };
-                                
                                 StartVideoPlayback(videoInfo.FrameRate);
                             }
                         }
                     }
                 }
 
-                var configLoadedMsg = Application.Current.FindResource("ConfigLoaded")?.ToString() ?? "Configuration loaded";
-                var loadSuccessfulMsg = Application.Current.FindResource("LoadSuccessful")?.ToString() ?? "Load Successful";
-                MessageBox.Show($"{configLoadedMsg}: {config.ConfigName}", loadSuccessfulMsg, MessageBoxButton.OK, MessageBoxImage.Information);
+                var loadedMsg = Application.Current.FindResource("ConfigLoaded")?.ToString() ?? "Configuration loaded";
+                var okTitle = Application.Current.FindResource("LoadSuccessful")?.ToString() ?? "Load Successful";
+                MessageBox.Show($"{loadedMsg}: {config.ConfigName}", okTitle, MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                var loadFailedMsg = Application.Current.FindResource("LoadConfigFailed")?.ToString() ?? "Failed to load configuration";
+                var failedMsg = Application.Current.FindResource("LoadConfigFailed")?.ToString() ?? "Failed to load configuration";
                 var errorMsg = Application.Current.FindResource("Error")?.ToString() ?? "Error";
-                MessageBox.Show($"{loadFailedMsg}: {ex.Message}", errorMsg, MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"{failedMsg}: {ex.Message}", errorMsg, MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // ================= Apply Text Color / Gradient =================
+        private void ApplyTextColorOrGradient()
+        {
+            if (_selected?.Child is not TextBlock tb) return;
+
+            if (UseTextGradient)
+            {
+                var brush = new LinearGradientBrush
+                {
+                    StartPoint = new Point(0, 0),
+                    EndPoint = new Point(1, 1)
+                };
+                brush.GradientStops.Add(new GradientStop(SelectedTextColor, 0));
+                brush.GradientStops.Add(new GradientStop(SelectedTextColor2, 1));
+                tb.Foreground = brush;
+            }
+            else
+            {
+                tb.Foreground = new SolidColorBrush(SelectedTextColor);
+            }
+        }
+
+        // ================= Auto Move =================
+        private void UpdateAutoMoveTimer()
+        {
+            if (AutoMoveEnabled)
+            {
+                _lastAutoMoveTime = DateTime.Now;
+                if (!_autoMoveTimer.IsEnabled)
+                    _autoMoveTimer.Start();
+            }
+            else
+            {
+                if (_autoMoveTimer.IsEnabled)
+                    _autoMoveTimer.Stop();
+            }
+        }
+
+        private void AutoMoveTimer_Tick(object? sender, EventArgs e)
+        {
+            if (!AutoMoveEnabled) return;
+            if (_selected == null) return;
+            if (_selected.Child is not TextBlock) return;
+            if (_selected.Tag is LiveInfoKind) return; // 不移动直播文字
+
+            if (!GetTransforms(_selected, out var scale, out var translate)) return;
+
+            var now = DateTime.Now;
+            var dt = (now - _lastAutoMoveTime).TotalSeconds;
+            if (dt <= 0) return;
+            _lastAutoMoveTime = now;
+
+            double dx = MoveDirX * MoveSpeed * dt;
+            double dy = MoveDirY * MoveSpeed * dt;
+
+            translate.X += dx;
+            translate.Y += dy;
+
+            // 计算缩放后的尺寸
+            double scaledW = _selected.ActualWidth * scale.ScaleX;
+            double scaledH = _selected.ActualHeight * scale.ScaleY;
+
+            // 横向环绕
+            if (translate.X > CanvasSize)
+                translate.X = -scaledW;
+            else if (translate.X + scaledW < 0)
+                translate.X = CanvasSize;
+
+            // 纵向环绕
+            if (translate.Y > CanvasSize)
+                translate.Y = -scaledH;
+            else if (translate.Y + scaledH < 0)
+                translate.Y = CanvasSize;
+        }
+
+        private void JoystickBase_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            _isJoystickDragging = true;
+            (sender as UIElement)?.CaptureMouse();
+            UpdateJoystick(e.GetPosition((IInputElement)sender));
+        }
+
+        private void JoystickBase_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!_isJoystickDragging) return;
+            UpdateJoystick(e.GetPosition((IInputElement)sender));
+        }
+
+        private void JoystickBase_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_isJoystickDragging)
+            {
+                _isJoystickDragging = false;
+                (sender as UIElement)?.ReleaseMouseCapture();
+            }
+        }
+        private void JoystickCenter_Click(object sender, RoutedEventArgs e)
+        {
+            MoveDirX = 0;
+            MoveDirY = 0;
+            if (FindName("JoystickKnobTransform") is TranslateTransform tt)
+            {
+                tt.X = 0;
+                tt.Y = 0;
+            }
+        }
+
+
+
+        private void UpdateJoystick(Point p)
+        {
+            // 以中心 (60,60) 为原点
+            double cx = JoystickBaseSize / 2.0;
+            double cy = JoystickBaseSize / 2.0;
+
+            double dx = p.X - cx;
+            double dy = p.Y - cy;
+
+            double dist = Math.Sqrt(dx * dx + dy * dy);
+            double maxDist = JoystickMaxOffset; // 最大偏移（中心到边缘内侧）
+
+            if (dist > maxDist)
+            {
+                double scale = maxDist / dist;
+                dx *= scale;
+                dy *= scale;
+            }
+
+            if (dist < 1.5)
+            {
+                MoveDirX = 0;
+                MoveDirY = 0;
+            }
+            else
+            {
+                var len = Math.Sqrt(dx * dx + dy * dy);
+                MoveDirX = dx / len;
+                MoveDirY = dy / len;
+            }
+
+            if (FindName("JoystickKnobTransform") is TranslateTransform tt)
+            {
+                tt.X = dx;
+                tt.Y = dy;
+            }
+        }
+        // Helper: retrieve (or create) ScaleTransform & TranslateTransform from element Border.RenderTransform
+        private static bool GetTransforms(Border border, out ScaleTransform scale, out TranslateTransform translate)
+        {
+            if (border.RenderTransform is TransformGroup tg)
+            {
+                scale = tg.Children.OfType<ScaleTransform>().FirstOrDefault();
+                translate = tg.Children.OfType<TranslateTransform>().FirstOrDefault();
+
+                if (scale != null && translate != null)
+                    return true;
+
+                // If one or both missing, add them (keep existing order: scale then translate)
+                if (scale == null)
+                {
+                    scale = new ScaleTransform(1, 1);
+                    tg.Children.Insert(0, scale);
+                }
+                if (translate == null)
+                {
+                    translate = new TranslateTransform(0, 0);
+                    tg.Children.Add(translate);
+                }
+                return false;
+            }
+
+            // No TransformGroup yet: create a fresh one
+            scale = new ScaleTransform(1, 1);
+            translate = new TranslateTransform(0, 0);
+            var newGroup = new TransformGroup();
+            newGroup.Children.Add(scale);
+            newGroup.Children.Add(translate);
+            border.RenderTransform = newGroup;
+            return false;
+        }
+
+        // ================= Unloaded =================
+        private void DeviceConfigPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            try { _liveTimer.Stop(); } catch { }
+            try { _metrics.Dispose(); } catch { }
+            try { _autoMoveTimer.Stop(); } catch { }
+            StopVideoPlayback();
         }
     }
 }
