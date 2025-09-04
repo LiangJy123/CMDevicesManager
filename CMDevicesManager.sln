@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HIDTestDemo", "HidProtocol\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HidHelper", "HidProtocol\HidHelper\HidHelper.csproj", "{5BE5A037-4690-49D3-936D-2243C1162F72}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinUI3Demo", "WinUI3\WinUI3Demo\WinUI3Demo.csproj", "{083F6BAB-2C0B-7683-9848-90C6D4199A95}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,6 +32,12 @@ Global
 		{5BE5A037-4690-49D3-936D-2243C1162F72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5BE5A037-4690-49D3-936D-2243C1162F72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5BE5A037-4690-49D3-936D-2243C1162F72}.Release|Any CPU.Build.0 = Release|Any CPU
+		{083F6BAB-2C0B-7683-9848-90C6D4199A95}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{083F6BAB-2C0B-7683-9848-90C6D4199A95}.Debug|Any CPU.Build.0 = Debug|x64
+		{083F6BAB-2C0B-7683-9848-90C6D4199A95}.Debug|Any CPU.Deploy.0 = Debug|x64
+		{083F6BAB-2C0B-7683-9848-90C6D4199A95}.Release|Any CPU.ActiveCfg = Release|x64
+		{083F6BAB-2C0B-7683-9848-90C6D4199A95}.Release|Any CPU.Build.0 = Release|x64
+		{083F6BAB-2C0B-7683-9848-90C6D4199A95}.Release|Any CPU.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
