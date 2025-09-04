@@ -17,9 +17,8 @@
 
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <!-- The whole tile is a Button for click + hover effects -->
-                    <Button Click="DeviceCard_Click"
-                            Cursor="Hand"
+                    <!-- Whole tile is still a Button for hover visuals; click on specific option buttons only -->
+                    <Button Cursor="Hand"
                             Padding="0"
                             Margin="12"
                             Width="280"
@@ -28,8 +27,38 @@
                             BorderBrush="{x:Null}">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
+                                <ControlTemplate.Resources>
+                                    <Style x:Key="DeviceOptionButtonStyle" TargetType="Button">
+                                        <Setter Property="Background" Value="#CC222222"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Padding" Value="16,8"/>
+                                        <Setter Property="Margin" Value="0,8,0,0"/>
+                                        <Setter Property="FontSize" Value="14"/>
+                                        <Setter Property="Cursor" Value="Hand"/>
+                                        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="{TemplateBinding Background}" CornerRadius="8">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#FF3A3A3A"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter Property="Background" Value="#FF555555"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ControlTemplate.Resources>
+                                
                                 <Grid x:Name="Root" ClipToBounds="True">
-                                    <!-- Card container with subtle shadow -->
+                                    <!-- Card base -->
                                     <Border x:Name="Card"
                                             CornerRadius="16"
                                             Background="#121212">
@@ -42,17 +71,15 @@
                                     <Image Source="{Binding ImagePath}"
                                            Stretch="UniformToFill"
                                            SnapsToDevicePixels="True"
-                                           ClipToBounds="True"
-                                           Margin="0"
-                                           />
+                                           ClipToBounds="True"/>
 
-                                    <!-- Gradient fade for text legibility -->
+                                    <!-- Top gradient -->
                                     <Border VerticalAlignment="Top"
                                             Height="80"
                                             CornerRadius="16,16,0,0"
                                             Background="#80000000"/>
 
-                                    <!-- Title + small subtitle -->
+                                    <!-- Title -->
                                     <StackPanel Orientation="Vertical" Margin="16" VerticalAlignment="Top">
                                         <TextBlock Text="{Binding Name}"
                                                    Foreground="White"
@@ -64,7 +91,7 @@
                                                    Opacity="0.75"/>
                                     </StackPanel>
 
-                                    <!-- Settings glyph (appears on hover) -->
+                                    <!-- Settings glyph -->
                                     <Border x:Name="HoverGlyphContainer"
                                             Width="32" Height="32"
                                             CornerRadius="16"
@@ -81,46 +108,44 @@
                                                    FontSize="14"/>
                                     </Border>
 
-                                    <!-- Hover overlay call-to-action -->
+                                    <!-- Dark overlay -->
                                     <Border x:Name="HoverOverlay"
-                                            Background="#33000000"
+                                            Background="#99000000"
                                             CornerRadius="16"
                                             Opacity="0"/>
 
-                                    <Border x:Name="HoverCTA"
-                                            Background="#AAFFFFFF"
-                                            HorizontalAlignment="Left"
-                                            VerticalAlignment="Bottom"
-                                            Margin="16"
-                                            CornerRadius="14"
-                                            Padding="8,4"
-                                            Opacity="0">
-                                        <StackPanel Orientation="Horizontal" >
-                                            <TextBlock Text="Configure"
-                                                       Foreground="#111"
-                                                       FontWeight="SemiBold"/>
-                                            <TextBlock Text="&#xE76C;"
-                                                       FontFamily="Segoe MDL2 Assets"
-                                                       Foreground="#111"/>
-                                        </StackPanel>
-                                    </Border>
+                                    <!-- Center action list -->
+                                    <StackPanel x:Name="HoverOptions"
+                                                Width="180"
+                                                Opacity="0"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center">
+                                        <Button Style="{StaticResource DeviceOptionButtonStyle}"
+                                                Content="屏幕自定义"
+                                                Tag="{Binding}"
+                                                Click="ScreenCustomize_Click"/>
+                                        <Button Style="{StaticResource DeviceOptionButtonStyle}"
+                                                Content="播放模式"
+                                                Tag="{Binding}"
+                                                Click="PlaybackMode_Click"/>
+                                        <Button Style="{StaticResource DeviceOptionButtonStyle}"
+                                                Content="固件信息"
+                                                Tag="{Binding}"
+                                                Click="FirmwareInfo_Click"/>
+                                    </StackPanel>
+
                                 </Grid>
 
                                 <ControlTemplate.Triggers>
-                                    <!-- Hover: show overlay, glyph, and CTA -->
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="HoverOverlay" Property="Opacity" Value="0.12"/>
+                                        <Setter TargetName="HoverOverlay" Property="Opacity" Value="0.55"/>
                                         <Setter TargetName="HoverGlyphContainer" Property="Opacity" Value="1"/>
-                                        <Setter TargetName="HoverCTA" Property="Opacity" Value="1"/>
+                                        <Setter TargetName="HoverOptions" Property="Opacity" Value="1"/>
                                         <Setter TargetName="Card" Property="Effect">
                                             <Setter.Value>
                                                 <DropShadowEffect Color="#000000" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
                                             </Setter.Value>
                                         </Setter>
-                                    </Trigger>
-                                    <!-- Pressed: slightly darker -->
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="HoverOverlay" Property="Opacity" Value="0.22"/>
                                     </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
