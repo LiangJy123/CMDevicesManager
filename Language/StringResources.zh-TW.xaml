@@ -31,7 +31,55 @@
     <sys:String x:Key="JetBrainsMonoFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">JetBrains Mono（等寬）</sys:String>
     <sys:String x:Key="CascadiaMonoFont" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cascadia Mono（等寬）</sys:String>
     
+    <!-- Update -->
+    <sys:String x:Key="UpdateLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">更新</sys:String>
+    <sys:String x:Key="CheckUpdate" xmlns:sys="clr-namespace:System;assembly=mscorlib">檢查更新</sys:String>
+    
     <!-- Common -->
     <sys:String x:Key="HelloText" xmlns:sys="clr-namespace:System;assembly=mscorlib">您好</sys:String>
     <sys:String x:Key="WelcomeText" xmlns:sys="clr-namespace:System;assembly=mscorlib">歡迎使用 Cooler Master 設備管理器</sys:String>
+    
+    <!-- Dialog Buttons -->
+    <sys:String x:Key="OkButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">確定</sys:String>
+    <sys:String x:Key="CancelButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">取消</sys:String>
+    <sys:String x:Key="LoadButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">載入</sys:String>
+    
+    <!-- DeviceConfig Page -->
+    <sys:String x:Key="ConfigNameTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置名稱</sys:String>
+    <sys:String x:Key="ConfigNamePrompt" xmlns:sys="clr-namespace:System;assembly=mscorlib">請輸入配置名稱：</sys:String>
+    <sys:String x:Key="SelectConfigTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">選擇配置</sys:String>
+    <sys:String x:Key="ConfigSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置已保存</sys:String>
+    <sys:String x:Key="SaveSuccessful" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存成功</sys:String>
+    <sys:String x:Key="ConfigLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置已載入</sys:String>
+    <sys:String x:Key="LoadSuccessful" xmlns:sys="clr-namespace:System;assembly=mscorlib">載入成功</sys:String>
+    <sys:String x:Key="LoadConfigFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">載入配置失敗</sys:String>
+    <sys:String x:Key="Error" xmlns:sys="clr-namespace:System;assembly=mscorlib">錯誤</sys:String>
+    <sys:String x:Key="UnsavedConfig" xmlns:sys="clr-namespace:System;assembly=mscorlib">未保存的配置</sys:String>
+    <sys:String x:Key="SampleText" xmlns:sys="clr-namespace:System;assembly=mscorlib">範例文字</sys:String>
+    
+    <!-- Status Information -->
+    <sys:String x:Key="None" xmlns:sys="clr-namespace:System;assembly=mscorlib">無</sys:String>
+    <sys:String x:Key="CpuUsage" xmlns:sys="clr-namespace:System;assembly=mscorlib">CPU 使用率</sys:String>
+    <sys:String x:Key="GpuUsage" xmlns:sys="clr-namespace:System;assembly=mscorlib">GPU 使用率</sys:String>
+    <sys:String x:Key="DateTime" xmlns:sys="clr-namespace:System;assembly=mscorlib">日期時間</sys:String>
+    <sys:String x:Key="LiveText" xmlns:sys="clr-namespace:System;assembly=mscorlib">即時文字</sys:String>
+    
+    <!-- System Tray -->
+    <sys:String x:Key="TrayTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">CMDevicesManager - 硬體監控工具</sys:String>
+    <sys:String x:Key="ShowMainWindow" xmlns:sys="clr-namespace:System;assembly=mscorlib">顯示主視窗</sys:String>
+    <sys:String x:Key="ExitApplication" xmlns:sys="clr-namespace:System;assembly=mscorlib">退出應用程式</sys:String>
+    <sys:String x:Key="AppRunningInTray" xmlns:sys="clr-namespace:System;assembly=mscorlib">應用程式正在系統托盤中運行。雙擊打開或右鍵查看選項。</sys:String>
+    <sys:String x:Key="AppMinimizedToTray" xmlns:sys="clr-namespace:System;assembly=mscorlib">應用程式已最小化到系統托盤。雙擊托盤圖示以恢復。</sys:String>
+    <sys:String x:Key="CloseConfirmation" xmlns:sys="clr-namespace:System;assembly=mscorlib">關閉確認</sys:String>
+    <sys:String x:Key="CloseConfirmationMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">您是否要最小化到系統托盤或退出應用程式？
+
+點擊「是」最小化到托盤（應用程式繼續運行）
+點擊「否」完全退出
+點擊「取消」返回應用程式</sys:String>
+    
+    <!-- Additional Messages -->
+    <sys:String x:Key="NoConfigFilesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">沒有找到任何配置文件</sys:String>
+    <sys:String x:Key="NoValidConfigFilesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">沒有找到有效的配置文件</sys:String>
+    <sys:String x:Key="Notice" xmlns:sys="clr-namespace:System;assembly=mscorlib">提示</sys:String>
+    <sys:String x:Key="OpenSettingsPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">這裡打開設定視窗</sys:String>
 </ResourceDictionary>

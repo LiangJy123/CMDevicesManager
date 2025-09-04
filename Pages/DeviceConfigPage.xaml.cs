@@ -83,7 +83,7 @@ namespace CMDevicesManager.Pages
 
         public ConfigNameDialog(string defaultName = "")
         {
-            Title = "配置名称";
+            Title = Application.Current.FindResource("ConfigNameTitle")?.ToString() ?? "Configuration Name";
             Width = 400;
             Height = 180;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -96,7 +96,7 @@ namespace CMDevicesManager.Pages
 
             var label = new TextBlock 
             { 
-                Text = "请输入配置名称：", 
+                Text = Application.Current.FindResource("ConfigNamePrompt")?.ToString() ?? "Please enter configuration name:",
                 Margin = new Thickness(0, 0, 0, 10),
                 FontSize = 14
             };
@@ -121,7 +121,7 @@ namespace CMDevicesManager.Pages
             
             var okButton = new Button 
             { 
-                Content = "确定", 
+                Content = Application.Current.FindResource("OkButton")?.ToString() ?? "OK",
                 Width = 80, 
                 Height = 30,
                 Margin = new Thickness(0, 0, 10, 0),
@@ -135,7 +135,7 @@ namespace CMDevicesManager.Pages
             
             var cancelButton = new Button 
             { 
-                Content = "取消", 
+                Content = Application.Current.FindResource("CancelButton")?.ToString() ?? "Cancel",
                 Width = 80, 
                 Height = 30,
                 IsCancel = true
@@ -166,7 +166,7 @@ namespace CMDevicesManager.Pages
 
         public ConfigSelectionDialog(List<(string path, CanvasConfiguration config)> configs)
         {
-            Title = "选择配置";
+            Title = Application.Current.FindResource("SelectConfigTitle")?.ToString() ?? "Select Configuration";
             Width = 500;
             Height = 400;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -213,7 +213,7 @@ namespace CMDevicesManager.Pages
 
             var loadButton = new Button
             {
-                Content = "加载",
+                Content = Application.Current.FindResource("LoadButton")?.ToString() ?? "Load",
                 Width = 80,
                 Height = 30,
                 Margin = new Thickness(0, 0, 10, 0),
@@ -223,7 +223,7 @@ namespace CMDevicesManager.Pages
 
             var cancelButton = new Button
             {
-                Content = "取消",
+                Content = Application.Current.FindResource("CancelButton")?.ToString() ?? "Cancel",
                 Width = 80,
                 Height = 30,
                 IsCancel = true
@@ -366,7 +366,7 @@ namespace CMDevicesManager.Pages
         // Property for displaying configuration status
         public string ConfigurationDisplayName 
         {
-            get => string.IsNullOrWhiteSpace(CurrentConfigName) ? "未保存的配置" : CurrentConfigName;
+            get => string.IsNullOrWhiteSpace(CurrentConfigName) ? (Application.Current.FindResource("UnsavedConfig")?.ToString() ?? "Unsaved Configuration") : CurrentConfigName;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -390,6 +390,9 @@ namespace CMDevicesManager.Pages
             _device = device ?? throw new ArgumentNullException(nameof(device));
             InitializeComponent();
             DataContext = this;
+
+            // Initialize localized strings
+            _selectedInfo = Application.Current.FindResource("None")?.ToString() ?? "None";
 
             // Metrics service
             _metrics = new RealSystemMetricsService();
@@ -574,7 +577,7 @@ namespace CMDevicesManager.Pages
             // Apply current app font family
             textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
-            var border = AddElement(textBlock, "Date/Time");
+            var border = AddElement(textBlock, Application.Current.FindResource("DateTime")?.ToString() ?? "Date/Time");
 
             // Mark as live and register
             border.Tag = LiveInfoKind.DateTime;
@@ -607,7 +610,9 @@ namespace CMDevicesManager.Pages
             // Apply current app font family
             textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
-            var border = AddElement(textBlock, kind == LiveInfoKind.CpuUsage ? "CPU Usage" : "GPU Usage");
+            var cpuUsageText = Application.Current.FindResource("CpuUsage")?.ToString() ?? "CPU Usage";
+            var gpuUsageText = Application.Current.FindResource("GpuUsage")?.ToString() ?? "GPU Usage";
+            var border = AddElement(textBlock, kind == LiveInfoKind.CpuUsage ? cpuUsageText : gpuUsageText);
 
             // Mark as live and register
             border.Tag = kind;
@@ -655,7 +660,7 @@ namespace CMDevicesManager.Pages
         {
             var textBlock = new TextBlock
             {
-                Text = "Sample Text",
+                Text = Application.Current.FindResource("SampleText")?.ToString() ?? "Sample Text",
                 FontSize = 24,
                 Foreground = new SolidColorBrush(Colors.Black), 
                 FontWeight = FontWeights.SemiBold
@@ -972,7 +977,7 @@ namespace CMDevicesManager.Pages
             {
                 _selScale = null;
                 _selTranslate = null;
-                SelectedInfo = "None";
+                SelectedInfo = Application.Current.FindResource("None")?.ToString() ?? "None";
             }
 
             OnPropertyChanged(nameof(_selected));
@@ -982,7 +987,7 @@ namespace CMDevicesManager.Pages
         {
             if (_selected == null)
             {
-                SelectedInfo = "None";
+                SelectedInfo = Application.Current.FindResource("None")?.ToString() ?? "None";
                 return;
             }
             
@@ -996,10 +1001,10 @@ namespace CMDevicesManager.Pages
                 {
                     SelectedInfo = k switch
                     {
-                        LiveInfoKind.CpuUsage => "CPU Usage",
-                        LiveInfoKind.GpuUsage => "GPU Usage",
-                        LiveInfoKind.DateTime => "Date/Time",
-                        _ => "Live Text"
+                        LiveInfoKind.CpuUsage => Application.Current.FindResource("CpuUsage")?.ToString() ?? "CPU Usage",
+                        LiveInfoKind.GpuUsage => Application.Current.FindResource("GpuUsage")?.ToString() ?? "GPU Usage",
+                        LiveInfoKind.DateTime => Application.Current.FindResource("DateTime")?.ToString() ?? "Date/Time",
+                        _ => Application.Current.FindResource("LiveText")?.ToString() ?? "Live Text"
                     };
                 }
                 else
@@ -1462,11 +1467,14 @@ namespace CMDevicesManager.Pages
                 
                 File.WriteAllText(filePath, json);
                 
-                MessageBox.Show($"配置已保存: {CurrentConfigName}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                var configSavedMsg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
+                var saveSuccessfulMsg = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
+                MessageBox.Show($"{configSavedMsg}: {CurrentConfigName}", saveSuccessfulMsg, MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"保存配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                var errorMsg = Application.Current.FindResource("Error")?.ToString() ?? "Error";
+                MessageBox.Show($"保存配置失败: {ex.Message}", errorMsg, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -1484,7 +1492,9 @@ namespace CMDevicesManager.Pages
                 var configFiles = Directory.GetFiles(configFolder, "*.json");
                 if (configFiles.Length == 0)
                 {
-                    MessageBox.Show("没有找到任何配置文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    var noConfigMsg = Application.Current.FindResource("NoConfigFilesFound")?.ToString() ?? "No configuration files found";
+                    var noticeMsg = Application.Current.FindResource("Notice")?.ToString() ?? "Notice";
+                    MessageBox.Show(noConfigMsg, noticeMsg, MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1513,7 +1523,9 @@ namespace CMDevicesManager.Pages
 
                 if (configs.Count == 0)
                 {
-                    MessageBox.Show("没有找到有效的配置文件", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    var noValidConfigMsg = Application.Current.FindResource("NoValidConfigFilesFound")?.ToString() ?? "No valid configuration files found";
+                    var noticeMsg = Application.Current.FindResource("Notice")?.ToString() ?? "Notice";
+                    MessageBox.Show(noValidConfigMsg, noticeMsg, MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -1699,11 +1711,15 @@ namespace CMDevicesManager.Pages
                     }
                 }
 
-                MessageBox.Show($"配置已加载: {config.ConfigName}", "加载成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                var configLoadedMsg = Application.Current.FindResource("ConfigLoaded")?.ToString() ?? "Configuration loaded";
+                var loadSuccessfulMsg = Application.Current.FindResource("LoadSuccessful")?.ToString() ?? "Load Successful";
+                MessageBox.Show($"{configLoadedMsg}: {config.ConfigName}", loadSuccessfulMsg, MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"加载配置失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                var loadFailedMsg = Application.Current.FindResource("LoadConfigFailed")?.ToString() ?? "Failed to load configuration";
+                var errorMsg = Application.Current.FindResource("Error")?.ToString() ?? "Error";
+                MessageBox.Show($"{loadFailedMsg}: {ex.Message}", errorMsg, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
