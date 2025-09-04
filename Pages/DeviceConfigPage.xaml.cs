@@ -463,10 +463,21 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                var appDir = new Uri(OutputFolder);
-                var fileUri = new Uri(fullPath);
-                var relativeUri = appDir.MakeRelativeUri(fileUri);
-                return Uri.UnescapeDataString(relativeUri.ToString());
+                // If the path is within the Resources folder, make it relative to OutputFolder
+                if (fullPath.StartsWith(ResourcesFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    // Get path relative to OutputFolder (not including "CMDevicesManager")
+                    return Path.GetRelativePath(OutputFolder, fullPath);
+                }
+                
+                // If the path is within OutputFolder but not in Resources
+                if (fullPath.StartsWith(OutputFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Path.GetRelativePath(OutputFolder, fullPath);
+                }
+                
+                // For paths outside OutputFolder, just return the filename
+                return Path.GetFileName(fullPath);
             }
             catch
             {
@@ -1570,6 +1581,7 @@ namespace CMDevicesManager.Pages
                 foreach (var elemConfig in config.Elements.OrderBy(e => e.ZIndex))
                 {
                     FrameworkElement? element = null;
+                    Border? border = null;
                     
                     switch (elemConfig.Type)
                     {
@@ -1597,18 +1609,40 @@ namespace CMDevicesManager.Pages
                         case "LiveText":
                             if (elemConfig.LiveKind.HasValue)
                             {
+                                // Create live text manually without using Add methods
+                                var liveTextBlock = new TextBlock
+                                {
+                                    FontSize = elemConfig.FontSize ?? 20,
+                                    FontWeight = FontWeights.SemiBold
+                                };
+                                liveTextBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+                                
+                                if (!string.IsNullOrEmpty(elemConfig.TextColor) && TryParseHexColor(elemConfig.TextColor, out var liveTextColor))
+                                {
+                                    liveTextBlock.Foreground = new SolidColorBrush(liveTextColor);
+                                }
+                                else
+                                {
+                                    liveTextBlock.Foreground = new SolidColorBrush(Colors.Black);
+                                }
+                                
+                                // Set initial text based on type
                                 switch (elemConfig.LiveKind.Value)
                                 {
                                     case LiveInfoKind.DateTime:
-                                        AddClock_Click(null, null);
+                                        liveTextBlock.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         break;
                                     case LiveInfoKind.CpuUsage:
+                                        liveTextBlock.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
+                                        liveTextBlock.Tag = LiveInfoKind.CpuUsage;
+                                        break;
                                     case LiveInfoKind.GpuUsage:
-                                        var button = new Button { Tag = elemConfig.LiveKind.Value };
-                                        AddSystemInfoButton_Click(button, null);
+                                        liveTextBlock.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
+                                        liveTextBlock.Tag = LiveInfoKind.GpuUsage;
                                         break;
                                 }
-                                continue; // Skip manual element creation as Add methods handle it
+                                
+                                element = liveTextBlock;
                             }
                             break;
                             
@@ -1618,12 +1652,26 @@ namespace CMDevicesManager.Pages
                                 var resolvedPath = ResolveRelativePath(elemConfig.ImagePath);
                                 if (File.Exists(resolvedPath))
                                 {
-                                    var img = new Image
+                                    try
                                     {
-                                        Source = new BitmapImage(new Uri(resolvedPath)),
-                                        Stretch = Stretch.Uniform
-                                    };
-                                    element = img;
+                                        var bitmap = new BitmapImage();
+                                        bitmap.BeginInit();
+                                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                        bitmap.UriSource = new Uri(resolvedPath, UriKind.Absolute);
+                                        bitmap.EndInit();
+                                        bitmap.Freeze();
+                                        
+                                        var img = new Image
+                                        {
+                                            Source = bitmap,
+                                            Stretch = Stretch.Uniform
+                                        };
+                                        element = img;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Logger.Error($"Failed to load image from {resolvedPath}: {ex.Message}");
+                                    }
                                 }
                                 else
                                 {
@@ -1660,8 +1708,6 @@ namespace CMDevicesManager.Pages
                                             
                                             UpdateVideoFrame(videoImage, frames[0]);
                                             element = videoImage;
-                                            
-                                            // Will set up video after adding to canvas
                                         }
                                     }
                                 }
@@ -1675,16 +1721,50 @@ namespace CMDevicesManager.Pages
 
                     if (element != null)
                     {
-                        var border = AddElement(element, elemConfig.Type);
-                        
-                        // Apply saved transforms
-                        if (GetTransforms(border, out var scale, out var translate))
+                        // Create border manually to control position
+                        element.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
+                        element.VerticalAlignment = VerticalAlignment.Top;
+
+                        border = new Border
                         {
-                            translate.X = elemConfig.X;
-                            translate.Y = elemConfig.Y;
-                            scale.ScaleX = scale.ScaleY = elemConfig.Scale;
-                            border.Opacity = elemConfig.Opacity;
-                            Canvas.SetZIndex(border, elemConfig.ZIndex);
+                            BorderBrush = Brushes.Transparent,
+                            BorderThickness = new Thickness(0),
+                            Child = element,
+                            RenderTransformOrigin = new Point(0.5, 0.5),
+                            Cursor = Cursors.SizeAll,
+                            Opacity = elemConfig.Opacity
+                        };
+
+                        // Apply saved transforms
+                        var tg = new TransformGroup();
+                        var scale = new ScaleTransform(elemConfig.Scale, elemConfig.Scale);
+                        var translate = new TranslateTransform(elemConfig.X, elemConfig.Y);
+                        tg.Children.Add(scale);
+                        tg.Children.Add(translate);
+                        border.RenderTransform = tg;
+
+                        // Set up event handlers
+                        border.PreviewMouseLeftButtonDown += Item_PreviewMouseLeftButtonDown;
+                        border.PreviewMouseLeftButtonUp += Item_PreviewMouseLeftButtonUp;
+                        border.PreviewMouseMove += Item_PreviewMouseMove;
+                        border.MouseDown += (_, __) => SelectElement(border);
+                        border.MouseEnter += (_, __) => { if (_selected != border) border.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 30, 144, 255)); };
+                        border.MouseLeave += (_, __) => { if (_selected != border) border.BorderBrush = Brushes.Transparent; };
+
+                        // Add to canvas and set Z-index
+                        DesignCanvas.Children.Add(border);
+                        Canvas.SetZIndex(border, elemConfig.ZIndex);
+                        
+                        // Handle live text registration
+                        if (elemConfig.Type == "LiveText" && elemConfig.LiveKind.HasValue)
+                        {
+                            border.Tag = elemConfig.LiveKind.Value;
+                            _liveItems.Add(new LiveTextItem 
+                            { 
+                                Border = border, 
+                                Text = (TextBlock)element, 
+                                Kind = elemConfig.LiveKind.Value 
+                            });
                         }
                         
                         // Handle video setup
