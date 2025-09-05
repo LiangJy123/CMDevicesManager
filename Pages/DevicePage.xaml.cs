@@ -1,14 +1,19 @@
 ﻿using CMDevicesManager.Models;
 using HID.DisplayController;
-using HID.DisplayController;
 using HidApi;
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Navigation;
+using System.Windows.Threading;
+using Application = System.Windows.Application;
 using Button = System.Windows.Controls.Button;
 using Color = System.Windows.Media.Color;
 using MessageBox = System.Windows.MessageBox;
@@ -17,24 +22,53 @@ using Path = System.IO.Path;
 namespace CMDevicesManager.Pages
 {
     /// <summary>
+    /// Device view model for UI binding
+    /// </summary>
+    public class DeviceViewModel : INotifyPropertyChanged
+    {
+        public DeviceInfo DeviceInfo { get; }
+        public string ProductString => DeviceInfo.ProductString ?? "Unknown Device";
+        public string SerialNumber => DeviceInfo.SerialNumber ?? "No Serial";
+        public string ManufacturerString => DeviceInfo.ManufacturerString ?? "Unknown";
+        public string Path => DeviceInfo.Path ?? "";
+
+        private string? _imagePath;
+        public string? ImagePath
+        {
+            get => _imagePath;
+            set
+            {
+                _imagePath = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public DeviceViewModel(DeviceInfo deviceInfo, string? imagePath = null)
+        {
+            DeviceInfo = deviceInfo;
+            _imagePath = imagePath;
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    /// <summary>
     /// Interaction logic for DevicePage.xaml
     /// </summary>
     public partial class DevicePage : Page
     {
-        public ObservableCollection<DeviceInfos> Devices { get; } = new();
-
+        public ObservableCollection<DeviceViewModel> DeviceViewModels { get; } = new();
 
         private MultiDeviceManager? _multiDeviceManager;
+        private DispatcherTimer? _statusTimer;
 
         public DevicePage()
         {
             InitializeComponent();
-
-            // TODO: Replace with real device discovery/population.
-            // Add as many devices as are available; each will render as a card automatically.
-            Devices.Add(new DeviceInfos("haf700v2", "HAF700 V2", "Resources/Devices/HAF700V2.jpg"));
-            // Devices.Add(new DeviceInfo("device-2", "Another Device", "Resources/Devices/Another.jpg"));
-
             DataContext = this;
         }
 
@@ -42,17 +76,16 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                if (sender is Button btn && btn.DataContext is DeviceInfos device)
+                if (sender is Button btn && btn.DataContext is DeviceViewModel deviceViewModel)
                 {
-                    NavigationService?.Navigate(new DeviceConfigPage(device));
+                    // NavigationService?.Navigate(new DeviceConfigPage(deviceViewModel.DeviceInfo));
+                    NavigationService?.Navigate(new DeviceLive(deviceViewModel.DeviceInfo));
                 }
             }
             catch (Exception ex)
             {
-                // If you have a Logger available in scope, you can log it.
-                System.Diagnostics.Debug.WriteLine($"Navigation to DeviceConfigPage failed: {ex}");
-                MessageBox.Show("Failed to open device configuration.", "Navigation Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Debug.WriteLine($"Navigation to DeviceConfigPage failed: {ex}");
+                ShowStatusMessage("Failed to open device configuration.", true);
             }
         }
 
@@ -60,311 +93,228 @@ namespace CMDevicesManager.Pages
         {
             try
             {
+                InitializeDeviceManager();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to initialize device manager: {ex}");
+                ShowStatusMessage($"Failed to initialize device manager: {ex.Message}", true);
+            }
+        }
+
+        private void InitializeDeviceManager()
+        {
+            try
+            {
                 _multiDeviceManager = new MultiDeviceManager(0x2516, 0x0228);
 
                 // Set up event handlers
-                _multiDeviceManager.ControllerAdded += (s, ev) =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        try
-                        {
-                            //// Add the DeviceInfo object to the list
-                            //if (!DevicesListBox.Items.Cast<DeviceInfo>().Any(d => d.Path == ev.Device.Path))
-                            //{
-                            //    DevicesListBox.Items.Add(ev.Device);
-                            //    HideErrorMessage(); // Hide error message when devices are successfully added
-                            //    UpdateButtonStates(); // Update button states when devices change
-                            //}
-                        }
-                        catch (Exception ex)
-                        {
-                            ShowStatusMessage($"Failed to add device: {ex.Message}");
-                        }
-                    });
-                };
+                _multiDeviceManager.ControllerAdded += OnControllerAdded;
+                _multiDeviceManager.ControllerRemoved += OnControllerRemoved;
+                _multiDeviceManager.ControllerError += OnControllerError;
 
-                _multiDeviceManager.ControllerRemoved += (s, ev) =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        try
-                        {
-                            //// Remove the DeviceInfo object from the list
-                            //var deviceToRemove = DevicesListBox.Items.Cast<DeviceInfo>()
-                            //    .FirstOrDefault(d => d.Path == ev.Device.Path);
-
-                            //if (deviceToRemove != null)
-                            //{
-                            //    DevicesListBox.Items.Remove(deviceToRemove);
-                            //    UpdateButtonStates(); // Update button states when devices change
-                            //}
-                        }
-                        catch (Exception ex)
-                        {
-                            ShowStatusMessage($"Failed to remove device: {ex.Message}");
-                        }
-                    });
-                };
-
-                _multiDeviceManager.ControllerError += (s, ev) =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        ShowStatusMessage($"Device Error - {ev.Device.ProductString}: {ev.Exception.Message}");
-                    });
-                };
-
-                // Must call StartMonitoring to begin detection
+                // Start monitoring for devices
                 _multiDeviceManager.StartMonitoring();
 
                 // Populate existing devices
+                PopulateConnectedDevices();
+
+                ShowStatusMessage($"Device manager initialized. Found {DeviceViewModels.Count} connected device(s).");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to initialize device manager: {ex}");
+                ShowStatusMessage($"Failed to initialize device manager: {ex.Message}", true);
+            }
+        }
+
+        private void OnControllerAdded(object? sender, DeviceControllerEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    // Check if device is already in the collection
+                    if (!DeviceViewModels.Any(d => d.Path == e.Device.Path))
+                    {
+                        var deviceViewModel = CreateDeviceViewModel(e.Device);
+                        DeviceViewModels.Add(deviceViewModel);
+                        UpdateDeviceListVisibility();
+                        ShowStatusMessage($"Device connected: {e.Device.ProductString}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error adding device to UI: {ex}");
+                }
+            });
+        }
+
+        private void OnControllerRemoved(object? sender, DeviceControllerEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                try
+                {
+                    var deviceToRemove = DeviceViewModels.FirstOrDefault(d => d.Path == e.Device.Path);
+                    if (deviceToRemove != null)
+                    {
+                        DeviceViewModels.Remove(deviceToRemove);
+                        UpdateDeviceListVisibility();
+                        ShowStatusMessage($"Device disconnected: {e.Device.ProductString}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error removing device from UI: {ex}");
+                }
+            });
+        }
+
+        private void OnControllerError(object? sender, ControllerErrorEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                ShowStatusMessage($"Device Error - {e.Device.ProductString}: {e.Exception.Message}", true);
+            });
+        }
+
+        private void PopulateConnectedDevices()
+        {
+            try
+            {
+                if (_multiDeviceManager == null) return;
+
                 var activeControllers = _multiDeviceManager.GetActiveControllers();
+
+                DeviceViewModels.Clear();
+
                 foreach (var controller in activeControllers)
                 {
-                    //// Add DeviceInfo objects to the list
-                    //if (!DevicesListBox.Items.Cast<DeviceInfo>().Any(d => d.Path == controller.DeviceInfo.Path))
-                    //{
-                    //    DevicesListBox.Items.Add(controller.DeviceInfo);
-                    //}
+                    try
+                    {
+                        var deviceInfo = controller.DeviceInfo;
+                        if (deviceInfo != null)
+                        {
+                            var deviceViewModel = CreateDeviceViewModel(deviceInfo);
+                            DeviceViewModels.Add(deviceViewModel);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error getting device info from controller: {ex}");
+                    }
                 }
 
+                UpdateDeviceListVisibility();
             }
             catch (Exception ex)
             {
-                ShowStatusMessage($"Failed to initialize device manager: {ex.Message}");
+                Debug.WriteLine($"Error populating connected devices: {ex}");
+                ShowStatusMessage($"Error loading connected devices: {ex.Message}", true);
             }
         }
 
-        /// <summary>
-        /// Handle realtime streaming
-        /// </summary>
-        private async void RealtimeStreamingDemo()
+        private DeviceViewModel CreateDeviceViewModel(DeviceInfo deviceInfo)
         {
+            // Try to find a suitable image for the device
+            string? imagePath = GetDeviceImagePath(deviceInfo);
+            return new DeviceViewModel(deviceInfo, imagePath);
+        }
 
-            if (_multiDeviceManager == null)
+        private string? GetDeviceImagePath(DeviceInfo deviceInfo)
+        {
+            // Check for device-specific images based on product name
+            var productName = deviceInfo.ProductString?.ToLowerInvariant() ?? "";
+
+            string? imagePath = null;
+
+            if (productName.Contains("haf700"))
             {
-                ShowStatusMessage("Device manager not initialized");
-                return;
+                imagePath = "Resources/Devices/HAF700V2.jpg";
+            }
+            // Add more device-specific image mappings here as needed
+
+            // Check if the image file exists, if not, use null (will show default icon)
+            if (!string.IsNullOrEmpty(imagePath))
+            {
+                try
+                {
+                    var uri = new Uri($"pack://application:,,,/{imagePath}");
+                    var resource = Application.GetResourceStream(uri);
+                    if (resource == null)
+                    {
+                        imagePath = null; // Image not found, use default
+                    }
+                }
+                catch
+                {
+                    imagePath = null; // Error loading image, use default
+                }
             }
 
-            var activeControllers = _multiDeviceManager.GetActiveControllers();
-            if (activeControllers.Count == 0)
-            {
-                ShowStatusMessage("No devices connected for realtime streaming");
-                return;
-            }
+            return imagePath;
+        }
 
+        private void UpdateDeviceListVisibility()
+        {
+            bool hasDevices = DeviceViewModels.Count > 0;
+            DevicesItemsControl.Visibility = hasDevices ? Visibility.Visible : Visibility.Collapsed;
+            NoDevicesPanel.Visibility = hasDevices ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private void ShowStatusMessage(string message, bool isError = false)
+        {
             try
             {
+                Debug.WriteLine($"Status: {message}");
 
-                // Show status message
-                ShowStatusMessage($"Starting realtime streaming demo on {activeControllers.Count} device(s)...");
+                StatusText.Text = message;
+                StatusBorder.Background = new SolidColorBrush(isError ? Colors.Red : Color.FromRgb(33, 150, 243));
+                StatusBorder.Visibility = Visibility.Visible;
 
-                // Set up image directory path (you may want to make this configurable)
-                string imageDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "HidProtocol", "resources", "realtime");
-
-                // Alternative paths to check for images
-                string[] alternativePaths = {
-                    @"E:\github\CMDevicesManager\HidProtocol\resources\realtime",
-                    @"C:\out\MyLed\CMDevicesManager\HidProtocol\resources\realtime",
-                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "CMDevicesManager", "images")
+                // Auto-hide status message after 3 seconds
+                _statusTimer?.Stop();
+                _statusTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(3)
                 };
-
-                // Find a valid image directory
-                foreach (string path in alternativePaths)
+                _statusTimer.Tick += (s, e) =>
                 {
-                    if (Directory.Exists(path))
-                    {
-                        imageDirectory = path;
-                        break;
-                    }
-                }
-
-                // Execute realtime streaming on all devices
-                var results = await _multiDeviceManager.ExecuteOnAllDevices(async controller =>
-                {
-                    try
-                    {
-                        bool success = await controller.SimpleRealTimeDisplayDemo(imageDirectory, 20);
-                        return success;
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Realtime streaming failed for device: {ex.Message}");
-                        return false;
-                    }
-                }, timeout: TimeSpan.FromMinutes(5));
-
-                // Show results
-                int successCount = results.Values.Count(success => success);
-                if (successCount == results.Count)
-                {
-                    ShowStatusMessage($"Realtime streaming demo completed successfully on all {successCount} device(s)!");
-                }
-                else
-                {
-                    ShowStatusMessage($"Realtime streaming completed with mixed results: {successCount}/{results.Count} devices succeeded");
-                }
+                    StatusBorder.Visibility = Visibility.Collapsed;
+                    _statusTimer?.Stop();
+                };
+                _statusTimer.Start();
             }
             catch (Exception ex)
             {
-                ShowStatusMessage($"Realtime streaming demo failed: {ex.Message}");
-            }
-            finally
-            {
-                ;
+                Debug.WriteLine($"Error showing status message: {ex}");
             }
         }
 
-        /// <summary>
-        /// Handle offline streaming
-        /// </summary>
-        private async void OfflineStreamingDemo()
+        // Clean up resources when page is unloaded
+        private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
-
-            if (_multiDeviceManager == null)
-            {
-                ShowStatusMessage("Device manager not initialized");
-                return;
-            }
-
-            var activeControllers = _multiDeviceManager.GetActiveControllers();
-            if (activeControllers.Count == 0)
-            {
-                ShowStatusMessage("No devices connected for offline streaming");
-                return;
-            }
-
             try
             {
-                // Show status message
-                ShowStatusMessage($"Starting offline streaming demo on {activeControllers.Count} device(s)...");
+                _statusTimer?.Stop();
+                _statusTimer = null;
 
-                // Execute offline streaming (suspend mode) on all devices
-                var results = await _multiDeviceManager.ExecuteOnAllDevices(async controller =>
+                if (_multiDeviceManager != null)
                 {
-                    try
-                    {
-                        Console.WriteLine("=== Simple Offline Display Demo ===");
+                    _multiDeviceManager.ControllerAdded -= OnControllerAdded;
+                    _multiDeviceManager.ControllerRemoved -= OnControllerRemoved;
+                    _multiDeviceManager.ControllerError -= OnControllerError;
 
-                        // Step 1: Disable real-time display mode and entry to suspend mode
-                        bool step1Response = await controller.SetSuspendModeWithResponse();
-                        if (!step1Response)
-                        {
-                            return false;
-                        }
-
-                        // Init files list to transfer (you may want to make these paths configurable)
-                        List<string> filesToTransfer = new List<string>();
-
-                        // Try different base paths for the suspend files
-                        string[] basePaths = {
-                            @"E:\github\CMDevicesManager\HidProtocol\resources",
-                            @"C:\out\MyLed\CMDevicesManager\HidProtocol\resources",
-                            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "HidProtocol", "resources")
-                        };
-
-                        foreach (string basePath in basePaths)
-                        {
-                            string[] suspendFiles = {
-                                Path.Combine(basePath, "suspend_0.jpg"),
-                                Path.Combine(basePath, "suspend_1.jpg"),
-                                Path.Combine(basePath, "suspend_2.mp4")
-                            };
-
-                            if (suspendFiles.Any(File.Exists))
-                            {
-                                filesToTransfer.AddRange(suspendFiles.Where(File.Exists));
-                                break;
-                            }
-                        }
-
-                        if (!filesToTransfer.Any())
-                        {
-                            Console.WriteLine("No suspend files found, using basic demo mode");
-                            // Continue with basic suspend mode without files
-                        }
-                        else
-                        {
-                            // Step 2: Send multiple suspend files
-                            bool filesSuccess = await controller.SendMultipleSuspendFilesWithResponse(filesToTransfer, startingTransferId: 2);
-                            if (!filesSuccess)
-                            {
-                                Console.WriteLine("Failed to send suspend files");
-                                return false;
-                            }
-                        }
-
-                        // Step 3: Set brightness to 80
-                        var brightnessResponse = await controller.SendCmdBrightnessWithResponse(80);
-                        if (brightnessResponse?.IsSuccess != true)
-                        {
-                            Console.WriteLine($"Set brightness failed. Status: {brightnessResponse?.StatusCode}");
-                        }
-
-                        // Step 4: Set keep alive timer
-                        var timerResponse = await controller.SendCmdSetKeepAliveTimerWithResponse(5);
-                        if (timerResponse?.IsSuccess != true)
-                        {
-                            Console.WriteLine($"Set keep alive timer failed. Status: {timerResponse?.StatusCode}");
-                        }
-
-                        // Step 5: Get max suspend media count to check current status
-                        var maxMediaResponse = await controller.SendCmdReadMaxSuspendMediaWithResponse();
-                        if (maxMediaResponse?.IsSuccess == true && !string.IsNullOrEmpty(maxMediaResponse.Value.ResponseData))
-                        {
-                            Console.WriteLine($"Max suspend media response: {maxMediaResponse.Value.ResponseData}");
-                        }
-
-                        // Sleep for demonstration (shorter time for UI responsiveness)
-                        Console.WriteLine("Entering suspend mode for 30 seconds...");
-                        await Task.Delay(30000);
-
-                        // Exit suspend mode
-                        Console.WriteLine("Exiting suspend mode by deleting all suspend media...");
-                        bool clearSuccess = await controller.ClearSuspendModeWithResponse();
-                        if (!clearSuccess)
-                        {
-                            Console.WriteLine("Failed to clear suspend mode");
-                            return false;
-                        }
-
-                        Console.WriteLine("Suspend mode demo completed successfully!");
-                        return true;
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Offline streaming failed for device: {ex.Message}");
-                        return false;
-                    }
-                }, timeout: TimeSpan.FromMinutes(10));
-
-                // Show results
-                int successCount = results.Values.Count(success => success);
-                if (successCount == results.Count)
-                {
-                    ShowStatusMessage($"Offline streaming demo completed successfully on all {successCount} device(s)!");
-                }
-                else
-                {
-                    ShowStatusMessage($"Offline streaming completed with mixed results: {successCount}/{results.Count} devices succeeded");
+                    _multiDeviceManager.StopMonitoring();
+                    _multiDeviceManager.Dispose();
+                    _multiDeviceManager = null;
                 }
             }
             catch (Exception ex)
             {
-                ShowStatusMessage($"Offline streaming demo failed: {ex.Message}");
-            }
-            finally
-            {
-                ;
+                Debug.WriteLine($"Error during page cleanup: {ex}");
             }
         }
-
-        private void ShowStatusMessage(string message)
-        {
-            Console.WriteLine($"Message: {message}");
-        }
-
     }
 }

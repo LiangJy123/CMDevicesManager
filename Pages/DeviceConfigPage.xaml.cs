@@ -1,5 +1,6 @@
 using CMDevicesManager.Models;
 using CMDevicesManager.Services;
+using HidApi;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -31,7 +32,7 @@ namespace CMDevicesManager.Pages
 {
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
-        private readonly DeviceInfos _device;
+        private readonly DeviceInfo _device;
 
         // System info service + live text update
         private readonly ISystemMetricsService _metrics;
@@ -133,7 +134,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        public DeviceConfigPage(DeviceInfos device)
+        public DeviceConfigPage(DeviceInfo device)
         {
             _device = device ?? throw new ArgumentNullException(nameof(device));
             InitializeComponent();
@@ -344,7 +345,7 @@ namespace CMDevicesManager.Pages
                 }
 
                 Directory.CreateDirectory(OutputFolder);
-                var name = (_device?.Name ?? "Device");
+                var name = (_device?.ProductString ?? "Device");
                 var file = System.IO.Path.Combine(OutputFolder, $"{SanitizeFileName(name)}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
 
                 var encoder = new PngBitmapEncoder();
@@ -360,7 +361,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // ===================== Background ×=====================
+        // ===================== Background ï¿½=====================
         private void PickBackgroundColor_Click(object sender, RoutedEventArgs e)
         {
             using var dlg = new WF.ColorDialog
