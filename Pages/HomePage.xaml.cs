@@ -39,25 +39,6 @@ namespace CMDevicesManager.Pages
                     vm.Dispose();
                 }
             };
-
-            // In your ViewModel or code-behind
-            var metricsService = new RealSystemMetricsService();
-
-            // Get temperature data
-            double cpuTemp = metricsService.GetCpuTemperature();     // °C
-            double gpuTemp = metricsService.GetGpuTemperature();     // °C
-
-            // Get power consumption
-            double cpuPower = metricsService.GetCpuPower();          // Watts
-            double gpuPower = metricsService.GetGpuPower();          // Watts
-
-            // Get usage percentages
-            double cpuUsage = metricsService.GetCpuUsagePercent();   // %
-            double gpuUsage = metricsService.GetGpuUsagePercent();   // %
-
-            // Get device names
-            string cpuName = metricsService.CpuName;
-            string gpuName = metricsService.PrimaryGpuName;
         }
     }
 }

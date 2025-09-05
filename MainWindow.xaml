@@ -109,7 +109,15 @@
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="20" VerticalAlignment="Center"/>
                                 <TextBlock Text="{DynamicResource DeviceText}" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
                             </StackPanel>
-                        </ListBoxItem>                        
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Pages/DeviceLive.xaml" Padding="10">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="20" VerticalAlignment="Center"/>
+
+                                <TextBlock Text="Show" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
+
+                            </StackPanel>
+                        </ListBoxItem>
                         <ListBoxItem Tag="Pages/DevicePageDemo.xaml" Padding="10">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="20" VerticalAlignment="Center"/>

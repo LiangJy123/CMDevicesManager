@@ -29,6 +29,7 @@ namespace CMDevicesManager
         private HomePage? _homePage;
         private DevicePage? _devicePage;
         private DevicePageDemo? _devicePageDemo;
+        private DeviceLive? _deviceLive;
         private SettingsPage? _settingsPage;
 
         public MainWindow()
@@ -64,6 +65,7 @@ namespace CMDevicesManager
         private HomePage GetHomePage() => _homePage ??= new HomePage();
         private DevicePage GetDevicePage() => _devicePage ??= new DevicePage();
         private DevicePageDemo GetDevicePageDemo() => _devicePageDemo ??= new DevicePageDemo();
+        private DeviceLive GetDeviceLive() => _deviceLive ??= new DeviceLive();
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
 
         private void ValidateResources()
@@ -110,6 +112,7 @@ namespace CMDevicesManager
                     if (pagePath.Equals("HomePage") && MainFrame.Content is HomePage) return;
                     if (pagePath.Equals("DevicePage") && MainFrame.Content is DevicePage) return;
                     if (pagePath.Equals("DevicePageDemo") && MainFrame.Content is DevicePageDemo) return;
+                    if (pagePath.Equals("DeviceLive") && MainFrame.Content is DeviceLive) return;
                     if (pagePath.Equals("SettingsPage") && MainFrame.Content is SettingsPage) return;
 
                     // Use cached instances to avoid re-initializing pages/services/timers
@@ -124,6 +127,10 @@ namespace CMDevicesManager
                     else if (pagePath.Equals("DevicePageDemo"))
                     {
                         MainFrame.Navigate(GetDevicePageDemo());
+                    }
+                    else if (pagePath.Equals("DeviceLive"))
+                    {
+                        MainFrame.Navigate(GetDeviceLive());
                     }
                     else if (pagePath.Equals("SettingsPage"))
                     {
