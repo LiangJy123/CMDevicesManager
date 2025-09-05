@@ -370,16 +370,20 @@
                         <!-- Common properties -->
                         <StackPanel x:Name="CommonProps" Margin="0,8,0,0"
                                     Visibility="{Binding IsAnySelected, Converter={StaticResource BoolToVis}}">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="Scale" Width="100" VerticalAlignment="Center" 
+
+                            <!-- Scale row: 隐藏于文字元素 -->
+                            <StackPanel x:Name="ScaleRow"
+                                        Orientation="Horizontal" Margin="0,0,0,8"
+                                        Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}">
+                                <TextBlock Text="Scale" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
-                                <Slider Minimum="0.1" Maximum="5" Value="{Binding SelectedScale}" 
+                                <Slider Minimum="0.1" Maximum="5" Value="{Binding SelectedScale}"
                                         Width="160" Style="{StaticResource DarkSliderStyle}"/>
-                                <TextBlock Text="{Binding SelectedScale, StringFormat={}{0:0.00}}" 
-                                           Margin="8,0,0,0" VerticalAlignment="Center" 
+                                <TextBlock Text="{Binding SelectedScale, StringFormat={}{0:0.00}}"
+                                           Margin="8,0,0,0" VerticalAlignment="Center"
                                            Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
-                            
+
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="Opacity" Width="100" VerticalAlignment="Center" 
                                            Foreground="{StaticResource SubtitleBrush}"/>
@@ -396,8 +400,15 @@
                                 <Button Click="DeleteSelected_Click" Margin="8,0,0,0" Style="{StaticResource SmallButtonStyle}">Delete</Button>
                             </StackPanel>
                             
-                            <TextBlock Text="Tip: Drag to move. Ctrl + Mouse Wheel to scale." 
-                                       Foreground="{StaticResource SubtitleBrush}" FontSize="12"/>
+                            <!-- Tip for non-text (包含缩放提示) -->
+                            <TextBlock Text="Tip: Drag to move. Ctrl + Mouse Wheel to scale."
+                                       Foreground="{StaticResource SubtitleBrush}" FontSize="12"
+                                       Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}"/>
+
+                            <!-- Tip for text (无缩放提示) -->
+                            <TextBlock Text="Tip: Drag to move."
+                                       Foreground="{StaticResource SubtitleBrush}" FontSize="12"
+                                       Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
 
                         <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,16,0,16"/>
@@ -406,10 +417,9 @@
                         <StackPanel Margin="0,0,0,0" Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="Auto Move" FontWeight="SemiBold" Margin="0,0,0,8"
                                        Foreground="{StaticResource TitleBrush}" FontSize="16"/>
-                            <CheckBox Content="Enable Auto Move"
-                                      IsChecked="{Binding AutoMoveEnabled}"
-                                      Foreground="{StaticResource TitleBrush}"/>
-                            <StackPanel Orientation="Horizontal" Margin="0,8,0,8">
+                            
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="Speed" Width="100" VerticalAlignment="Center" Foreground="{StaticResource SubtitleBrush}"/>
                                 <Slider Minimum="0" Maximum="400" Value="{Binding MoveSpeed}" Width="160"
                                         Style="{StaticResource DarkSliderStyle}"/>
@@ -430,7 +440,35 @@
                                     <Ellipse Fill="#202633"
                                              Stroke="{StaticResource CardBorder}"
                                              StrokeThickness="2"/>
-                                    <!-- Knob (居中放置，偏移由 TranslateTransform 控制) -->
+
+                                    <!-- Direction indicators (added) -->
+                                    <Canvas IsHitTestVisible="False">
+                                        <!-- Cross lines -->
+                                        <Line X1="60" Y1="22" X2="60" Y2="98"
+                                              Stroke="#35404F" StrokeThickness="3"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                        <Line X1="22" Y1="60" X2="98" Y2="60"
+                                              Stroke="#35404F" StrokeThickness="3"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+
+                                        <!-- Up arrow -->
+                                        <Polygon Points="60,18 52,32 68,32"
+                                                 Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
+
+                                        <!-- Down arrow -->
+                                        <Polygon Points="60,102 52,88 68,88"
+                                                 Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
+
+                                        <!-- Left arrow -->
+                                        <Polygon Points="18,60 32,52 32,68"
+                                                 Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
+
+                                        <!-- Right arrow -->
+                                        <Polygon Points="102,60 88,52 88,68"
+                                                 Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
+                                    </Canvas>
+
+                                    <!-- Knob (center movable) -->
                                     <Ellipse Width="32"
                                              Height="32"
                                              x:Name="JoystickKnob"
