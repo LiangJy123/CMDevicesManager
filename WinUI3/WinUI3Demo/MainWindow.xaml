@@ -14,15 +14,15 @@
     </Window.SystemBackdrop>
 
     <Grid>
-      <Grid.RowDefinitions>
-        <RowDefinition Height="Auto" />
-        <RowDefinition Height="*" />
-      </Grid.RowDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
         <TitleBar
-    x:Name="titleBar"
-    Title="WinUI 3 Gallery"
-    IsBackButtonVisible="True"
-    IsPaneToggleButtonVisible="False">
+            x:Name="titleBar"
+            Title="MaterCTRL"
+            IsBackButtonVisible="True"
+            IsPaneToggleButtonVisible="False">
             <!--  This is a workaround for https://github.com/microsoft/microsoft-ui-xaml/issues/10374, once fixed we should just be using IconSource  -->
             <TitleBar.LeftHeader>
                 <ImageIcon
@@ -31,17 +31,17 @@
             Source="/Assets/Tiles/GalleryIcon.ico" />
             </TitleBar.LeftHeader>
         </TitleBar>
-        
+
         <NavigationView x:Name="nvSample" 
                         Grid.Row="1"                        
                         IsBackButtonVisible="Collapsed"
                         IsPaneToggleButtonVisible="True"
+                        OpenPaneLength="120"
                         >
             <NavigationView.MenuItems>
-                <NavigationViewItem Icon="Play" Content="Menu Item1" Tag="SamplePage1" />
-                <NavigationViewItem Icon="Save" Content="Menu Item2" Tag="SamplePage2" />
-                <NavigationViewItem Icon="Refresh" Content="Menu Item3" Tag="SamplePage3" />
-                <NavigationViewItem Icon="Download" Content="Menu Item4" Tag="SamplePage4" />
+                <NavigationViewItem Icon="Home" Content="Home" Tag="Home" />
+                <NavigationViewItem Icon="Home" Content="Devices" Tag="Devices"/>
+                <NavigationViewItem Icon="Home" Content="Fan" Tag="Fan" />
             </NavigationView.MenuItems>
             <Frame x:Name="contentFrame"/>
         </NavigationView>

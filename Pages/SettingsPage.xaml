@@ -58,7 +58,7 @@
                               FontWeight="SemiBold" 
                               Foreground="White" 
                               Margin="0,0,0,15"/>
-                    
+
                     <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="ChineseRadio" 
                                     Content="{DynamicResource ChineseLanguage}"
@@ -117,7 +117,7 @@
                               FontWeight="SemiBold" 
                               Foreground="White" 
                               Margin="0,0,0,15"/>
-                    
+
                     <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="DefaultFontRadio" 
                                     Content="{DynamicResource DefaultFont}"

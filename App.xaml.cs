@@ -12,7 +12,7 @@ namespace CMDevicesManager
     /// </summary>
     public partial class App : Application
     {
-        
+
         public App()
         {
             this.Exit += App_Exit;
@@ -21,13 +21,13 @@ namespace CMDevicesManager
         private void App_Exit(object sender, ExitEventArgs e)
         {
             Logger.Info("App Exit");
-         
+
             // 保存配置
             UserConfigManager.Save();
             Logger.Shutdown();
         }
 
-         
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -49,10 +49,10 @@ namespace CMDevicesManager
                 var main = new MainWindow();
                 this.MainWindow = main;
                 splash.Show();
-                
+
                 Logger.Info("Starting system tray integration");
                 StartNotifyIcon();
-                
+
                 // 后台加载数据
                 Task.Run(() =>
                 {

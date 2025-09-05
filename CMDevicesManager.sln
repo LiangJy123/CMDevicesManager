@@ -13,6 +13,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HidHelper", "HidProtocol\HidHelper\HidHelper.csproj", "{5BE5A037-4690-49D3-936D-2243C1162F72}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CDMDevicesManagerWinUI3", "WinUI3\CDMDevicesManagerWinUI3\CDMDevicesManagerWinUI3.csproj", "{2FA5D5D2-5CE0-4CD7-91E7-9291C79BF11A}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinUI3Demo", "WinUI3\WinUI3Demo\WinUI3Demo.csproj", "{083F6BAB-2C0B-7683-9848-90C6D4199A95}"
 EndProject
 Global
