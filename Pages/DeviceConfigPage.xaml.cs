@@ -405,26 +405,10 @@ namespace CMDevicesManager.Pages
         private DispatcherTimer _autoMoveTimer;
         private DateTime _lastAutoMoveTime = DateTime.Now;
         private bool _isJoystickDragging;
-        private const double JoystickRadius = 60;
-        private const double KnobSize = 32;
-        private const double KnobCenterOffset = (120 - KnobSize) / 2.0; // 44
-        private bool _autoMoveEnabled;
         private const double JoystickBaseSize = 120.0;
         private const double JoystickKnobSize = 32.0;
         private const double JoystickMaxOffset = (JoystickBaseSize - JoystickKnobSize) / 2.0; // 44
-        public bool AutoMoveEnabled
-        {
-            get => _autoMoveEnabled;
-            set
-            {
-                if (_autoMoveEnabled != value)
-                {
-                    _autoMoveEnabled = value;
-                    OnPropertyChanged();
-                    UpdateAutoMoveTimer();
-                }
-            }
-        }
+
         private double _moveSpeed = 100;
         public double MoveSpeed
         {
@@ -438,7 +422,7 @@ namespace CMDevicesManager.Pages
                 }
             }
         }
-        private double _moveDirX = 1;
+        private double _moveDirX = 0;
         public double MoveDirX
         {
             get => _moveDirX;
@@ -449,6 +433,19 @@ namespace CMDevicesManager.Pages
         {
             get => _moveDirY;
             private set { if (Math.Abs(_moveDirY - value) > 0.0001) { _moveDirY = value; OnPropertyChanged(); } }
+        }
+
+        // Helper to fully stop movement & reset joystick knob
+        private void ResetMoveDirection()
+        {
+            MoveDirX = 0;
+            MoveDirY = 0;
+            if (FindName("JoystickKnobTransform") is TranslateTransform tt)
+            {
+                tt.X = 0;
+                tt.Y = 0;
+            }
+            UpdateAutoMoveTimer();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -497,8 +494,8 @@ namespace CMDevicesManager.Pages
             _liveTimer.Tick += LiveTimer_Tick;
             _liveTimer.Start();
 
-            // Auto-move timer (30 FPS)
-            _autoMoveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+            // Auto-move timer 
+            _autoMoveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             _autoMoveTimer.Tick += AutoMoveTimer_Tick;
 
             Unloaded += DeviceConfigPage_Unloaded;
@@ -613,7 +610,13 @@ namespace CMDevicesManager.Pages
                 FontWeight = FontWeights.SemiBold
             };
             textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-            AddElement(textBlock, "Text");
+            var border = AddElement(textBlock, "Text");
+
+            // Ensure no movement starts automatically for newly added text
+            if (_selected == border)
+            {
+                ResetMoveDirection();
+            }
         }
 
         private void AddImage_Click(object sender, RoutedEventArgs e)
@@ -864,6 +867,7 @@ namespace CMDevicesManager.Pages
 
             UpdateSelectedInfo();
             OnPropertyChanged(nameof(_selected));
+            UpdateAutoMoveTimer();
         }
 
         private void SetSelected(Border? border)
@@ -889,6 +893,7 @@ namespace CMDevicesManager.Pages
             }
 
             OnPropertyChanged(nameof(_selected));
+            UpdateAutoMoveTimer();
         }
 
         private void UpdateSelectedInfo()
@@ -1641,7 +1646,7 @@ namespace CMDevicesManager.Pages
                                             {
                                                 Stretch = Stretch.Uniform,
                                                 HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                                                VerticalAlignment = VerticalAlignment.Top
+                                                VerticalAlignment = System.Windows.VerticalAlignment.Top
                                             };
                                             UpdateVideoFrame(videoImage, frames[0]);
                                             element = videoImage;
@@ -1757,7 +1762,13 @@ namespace CMDevicesManager.Pages
         // ================= Auto Move =================
         private void UpdateAutoMoveTimer()
         {
-            if (AutoMoveEnabled)
+            bool shouldMove =
+                _selected != null &&
+                _selected.Child is TextBlock &&
+                _selected.Tag is not LiveInfoKind && // do not move live text
+                (Math.Abs(MoveDirX) > 0.0001 || Math.Abs(MoveDirY) > 0.0001);
+
+            if (shouldMove)
             {
                 _lastAutoMoveTime = DateTime.Now;
                 if (!_autoMoveTimer.IsEnabled)
@@ -1772,11 +1783,10 @@ namespace CMDevicesManager.Pages
 
         private void AutoMoveTimer_Tick(object? sender, EventArgs e)
         {
-            if (!AutoMoveEnabled) return;
             if (_selected == null) return;
             if (_selected.Child is not TextBlock) return;
-            if (_selected.Tag is LiveInfoKind) return; // 不移动直播文字
-
+            if (_selected.Tag is LiveInfoKind) return;
+            if (Math.Abs(MoveDirX) < 0.0001 && Math.Abs(MoveDirY) < 0.0001) return;
             if (!GetTransforms(_selected, out var scale, out var translate)) return;
 
             var now = DateTime.Now;
@@ -1790,17 +1800,14 @@ namespace CMDevicesManager.Pages
             translate.X += dx;
             translate.Y += dy;
 
-            // 计算缩放后的尺寸
             double scaledW = _selected.ActualWidth * scale.ScaleX;
             double scaledH = _selected.ActualHeight * scale.ScaleY;
 
-            // 横向环绕
             if (translate.X > CanvasSize)
                 translate.X = -scaledW;
             else if (translate.X + scaledW < 0)
                 translate.X = CanvasSize;
 
-            // 纵向环绕
             if (translate.Y > CanvasSize)
                 translate.Y = -scaledH;
             else if (translate.Y + scaledH < 0)
@@ -1828,22 +1835,14 @@ namespace CMDevicesManager.Pages
                 (sender as UIElement)?.ReleaseMouseCapture();
             }
         }
+
         private void JoystickCenter_Click(object sender, RoutedEventArgs e)
         {
-            MoveDirX = 0;
-            MoveDirY = 0;
-            if (FindName("JoystickKnobTransform") is TranslateTransform tt)
-            {
-                tt.X = 0;
-                tt.Y = 0;
-            }
+            ResetMoveDirection();
         }
-
-
 
         private void UpdateJoystick(Point p)
         {
-            // 以中心 (60,60) 为原点
             double cx = JoystickBaseSize / 2.0;
             double cy = JoystickBaseSize / 2.0;
 
@@ -1851,7 +1850,7 @@ namespace CMDevicesManager.Pages
             double dy = p.Y - cy;
 
             double dist = Math.Sqrt(dx * dx + dy * dy);
-            double maxDist = JoystickMaxOffset; // 最大偏移（中心到边缘内侧）
+            double maxDist = JoystickMaxOffset;
 
             if (dist > maxDist)
             {
@@ -1877,7 +1876,10 @@ namespace CMDevicesManager.Pages
                 tt.X = dx;
                 tt.Y = dy;
             }
+
+            UpdateAutoMoveTimer();
         }
+
         // Helper: retrieve (or create) ScaleTransform & TranslateTransform from element Border.RenderTransform
         private static bool GetTransforms(Border border, out ScaleTransform scale, out TranslateTransform translate)
         {
