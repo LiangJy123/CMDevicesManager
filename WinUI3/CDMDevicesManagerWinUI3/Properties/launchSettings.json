@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CDMDevicesManagerWinUI3 (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "CDMDevicesManagerWinUI3 (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
