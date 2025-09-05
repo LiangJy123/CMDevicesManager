@@ -296,7 +296,19 @@ namespace CMDevicesManager.Pages
         public bool IsSelectedTextReadOnly => _selected?.Tag is LiveInfoKind;
 
         private double _selectedScale = 1.0;
-        public double SelectedScale { get => _selectedScale; set { _selectedScale = Math.Clamp(value, 0.1, 5); ApplySelectedScale(); ClampSelectedIntoCanvas(); OnPropertyChanged(); } }
+        public double SelectedScale
+        {
+            get => _selectedScale;
+            set
+            {
+                _selectedScale = Math.Clamp(value, 0.1, 5);
+                ApplySelectedScale();
+                // Only clamp non-image elements
+                if (_selected?.Child is not Image)
+                    ClampSelectedIntoCanvas();
+                OnPropertyChanged();
+            }
+        }
         private double _selectedOpacity = 1.0;
         public double SelectedOpacity { get => _selectedOpacity; set { _selectedOpacity = Math.Clamp(value, 0.1, 1); if (_selected != null) _selected.Opacity = _selectedOpacity; OnPropertyChanged(); } }
 
@@ -809,15 +821,17 @@ namespace CMDevicesManager.Pages
                         double scaledH = h * scaleToCover;
                         tr.X = (CanvasSize - scaledW) / 2.0;
                         tr.Y = (CanvasSize - scaledH) / 2.0;
+                        // No clamping for images
                     }
                     else
                     {
                         SelectedScale = 1.0;
                         tr.X = (CanvasSize - w) / 2.0;
                         tr.Y = (CanvasSize - h) / 2.0;
+                        ClampIntoCanvas(border); // Keep clamping for non-image
                     }
                 }
-                ClampIntoCanvas(border);
+
                 UpdateSelectedInfo();
             };
 
@@ -963,9 +977,19 @@ namespace CMDevicesManager.Pages
             var newX = _dragStartX + dx;
             var newY = _dragStartY + dy;
 
-            (newX, newY) = GetClampedPosition(_selected, newX, newY);
-            _selTranslate.X = newX;
-            _selTranslate.Y = newY;
+            if (_selected.Child is Image)
+            {
+                // Free movement for images (no clamping)
+                _selTranslate.X = newX;
+                _selTranslate.Y = newY;
+            }
+            else
+            {
+                (newX, newY) = GetClampedPosition(_selected, newX, newY);
+                _selTranslate.X = newX;
+                _selTranslate.Y = newY;
+            }
+
             e.Handled = true;
         }
 
@@ -975,7 +999,9 @@ namespace CMDevicesManager.Pages
             {
                 _isDragging = false;
                 b.ReleaseMouseCapture();
-                ClampIntoCanvas(b);
+                // Clamp only non-image elements
+                if (b.Child is not Image)
+                    ClampIntoCanvas(b);
                 e.Handled = true;
             }
         }
