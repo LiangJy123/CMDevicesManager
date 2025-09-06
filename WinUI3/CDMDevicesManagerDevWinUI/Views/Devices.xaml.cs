@@ -1,9 +1,11 @@
-﻿using HID.DisplayController;
+﻿//using CDMDevicesManagerDevWinUI.Controls;
+using HID.DisplayController;
 using HidApi;
 using Microsoft.UI.Xaml.Controls;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+
 
 namespace CDMDevicesManagerDevWinUI.Views
 {
@@ -234,6 +236,42 @@ namespace CDMDevicesManagerDevWinUI.Views
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error setting brightness: {ex.Message}");
+            }
+        }
+
+        private void DeviceCard_SettingsRequested(object sender, DeviceActionEventArgs e)
+        {
+            // Navigate to device settings page
+            // You can navigate to existing pages like DeviceLive
+            // App.Current.NavService.NavigateTo(typeof(SettingsPage), e.DeviceInfo);
+        }
+
+        private void DeviceCard_ConfigRequested(object sender, DeviceActionEventArgs e)
+        {
+            // Navigate to device configuration page
+            // App.Current.NavService.NavigateTo(typeof(DeviceConfigPage), e.DeviceInfo);
+        }
+
+        private void DeviceCard_LiveViewRequested(object sender, DeviceActionEventArgs e)
+        {
+            // Navigate to device live view page
+            // App.Current.NavService.NavigateTo(typeof(DeviceLive), e.DeviceInfo);
+        }
+
+        private void DeviceCard_RefreshRequested(object sender, DeviceActionEventArgs e)
+        {
+            // Refresh the specific device
+            RefreshSpecificDevice(e.DeviceInfo.DevicePath);
+        }
+
+        private void RefreshSpecificDevice(string devicePath)
+        {
+            // Implement device refresh logic
+            var device = ConnectedDevices.FirstOrDefault(d => d.DevicePath == devicePath);
+            if (device != null)
+            {
+                // Refresh device information
+                System.Diagnostics.Debug.WriteLine($"Refreshing device: {device.ProductName}");
             }
         }
 

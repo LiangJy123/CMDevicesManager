@@ -9,9 +9,11 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       mc:Ignorable="d">
 
+
+    <!--HeaderText="{x:Bind dev:ProcessInfoHelper.ProductNameAndVersion}"-->
     <dev:MainLandingPage HeaderImage="{ThemeResource HeaderCover}"
                         HeaderSubtitleText="MasterCooler"
-                        HeaderText="{x:Bind dev:ProcessInfoHelper.ProductNameAndVersion}"
+                        HeaderText=""
                         JsonNavigationService="{x:Bind app:App.Current.NavService}">
         <dev:MainLandingPage.HeaderContent>
             <StackPanel Orientation="Horizontal" Spacing="10">
@@ -24,19 +26,25 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="local:DeviceInfoViewModel">
-                            <dev:HeaderTile Title="{x:Bind ProductName}"
-                                        Description="{x:Bind SerialNumber}">
+                            <!--<dev:HeaderTile Title="{x:Bind ProductName}"
+                                Description="{x:Bind SerialNumber}">
                                 <dev:HeaderTile.Source>
                                     <FontIcon Glyph="&#xE767;" FontSize="32" Foreground="#2196F3"/>
                                 </dev:HeaderTile.Source>
-                            </dev:HeaderTile>
+                            </dev:HeaderTile>-->
+                            <local:DeviceInfoCard DeviceInfo="{x:Bind}"
+                                                  IsConnected="True"
+                                                  SettingsRequested="DeviceCard_SettingsRequested"
+                                                  ConfigRequested="DeviceCard_ConfigRequested"
+                                                  LiveViewRequested="DeviceCard_LiveViewRequested"
+                                                  RefreshRequested="DeviceCard_RefreshRequested" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </StackPanel>
         </dev:MainLandingPage.HeaderContent>
 
-        <dev:MainLandingPage.FooterContent>
+        <!--<dev:MainLandingPage.FooterContent>
             <StackPanel>
                 <TextBlock x:Name="LearnMore"
                         Margin="0,0,0,12"
@@ -44,7 +52,7 @@
                         Style="{StaticResource SubtitleTextBlockStyle}"
                         Text="Learn More" />
             </StackPanel>
-        </dev:MainLandingPage.FooterContent>
+        </dev:MainLandingPage.FooterContent>-->
     </dev:MainLandingPage>
 </Page>
 

@@ -37,10 +37,10 @@
         </TitleBar>
         <NavigationView x:Name="NavView"
                         Grid.Row="1"
+                        HighContrastAdjustment="None"
                         IsBackButtonVisible="Collapsed"
-                        OpenPaneLength="120"
-                        
-                        IsPaneToggleButtonVisible="False">
+                        IsPaneToggleButtonVisible="False"
+                        Style="{StaticResource MainNavigationViewStyle}">
             <NavigationView.Header>
                 <dev:BreadcrumbNavigator x:Name="BreadCrumbNav" />
             </NavigationView.Header>

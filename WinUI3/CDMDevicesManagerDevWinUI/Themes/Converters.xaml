@@ -1,4 +1,14 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="using:CDMDevicesManagerDevWinUI.Converters">
 
+    <!-- Boolean to Status Color Converter -->
+    <local:BoolToColorConverter x:Key="BoolToStatusColorConverter" 
+                                TrueColor="LimeGreen" 
+                                FalseColor="OrangeRed" />
+
+    <!-- Boolean to Status Text Converter -->
+    <local:BoolToStringConverter x:Key="BoolToStatusTextConverter" 
+                                 TrueValue="Connected" 
+                                 FalseValue="Disconnected" />
 </ResourceDictionary>
