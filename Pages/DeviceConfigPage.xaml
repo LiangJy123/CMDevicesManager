@@ -235,7 +235,7 @@
 
             <StackPanel Grid.Column="2" Orientation="Horizontal">
                 <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
-                <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" Width="64" Margin="0,0,0,0"
+                <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" Width="64"
                          Style="{StaticResource DarkTextBoxStyle}"/>
             </StackPanel>
         </Grid>
@@ -359,7 +359,6 @@
                                            VerticalAlignment="Center" Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
-                            <!-- Gradient toggle -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <CheckBox x:Name="UseGradientCheckBox" 
                                           IsChecked="{Binding UseTextGradient}" 
@@ -368,7 +367,6 @@
                                           VerticalAlignment="Center"/>
                             </StackPanel>
 
-                            <!-- Single color -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
                                         Visibility="{Binding UseTextGradient, Converter={StaticResource InverseBoolToVis}}">
                                 <TextBlock Text="Color #" VerticalAlignment="Center" Width="100" 
@@ -385,7 +383,6 @@
                                         Style="{StaticResource SmallButtonStyle}">Pick</Button>
                             </StackPanel>
 
-                            <!-- Gradient -->
                             <StackPanel Visibility="{Binding UseTextGradient, Converter={StaticResource BoolToVis}}">
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="Start Color #" Width="100" VerticalAlignment="Center"
@@ -432,15 +429,93 @@
                                     </Border>
                                 </StackPanel>
                             </StackPanel>
+
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
-            Visibility="{Binding IsDateTimeSelected, Converter={StaticResource BoolToVis}}">
+                                        Visibility="{Binding IsDateTimeSelected, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="Date Format" Width="100" VerticalAlignment="Center"
-               Foreground="{StaticResource SubtitleBrush}"/>
+                                           Foreground="{StaticResource SubtitleBrush}"/>
                                 <ComboBox Width="180"
-              ItemsSource="{Binding DateFormats}"
-              SelectedItem="{Binding SelectedDateFormat, UpdateSourceTrigger=PropertyChanged}"
-                    Style="{StaticResource DarkComboBoxStyle}"
-              Padding="4,2"/>
+                                          ItemsSource="{Binding DateFormats}"
+                                          SelectedItem="{Binding SelectedDateFormat, UpdateSourceTrigger=PropertyChanged}"
+                                          Style="{StaticResource DarkComboBoxStyle}"
+                                          Padding="4,2"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Usage style selector -->
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,8"
+                                    Visibility="{Binding IsUsageSelected, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Usage Style"  Width="100" VerticalAlignment="Center"
+                                       Foreground="{StaticResource SubtitleBrush}"/>
+                            <ComboBox Width="180"
+                                      SelectedValue="{Binding SelectedUsageDisplayStyle, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Content"
+                                      Style="{StaticResource DarkComboBoxStyle}">
+                                <ComboBoxItem Content="Text" />
+                                <ComboBoxItem Content="ProgressBar" />
+                                <ComboBoxItem Content="Gauge" />
+                            </ComboBox>
+                        </StackPanel>
+
+                        <!-- Usage theme (only when ProgressBar / Gauge) -->
+                        <StackPanel Margin="0,0,0,8"
+                                    Visibility="{Binding IsUsageVisualSelected, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="Usage Theme" FontWeight="SemiBold" Margin="0,0,0,8"
+                                       Foreground="{StaticResource TitleBrush}" FontSize="14"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="Start #" Width="100" VerticalAlignment="Center"
+                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                <TextBox Text="{Binding UsageStartHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
+                                         Style="{StaticResource DarkTextBoxStyle}"/>
+                                <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
+                                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                    <Border.Background>
+                                        <SolidColorBrush Color="{Binding UsageStartColor}"/>
+                                    </Border.Background>
+                                </Border>
+                                <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
+                                        Click="PickUsageStartColor_Click">Pick</Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <TextBlock Text="End #" Width="100" VerticalAlignment="Center"
+                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                <TextBox Text="{Binding UsageEndHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
+                                         Style="{StaticResource DarkTextBoxStyle}"/>
+                                <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
+                                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                    <Border.Background>
+                                        <SolidColorBrush Color="{Binding UsageEndColor}"/>
+                                    </Border.Background>
+                                </Border>
+                                <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
+                                        Click="PickUsageEndColor_Click">Pick</Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
+                                        Visibility="{Binding IsGaugeSelected, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Needle #" Width="100" VerticalAlignment="Center"
+                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                <TextBox Text="{Binding UsageNeedleHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
+                                         Style="{StaticResource DarkTextBoxStyle}"/>
+                                <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
+                                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                    <Border.Background>
+                                        <SolidColorBrush Color="{Binding UsageNeedleColor}"/>
+                                    </Border.Background>
+                                </Border>
+                                <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
+                                        Click="PickUsageNeedleColor_Click">Pick</Button>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="Preview" Width="100" VerticalAlignment="Center"
+                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                <Border Width="200" Height="30" CornerRadius="4" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                            <GradientStop Color="{Binding UsageStartColor}" Offset="0"/>
+                                            <GradientStop Color="{Binding UsageEndColor}" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
                             </StackPanel>
                         </StackPanel>
 
@@ -448,7 +523,6 @@
                         <StackPanel x:Name="CommonProps" Margin="0,8,0,0"
                                     Visibility="{Binding IsAnySelected, Converter={StaticResource BoolToVis}}">
 
-                            <!-- Scale row: 隐藏于文字元素 -->
                             <StackPanel x:Name="ScaleRow"
                                         Orientation="Horizontal" Margin="0,0,0,8"
                                         Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}">
@@ -461,25 +535,22 @@
                                            Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
-                            <!-- === Image Transform Buttons (NEW) === -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
                                         Visibility="{Binding IsImageSelected, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="Rotate/Mirror" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
-
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource SmallButtonStyle}" Width="40"
                                             Click="RotateImageLeft_Click"
-                                            ToolTip="左旋90° (Rotate Left)">⟲</Button>
+                                            ToolTip="左旋90°">⟲</Button>
                                     <Button Style="{StaticResource SmallButtonStyle}" Width="40" Margin="8,0,0,0"
                                             Click="RotateImageRight_Click"
-                                            ToolTip="右旋90° (Rotate Right)">⟳</Button>
+                                            ToolTip="右旋90°">⟳</Button>
                                     <Button Style="{StaticResource SmallButtonStyle}" Width="40" Margin="8,0,0,0"
                                             Click="MirrorImageHorizontal_Click"
-                                            ToolTip="水平镜像 (Horizontal Mirror)">⇋</Button>
+                                            ToolTip="水平镜像">⇋</Button>
                                 </StackPanel>
                             </StackPanel>
-                            <!-- === END Image Transform Buttons === -->
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="Opacity" Width="100" VerticalAlignment="Center" 
@@ -497,25 +568,20 @@
                                 <Button Click="DeleteSelected_Click" Margin="8,0,0,0" Style="{StaticResource SmallButtonStyle}">Delete</Button>
                             </StackPanel>
 
-                            <!-- Tip for non-text (包含缩放提示) -->
                             <TextBlock Text="Tip: Drag to move. Ctrl + Mouse Wheel to scale."
                                        Foreground="{StaticResource SubtitleBrush}" FontSize="12"
                                        Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}"/>
-
-                            <!-- Tip for text (无缩放提示) -->
                             <TextBlock Text="Tip: Drag to move."
                                        Foreground="{StaticResource SubtitleBrush}" FontSize="12"
                                        Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
-                       
 
                         <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,16,0,16"/>
 
-                        <!-- Auto Move section (new) -->
+                        <!-- Auto Move (only for plain text items) -->
                         <StackPanel Margin="0,0,0,0" Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="Auto Move" FontWeight="SemiBold" Margin="0,0,0,8"
                                        Foreground="{StaticResource TitleBrush}" FontSize="16"/>
-
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="Speed" Width="100" VerticalAlignment="Center" Foreground="{StaticResource SubtitleBrush}"/>
@@ -525,7 +591,6 @@
                                            VerticalAlignment="Center" Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
-                            <!-- Joystick -->
                             <StackPanel>
                                 <TextBlock Text="Direction" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
                                 <Grid Width="120" Height="120"
@@ -534,39 +599,25 @@
                                       MouseLeftButtonUp="JoystickBase_MouseUp"
                                       MouseMove="JoystickBase_MouseMove"
                                       Background="Transparent">
-                                    <!-- Base circle -->
                                     <Ellipse Fill="#202633"
                                              Stroke="{StaticResource CardBorder}"
                                              StrokeThickness="2"/>
-
-                                    <!-- Direction indicators (added) -->
                                     <Canvas IsHitTestVisible="False">
-                                        <!-- Cross lines -->
                                         <Line X1="60" Y1="22" X2="60" Y2="98"
                                               Stroke="#35404F" StrokeThickness="3"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                         <Line X1="22" Y1="60" X2="98" Y2="60"
                                               Stroke="#35404F" StrokeThickness="3"
                                               StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
-
-                                        <!-- Up arrow -->
                                         <Polygon Points="60,18 52,32 68,32"
                                                  Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
-
-                                        <!-- Down arrow -->
                                         <Polygon Points="60,102 52,88 68,88"
                                                  Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
-
-                                        <!-- Left arrow -->
                                         <Polygon Points="18,60 32,52 32,68"
                                                  Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
-
-                                        <!-- Right arrow -->
                                         <Polygon Points="102,60 88,52 88,68"
                                                  Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
                                     </Canvas>
-
-                                    <!-- Knob (center movable) -->
                                     <Ellipse Width="32"
                                              Height="32"
                                              x:Name="JoystickKnob"
