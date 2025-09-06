@@ -134,6 +134,73 @@
                 </Setter>
             </Style>
 
+            <!-- ComboBox -->
+            <Style x:Key="DarkComboBoxStyle" TargetType="ComboBox">
+                <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
+                <Setter Property="Background" Value="#1B202B"/>
+                <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="4,2"/>
+                <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ComboBox">
+                            <Grid>
+                                <Border x:Name="Border"
+                                        CornerRadius="4"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <DockPanel>
+                                        <ToggleButton x:Name="DropDownToggle"
+                                                      DockPanel.Dock="Right"
+                                                      Focusable="False"
+                                                      IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                                                      ClickMode="Press"
+                                                      Background="Transparent"
+                                                      BorderThickness="0"
+                                                      Padding="4">
+                                            <Path Data="M 0 0 L 4 4 L 8 0 Z"
+                                                  Fill="{StaticResource SubtitleBrush}"
+                                                  Stretch="Uniform"
+                                                  Width="10" Height="6"/>
+                                        </ToggleButton>
+                                        <ContentPresenter Margin="4,0,4,0"
+                                                          VerticalAlignment="Center"
+                                                          HorizontalAlignment="Left"/>
+                                    </DockPanel>
+                                </Border>
+                                <Popup x:Name="Popup"
+                                       Placement="Bottom"
+                                       IsOpen="{TemplateBinding IsDropDownOpen}"
+                                       AllowsTransparency="True"
+                                       Focusable="False"
+                                       PopupAnimation="Slide">
+                                    <Border Background="#242A36"
+                                            BorderBrush="{StaticResource CardBorder}"
+                                            BorderThickness="1"
+                                            CornerRadius="4"
+                                            Padding="2"
+                                            SnapsToDevicePixels="True">
+                                        <ScrollViewer Style="{x:Null}" BorderThickness="0">
+                                            <ItemsPresenter/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Border" Property="BorderBrush" Value="#4C5A6B"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <!-- Slider -->
             <Style x:Key="DarkSliderStyle" TargetType="Slider">
                 <Setter Property="Foreground" Value="{StaticResource ButtonBg}"/>
@@ -364,6 +431,16 @@
                                                   FontWeight="Bold"/>
                                     </Border>
                                 </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+            Visibility="{Binding IsDateTimeSelected, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Date Format" Width="100" VerticalAlignment="Center"
+               Foreground="{StaticResource SubtitleBrush}"/>
+                                <ComboBox Width="180"
+              ItemsSource="{Binding DateFormats}"
+              SelectedItem="{Binding SelectedDateFormat, UpdateSourceTrigger=PropertyChanged}"
+                    Style="{StaticResource DarkComboBoxStyle}"
+              Padding="4,2"/>
                             </StackPanel>
                         </StackPanel>
 

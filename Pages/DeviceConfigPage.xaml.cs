@@ -77,6 +77,9 @@ namespace CMDevicesManager.Pages
 
         // Video
         public string? VideoPath { get; set; }
+
+        // NEW: DateTime format (only when LiveKind == DateTime)
+        public string? DateFormat { get; set; }   // <<< 新增
     }
 
     // ================= Simple Dialogs =================
@@ -261,6 +264,7 @@ namespace CMDevicesManager.Pages
             public Border Border { get; init; } = null!;
             public TextBlock Text { get; init; } = null!;
             public LiveInfoKind Kind { get; init; }
+            public string DateFormat { get; set; } = "yyyy-MM-dd HH:mm:ss"; // NEW 仅 DateTime 使用
         }
         private readonly List<LiveTextItem> _liveItems = new();
 
@@ -469,6 +473,48 @@ namespace CMDevicesManager.Pages
         // NEW: public property to bind button visibility
         public bool IsImageSelected => _selected?.Child is Image && _selected.Tag is not VideoElementInfo;
 
+        // 可选日期格式列表
+        public ObservableCollection<string> DateFormats { get; } = new()
+        {
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm",
+            "yyyy-MM-dd",
+            "MM-dd HH:mm",
+            "HH:mm:ss",
+            "HH:mm",
+            "yyyy年MM月dd日 HH:mm:ss",
+            "ddd HH:mm:ss"
+        };
+
+        // 当前选中日期元素的格式
+        private string _selectedDateFormat = "yyyy-MM-dd HH:mm:ss";
+        public string SelectedDateFormat
+        {
+            get => _selectedDateFormat;
+            set
+            {
+                if (_selectedDateFormat == value) return;
+                _selectedDateFormat = value;
+                // 应用到当前选中的 DateTime LiveItem
+                if (IsDateTimeSelected)
+                {
+                    var item = _liveItems.FirstOrDefault(i => i.Border == _selected);
+                    if (item != null && item.Kind == LiveInfoKind.DateTime)
+                    {
+                        item.DateFormat = value;
+                        var now = DateTime.Now.ToString(value);
+                        item.Text.Text = now;
+                        _selectedText = now;
+                        OnPropertyChanged(nameof(SelectedText));
+                        UpdateSelectedInfo();
+                    }
+                }
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsDateTimeSelected => _selected?.Tag is LiveInfoKind kind && kind == LiveInfoKind.DateTime;
+
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? p = null)
         {
@@ -478,7 +524,8 @@ namespace CMDevicesManager.Pages
                 OnPropertyChanged(nameof(IsAnySelected));
                 OnPropertyChanged(nameof(IsTextSelected));
                 OnPropertyChanged(nameof(IsSelectedTextReadOnly));
-                OnPropertyChanged(nameof(IsImageSelected)); // NEW
+                OnPropertyChanged(nameof(IsImageSelected));
+                OnPropertyChanged(nameof(IsDateTimeSelected)); // NEW
             }
         }
 
@@ -545,9 +592,10 @@ namespace CMDevicesManager.Pages
         // ================= Live Text + Date =================
         private void AddClock_Click(object sender, RoutedEventArgs e)
         {
+            var defaultFormat = "yyyy-MM-dd HH:mm:ss";
             var textBlock = new TextBlock
             {
-                Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                Text = DateTime.Now.ToString(defaultFormat),
                 FontSize = 20,
                 Foreground = new SolidColorBrush(Colors.Black),
                 FontWeight = FontWeights.SemiBold
@@ -555,12 +603,20 @@ namespace CMDevicesManager.Pages
             textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
             var border = AddElement(textBlock, Application.Current.FindResource("DateTime")?.ToString() ?? "Date/Time");
             border.Tag = LiveInfoKind.DateTime;
-            _liveItems.Add(new LiveTextItem { Border = border, Text = textBlock, Kind = LiveInfoKind.DateTime });
+            _liveItems.Add(new LiveTextItem
+            {
+                Border = border,
+                Text = textBlock,
+                Kind = LiveInfoKind.DateTime,
+                DateFormat = defaultFormat    // NEW
+            });
             if (_selected == border)
             {
                 OnPropertyChanged(nameof(IsSelectedTextReadOnly));
                 _selectedText = textBlock.Text;
+                _selectedDateFormat = defaultFormat;
                 OnPropertyChanged(nameof(SelectedText));
+                OnPropertyChanged(nameof(SelectedDateFormat));
             }
         }
 
@@ -595,11 +651,12 @@ namespace CMDevicesManager.Pages
             }
         }
 
+        // === REPLACE the existing LiveTimer_Tick method with this updated version ===
         private void LiveTimer_Tick(object? sender, EventArgs e)
         {
             double cpu = _metrics.GetCpuUsagePercent();
             double gpu = _metrics.GetGpuUsagePercent();
-            string now = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            DateTime now = DateTime.Now;
 
             foreach (var item in _liveItems.ToArray())
             {
@@ -607,9 +664,10 @@ namespace CMDevicesManager.Pages
                 {
                     LiveInfoKind.CpuUsage => $"CPU {Math.Round(cpu)}%",
                     LiveInfoKind.GpuUsage => $"GPU {Math.Round(gpu)}%",
-                    LiveInfoKind.DateTime => now,
+                    LiveInfoKind.DateTime => now.ToString(item.DateFormat ?? "yyyy-MM-dd HH:mm:ss"),
                     _ => item.Text.Text
                 };
+
                 item.Text.Text = text;
 
                 if (_selected == item.Border)
@@ -896,6 +954,17 @@ namespace CMDevicesManager.Pages
                 {
                     UseTextGradient = false;
                     SelectedTextColor = Colors.White;
+                }
+            }
+
+            // === ADD inside SelectElement(Border border) just before UpdateSelectedInfo(); (after existing text / gradient handling) ===
+            if (border.Tag is LiveInfoKind lk && lk == LiveInfoKind.DateTime)
+            {
+                var liveItem = _liveItems.FirstOrDefault(i => i.Border == border);
+                if (liveItem != null)
+                {
+                    _selectedDateFormat = liveItem.DateFormat;
+                    OnPropertyChanged(nameof(SelectedDateFormat));
                 }
             }
 
@@ -1424,6 +1493,13 @@ namespace CMDevicesManager.Pages
                             {
                                 elemConfig.Type = "LiveText";
                                 elemConfig.LiveKind = liveKind;
+
+                                if (liveKind == LiveInfoKind.DateTime)
+                                {
+                                    var liveItem = _liveItems.FirstOrDefault(i => i.Border == border);
+                                    if (liveItem != null)
+                                        elemConfig.DateFormat = liveItem.DateFormat; // NEW
+                                }
                             }
                         }
                         else if (border.Child is Image img)
@@ -1594,45 +1670,31 @@ namespace CMDevicesManager.Pages
                                     FontWeight = FontWeights.SemiBold
                                 };
                                 liveTb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+                                // 前面颜色逻辑保持
 
-                                if (elemConfig.UseTextGradient == true &&
-                                    !string.IsNullOrEmpty(elemConfig.TextColor) &&
-                                    !string.IsNullOrEmpty(elemConfig.TextColor2) &&
-                                    TryParseHexColor(elemConfig.TextColor, out var lc1) &&
-                                    TryParseHexColor(elemConfig.TextColor2, out var lc2))
+                                if (elemConfig.LiveKind.Value == LiveInfoKind.DateTime)
                                 {
-                                    var gradientBrush = new LinearGradientBrush
-                                    {
-                                        StartPoint = new Point(0, 0),
-                                        EndPoint = new Point(1, 1)
-                                    };
-                                    gradientBrush.GradientStops.Add(new GradientStop(lc1, 0.0));
-                                    gradientBrush.GradientStops.Add(new GradientStop(lc2, 1.0));
-                                    liveTb.Foreground = gradientBrush;
-                                }
-                                else if (!string.IsNullOrEmpty(elemConfig.TextColor) &&
-                                         TryParseHexColor(elemConfig.TextColor, out var liveTextColor))
-                                {
-                                    liveTb.Foreground = new SolidColorBrush(liveTextColor);
+                                    string fmt = string.IsNullOrWhiteSpace(elemConfig.DateFormat)
+                                        ? "yyyy-MM-dd HH:mm:ss"
+                                        : elemConfig.DateFormat;
+                                    liveTb.Text = DateTime.Now.ToString(fmt);
+                                    element = liveTb;
+
+                                    // 创建后 tag & liveItems
                                 }
                                 else
                                 {
-                                    liveTb.Foreground = new SolidColorBrush(Colors.Black);
+                                    switch (elemConfig.LiveKind.Value)
+                                    {
+                                        case LiveInfoKind.CpuUsage:
+                                            liveTb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
+                                            break;
+                                        case LiveInfoKind.GpuUsage:
+                                            liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
+                                            break;
+                                    }
+                                    element = liveTb;
                                 }
-
-                                switch (elemConfig.LiveKind.Value)
-                                {
-                                    case LiveInfoKind.DateTime:
-                                        liveTb.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                                        break;
-                                    case LiveInfoKind.CpuUsage:
-                                        liveTb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
-                                        break;
-                                    case LiveInfoKind.GpuUsage:
-                                        liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
-                                        break;
-                                }
-                                element = liveTb;
                             }
                             break;
                         }
@@ -1741,11 +1803,16 @@ namespace CMDevicesManager.Pages
                         if (elemConfig.Type == "LiveText" && elemConfig.LiveKind.HasValue)
                         {
                             border.Tag = elemConfig.LiveKind.Value;
+                            var dateFmt = elemConfig.LiveKind.Value == LiveInfoKind.DateTime
+                                ? (elemConfig.DateFormat ?? "yyyy-MM-dd HH:mm:ss")
+                                : "yyyy-MM-dd HH:mm:ss"; // default kept, only used for DateTime
+
                             _liveItems.Add(new LiveTextItem
                             {
                                 Border = border,
                                 Text = (TextBlock)element,
-                                Kind = elemConfig.LiveKind.Value
+                                Kind = elemConfig.LiveKind.Value,
+                                DateFormat = dateFmt
                             });
                         }
 
