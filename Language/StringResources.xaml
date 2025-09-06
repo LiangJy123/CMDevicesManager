@@ -76,4 +76,5 @@
     <sys:String x:Key="NoValidConfigFilesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">没有找到有效的配置文件</sys:String>
     <sys:String x:Key="Notice" xmlns:sys="clr-namespace:System;assembly=mscorlib">提示</sys:String>
     <sys:String x:Key="OpenSettingsPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">这里打开设置窗口</sys:String>
+    <sys:String x:Key="SaveAsButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">另存为</sys:String>
 </ResourceDictionary>
