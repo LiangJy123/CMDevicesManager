@@ -25,7 +25,6 @@ using Image = System.Windows.Controls.Image;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using Point = System.Windows.Point;
-using Size = System.Windows.Size;
 using WF = System.Windows.Forms;
 using CMDevicesManager.Utilities;
 using MessageBox = System.Windows.MessageBox;
@@ -78,8 +77,8 @@ namespace CMDevicesManager.Pages
         // Video
         public string? VideoPath { get; set; }
 
-        // NEW: DateTime format (only when LiveKind == DateTime)
-        public string? DateFormat { get; set; }   // <<< 新增
+        // DateTime format
+        public string? DateFormat { get; set; }
     }
 
     // ================= Simple Dialogs =================
@@ -264,7 +263,7 @@ namespace CMDevicesManager.Pages
             public Border Border { get; init; } = null!;
             public TextBlock Text { get; init; } = null!;
             public LiveInfoKind Kind { get; init; }
-            public string DateFormat { get; set; } = "yyyy-MM-dd HH:mm:ss"; // NEW 仅 DateTime 使用
+            public string DateFormat { get; set; } = "yyyy-MM-dd HH:mm:ss";
         }
         private readonly List<LiveTextItem> _liveItems = new();
 
@@ -307,7 +306,6 @@ namespace CMDevicesManager.Pages
             {
                 _selectedScale = Math.Clamp(value, 0.1, 5);
                 ApplySelectedScale();
-                // Only clamp non-image elements
                 if (_selected?.Child is not Image)
                     ClampSelectedIntoCanvas();
                 OnPropertyChanged();
@@ -417,13 +415,13 @@ namespace CMDevicesManager.Pages
                 ? (Application.Current.FindResource("UnsavedConfig")?.ToString() ?? "Unsaved Configuration")
                 : CurrentConfigName;
 
-        // Auto-move
+        // Auto-move (multi-element)
         private DispatcherTimer _autoMoveTimer;
-        private DateTime _lastAutoMoveTime = DateTime.Now;
+        private DateTime _lastAutoMoveTime = DateTime.MinValue;
         private bool _isJoystickDragging;
         private const double JoystickBaseSize = 120.0;
         private const double JoystickKnobSize = 32.0;
-        private const double JoystickMaxOffset = (JoystickBaseSize - JoystickKnobSize) / 2.0; // 44
+        private const double JoystickMaxOffset = (JoystickBaseSize - JoystickKnobSize) / 2.0;
 
         private double _moveSpeed = 100;
         public double MoveSpeed
@@ -451,29 +449,13 @@ namespace CMDevicesManager.Pages
             private set { if (Math.Abs(_moveDirY - value) > 0.0001) { _moveDirY = value; OnPropertyChanged(); } }
         }
 
-        // === Auto-move enhancement ===
-        // 记录当前正在自动移动的文本元素，与 _selected 解耦
-        private Border? _autoMoveTarget;
+        // 多元素方向存储
+        private readonly Dictionary<Border, (double dirX, double dirY)> _movingDirections = new();
 
-        // Helper to fully stop movement & reset joystick knob
-        private void ResetMoveDirection()
-        {
-            MoveDirX = 0;
-            MoveDirY = 0;
-            if (FindName("JoystickKnobTransform") is TranslateTransform tt)
-            {
-                tt.X = 0;
-                tt.Y = 0;
-            }
-            // 停止时清空移动目标
-            _autoMoveTarget = null;
-            UpdateAutoMoveTimer();
-        }
-
-        // NEW: public property to bind button visibility
+        // Image selection property
         public bool IsImageSelected => _selected?.Child is Image && _selected.Tag is not VideoElementInfo;
 
-        // 可选日期格式列表
+        // Date format collection
         public ObservableCollection<string> DateFormats { get; } = new()
         {
             "yyyy-MM-dd HH:mm:ss",
@@ -486,7 +468,6 @@ namespace CMDevicesManager.Pages
             "ddd HH:mm:ss"
         };
 
-        // 当前选中日期元素的格式
         private string _selectedDateFormat = "yyyy-MM-dd HH:mm:ss";
         public string SelectedDateFormat
         {
@@ -495,7 +476,6 @@ namespace CMDevicesManager.Pages
             {
                 if (_selectedDateFormat == value) return;
                 _selectedDateFormat = value;
-                // 应用到当前选中的 DateTime LiveItem
                 if (IsDateTimeSelected)
                 {
                     var item = _liveItems.FirstOrDefault(i => i.Border == _selected);
@@ -525,7 +505,7 @@ namespace CMDevicesManager.Pages
                 OnPropertyChanged(nameof(IsTextSelected));
                 OnPropertyChanged(nameof(IsSelectedTextReadOnly));
                 OnPropertyChanged(nameof(IsImageSelected));
-                OnPropertyChanged(nameof(IsDateTimeSelected)); // NEW
+                OnPropertyChanged(nameof(IsDateTimeSelected));
             }
         }
 
@@ -537,33 +517,24 @@ namespace CMDevicesManager.Pages
             InitializeComponent();
             DataContext = this;
 
-            // Initialize localized strings
             _selectedInfo = Application.Current.FindResource("None")?.ToString() ?? "None";
-
-            // Metrics service
             _metrics = new RealSystemMetricsService();
-
-            // Build dynamic system info buttons
             BuildSystemInfoButtons();
 
-            // Ensure default export folder and resources folder exist
             try
             {
                 Directory.CreateDirectory(OutputFolder);
                 Directory.CreateDirectory(ResourcesFolder);
             }
-            catch { /* ignore */ }
+            catch { }
 
-            // Canvas handlers
             DesignCanvas.PreviewMouseLeftButtonDown += DesignCanvas_PreviewMouseLeftButtonDown;
             DesignCanvas.PreviewMouseWheel += DesignCanvas_PreviewMouseWheel;
 
-            // Live timer
             _liveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
             _liveTimer.Tick += LiveTimer_Tick;
             _liveTimer.Start();
 
-            // Auto-move timer 
             _autoMoveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             _autoMoveTimer.Tick += AutoMoveTimer_Tick;
 
@@ -608,7 +579,7 @@ namespace CMDevicesManager.Pages
                 Border = border,
                 Text = textBlock,
                 Kind = LiveInfoKind.DateTime,
-                DateFormat = defaultFormat    // NEW
+                DateFormat = defaultFormat
             });
             if (_selected == border)
             {
@@ -651,7 +622,6 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // === REPLACE the existing LiveTimer_Tick method with this updated version ===
         private void LiveTimer_Tick(object? sender, EventArgs e)
         {
             double cpu = _metrics.GetCpuUsagePercent();
@@ -691,8 +661,6 @@ namespace CMDevicesManager.Pages
             };
             textBlock.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
             var border = AddElement(textBlock, "Text");
-
-            // Ensure no movement starts automatically for newly added text
             if (_selected == border)
             {
                 ResetMoveDirection();
@@ -722,14 +690,13 @@ namespace CMDevicesManager.Pages
         {
             DesignCanvas.Children.Clear();
             _liveItems.Clear();
+            _movingDirections.Clear();
             SetSelected(null);
-            // === Auto-move enhancement ===
-            _autoMoveTarget = null;
             ResetMoveDirection();
             CurrentConfigName = "";
         }
 
-        // ================= Background Color / Image (UI removed but keep logic) =================
+        // ================= Color Pickers =================
         private void PickBackgroundColor_Click(object sender, RoutedEventArgs e)
         {
             using var dlg = new WF.ColorDialog
@@ -758,10 +725,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        private void ClearBackgroundImage_Click(object sender, RoutedEventArgs e)
-        {
-            BackgroundImagePath = null;
-        }
+        private void ClearBackgroundImage_Click(object sender, RoutedEventArgs e) => BackgroundImagePath = null;
 
         private void PickSelectedTextColor_Click(object sender, RoutedEventArgs e)
         {
@@ -773,9 +737,7 @@ namespace CMDevicesManager.Pages
                 Color = System.Drawing.Color.FromArgb(SelectedTextColor.A, SelectedTextColor.R, SelectedTextColor.G, SelectedTextColor.B)
             };
             if (dlg.ShowDialog() == WF.DialogResult.OK)
-            {
                 SelectedTextColor = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
-            }
         }
 
         private void PickSelectedTextColor2_Click(object sender, RoutedEventArgs e)
@@ -788,9 +750,7 @@ namespace CMDevicesManager.Pages
                 Color = System.Drawing.Color.FromArgb(SelectedTextColor2.A, SelectedTextColor2.R, SelectedTextColor2.G, SelectedTextColor2.B)
             };
             if (dlg.ShowDialog() == WF.DialogResult.OK)
-            {
                 SelectedTextColor2 = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
-            }
         }
 
         // ================= Z-Order / Delete =================
@@ -814,12 +774,7 @@ namespace CMDevicesManager.Pages
         {
             if (_selected == null) return;
 
-            // === Auto-move enhancement ===
-            if (_autoMoveTarget == _selected)
-            {
-                _autoMoveTarget = null;
-                ResetMoveDirection();
-            }
+            _movingDirections.Remove(_selected);
 
             if (_selected == _currentVideoBorder)
             {
@@ -834,6 +789,7 @@ namespace CMDevicesManager.Pages
 
             DesignCanvas.Children.Remove(_selected);
             SetSelected(null);
+            UpdateAutoMoveTimer();
         }
 
         private void BrowseOutputFolder_Click(object sender, RoutedEventArgs e)
@@ -845,9 +801,7 @@ namespace CMDevicesManager.Pages
                 SelectedPath = Directory.Exists(OutputFolder) ? OutputFolder : Environment.GetFolderPath(Environment.SpecialFolder.MyPictures)
             };
             if (dlg.ShowDialog() == WF.DialogResult.OK)
-            {
                 OutputFolder = dlg.SelectedPath;
-            }
         }
 
         // ================= Element Creation / Selection =================
@@ -899,14 +853,13 @@ namespace CMDevicesManager.Pages
                         double scaledH = h * scaleToCover;
                         tr.X = (CanvasSize - scaledW) / 2.0;
                         tr.Y = (CanvasSize - scaledH) / 2.0;
-                        // No clamping for images
                     }
                     else
                     {
                         SelectedScale = 1.0;
                         tr.X = (CanvasSize - w) / 2.0;
                         tr.Y = (CanvasSize - h) / 2.0;
-                        ClampIntoCanvas(border); // Keep clamping for non-image
+                        ClampIntoCanvas(border);
                     }
                 }
 
@@ -957,14 +910,25 @@ namespace CMDevicesManager.Pages
                 }
             }
 
-            // === ADD inside SelectElement(Border border) just before UpdateSelectedInfo(); (after existing text / gradient handling) ===
-            if (border.Tag is LiveInfoKind lk && lk == LiveInfoKind.DateTime)
+            // 恢复该元素的方向到摇杆
+            if (_movingDirections.TryGetValue(border, out var storedDir))
             {
-                var liveItem = _liveItems.FirstOrDefault(i => i.Border == border);
-                if (liveItem != null)
+                MoveDirX = storedDir.dirX;
+                MoveDirY = storedDir.dirY;
+                if (FindName("JoystickKnobTransform") is TranslateTransform tt2)
                 {
-                    _selectedDateFormat = liveItem.DateFormat;
-                    OnPropertyChanged(nameof(SelectedDateFormat));
+                    tt2.X = MoveDirX * JoystickMaxOffset;
+                    tt2.Y = MoveDirY * JoystickMaxOffset;
+                }
+            }
+            else
+            {
+                MoveDirX = 0;
+                MoveDirY = 0;
+                if (FindName("JoystickKnobTransform") is TranslateTransform tt3)
+                {
+                    tt3.X = 0;
+                    tt3.Y = 0;
                 }
             }
 
@@ -1068,7 +1032,6 @@ namespace CMDevicesManager.Pages
 
             if (_selected.Child is Image)
             {
-                // Free movement for images (no clamping)
                 _selTranslate.X = newX;
                 _selTranslate.Y = newY;
             }
@@ -1088,7 +1051,6 @@ namespace CMDevicesManager.Pages
             {
                 _isDragging = false;
                 b.ReleaseMouseCapture();
-                // Clamp only non-image elements
                 if (b.Child is not Image)
                     ClampIntoCanvas(b);
                 e.Handled = true;
@@ -1178,13 +1140,6 @@ namespace CMDevicesManager.Pages
                 _selScale.ScaleX = _selectedScale;
                 _selScale.ScaleY = _selectedScale;
             }
-        }
-
-        private static string SanitizeFileName(string name)
-        {
-            foreach (var c in Path.GetInvalidFileNameChars())
-                name = name.Replace(c, '_');
-            return name;
         }
 
         // ================= Video Playback =================
@@ -1498,7 +1453,7 @@ namespace CMDevicesManager.Pages
                                 {
                                     var liveItem = _liveItems.FirstOrDefault(i => i.Border == border);
                                     if (liveItem != null)
-                                        elemConfig.DateFormat = liveItem.DateFormat; // NEW
+                                        elemConfig.DateFormat = liveItem.DateFormat;
                                 }
                             }
                         }
@@ -1603,9 +1558,9 @@ namespace CMDevicesManager.Pages
 
                 DesignCanvas.Children.Clear();
                 _liveItems.Clear();
+                _movingDirections.Clear();
                 SetSelected(null);
                 StopVideoPlayback();
-                _autoMoveTarget = null;
                 ResetMoveDirection();
 
                 CurrentConfigName = config.ConfigName;
@@ -1624,148 +1579,170 @@ namespace CMDevicesManager.Pages
                     switch (elemConfig.Type)
                     {
                         case "Text":
-                        {
-                            var tb = new TextBlock
                             {
-                                Text = elemConfig.Text ?? "Text",
-                                FontSize = elemConfig.FontSize ?? 24,
-                                FontWeight = FontWeights.SemiBold
-                            };
-                            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-
-                            if (elemConfig.UseTextGradient == true &&
-                                !string.IsNullOrEmpty(elemConfig.TextColor) &&
-                                !string.IsNullOrEmpty(elemConfig.TextColor2) &&
-                                TryParseHexColor(elemConfig.TextColor, out var c1) &&
-                                TryParseHexColor(elemConfig.TextColor2, out var c2))
-                            {
-                                var gradientBrush = new LinearGradientBrush
+                                var tb = new TextBlock
                                 {
-                                    StartPoint = new Point(0, 0),
-                                    EndPoint = new Point(1, 1)
-                                };
-                                gradientBrush.GradientStops.Add(new GradientStop(c1, 0.0));
-                                gradientBrush.GradientStops.Add(new GradientStop(c2, 1.0));
-                                tb.Foreground = gradientBrush;
-                            }
-                            else if (!string.IsNullOrEmpty(elemConfig.TextColor) &&
-                                     TryParseHexColor(elemConfig.TextColor, out var tc))
-                            {
-                                tb.Foreground = new SolidColorBrush(tc);
-                            }
-                            else
-                            {
-                                tb.Foreground = new SolidColorBrush(Colors.Black);
-                            }
-                            element = tb;
-                            break;
-                        }
-                        case "LiveText":
-                        {
-                            if (elemConfig.LiveKind.HasValue)
-                            {
-                                var liveTb = new TextBlock
-                                {
-                                    FontSize = elemConfig.FontSize ?? 20,
+                                    Text = elemConfig.Text ?? "Text",
+                                    FontSize = elemConfig.FontSize ?? 24,
                                     FontWeight = FontWeights.SemiBold
                                 };
-                                liveTb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-                                // 前面颜色逻辑保持
+                                tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
-                                if (elemConfig.LiveKind.Value == LiveInfoKind.DateTime)
+                                if (elemConfig.UseTextGradient == true &&
+                                    !string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                    !string.IsNullOrEmpty(elemConfig.TextColor2) &&
+                                    TryParseHexColor(elemConfig.TextColor, out var c1) &&
+                                    TryParseHexColor(elemConfig.TextColor2, out var c2))
                                 {
-                                    string fmt = string.IsNullOrWhiteSpace(elemConfig.DateFormat)
-                                        ? "yyyy-MM-dd HH:mm:ss"
-                                        : elemConfig.DateFormat;
-                                    liveTb.Text = DateTime.Now.ToString(fmt);
-                                    element = liveTb;
-
-                                    // 创建后 tag & liveItems
+                                    var gradientBrush = new LinearGradientBrush
+                                    {
+                                        StartPoint = new Point(0, 0),
+                                        EndPoint = new Point(1, 1)
+                                    };
+                                    gradientBrush.GradientStops.Add(new GradientStop(c1, 0.0));
+                                    gradientBrush.GradientStops.Add(new GradientStop(c2, 1.0));
+                                    tb.Foreground = gradientBrush;
+                                }
+                                else if (!string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                         TryParseHexColor(elemConfig.TextColor, out var tc))
+                                {
+                                    tb.Foreground = new SolidColorBrush(tc);
                                 }
                                 else
                                 {
-                                    switch (elemConfig.LiveKind.Value)
-                                    {
-                                        case LiveInfoKind.CpuUsage:
-                                            liveTb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
-                                            break;
-                                        case LiveInfoKind.GpuUsage:
-                                            liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
-                                            break;
-                                    }
-                                    element = liveTb;
+                                    tb.Foreground = new SolidColorBrush(Colors.Black);
                                 }
+                                element = tb;
+                                break;
                             }
-                            break;
-                        }
-                        case "Image":
-                        {
-                            if (!string.IsNullOrEmpty(elemConfig.ImagePath))
+                        case "LiveText":
                             {
-                                var resolvedPath = ResolveRelativePath(elemConfig.ImagePath);
-                                if (File.Exists(resolvedPath))
+                                if (elemConfig.LiveKind.HasValue)
                                 {
-                                    try
+                                    var liveTb = new TextBlock
                                     {
-                                        var bitmap = new BitmapImage();
-                                        bitmap.BeginInit();
-                                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                                        bitmap.UriSource = new Uri(resolvedPath, UriKind.Absolute);
-                                        bitmap.EndInit();
-                                        bitmap.Freeze();
+                                        FontSize = elemConfig.FontSize ?? 20,
+                                        FontWeight = FontWeights.SemiBold
+                                    };
+                                    liveTb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
-                                        var img = new Image
+                                    if (elemConfig.UseTextGradient == true &&
+                                        !string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                        !string.IsNullOrEmpty(elemConfig.TextColor2) &&
+                                        TryParseHexColor(elemConfig.TextColor, out var lc1) &&
+                                        TryParseHexColor(elemConfig.TextColor2, out var lc2))
+                                    {
+                                        var gradientBrush = new LinearGradientBrush
                                         {
-                                            Source = bitmap,
-                                            Stretch = Stretch.Uniform
+                                            StartPoint = new Point(0, 0),
+                                            EndPoint = new Point(1, 1)
                                         };
-                                        element = img;
+                                        gradientBrush.GradientStops.Add(new GradientStop(lc1, 0.0));
+                                        gradientBrush.GradientStops.Add(new GradientStop(lc2, 1.0));
+                                        liveTb.Foreground = gradientBrush;
                                     }
-                                    catch (Exception ex)
+                                    else if (!string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                             TryParseHexColor(elemConfig.TextColor, out var liveTextColor))
                                     {
-                                        Logger.Error($"Failed to load image from {resolvedPath}: {ex.Message}");
+                                        liveTb.Foreground = new SolidColorBrush(liveTextColor);
                                     }
-                                }
-                                else
-                                {
-                                    Logger.Info($"Image file not found: {resolvedPath}");
-                                }
-                            }
-                            break;
-                        }
-                        case "Video":
-                        {
-                            if (!string.IsNullOrEmpty(elemConfig.VideoPath))
-                            {
-                                var resolvedPath = ResolveRelativePath(elemConfig.VideoPath);
-                                if (File.Exists(resolvedPath))
-                                {
-                                    var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedPath);
-                                    if (videoInfo != null)
+                                    else
                                     {
-                                        Mouse.OverrideCursor = Cursors.Wait;
-                                        var frames = await ExtractMp4FramesToMemory(resolvedPath);
-                                        Mouse.OverrideCursor = null;
+                                        liveTb.Foreground = new SolidColorBrush(Colors.Black);
+                                    }
 
-                                        if (frames != null && frames.Count > 0)
+                                    if (elemConfig.LiveKind.Value == LiveInfoKind.DateTime)
+                                    {
+                                        string fmt = string.IsNullOrWhiteSpace(elemConfig.DateFormat)
+                                            ? "yyyy-MM-dd HH:mm:ss"
+                                            : elemConfig.DateFormat;
+                                        liveTb.Text = DateTime.Now.ToString(fmt);
+                                        element = liveTb;
+                                    }
+                                    else
+                                    {
+                                        switch (elemConfig.LiveKind.Value)
                                         {
-                                            _currentVideoFrames = frames;
-                                            _currentFrameIndex = 0;
+                                            case LiveInfoKind.CpuUsage:
+                                                liveTb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
+                                                break;
+                                            case LiveInfoKind.GpuUsage:
+                                                liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
+                                                break;
+                                        }
+                                        element = liveTb;
+                                    }
+                                }
+                                break;
+                            }
+                        case "Image":
+                            {
+                                if (!string.IsNullOrEmpty(elemConfig.ImagePath))
+                                {
+                                    var resolvedPath = ResolveRelativePath(elemConfig.ImagePath);
+                                    if (File.Exists(resolvedPath))
+                                    {
+                                        try
+                                        {
+                                            var bitmap = new BitmapImage();
+                                            bitmap.BeginInit();
+                                            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                                            bitmap.UriSource = new Uri(resolvedPath, UriKind.Absolute);
+                                            bitmap.EndInit();
+                                            bitmap.Freeze();
 
-                                            var videoImage = new Image
+                                            var img = new Image
                                             {
-                                                Stretch = Stretch.Uniform,
-                                                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                                                VerticalAlignment = System.Windows.VerticalAlignment.Top
+                                                Source = bitmap,
+                                                Stretch = Stretch.Uniform
                                             };
-                                            UpdateVideoFrame(videoImage, frames[0]);
-                                            element = videoImage;
+                                            element = img;
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Logger.Error($"Failed to load image from {resolvedPath}: {ex.Message}");
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Logger.Info($"Image file not found: {resolvedPath}");
+                                    }
+                                }
+                                break;
+                            }
+                        case "Video":
+                            {
+                                if (!string.IsNullOrEmpty(elemConfig.VideoPath))
+                                {
+                                    var resolvedPath = ResolveRelativePath(elemConfig.VideoPath);
+                                    if (File.Exists(resolvedPath))
+                                    {
+                                        var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedPath);
+                                        if (videoInfo != null)
+                                        {
+                                            Mouse.OverrideCursor = Cursors.Wait;
+                                            var frames = await ExtractMp4FramesToMemory(resolvedPath);
+                                            Mouse.OverrideCursor = null;
+
+                                            if (frames != null && frames.Count > 0)
+                                            {
+                                                _currentVideoFrames = frames;
+                                                _currentFrameIndex = 0;
+
+                                                var videoImage = new Image
+                                                {
+                                                    Stretch = Stretch.Uniform,
+                                                    HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                                                    VerticalAlignment = System.Windows.VerticalAlignment.Top
+                                                };
+                                                UpdateVideoFrame(videoImage, frames[0]);
+                                                element = videoImage;
+                                            }
                                         }
                                     }
                                 }
+                                break;
                             }
-                            break;
-                        }
                     }
 
                     if (element != null)
@@ -1805,8 +1782,7 @@ namespace CMDevicesManager.Pages
                             border.Tag = elemConfig.LiveKind.Value;
                             var dateFmt = elemConfig.LiveKind.Value == LiveInfoKind.DateTime
                                 ? (elemConfig.DateFormat ?? "yyyy-MM-dd HH:mm:ss")
-                                : "yyyy-MM-dd HH:mm:ss"; // default kept, only used for DateTime
-
+                                : "yyyy-MM-dd HH:mm:ss";
                             _liveItems.Add(new LiveTextItem
                             {
                                 Border = border,
@@ -1872,20 +1848,12 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // ================= Auto Move =================
+        // ================= Auto Move (multi-element) =================
         private void UpdateAutoMoveTimer()
         {
-            // === Auto-move enhancement ===
-            // 改为使用 _autoMoveTarget，不再依赖当前选中
-            bool shouldMove =
-                _autoMoveTarget != null &&
-                _autoMoveTarget.Child is TextBlock &&
-                _autoMoveTarget.Tag is not LiveInfoKind &&
-                (Math.Abs(MoveDirX) > 0.0001 || Math.Abs(MoveDirY) > 0.0001);
-
-            if (shouldMove)
+            bool anyMoving = _movingDirections.Values.Any(v => Math.Abs(v.dirX) > 0.0001 || Math.Abs(v.dirY) > 0.0001);
+            if (anyMoving)
             {
-                _lastAutoMoveTime = DateTime.Now;
                 if (!_autoMoveTimer.IsEnabled)
                     _autoMoveTimer.Start();
             }
@@ -1898,45 +1866,39 @@ namespace CMDevicesManager.Pages
 
         private void AutoMoveTimer_Tick(object? sender, EventArgs e)
         {
-            // === Auto-move enhancement ===
-            var target = _autoMoveTarget;
-            if (target == null) return;
-            if (target.Child is not TextBlock) return;
-            if (target.Tag is LiveInfoKind) return;
-            if (Math.Abs(MoveDirX) < 0.0001 && Math.Abs(MoveDirY) < 0.0001) return;
-            if (!GetTransforms(target, out var scale, out var translate)) return;
-
-            // 如果该元素已从画布移除，停止
-            if (!DesignCanvas.Children.Contains(target))
-            {
-                _autoMoveTarget = null;
-                ResetMoveDirection();
-                return;
-            }
+            if (_movingDirections.Count == 0) return;
 
             var now = DateTime.Now;
-            var dt = (now - _lastAutoMoveTime).TotalSeconds;
+            var dt = (_lastAutoMoveTime == DateTime.MinValue ? 0.016 : (now - _lastAutoMoveTime).TotalSeconds);
             if (dt <= 0) return;
             _lastAutoMoveTime = now;
 
-            double dx = MoveDirX * MoveSpeed * dt;
-            double dy = MoveDirY * MoveSpeed * dt;
+            var entries = _movingDirections.ToList();
 
-            translate.X += dx;
-            translate.Y += dy;
+            foreach (var (border, dir) in entries)
+            {
+                if (border.Child is not TextBlock) continue;
+                if (!DesignCanvas.Children.Contains(border)) { _movingDirections.Remove(border); continue; }
+                if (Math.Abs(dir.dirX) < 0.0001 && Math.Abs(dir.dirY) < 0.0001) continue;
+                if (!GetTransforms(border, out var scale, out var translate)) continue;
 
-            double scaledW = target.ActualWidth * scale.ScaleX;
-            double scaledH = target.ActualHeight * scale.ScaleY;
+                double dx = dir.dirX * MoveSpeed * dt;
+                double dy = dir.dirY * MoveSpeed * dt;
 
-            if (translate.X > CanvasSize)
-                translate.X = -scaledW;
-            else if (translate.X + scaledW < 0)
-                translate.X = CanvasSize;
+                translate.X += dx;
+                translate.Y += dy;
 
-            if (translate.Y > CanvasSize)
-                translate.Y = -scaledH;
-            else if (translate.Y + scaledH < 0)
-                translate.Y = CanvasSize;
+                double scaledW = border.ActualWidth * scale.ScaleX;
+                double scaledH = border.ActualHeight * scale.ScaleY;
+
+                if (translate.X > CanvasSize) translate.X = -scaledW;
+                else if (translate.X + scaledW < 0) translate.X = CanvasSize;
+
+                if (translate.Y > CanvasSize) translate.Y = -scaledH;
+                else if (translate.Y + scaledH < 0) translate.Y = CanvasSize;
+            }
+
+            UpdateAutoMoveTimer();
         }
 
         private void JoystickBase_MouseDown(object sender, MouseButtonEventArgs e)
@@ -1966,6 +1928,23 @@ namespace CMDevicesManager.Pages
             ResetMoveDirection();
         }
 
+        private void ResetMoveDirection()
+        {
+            if (_selected != null)
+            {
+                if (_movingDirections.ContainsKey(_selected))
+                    _movingDirections[_selected] = (0, 0);
+            }
+            MoveDirX = 0;
+            MoveDirY = 0;
+            if (FindName("JoystickKnobTransform") is TranslateTransform tt)
+            {
+                tt.X = 0;
+                tt.Y = 0;
+            }
+            UpdateAutoMoveTimer();
+        }
+
         private void UpdateJoystick(Point p)
         {
             double cx = JoystickBaseSize / 2.0;
@@ -1984,17 +1963,21 @@ namespace CMDevicesManager.Pages
                 dy *= scale;
             }
 
+            double newDirX, newDirY;
             if (dist < 1.5)
             {
-                MoveDirX = 0;
-                MoveDirY = 0;
+                newDirX = 0;
+                newDirY = 0;
             }
             else
             {
                 var len = Math.Sqrt(dx * dx + dy * dy);
-                MoveDirX = dx / len;
-                MoveDirY = dy / len;
+                newDirX = dx / len;
+                newDirY = dy / len;
             }
+
+            MoveDirX = newDirX;
+            MoveDirY = newDirY;
 
             if (FindName("JoystickKnobTransform") is TranslateTransform tt)
             {
@@ -2002,26 +1985,18 @@ namespace CMDevicesManager.Pages
                 tt.Y = dy;
             }
 
-            // === Auto-move enhancement ===
-            // 当方向产生且当前选中是普通文本，锁定为移动目标
-            if ((Math.Abs(MoveDirX) > 0.0001 || Math.Abs(MoveDirY) > 0.0001))
+            if (_selected?.Child is TextBlock)
             {
-                if (_selected?.Child is TextBlock && _selected.Tag is not LiveInfoKind)
-                {
-                    // 如果之前没有目标，则设置。若想切换，可考虑加快捷键强制替换。
-                    if (_autoMoveTarget == null)
-                        _autoMoveTarget = _selected;
-                }
-            }
-            else
-            {
-                // 回到中心时由 ResetMoveDirection 统一清理，这里不处理
+                if (Math.Abs(newDirX) < 0.0001 && Math.Abs(newDirY) < 0.0001)
+                    _movingDirections[_selected] = (0, 0);
+                else
+                    _movingDirections[_selected] = (newDirX, newDirY);
             }
 
             UpdateAutoMoveTimer();
         }
 
-        // Helper: retrieve (or create) ScaleTransform & TranslateTransform from element Border.RenderTransform
+        // Helper: retrieve (or create) ScaleTransform & TranslateTransform
         private static bool GetTransforms(Border border, out ScaleTransform scale, out TranslateTransform translate)
         {
             if (border.RenderTransform is TransformGroup tg)
@@ -2032,7 +2007,6 @@ namespace CMDevicesManager.Pages
                 if (scale != null && translate != null)
                     return true;
 
-                // If one or both missing, add them (keep existing order: scale then translate)
                 if (scale == null)
                 {
                     scale = new ScaleTransform(1, 1);
@@ -2046,7 +2020,6 @@ namespace CMDevicesManager.Pages
                 return false;
             }
 
-            // No TransformGroup yet: create a fresh one
             scale = new ScaleTransform(1, 1);
             translate = new TranslateTransform(0, 0);
             var newGroup = new TransformGroup();
@@ -2065,14 +2038,13 @@ namespace CMDevicesManager.Pages
             StopVideoPlayback();
         }
 
-        // ================= Image Rotate / Mirror (NEW) =================
+        // ================= Image Rotate / Mirror =================
         private void EnsureImageExtendedTransforms(Border border, out ScaleTransform mirrorScale, out RotateTransform rotate)
         {
             mirrorScale = null!;
             rotate = null!;
             if (border.RenderTransform is not TransformGroup tg) return;
 
-            // First scale (content) should already exist
             var contentScale = tg.Children.OfType<ScaleTransform>().FirstOrDefault();
             if (contentScale == null)
             {
@@ -2087,7 +2059,6 @@ namespace CMDevicesManager.Pages
                 tg.Children.Add(translate);
             }
 
-            // Mirror scale after content scale
             mirrorScale = tg.Children
                             .OfType<ScaleTransform>()
                             .Skip(1)
@@ -2099,7 +2070,6 @@ namespace CMDevicesManager.Pages
                 tg.Children.Insert(insertIndex, mirrorScale);
             }
 
-            // Rotate before translate
             rotate = tg.Children.OfType<RotateTransform>().FirstOrDefault();
             if (rotate == null)
             {
@@ -2110,7 +2080,6 @@ namespace CMDevicesManager.Pages
             }
             else
             {
-                // Reorder if needed
                 int mirrorIndex = tg.Children.IndexOf(mirrorScale);
                 int rotateIndex = tg.Children.IndexOf(rotate);
                 int translateIndex = tg.Children.IndexOf(translate);
@@ -2130,7 +2099,7 @@ namespace CMDevicesManager.Pages
 
             if (_selected.RenderTransform is TransformGroup)
             {
-                EnsureImageExtendedTransforms(_selected, out var _, out var rotate);
+                EnsureImageExtendedTransforms(_selected, out _, out var rotate);
                 rotate.Angle = (rotate.Angle + deltaAngle) % 360;
             }
         }
@@ -2142,7 +2111,7 @@ namespace CMDevicesManager.Pages
 
             if (_selected.RenderTransform is TransformGroup)
             {
-                EnsureImageExtendedTransforms(_selected, out var mirrorScale, out var _);
+                EnsureImageExtendedTransforms(_selected, out var mirrorScale, out _);
                 mirrorScale.ScaleX *= -1;
             }
         }
