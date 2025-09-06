@@ -447,6 +447,10 @@ namespace CMDevicesManager.Pages
             private set { if (Math.Abs(_moveDirY - value) > 0.0001) { _moveDirY = value; OnPropertyChanged(); } }
         }
 
+        // === Auto-move enhancement ===
+        // 记录当前正在自动移动的文本元素，与 _selected 解耦
+        private Border? _autoMoveTarget;
+
         // Helper to fully stop movement & reset joystick knob
         private void ResetMoveDirection()
         {
@@ -457,8 +461,13 @@ namespace CMDevicesManager.Pages
                 tt.X = 0;
                 tt.Y = 0;
             }
+            // 停止时清空移动目标
+            _autoMoveTarget = null;
             UpdateAutoMoveTimer();
         }
+
+        // NEW: public property to bind button visibility
+        public bool IsImageSelected => _selected?.Child is Image && _selected.Tag is not VideoElementInfo;
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? p = null)
@@ -469,6 +478,7 @@ namespace CMDevicesManager.Pages
                 OnPropertyChanged(nameof(IsAnySelected));
                 OnPropertyChanged(nameof(IsTextSelected));
                 OnPropertyChanged(nameof(IsSelectedTextReadOnly));
+                OnPropertyChanged(nameof(IsImageSelected)); // NEW
             }
         }
 
@@ -655,6 +665,9 @@ namespace CMDevicesManager.Pages
             DesignCanvas.Children.Clear();
             _liveItems.Clear();
             SetSelected(null);
+            // === Auto-move enhancement ===
+            _autoMoveTarget = null;
+            ResetMoveDirection();
             CurrentConfigName = "";
         }
 
@@ -742,6 +755,13 @@ namespace CMDevicesManager.Pages
         private void DeleteSelected_Click(object sender, RoutedEventArgs e)
         {
             if (_selected == null) return;
+
+            // === Auto-move enhancement ===
+            if (_autoMoveTarget == _selected)
+            {
+                _autoMoveTarget = null;
+                ResetMoveDirection();
+            }
 
             if (_selected == _currentVideoBorder)
             {
@@ -1509,6 +1529,8 @@ namespace CMDevicesManager.Pages
                 _liveItems.Clear();
                 SetSelected(null);
                 StopVideoPlayback();
+                _autoMoveTarget = null;
+                ResetMoveDirection();
 
                 CurrentConfigName = config.ConfigName;
                 CanvasSize = config.CanvasSize;
@@ -1676,8 +1698,6 @@ namespace CMDevicesManager.Pages
                                             };
                                             UpdateVideoFrame(videoImage, frames[0]);
                                             element = videoImage;
-
-                                            var tempBorder = new Border(); // created later
                                         }
                                     }
                                 }
@@ -1788,10 +1808,12 @@ namespace CMDevicesManager.Pages
         // ================= Auto Move =================
         private void UpdateAutoMoveTimer()
         {
+            // === Auto-move enhancement ===
+            // 改为使用 _autoMoveTarget，不再依赖当前选中
             bool shouldMove =
-                _selected != null &&
-                _selected.Child is TextBlock &&
-                _selected.Tag is not LiveInfoKind && // do not move live text
+                _autoMoveTarget != null &&
+                _autoMoveTarget.Child is TextBlock &&
+                _autoMoveTarget.Tag is not LiveInfoKind &&
                 (Math.Abs(MoveDirX) > 0.0001 || Math.Abs(MoveDirY) > 0.0001);
 
             if (shouldMove)
@@ -1809,11 +1831,21 @@ namespace CMDevicesManager.Pages
 
         private void AutoMoveTimer_Tick(object? sender, EventArgs e)
         {
-            if (_selected == null) return;
-            if (_selected.Child is not TextBlock) return;
-            if (_selected.Tag is LiveInfoKind) return;
+            // === Auto-move enhancement ===
+            var target = _autoMoveTarget;
+            if (target == null) return;
+            if (target.Child is not TextBlock) return;
+            if (target.Tag is LiveInfoKind) return;
             if (Math.Abs(MoveDirX) < 0.0001 && Math.Abs(MoveDirY) < 0.0001) return;
-            if (!GetTransforms(_selected, out var scale, out var translate)) return;
+            if (!GetTransforms(target, out var scale, out var translate)) return;
+
+            // 如果该元素已从画布移除，停止
+            if (!DesignCanvas.Children.Contains(target))
+            {
+                _autoMoveTarget = null;
+                ResetMoveDirection();
+                return;
+            }
 
             var now = DateTime.Now;
             var dt = (now - _lastAutoMoveTime).TotalSeconds;
@@ -1826,8 +1858,8 @@ namespace CMDevicesManager.Pages
             translate.X += dx;
             translate.Y += dy;
 
-            double scaledW = _selected.ActualWidth * scale.ScaleX;
-            double scaledH = _selected.ActualHeight * scale.ScaleY;
+            double scaledW = target.ActualWidth * scale.ScaleX;
+            double scaledH = target.ActualHeight * scale.ScaleY;
 
             if (translate.X > CanvasSize)
                 translate.X = -scaledW;
@@ -1903,6 +1935,22 @@ namespace CMDevicesManager.Pages
                 tt.Y = dy;
             }
 
+            // === Auto-move enhancement ===
+            // 当方向产生且当前选中是普通文本，锁定为移动目标
+            if ((Math.Abs(MoveDirX) > 0.0001 || Math.Abs(MoveDirY) > 0.0001))
+            {
+                if (_selected?.Child is TextBlock && _selected.Tag is not LiveInfoKind)
+                {
+                    // 如果之前没有目标，则设置。若想切换，可考虑加快捷键强制替换。
+                    if (_autoMoveTarget == null)
+                        _autoMoveTarget = _selected;
+                }
+            }
+            else
+            {
+                // 回到中心时由 ResetMoveDirection 统一清理，这里不处理
+            }
+
             UpdateAutoMoveTimer();
         }
 
@@ -1949,5 +1997,91 @@ namespace CMDevicesManager.Pages
             try { _autoMoveTimer.Stop(); } catch { }
             StopVideoPlayback();
         }
+
+        // ================= Image Rotate / Mirror (NEW) =================
+        private void EnsureImageExtendedTransforms(Border border, out ScaleTransform mirrorScale, out RotateTransform rotate)
+        {
+            mirrorScale = null!;
+            rotate = null!;
+            if (border.RenderTransform is not TransformGroup tg) return;
+
+            // First scale (content) should already exist
+            var contentScale = tg.Children.OfType<ScaleTransform>().FirstOrDefault();
+            if (contentScale == null)
+            {
+                contentScale = new ScaleTransform(1, 1);
+                tg.Children.Insert(0, contentScale);
+            }
+
+            var translate = tg.Children.OfType<TranslateTransform>().FirstOrDefault();
+            if (translate == null)
+            {
+                translate = new TranslateTransform(0, 0);
+                tg.Children.Add(translate);
+            }
+
+            // Mirror scale after content scale
+            mirrorScale = tg.Children
+                            .OfType<ScaleTransform>()
+                            .Skip(1)
+                            .FirstOrDefault();
+            if (mirrorScale == null)
+            {
+                mirrorScale = new ScaleTransform(1, 1);
+                int insertIndex = tg.Children.IndexOf(contentScale) + 1;
+                tg.Children.Insert(insertIndex, mirrorScale);
+            }
+
+            // Rotate before translate
+            rotate = tg.Children.OfType<RotateTransform>().FirstOrDefault();
+            if (rotate == null)
+            {
+                rotate = new RotateTransform(0);
+                int translateIndex = tg.Children.IndexOf(translate);
+                if (translateIndex < 0) translateIndex = tg.Children.Count;
+                tg.Children.Insert(translateIndex, rotate);
+            }
+            else
+            {
+                // Reorder if needed
+                int mirrorIndex = tg.Children.IndexOf(mirrorScale);
+                int rotateIndex = tg.Children.IndexOf(rotate);
+                int translateIndex = tg.Children.IndexOf(translate);
+                if (!(mirrorIndex < rotateIndex && rotateIndex < translateIndex))
+                {
+                    tg.Children.Remove(rotate);
+                    mirrorIndex = tg.Children.IndexOf(mirrorScale);
+                    tg.Children.Insert(mirrorIndex + 1, rotate);
+                }
+            }
+        }
+
+        private void RotateSelectedImage(double deltaAngle)
+        {
+            if (_selected?.Child is not Image || _selected.Tag is VideoElementInfo)
+                return;
+
+            if (_selected.RenderTransform is TransformGroup)
+            {
+                EnsureImageExtendedTransforms(_selected, out var _, out var rotate);
+                rotate.Angle = (rotate.Angle + deltaAngle) % 360;
+            }
+        }
+
+        private void MirrorSelectedImageHorizontal()
+        {
+            if (_selected?.Child is not Image || _selected.Tag is VideoElementInfo)
+                return;
+
+            if (_selected.RenderTransform is TransformGroup)
+            {
+                EnsureImageExtendedTransforms(_selected, out var mirrorScale, out var _);
+                mirrorScale.ScaleX *= -1;
+            }
+        }
+
+        private void RotateImageLeft_Click(object sender, RoutedEventArgs e) => RotateSelectedImage(-90);
+        private void RotateImageRight_Click(object sender, RoutedEventArgs e) => RotateSelectedImage(90);
+        private void MirrorImageHorizontal_Click(object sender, RoutedEventArgs e) => MirrorSelectedImageHorizontal();
     }
 }

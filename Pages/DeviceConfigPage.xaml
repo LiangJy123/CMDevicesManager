@@ -18,7 +18,7 @@
             <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C0CC"/>
             <SolidColorBrush x:Key="ButtonBg" Color="#3A7E00"/>
             <SolidColorBrush x:Key="ButtonHoverBg" Color="#4A9E00"/>
-            
+
             <!-- Shadow effects -->
             <DropShadowEffect x:Key="CardShadow" 
                               Color="Black" 
@@ -26,14 +26,14 @@
                               ShadowDepth="8" 
                               Opacity="0.4" 
                               BlurRadius="20"/>
-            
+
             <DropShadowEffect x:Key="ButtonShadow" 
                               Color="Black" 
                               Direction="270" 
                               ShadowDepth="2" 
                               Opacity="0.3" 
                               BlurRadius="4"/>
-            
+
             <!-- Card style -->
             <Style x:Key="CardBorderStyle" TargetType="Border">
                 <Setter Property="CornerRadius" Value="15"/>
@@ -44,7 +44,7 @@
                 <Setter Property="SnapsToDevicePixels" Value="True"/>
                 <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
             </Style>
-            
+
             <!-- Button style -->
             <Style x:Key="ActionButtonStyle" TargetType="Button">
                 <Setter Property="Background" Value="{StaticResource ButtonBg}"/>
@@ -79,7 +79,7 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-            
+
             <!-- Small button -->
             <Style x:Key="SmallButtonStyle" TargetType="Button">
                 <Setter Property="Background" Value="Transparent"/>
@@ -112,7 +112,7 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-            
+
             <!-- TextBox -->
             <Style x:Key="DarkTextBoxStyle" TargetType="TextBox">
                 <Setter Property="Background" Value="#1B202B"/>
@@ -133,7 +133,7 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-            
+
             <!-- Slider -->
             <Style x:Key="DarkSliderStyle" TargetType="Slider">
                 <Setter Property="Foreground" Value="{StaticResource ButtonBg}"/>
@@ -282,7 +282,7 @@
                                      IsReadOnly="{Binding IsSelectedTextReadOnly}"
                                      Margin="0,4,0,8"
                                      Style="{StaticResource DarkTextBoxStyle}"/>
-                            
+
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="Font Size" Width="100" VerticalAlignment="Center" 
                                            Foreground="{StaticResource SubtitleBrush}"/>
@@ -384,6 +384,26 @@
                                            Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
+                            <!-- === Image Transform Buttons (NEW) === -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                                        Visibility="{Binding IsImageSelected, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="Rotate/Mirror" Width="100" VerticalAlignment="Center"
+                                           Foreground="{StaticResource SubtitleBrush}"/>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Style="{StaticResource SmallButtonStyle}" Width="40"
+                                            Click="RotateImageLeft_Click"
+                                            ToolTip="左旋90° (Rotate Left)">⟲</Button>
+                                    <Button Style="{StaticResource SmallButtonStyle}" Width="40" Margin="8,0,0,0"
+                                            Click="RotateImageRight_Click"
+                                            ToolTip="右旋90° (Rotate Right)">⟳</Button>
+                                    <Button Style="{StaticResource SmallButtonStyle}" Width="40" Margin="8,0,0,0"
+                                            Click="MirrorImageHorizontal_Click"
+                                            ToolTip="水平镜像 (Horizontal Mirror)">⇋</Button>
+                                </StackPanel>
+                            </StackPanel>
+                            <!-- === END Image Transform Buttons === -->
+
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="Opacity" Width="100" VerticalAlignment="Center" 
                                            Foreground="{StaticResource SubtitleBrush}"/>
@@ -393,13 +413,13 @@
                                            Margin="8,0,0,0" VerticalAlignment="Center" 
                                            Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
-                            
+
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <Button Click="BringToFront_Click" Style="{StaticResource SmallButtonStyle}">Bring To Front</Button>
                                 <Button Click="SendToBack_Click" Margin="8,0,0,0" Style="{StaticResource SmallButtonStyle}">Send To Back</Button>
                                 <Button Click="DeleteSelected_Click" Margin="8,0,0,0" Style="{StaticResource SmallButtonStyle}">Delete</Button>
                             </StackPanel>
-                            
+
                             <!-- Tip for non-text (包含缩放提示) -->
                             <TextBlock Text="Tip: Drag to move. Ctrl + Mouse Wheel to scale."
                                        Foreground="{StaticResource SubtitleBrush}" FontSize="12"
@@ -410,6 +430,7 @@
                                        Foreground="{StaticResource SubtitleBrush}" FontSize="12"
                                        Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
+                       
 
                         <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,16,0,16"/>
 
@@ -417,7 +438,7 @@
                         <StackPanel Margin="0,0,0,0" Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="Auto Move" FontWeight="SemiBold" Margin="0,0,0,8"
                                        Foreground="{StaticResource TitleBrush}" FontSize="16"/>
-                            
+
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="Speed" Width="100" VerticalAlignment="Center" Foreground="{StaticResource SubtitleBrush}"/>
