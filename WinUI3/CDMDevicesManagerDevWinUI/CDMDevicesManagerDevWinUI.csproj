@@ -75,7 +75,6 @@
 	<ProjectCapability Include="Msix" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="AdaptiveCards.Rendering.WinUI3" Version="1.0.2" />
     <PackageReference Include="DevWinUI" Version="8.9.2" />
     <PackageReference Include="DevWinUI.ContextMenu" Version="8.9.1" />
     <PackageReference Include="DevWinUI.Controls" Version="8.9.2" />

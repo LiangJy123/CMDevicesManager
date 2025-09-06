@@ -1,5 +1,6 @@
 using CDMDevicesManagerWinUI3.Helpers;
 using CDMDevicesManagerWinUI3.Pages;
+using HID.DisplayController;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -21,6 +22,7 @@ namespace CDMDevicesManagerWinUI3
     /// </summary>
     public sealed partial class MainWindow : Window
     {
+        private MultiDeviceManager? _multiDeviceManager;
         public NavigationView NavigationView
         {
             get { return nvView; }
@@ -29,6 +31,24 @@ namespace CDMDevicesManagerWinUI3
         {
             InitializeComponent();
             this.ExtendsContentIntoTitleBar = true;
+
+
+
+            _multiDeviceManager = new MultiDeviceManager(0x2516, 0x0228);
+
+            // Must call StartMonitoring to begin detection
+            _multiDeviceManager.StartMonitoring();
+
+            // Populate existing devices
+            var activeControllers = _multiDeviceManager.GetActiveControllers();
+
+            // Debug out the number of active controllers found
+            System.Diagnostics.Debug.WriteLine($"Found {activeControllers.Count} active devices");
+
+            foreach (var controller in activeControllers)
+            {
+                
+            }
         }
 
         public Action NavigationViewLoaded { get; set; }
