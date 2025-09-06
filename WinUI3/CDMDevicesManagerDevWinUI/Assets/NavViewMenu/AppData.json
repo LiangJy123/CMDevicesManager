@@ -1,0 +1,29 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/Ghost1372/DevWinUI/refs/heads/main/tools/AppData.Schema.json",
+  "Groups": [
+    {
+      "UniqueId": "CDMDevicesManagerDevWinUI",
+      "Title": "MasterCTRL",
+      "ImagePath": "ms-appx:///Assets/AppIcon.png",
+      "IsSpecialSection": false,
+      "ShowItemsWithoutGroup": true,
+      "IsExpanded": false,
+      "Items": [
+        {
+          "UniqueId": "CDMDevicesManagerDevWinUI.Views.HomeLandingPage",
+          "Title": "Home",
+          "Subtitle": "CDMDevicesManagerDevWinUI",
+          "ImagePath": "ms-appx:///Assets/AppIcon.png",
+          "HideItem": true
+        },
+        {
+          "UniqueId": "CDMDevicesManagerDevWinUI.Views.Devices",
+          "Title": "Devices",
+          "Subtitle": "Devices",
+          "ImagePath": "ms-appx:///Assets/AppIcon.png",
+          "HideItem": true
+        }
+      ]
+    }
+  ]
+}

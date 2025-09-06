@@ -40,7 +40,14 @@
                         >
             <NavigationView.MenuItems>
                 <NavigationViewItem Icon="Home" Content="Home" Tag="Home" />
-                <NavigationViewItem Icon="Home" Content="Devices" Tag="Devices"/>
+                <NavigationViewItem
+                  x:Name="Devices"
+                  Content="Devices"
+                  Tag="Devices" >
+                <NavigationViewItem.Icon>
+                  <FontIcon Glyph="&#xE975;" />
+                </NavigationViewItem.Icon>
+              </NavigationViewItem>
                 <NavigationViewItem Icon="Home" Content="Fan" Tag="Fan" />
             </NavigationView.MenuItems>
             <Frame x:Name="contentFrame"/>

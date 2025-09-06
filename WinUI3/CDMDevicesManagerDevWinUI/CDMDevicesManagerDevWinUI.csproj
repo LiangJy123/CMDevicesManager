@@ -1,24 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
 	<OutputType>WinExe</OutputType>
-	<TargetFramework>$DotNetVersion$-windows10.0.$TargetFrameworkVersion$.0</TargetFramework>
-	<TargetPlatformMinVersion>10.0.$MinimumTargetPlatform$.0</TargetPlatformMinVersion>
+	<TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+	<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
 	<RootNamespace>CDMDevicesManagerDevWinUI</RootNamespace>
 	<ApplicationManifest>app.manifest</ApplicationManifest>
-	<Platforms>$Platforms$</Platforms>
-	<RuntimeIdentifiers>$RuntimeIdentifiers$</RuntimeIdentifiers>
+	<Platforms>x86;x64;ARM64</Platforms>
+	<RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
 	<PublishProfile>win-$(Platform).pubxml</PublishProfile>
 	<UseWinUI>true</UseWinUI>
   <WinUISDKReferences>false</WinUISDKReferences>
   <EnableMsixTooling>true</EnableMsixTooling>
-  <Nullable>$Nullable$</Nullable>
-  <TrimMode>$TrimMode$</TrimMode>
+  <Nullable>disable</Nullable>
+  <TrimMode>partial</TrimMode>
   <ImplicitUsings>true</ImplicitUsings>
 	<LangVersion>Latest</LangVersion>
   <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
   <IsAotCompatible>true</IsAotCompatible>
   <CsWinRTAotWarningLevel>2</CsWinRTAotWarningLevel>
-	<WindowsPackageType>$WindowsPackageType$</WindowsPackageType>
+	<WindowsPackageType>MSIX</WindowsPackageType>
   <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
 	<Version>1.0.0</Version>
 
@@ -28,7 +28,7 @@
 
   <!-- Publish Properties -->
   <PropertyGroup>
-	<PublishAot>$PublishAot$</PublishAot>
+	<PublishAot>False</PublishAot>
 	<PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
     <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
@@ -72,7 +72,21 @@
     package has not yet been restored.
   -->
   <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-	<ProjectCapability Include="Msix"/>
+	<ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AdaptiveCards.Rendering.WinUI3" Version="1.0.2" />
+    <PackageReference Include="DevWinUI" Version="8.9.2" />
+    <PackageReference Include="DevWinUI.ContextMenu" Version="8.9.1" />
+    <PackageReference Include="DevWinUI.Controls" Version="8.9.2" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4948" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
+    <PackageReference Include="nucs.JsonSettings" Version="2.0.2" />
+    <PackageReference Include="nucs.JsonSettings.AutoSaveGenerator" Version="2.0.4" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\HidProtocol\HidHelper\HidHelper.csproj" />
   </ItemGroup>
 
   <!-- 

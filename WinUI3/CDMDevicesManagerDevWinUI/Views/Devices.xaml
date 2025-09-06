@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Page x:Class="CDMDevicesManagerDevWinUI.Views.Devices"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:dev="using:DevWinUI"
+      xmlns:local="using:CDMDevicesManagerDevWinUI"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      mc:Ignorable="d">
+
+    <dev:MainLandingPage HeaderImage="{ThemeResource HeaderCover}"
+                        HeaderOverlayImage="{ThemeResource HeaderCover}"
+                        HeaderSubtitleText="Windows App SDK 1.7+"
+                        HeaderText="{x:Bind dev:ProcessInfoHelper.ProductNameAndVersion}"
+                        JsonNavigationService="{x:Bind local:App.Current.NavService}">
+        <dev:MainLandingPage.HeaderContent>
+            <StackPanel Orientation="Horizontal"
+                    Spacing="10">
+                <dev:HeaderTile Title="Documentation Center"                                
+                            Description="Learn how to work with controls and styles."
+                            Link="https://Ghost1372.github.io/DevWinUI/">
+                    <dev:HeaderTile.Source>
+                        <Image Source="/Assets/Icon.png" />
+                    </dev:HeaderTile.Source>
+                </dev:HeaderTile>
+                <dev:HeaderTile Title="Controls"
+                            Description="Experience WinUI 3 quickly and easily with the help of Components, Everything you need to develop an application is gathered in one place."
+                            Link="https://Ghost1372.github.io/DevWinUI">
+                    <dev:HeaderTile.Source>
+                        <Image Source="/Assets/Icon.png" />
+                    </dev:HeaderTile.Source>
+                </dev:HeaderTile>
+                <dev:HeaderTile Title="Core"
+                            Description="Experience WinUI 3 quickly and easily with the help of Core, Everything you need to develop an application is gathered in one place."
+                            Link="https://Ghost1372.github.io/DevWinUI">
+                    <dev:HeaderTile.Source>
+                        <Image Source="/Assets/Icon.png" />
+                    </dev:HeaderTile.Source>
+                </dev:HeaderTile>
+                <dev:HeaderTile Title="ContextMenuExtensions"
+                            Description="add a new ContextMenu for Windows 11/10."
+                            Link="https://Ghost1372.github.io/DevWinUI">
+                    <dev:HeaderTile.Source>
+                        <Image Source="/Assets/Icon.png" />
+                    </dev:HeaderTile.Source>
+                </dev:HeaderTile>
+            </StackPanel>
+        </dev:MainLandingPage.HeaderContent>
+
+        <dev:MainLandingPage.FooterContent>
+            <StackPanel>
+                <ListView x:Name="ListDevices">
+
+                </ListView>
+
+
+                <TextBlock x:Name="LearnMore"
+                        Margin="0,0,0,12"
+                        Foreground="{ThemeResource ApplicationForegroundThemeBrush}"
+                        Style="{StaticResource SubtitleTextBlockStyle}"
+                        Text="Learn More" />
+                <HyperlinkButton Content="Developer Center"
+                                NavigateUri="https://developer.microsoft.com/en-us/windows/" />
+                <HyperlinkButton Content="App Code Samples"
+                                NavigateUri="https://docs.microsoft.com/en-us/windows/apps/get-started/samples" />
+                <HyperlinkButton Content="Windows Template Studio"
+                                NavigateUri="https://github.com/microsoft/WindowsTemplateStudio" />
+            </StackPanel>
+        </dev:MainLandingPage.FooterContent>
+    </dev:MainLandingPage>
+</Page>
+
