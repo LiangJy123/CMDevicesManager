@@ -92,6 +92,7 @@ namespace CMDevicesManager.Pages
         public string? UsageStartColor { get; set; }
         public string? UsageEndColor { get; set; }
         public string? UsageNeedleColor { get; set; }
+        public string? UsageBarBackgroundColor { get; set; }
     }
 
     // ================= Simple Dialogs =================
@@ -360,6 +361,9 @@ namespace CMDevicesManager.Pages
             public Color EndColor { get; set; } = Color.FromRgb(40, 120, 40);
             public Color NeedleColor { get; set; } = Color.FromRgb(90, 200, 90);
 
+            public Color BarBackgroundColor { get; set; } = Color.FromRgb(40, 46, 58);
+            public Border? BarBackgroundBorder { get; set; }
+
             // ProgressBar visuals
             public Rectangle? BarFill { get; set; }
 
@@ -490,6 +494,33 @@ namespace CMDevicesManager.Pages
                     _selectedTextHex2 = value;
                     if (TryParseHexColor(value, out var c))
                         SelectedTextColor2 = c;
+                    OnPropertyChanged();
+                }
+            }
+        }
+        private Color _usageBarBackgroundColor = Color.FromRgb(40, 46, 58);
+        public Color UsageBarBackgroundColor
+        {
+            get => _usageBarBackgroundColor;
+            set
+            {
+                _usageBarBackgroundColor = value;
+                UsageBarBackgroundHex = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
+                ApplyUsageTheme();
+                OnPropertyChanged();
+            }
+        }
+
+        private string _usageBarBackgroundHex = "#000000";
+        public string UsageBarBackgroundHex
+        {
+            get => _usageBarBackgroundHex;
+            set
+            {
+                if (_usageBarBackgroundHex != value)
+                {
+                    _usageBarBackgroundHex = value;
+                    if (TryParseHexColor(value, out var c)) UsageBarBackgroundColor = c;
                     OnPropertyChanged();
                 }
             }
@@ -774,6 +805,19 @@ namespace CMDevicesManager.Pages
         {
             if (NavigationService?.CanGoBack == true) NavigationService.GoBack();
             else NavigationService?.Navigate(new DevicePage());
+        }
+
+        private void PickUsageBarBackgroundColor_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsUsageSelected) return;
+            using var dlg = new WF.ColorDialog
+            {
+                AllowFullOpen = true,
+                FullOpen = true,
+                Color = System.Drawing.Color.FromArgb(UsageBarBackgroundColor.A, UsageBarBackgroundColor.R, UsageBarBackgroundColor.G, UsageBarBackgroundColor.B)
+            };
+            if (dlg.ShowDialog() == WF.DialogResult.OK)
+                UsageBarBackgroundColor = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
         }
 
         // ================= Helpers =================
@@ -1155,6 +1199,7 @@ namespace CMDevicesManager.Pages
                     UsageStartColor = liveItem.StartColor;
                     UsageEndColor = liveItem.EndColor;
                     UsageNeedleColor = liveItem.NeedleColor;
+                    UsageBarBackgroundColor = liveItem.BarBackgroundColor;
                 }
             }
 
@@ -1328,8 +1373,25 @@ namespace CMDevicesManager.Pages
             double scaledW = border.ActualWidth * sc.ScaleX;
             double scaledH = border.ActualHeight * sc.ScaleY;
 
+            // Default clamp (left edge >= 0, right edge <= CanvasSize)
+            double extraRightAllowance = 0;
+
+            // Allow ProgressBar usage item to move further right so“可见进度条主体”能贴紧画布右边
+            // (ProgressBar 外容器宽度包含左右各 10 像素的外边距 barMargin；我们给出向右额外的 10 以便条本身贴边)
+            if (border.Tag is LiveInfoKind &&
+                _liveItems.FirstOrDefault(i => i.Border == border)?.DisplayStyle == UsageDisplayStyle.ProgressBar)
+            {
+                // 与 RebuildUsageVisual 中 progressbar 使用的 var barMargin = new Thickness(10,8,10,20) 对应
+                const double progressBarHorizontalOuterRightMargin = 0;
+                extraRightAllowance = progressBarHorizontalOuterRightMargin;
+            }
+
+            // 计算范围：
+            // minX: 仍保持 0（不允许拖出左外）
+            // maxX: 允许再多出 extraRightAllowance，这样内部条背景能贴紧右侧
             double minX = Math.Min(0, CanvasSize - scaledW);
-            double maxX = Math.Max(0, CanvasSize - scaledW);
+            double maxX = Math.Max(0, CanvasSize - scaledW + extraRightAllowance);
+
             double minY = Math.Min(0, CanvasSize - scaledH);
             double maxY = Math.Max(0, CanvasSize - scaledH);
 
@@ -2103,38 +2165,55 @@ namespace CMDevicesManager.Pages
                     case UsageDisplayStyle.Text:
                         item.Text.Text = text;
                         break;
+
                     case UsageDisplayStyle.ProgressBar:
-                        if (item.BarFill != null)
                         {
-                            double percent = Math.Clamp(rawVal, 0, 100);
-                            double totalWidth = 140;
-                            item.BarFill.Width = totalWidth * (percent / 100.0);
-                            // Fill brush gradient already set
-                        }
-                        item.Text.Text = $"{Math.Round(rawVal)}%";
-                        break;
-                    case UsageDisplayStyle.Gauge:
-                        if (item.GaugeNeedleRotate != null)
-                        {
-                            double targetAngle = GaugeRotationFromPercent(rawVal);
-                            double current = item.GaugeNeedleRotate.Angle;
-                            if (Math.Abs(current - targetAngle) > 0.05)
+                            if (item.BarFill != null)
                             {
-                                var anim = new DoubleAnimation
-                                {
-                                    From = current,
-                                    To = targetAngle,
-                                    Duration = TimeSpan.FromMilliseconds(300),
-                                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
-                                };
-                                item.GaugeNeedleRotate.BeginAnimation(
-                                    RotateTransform.AngleProperty,
-                                    anim,
-                                    HandoffBehavior.SnapshotAndReplace);
+                                double percent = Math.Clamp(rawVal, 0, 100);
+                                double totalWidth = 140;
+                                item.BarFill.Width = totalWidth * (percent / 100.0);
+
+                                // 显示类别 + 百分比，例如 "CPU 40%"
+                                string prefix = item.Kind == LiveInfoKind.CpuUsage ? "CPU" :
+                                                item.Kind == LiveInfoKind.GpuUsage ? "GPU" : "";
+                                item.Text.Text = string.IsNullOrEmpty(prefix)
+                                    ? $"{Math.Round(percent)}%"
+                                    : $"{prefix} {Math.Round(percent)}%";
+
+                                // 文本颜色跟随进度（按 StartColor → EndColor 线性插值）
+                                double t = percent / 100.0;
+                                var col = LerpColor(item.StartColor, item.EndColor, t);
+                                item.Text.Foreground = new SolidColorBrush(col);
                             }
+                            break;
                         }
-                        item.Text.Text = $"{Math.Round(rawVal)}%";
-                        break;
+
+                    case UsageDisplayStyle.Gauge:
+                        {
+                            if (item.GaugeNeedleRotate != null)
+                            {
+                                double targetAngle = GaugeRotationFromPercent(rawVal);
+                                double current = item.GaugeNeedleRotate.Angle;
+                                if (Math.Abs(current - targetAngle) > 0.05)
+                                {
+                                    var anim = new DoubleAnimation
+                                    {
+                                        From = current,
+                                        To = targetAngle,
+                                        Duration = TimeSpan.FromMilliseconds(300),
+                                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
+                                    };
+                                    item.GaugeNeedleRotate.BeginAnimation(
+                                        RotateTransform.AngleProperty,
+                                        anim,
+                                        HandoffBehavior.SnapshotAndReplace);
+                                }
+                            }
+                            // Gauge 仍只显示百分比，不加 CPU/GPU 前缀（按需求只改 ProgressBar）
+                            item.Text.Text = $"{Math.Round(rawVal)}%";
+                            break;
+                        }
                 }
 
                 if (_selected == item.Border)
@@ -2178,16 +2257,20 @@ namespace CMDevicesManager.Pages
             item.StartColor = UsageStartColor;
             item.EndColor = UsageEndColor;
             item.NeedleColor = UsageNeedleColor;
+            item.BarBackgroundColor = UsageBarBackgroundColor;
 
-            // Update visuals without rebuild if possible
-            if (item.DisplayStyle == UsageDisplayStyle.ProgressBar && item.BarFill != null)
+            if (item.DisplayStyle == UsageDisplayStyle.ProgressBar)
             {
-                item.BarFill.Fill = new LinearGradientBrush(item.StartColor, item.EndColor, 0);
+                if (item.BarFill != null)
+                    item.BarFill.Fill = new LinearGradientBrush(item.StartColor, item.EndColor, 0);
+
+                if (item.BarBackgroundBorder != null)
+                    item.BarBackgroundBorder.Background = new SolidColorBrush(item.BarBackgroundColor);
             }
             else if (item.DisplayStyle == UsageDisplayStyle.Gauge && item.GaugeNeedle != null)
             {
                 item.GaugeNeedle.Stroke = new SolidColorBrush(item.NeedleColor);
-                RecolorGaugeTicks(item); // 新增：刻度渐变刷新
+                RecolorGaugeTicks(item);
             }
         }
 
@@ -2195,10 +2278,8 @@ namespace CMDevicesManager.Pages
         {
             var border = item.Border;
 
-            // Clear previous child completely (do NOT try to reuse the same TextBlock instance across different containers)
             border.Child = null;
 
-            // Always create a fresh TextBlock to avoid visual/logical parent conflicts
             TextBlock newText = new TextBlock
             {
                 Text = item.Text.Text,
@@ -2210,10 +2291,7 @@ namespace CMDevicesManager.Pages
                 VerticalAlignment = System.Windows.VerticalAlignment.Center
             };
 
-            // Replace reference so LiveTimer updates the new TextBlock
             item.Text = newText;
-
-            // Reset style-specific references
             item.BarFill = null;
             item.GaugeNeedle = null;
             item.GaugeNeedleRotate = null;
@@ -2223,7 +2301,6 @@ namespace CMDevicesManager.Pages
             switch (item.DisplayStyle)
             {
                 case UsageDisplayStyle.Text:
-                    // Plain text directly
                     root = newText;
                     break;
 
@@ -2235,15 +2312,18 @@ namespace CMDevicesManager.Pages
                             Height = 42
                         };
 
+                        var barMargin = new Thickness(10, 8, 10, 20);
+
                         var barBg = new Border
                         {
                             CornerRadius = new CornerRadius(5),
-                            Background = new SolidColorBrush(Color.FromRgb(40, 46, 58)),
+                            Background = new SolidColorBrush(item.BarBackgroundColor),
                             BorderBrush = new SolidColorBrush(Color.FromRgb(70, 80, 96)),
                             BorderThickness = new Thickness(1),
-                            Margin = new Thickness(10, 8, 10, 20),
+                            Margin = barMargin,
                             Height = 14
                         };
+                        item.BarBackgroundBorder = barBg;
 
                         var barFill = new Rectangle
                         {
@@ -2252,7 +2332,8 @@ namespace CMDevicesManager.Pages
                             Fill = new LinearGradientBrush(item.StartColor, item.EndColor, 0),
                             Width = 0,
                             RadiusX = 5,
-                            RadiusY = 5
+                            RadiusY = 5,
+                            Margin = barMargin
                         };
                         item.BarFill = barFill;
 
@@ -2287,7 +2368,6 @@ namespace CMDevicesManager.Pages
                             ClipToBounds = false
                         };
 
-                        // 刻度绘制：沿 150°→390° 上方大弧
                         for (int percent = 0; percent <= 100; percent += GaugeMinorStep)
                         {
                             bool major = percent % GaugeMajorStep == 0;
@@ -2317,7 +2397,7 @@ namespace CMDevicesManager.Pages
                                 StrokeStartLineCap = PenLineCap.Round,
                                 StrokeEndLineCap = PenLineCap.Round,
                                 Tag = major ? "TickMajor" : "TickMinor",
-                                DataContext = (double)percent // 保存百分比供重着色
+                                DataContext = (double)percent
                             };
                             canvas.Children.Add(tick);
 
@@ -2338,11 +2418,9 @@ namespace CMDevicesManager.Pages
                                 Canvas.SetTop(lbl, ly - lbl.DesiredSize.Height / 2);
                                 canvas.Children.Add(lbl);
 
-                                // 50% 位置下方增加 “CPU” / “GPU” 标识
                                 if (percent == 50 &&
                                     (item.Kind == LiveInfoKind.CpuUsage || item.Kind == LiveInfoKind.GpuUsage))
                                 {
-                                    // 稍微向中心靠近一点 (比数字小 10 像素半径) 让标签在 50 数字下方
                                     double label2Radius = labelRadius - 10;
                                     double lx2 = GaugeCenterX + label2Radius * Math.Cos(rad);
                                     double ly2 = GaugeCenterY + label2Radius * Math.Sin(rad);
@@ -2356,13 +2434,12 @@ namespace CMDevicesManager.Pages
                                     };
                                     kindLabel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                                     Canvas.SetLeft(kindLabel, lx2 - kindLabel.DesiredSize.Width / 2);
-                                    Canvas.SetTop(kindLabel, ly2 - kindLabel.DesiredSize.Height / 2 + 10); // 向下偏移一点
+                                    Canvas.SetTop(kindLabel, ly2 - kindLabel.DesiredSize.Height / 2 + 10);
                                     canvas.Children.Add(kindLabel);
                                 }
                             }
                         }
 
-                        // 指针基向上（Y2 = centerY - length）后旋转到 0% 角度(150°)
                         var needle = new Line
                         {
                             X1 = GaugeCenterX,
@@ -2380,7 +2457,6 @@ namespace CMDevicesManager.Pages
                         item.GaugeNeedleRotate = rt;
                         canvas.Children.Add(needle);
 
-                        // 中心盖帽
                         var cap = new Ellipse
                         {
                             Width = 18,
@@ -2629,6 +2705,7 @@ namespace CMDevicesManager.Pages
             UsageEndColor = liveItem.EndColor;
             UsageNeedleColor = liveItem.NeedleColor;
             SelectedUsageDisplayStyle = liveItem.DisplayStyle.ToString();
+            UsageBarBackgroundColor = liveItem.BarBackgroundColor;
         }
 
         // ================= Cleanup =================
