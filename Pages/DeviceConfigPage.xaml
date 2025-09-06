@@ -9,7 +9,7 @@
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
             <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis"/>
-
+            <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <SolidColorBrush x:Key="CardBg" Color="#232834"/>
             <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
             <SolidColorBrush x:Key="CardBorder" Color="#2E3747"/>
@@ -285,13 +285,21 @@
                     <Button Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC" Click="LoadConfig_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE118;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="导入配置"/>
+                            <TextBlock Text="导入"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC" Click="SaveConfig_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE105;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="保存配置"/>
+                            <TextBlock Text="保存"/>
+                        </StackPanel>
+                    </Button>
+                    <Button   Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC"
+         Click="SaveAsConfig_Click"
+         Visibility="{Binding LoadedFromConfigFile, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                            <TextBlock Text="另存为"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>

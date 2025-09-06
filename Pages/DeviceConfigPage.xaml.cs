@@ -45,6 +45,7 @@ using Path = System.IO.Path;
 using Size = System.Windows.Size;
 using Panel = System.Windows.Controls.Panel;
 using System.Windows.Media.Animation;
+using System.Text.RegularExpressions;
 
 namespace CMDevicesManager.Pages
 {
@@ -330,6 +331,13 @@ namespace CMDevicesManager.Pages
         {
             // 将几何角(数学坐标系)转换为针在 WPF RotateTransform 中的角度
             return GaugeAngleFromPercent(percent) - GaugeNeedleAngleOffset; // 结果区间：-120° ~ +120°
+        }
+
+        private bool _loadedFromConfigFile;
+        public bool LoadedFromConfigFile
+        {
+            get => _loadedFromConfigFile;
+            private set { _loadedFromConfigFile = value; OnPropertyChanged(); }
         }
 
         public enum LiveInfoKind
@@ -933,6 +941,7 @@ namespace CMDevicesManager.Pages
             SetSelected(null);
             ResetMoveDirection();
             CurrentConfigName = "";
+            LoadedFromConfigFile = false;
         }
 
         // ================= Color Pickers =================
@@ -1708,104 +1717,11 @@ namespace CMDevicesManager.Pages
                         dialog.Owner = Application.Current.MainWindow;
                     if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.ConfigName))
                         return;
-                    CurrentConfigName = dialog.ConfigName;
+                    CurrentConfigName = dialog.ConfigName.Trim();
                 }
 
-                var config = new CanvasConfiguration
-                {
-                    ConfigName = CurrentConfigName,
-                    CanvasSize = CanvasSize,
-                    BackgroundColor = BackgroundHex,
-                    BackgroundImagePath = BackgroundImagePath != null ? GetRelativePath(BackgroundImagePath) : null,
-                    BackgroundImageOpacity = BackgroundImageOpacity
-                };
-
-                foreach (UIElement child in DesignCanvas.Children)
-                {
-                    if (child is Border border && GetTransforms(border, out var scale, out var translate))
-                    {
-                        var elemConfig = new ElementConfiguration
-                        {
-                            X = translate.X,
-                            Y = translate.Y,
-                            Scale = scale.ScaleX,
-                            Opacity = border.Opacity,
-                            ZIndex = Canvas.GetZIndex(border)
-                        };
-
-                        if (border.Child is TextBlock tb && border.Tag is not LiveInfoKind)
-                        {
-                            elemConfig.Type = "Text";
-                            elemConfig.Text = tb.Text;
-                            elemConfig.FontSize = tb.FontSize;
-
-                            if (tb.Foreground is LinearGradientBrush lgb && lgb.GradientStops.Count >= 2)
-                            {
-                                elemConfig.UseTextGradient = true;
-                                var c1 = lgb.GradientStops[0].Color;
-                                var c2 = lgb.GradientStops[1].Color;
-                                elemConfig.TextColor = $"#{c1.R:X2}{c1.G:X2}{c1.B:X2}";
-                                elemConfig.TextColor2 = $"#{c2.R:X2}{c2.G:X2}{c2.B:X2}";
-                            }
-                            else if (tb.Foreground is SolidColorBrush brush)
-                            {
-                                elemConfig.UseTextGradient = false;
-                                var c = brush.Color;
-                                elemConfig.TextColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
-                            }
-                        }
-                        else if (border.Tag is LiveInfoKind lk && border.Child != null)
-                        {
-                            elemConfig.Type = "LiveText";
-                            elemConfig.LiveKind = lk;
-                            var liveItem = _liveItems.FirstOrDefault(i => i.Border == border);
-                            if (liveItem != null)
-                            {
-                                elemConfig.FontSize = liveItem.Text.FontSize;
-                                // Save theme
-                                elemConfig.UsageDisplayStyle = liveItem.DisplayStyle.ToString();
-                                elemConfig.UsageStartColor = $"#{liveItem.StartColor.R:X2}{liveItem.StartColor.G:X2}{liveItem.StartColor.B:X2}";
-                                elemConfig.UsageEndColor = $"#{liveItem.EndColor.R:X2}{liveItem.EndColor.G:X2}{liveItem.EndColor.B:X2}";
-                                elemConfig.UsageNeedleColor = $"#{liveItem.NeedleColor.R:X2}{liveItem.NeedleColor.G:X2}{liveItem.NeedleColor.B:X2}";
-                                if (lk == LiveInfoKind.DateTime)
-                                {
-                                    elemConfig.DateFormat = liveItem.DateFormat;
-                                }
-                            }
-                        }
-                        else if (border.Child is Image img2)
-                        {
-                            if (border.Tag is VideoElementInfo videoInfo)
-                            {
-                                elemConfig.Type = "Video";
-                                elemConfig.VideoPath = GetRelativePath(videoInfo.FilePath);
-                            }
-                            else if (img2.Source is BitmapImage bitmapImg)
-                            {
-                                var imagePath = bitmapImg.UriSource?.LocalPath ?? bitmapImg.UriSource?.ToString();
-                                if (!string.IsNullOrEmpty(imagePath))
-                                {
-                                    elemConfig.Type = "Image";
-                                    elemConfig.ImagePath = GetRelativePath(imagePath);
-                                }
-                            }
-                        }
-
-                        config.Elements.Add(elemConfig);
-                    }
-                }
-
-                var configFolder = Path.Combine(OutputFolder, "Configs");
-                Directory.CreateDirectory(configFolder);
-                var fileName = $"config_{DateTime.Now:yyyyMMdd_HHmmss}.json";
-                var filePath = Path.Combine(configFolder, fileName);
-
-                var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    Converters = { new JsonStringEnumConverter() }
-                });
-                File.WriteAllText(filePath, json);
+                SaveConfigCore(CurrentConfigName); // writes new timestamp file
+                LoadedFromConfigFile = true;       // we now have at least one saved version
 
                 var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
@@ -1816,6 +1732,144 @@ namespace CMDevicesManager.Pages
                 var errorMsg = Application.Current.FindResource("Error")?.ToString() ?? "Error";
                 MessageBox.Show($"保存配置失败: {ex.Message}", errorMsg, MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // ========== NEW: SAVE AS ==========
+        private void SaveAsConfig_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var baseName = string.IsNullOrWhiteSpace(CurrentConfigName) ? "NewConfig" : CurrentConfigName;
+                var dialog = new ConfigNameDialog($"{baseName}_Copy");
+                if (Application.Current.MainWindow != null)
+                    dialog.Owner = Application.Current.MainWindow;
+
+                if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.ConfigName))
+                    return;
+
+                var newName = dialog.ConfigName.Trim();
+                CurrentConfigName = newName; // Treat the copy as the new working config
+
+                SaveConfigCore(newName);
+                LoadedFromConfigFile = true;
+
+                var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
+                var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
+                MessageBox.Show($"{msg}: {newName}", title, MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                var errorMsg = Application.Current.FindResource("Error")?.ToString() ?? "Error";
+                MessageBox.Show($"另存为失败: {ex.Message}", errorMsg, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        // ========== NEW CORE (logic identical to original Save body, extracted) ==========
+        private void SaveConfigCore(string configName)
+        {
+            var config = new CanvasConfiguration
+            {
+                ConfigName = configName,
+                CanvasSize = CanvasSize,
+                BackgroundColor = BackgroundHex,
+                BackgroundImagePath = BackgroundImagePath != null ? GetRelativePath(BackgroundImagePath) : null,
+                BackgroundImageOpacity = BackgroundImageOpacity
+            };
+
+            foreach (UIElement child in DesignCanvas.Children)
+            {
+                if (child is Border border && GetTransforms(border, out var scale, out var translate))
+                {
+                    var elemConfig = new ElementConfiguration
+                    {
+                        X = translate.X,
+                        Y = translate.Y,
+                        Scale = scale.ScaleX,
+                        Opacity = border.Opacity,
+                        ZIndex = Canvas.GetZIndex(border)
+                    };
+
+                    if (border.Child is TextBlock tb && border.Tag is not LiveInfoKind)
+                    {
+                        elemConfig.Type = "Text";
+                        elemConfig.Text = tb.Text;
+                        elemConfig.FontSize = tb.FontSize;
+
+                        if (tb.Foreground is LinearGradientBrush lgb && lgb.GradientStops.Count >= 2)
+                        {
+                            elemConfig.UseTextGradient = true;
+                            var c1 = lgb.GradientStops[0].Color;
+                            var c2 = lgb.GradientStops[1].Color;
+                            elemConfig.TextColor = $"#{c1.R:X2}{c1.G:X2}{c1.B:X2}";
+                            elemConfig.TextColor2 = $"#{c2.R:X2}{c2.G:X2}{c2.B:X2}";
+                        }
+                        else if (tb.Foreground is SolidColorBrush brush)
+                        {
+                            elemConfig.UseTextGradient = false;
+                            var c = brush.Color;
+                            elemConfig.TextColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+                        }
+                    }
+                    else if (border.Tag is LiveInfoKind lk && border.Child != null)
+                    {
+                        elemConfig.Type = "LiveText";
+                        elemConfig.LiveKind = lk;
+                        var liveItem = _liveItems.FirstOrDefault(i => i.Border == border);
+                        if (liveItem != null)
+                        {
+                            elemConfig.FontSize = liveItem.Text.FontSize;
+                            elemConfig.UsageDisplayStyle = liveItem.DisplayStyle.ToString();
+                            elemConfig.UsageStartColor = $"#{liveItem.StartColor.R:X2}{liveItem.StartColor.G:X2}{liveItem.StartColor.B:X2}";
+                            elemConfig.UsageEndColor = $"#{liveItem.EndColor.R:X2}{liveItem.EndColor.G:X2}{liveItem.EndColor.B:X2}";
+                            elemConfig.UsageNeedleColor = $"#{liveItem.NeedleColor.R:X2}{liveItem.NeedleColor.G:X2}{liveItem.NeedleColor.B:X2}";
+                            elemConfig.UsageBarBackgroundColor = $"#{liveItem.BarBackgroundColor.R:X2}{liveItem.BarBackgroundColor.G:X2}{liveItem.BarBackgroundColor.B:X2}";
+                            if (lk == LiveInfoKind.DateTime)
+                                elemConfig.DateFormat = liveItem.DateFormat;
+                        }
+                    }
+                    else if (border.Child is Image img2)
+                    {
+                        if (border.Tag is VideoElementInfo videoInfo)
+                        {
+                            elemConfig.Type = "Video";
+                            elemConfig.VideoPath = GetRelativePath(videoInfo.FilePath);
+                        }
+                        else if (img2.Source is BitmapImage bitmapImg)
+                        {
+                            var imagePath = bitmapImg.UriSource?.LocalPath ?? bitmapImg.UriSource?.ToString();
+                            if (!string.IsNullOrEmpty(imagePath))
+                            {
+                                elemConfig.Type = "Image";
+                                elemConfig.ImagePath = GetRelativePath(imagePath);
+                            }
+                        }
+                    }
+
+                    config.Elements.Add(elemConfig);
+                }
+            }
+
+            var configFolder = Path.Combine(OutputFolder, "Configs");
+            Directory.CreateDirectory(configFolder);
+            var safeName = MakeSafeFileBase(configName);
+            var fileName = $"{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
+            var filePath = Path.Combine(configFolder, fileName);
+
+            var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Converters = { new JsonStringEnumConverter() }
+            });
+            File.WriteAllText(filePath, json);
+        }
+
+        private static string MakeSafeFileBase(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "config";
+            foreach (var c in Path.GetInvalidFileNameChars())
+                name = name.Replace(c, '_');
+            // optional: collapse spaces
+            name = Regex.Replace(name, @"\s+", "_");
+            return name;
         }
 
         // ================= Load Config =================
@@ -2110,7 +2164,7 @@ namespace CMDevicesManager.Pages
                         }
                     }
                 }
-
+                LoadedFromConfigFile = true;
                 MessageBox.Show($"Configuration loaded: {config.ConfigName}", "Load Successful", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
