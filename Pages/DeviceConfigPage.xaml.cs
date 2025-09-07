@@ -57,6 +57,7 @@ namespace CMDevicesManager.Pages
         public string BackgroundColor { get; set; } = "#000000";
         public string? BackgroundImagePath { get; set; }
         public double BackgroundImageOpacity { get; set; }
+        public double MoveSpeed { get; set; } = 100;              // NEW: global auto-move speed
         public List<ElementConfiguration> Elements { get; set; } = new();
     }
 
@@ -78,6 +79,8 @@ namespace CMDevicesManager.Pages
 
         // Image
         public string? ImagePath { get; set; }
+        public double? Rotation { get; set; }        // NEW: image rotation
+        public bool? MirroredX { get; set; }         // NEW: image horizontal mirror
 
         // Live
         public LiveInfoKind? LiveKind { get; set; }
@@ -94,6 +97,10 @@ namespace CMDevicesManager.Pages
         public string? UsageEndColor { get; set; }
         public string? UsageNeedleColor { get; set; }
         public string? UsageBarBackgroundColor { get; set; }
+
+        // Auto-move (plain text)
+        public double? MoveDirX { get; set; }        // NEW: per-element move vector X
+        public double? MoveDirY { get; set; }        // NEW: per-element move vector Y
     }
 
     // ================= Simple Dialogs =================
@@ -410,7 +417,7 @@ namespace CMDevicesManager.Pages
         public bool IsGaugeSelected => string.Equals(NormalizeUsageStyleString(SelectedUsageDisplayStyle), "Gauge", StringComparison.OrdinalIgnoreCase);
         public bool IsUsageVisualSelected
             => IsUsageSelected && !string.Equals(NormalizeUsageStyleString(SelectedUsageDisplayStyle), "Text", StringComparison.OrdinalIgnoreCase);
-
+        private string? _loadedConfigFilePath;
 
         public bool IsTextSelected => GetCurrentTextBlock() != null && !IsUsageSelected;
         public bool IsSelectedTextReadOnly => _selected?.Tag is LiveInfoKind kind &&
@@ -1198,7 +1205,7 @@ namespace CMDevicesManager.Pages
                 }
             }
 
-            // Load usage style + theme if usage item
+            // Usage 项目主题回填
             if (IsUsageSelected)
             {
                 var liveItem = _liveItems.FirstOrDefault(i => i.Border == _selected);
@@ -1212,7 +1219,29 @@ namespace CMDevicesManager.Pages
                 }
             }
 
-            // Restore movement vector
+            // 关键修复：DateTime 元素在重新选择时恢复其保存的格式与文本
+            if (_selected?.Tag is LiveInfoKind liveKind && liveKind == LiveInfoKind.DateTime)
+            {
+                var dtItem = _liveItems.FirstOrDefault(i => i.Border == _selected && i.Kind == LiveInfoKind.DateTime);
+                if (dtItem != null)
+                {
+                    // 回填格式
+                    _selectedDateFormat = dtItem.DateFormat;
+                    OnPropertyChanged(nameof(SelectedDateFormat));
+
+                    // 立即按格式刷新显示文本（避免看起来“未导入”）
+                    var nowStr = DateTime.Now.ToString(dtItem.DateFormat ?? "yyyy-MM-dd HH:mm:ss");
+                    dtItem.Text.Text = nowStr;
+                    _selectedText = nowStr;
+                    OnPropertyChanged(nameof(SelectedText));
+                }
+            }
+            else
+            {
+                // 若当前不是日期元素，保持原逻辑
+            }
+
+            // 恢复自动移动方向（若有）
             if (_movingDirections.TryGetValue(border, out var storedDir))
             {
                 MoveDirX = storedDir.dirX;
@@ -1720,8 +1749,9 @@ namespace CMDevicesManager.Pages
                     CurrentConfigName = dialog.ConfigName.Trim();
                 }
 
-                SaveConfigCore(CurrentConfigName); // writes new timestamp file
-                LoadedFromConfigFile = true;       // we now have at least one saved version
+                // 传 true: 允许删除之前 load 的旧文件
+                SaveConfigCore(CurrentConfigName, deletePreviousLoaded: true);
+                LoadedFromConfigFile = true;
 
                 var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
@@ -1734,7 +1764,6 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // ========== NEW: SAVE AS ==========
         private void SaveAsConfig_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1748,9 +1777,10 @@ namespace CMDevicesManager.Pages
                     return;
 
                 var newName = dialog.ConfigName.Trim();
-                CurrentConfigName = newName; // Treat the copy as the new working config
+                CurrentConfigName = newName;
 
-                SaveConfigCore(newName);
+                // 传 false: 另存为不删除旧文件
+                SaveConfigCore(newName, deletePreviousLoaded: false);
                 LoadedFromConfigFile = true;
 
                 var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
@@ -1763,16 +1793,31 @@ namespace CMDevicesManager.Pages
                 MessageBox.Show($"另存为失败: {ex.Message}", errorMsg, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        // ========== NEW CORE (logic identical to original Save body, extracted) ==========
-        private void SaveConfigCore(string configName)
+
+        private string SaveConfigCore(string configName, bool deletePreviousLoaded)
         {
+            // 删除之前 load 的旧配置文件（仅当指定删除且文件仍存在且不是我们即将写入的名字）
+            if (deletePreviousLoaded && _loadedConfigFilePath != null)
+            {
+                try
+                {
+                    if (File.Exists(_loadedConfigFilePath))
+                        File.Delete(_loadedConfigFilePath);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Info($"删除旧配置文件失败: {_loadedConfigFilePath} - {ex.Message}");
+                }
+            }
+
             var config = new CanvasConfiguration
             {
                 ConfigName = configName,
                 CanvasSize = CanvasSize,
                 BackgroundColor = BackgroundHex,
                 BackgroundImagePath = BackgroundImagePath != null ? GetRelativePath(BackgroundImagePath) : null,
-                BackgroundImageOpacity = BackgroundImageOpacity
+                BackgroundImageOpacity = BackgroundImageOpacity,
+                MoveSpeed = MoveSpeed
             };
 
             foreach (UIElement child in DesignCanvas.Children)
@@ -1788,12 +1833,18 @@ namespace CMDevicesManager.Pages
                         ZIndex = Canvas.GetZIndex(border)
                     };
 
+                    if (_movingDirections.TryGetValue(border, out var dir) &&
+                        (Math.Abs(dir.dirX) > 0.0001 || Math.Abs(dir.dirY) > 0.0001))
+                    {
+                        elemConfig.MoveDirX = dir.dirX;
+                        elemConfig.MoveDirY = dir.dirY;
+                    }
+
                     if (border.Child is TextBlock tb && border.Tag is not LiveInfoKind)
                     {
                         elemConfig.Type = "Text";
                         elemConfig.Text = tb.Text;
                         elemConfig.FontSize = tb.FontSize;
-
                         if (tb.Foreground is LinearGradientBrush lgb && lgb.GradientStops.Count >= 2)
                         {
                             elemConfig.UseTextGradient = true;
@@ -1802,10 +1853,10 @@ namespace CMDevicesManager.Pages
                             elemConfig.TextColor = $"#{c1.R:X2}{c1.G:X2}{c1.B:X2}";
                             elemConfig.TextColor2 = $"#{c2.R:X2}{c2.G:X2}{c2.B:X2}";
                         }
-                        else if (tb.Foreground is SolidColorBrush brush)
+                        else if (tb.Foreground is SolidColorBrush scb)
                         {
                             elemConfig.UseTextGradient = false;
-                            var c = brush.Color;
+                            var c = scb.Color;
                             elemConfig.TextColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
                         }
                     }
@@ -1824,6 +1875,25 @@ namespace CMDevicesManager.Pages
                             elemConfig.UsageBarBackgroundColor = $"#{liveItem.BarBackgroundColor.R:X2}{liveItem.BarBackgroundColor.G:X2}{liveItem.BarBackgroundColor.B:X2}";
                             if (lk == LiveInfoKind.DateTime)
                                 elemConfig.DateFormat = liveItem.DateFormat;
+
+                            if (liveItem.DisplayStyle == UsageDisplayStyle.Text)
+                            {
+                                var fore = liveItem.Text.Foreground;
+                                if (fore is LinearGradientBrush glb && glb.GradientStops.Count >= 2)
+                                {
+                                    elemConfig.UseTextGradient = true;
+                                    var c1 = glb.GradientStops[0].Color;
+                                    var c2 = glb.GradientStops[1].Color;
+                                    elemConfig.TextColor = $"#{c1.R:X2}{c1.G:X2}{c1.B:X2}";
+                                    elemConfig.TextColor2 = $"#{c2.R:X2}{c2.G:X2}{c2.B:X2}";
+                                }
+                                else if (fore is SolidColorBrush sbrush)
+                                {
+                                    elemConfig.UseTextGradient = false;
+                                    var c = sbrush.Color;
+                                    elemConfig.TextColor = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+                                }
+                            }
                         }
                     }
                     else if (border.Child is Image img2)
@@ -1840,6 +1910,14 @@ namespace CMDevicesManager.Pages
                             {
                                 elemConfig.Type = "Image";
                                 elemConfig.ImagePath = GetRelativePath(imagePath);
+                            }
+                            if (border.RenderTransform is TransformGroup tgg)
+                            {
+                                var rotate = tgg.Children.OfType<RotateTransform>().FirstOrDefault();
+                                if (rotate != null) elemConfig.Rotation = rotate.Angle;
+                                var scales = tgg.Children.OfType<ScaleTransform>().ToList();
+                                if (scales.Count > 1 && scales[1].ScaleX < 0)
+                                    elemConfig.MirroredX = true;
                             }
                         }
                     }
@@ -1860,6 +1938,9 @@ namespace CMDevicesManager.Pages
                 Converters = { new JsonStringEnumConverter() }
             });
             File.WriteAllText(filePath, json);
+
+            _loadedConfigFilePath = filePath; // 记录当前最新文件
+            return filePath;
         }
 
         private static string MakeSafeFileBase(string name)
@@ -1937,6 +2018,8 @@ namespace CMDevicesManager.Pages
                     : null;
                 BackgroundImageOpacity = config.BackgroundImageOpacity;
 
+                if (config.MoveSpeed > 0) MoveSpeed = config.MoveSpeed; // NEW: restore global move speed
+
                 foreach (var elemConfig in config.Elements.OrderBy(ei => ei.ZIndex))
                 {
                     FrameworkElement? element = null;
@@ -1992,13 +2075,13 @@ namespace CMDevicesManager.Pages
                                     };
                                     liveTb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
                                     liveTb.Foreground = new SolidColorBrush(Colors.Black);
+
                                     if (elemConfig.LiveKind.Value == LiveInfoKind.DateTime)
                                     {
                                         string fmt = string.IsNullOrWhiteSpace(elemConfig.DateFormat)
                                             ? "yyyy-MM-dd HH:mm:ss"
                                             : elemConfig.DateFormat;
                                         liveTb.Text = DateTime.Now.ToString(fmt);
-                                        element = liveTb;
                                     }
                                     else
                                     {
@@ -2011,8 +2094,31 @@ namespace CMDevicesManager.Pages
                                                 liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
                                                 break;
                                         }
-                                        element = liveTb;
                                     }
+
+                                    // NEW: restore text color / gradient when style is plain text
+                                    if (elemConfig.UseTextGradient == true &&
+                                        !string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                        !string.IsNullOrEmpty(elemConfig.TextColor2) &&
+                                        TryParseHexColor(elemConfig.TextColor, out var dtc1) &&
+                                        TryParseHexColor(elemConfig.TextColor2, out var dtc2))
+                                    {
+                                        var g = new LinearGradientBrush
+                                        {
+                                            StartPoint = new Point(0, 0),
+                                            EndPoint = new Point(1, 1)
+                                        };
+                                        g.GradientStops.Add(new GradientStop(dtc1, 0));
+                                        g.GradientStops.Add(new GradientStop(dtc2, 1));
+                                        liveTb.Foreground = g;
+                                    }
+                                    else if (!string.IsNullOrEmpty(elemConfig.TextColor) &&
+                                             TryParseHexColor(elemConfig.TextColor, out var dtSolid))
+                                    {
+                                        liveTb.Foreground = new SolidColorBrush(dtSolid);
+                                    }
+
+                                    element = liveTb;
                                 }
                                 break;
                             }
@@ -2104,6 +2210,30 @@ namespace CMDevicesManager.Pages
                         tg.Children.Add(translate);
                         border.RenderTransform = tg;
 
+                        // NEW: restore mirror & rotation for images
+                        if (elemConfig.Type == "Image" && (elemConfig.Rotation.HasValue || elemConfig.MirroredX == true))
+                        {
+                            if (border.RenderTransform is TransformGroup tgg)
+                            {
+                                var contentScale = tgg.Children.OfType<ScaleTransform>().First();
+                                var translateT = tgg.Children.OfType<TranslateTransform>().First();
+
+                                if (elemConfig.MirroredX == true)
+                                {
+                                    var mirrorScale = new ScaleTransform(-1, 1);
+                                    int insertIndex = tg.Children.IndexOf(contentScale) + 1;
+                                    tg.Children.Insert(insertIndex, mirrorScale);
+                                }
+
+                                if (elemConfig.Rotation.HasValue)
+                                {
+                                    var rotate = new RotateTransform(elemConfig.Rotation.Value);
+                                    int translateIndex = tg.Children.IndexOf(translateT);
+                                    tg.Children.Insert(translateIndex, rotate);
+                                }
+                            }
+                        }
+
                         border.PreviewMouseLeftButtonDown += Item_PreviewMouseLeftButtonDown;
                         border.PreviewMouseLeftButtonUp += Item_PreviewMouseLeftButtonUp;
                         border.PreviewMouseMove += Item_PreviewMouseMove;
@@ -2127,20 +2257,35 @@ namespace CMDevicesManager.Pages
                                     : "yyyy-MM-dd HH:mm:ss"
                             };
 
-                            // Restore usage theme
                             if (elemConfig.LiveKind.Value == LiveInfoKind.CpuUsage ||
                                 elemConfig.LiveKind.Value == LiveInfoKind.GpuUsage)
                             {
-                                if (Enum.TryParse<UsageDisplayStyle>(elemConfig.UsageDisplayStyle ?? "Text", out var ds))
-                                    newItem.DisplayStyle = ds;
+                                if (Enum.TryParse<UsageDisplayStyle>(elemConfig.UsageDisplayStyle ?? "Text", out var ds)) newItem.DisplayStyle = ds;
                                 if (TryParseHexColor(elemConfig.UsageStartColor, out var usc)) newItem.StartColor = usc;
                                 if (TryParseHexColor(elemConfig.UsageEndColor, out var uec)) newItem.EndColor = uec;
                                 if (TryParseHexColor(elemConfig.UsageNeedleColor, out var unc)) newItem.NeedleColor = unc;
+                                if (TryParseHexColor(elemConfig.UsageBarBackgroundColor, out var ubc)) newItem.BarBackgroundColor = ubc;
                             }
 
                             _liveItems.Add(newItem);
                             if (newItem.DisplayStyle != UsageDisplayStyle.Text)
+                            {
                                 RebuildUsageVisual(newItem);
+                                // Re-apply restored theme
+                                if (newItem.DisplayStyle == UsageDisplayStyle.ProgressBar)
+                                {
+                                    if (newItem.BarBackgroundBorder != null)
+                                        newItem.BarBackgroundBorder.Background = new SolidColorBrush(newItem.BarBackgroundColor);
+                                    if (newItem.BarFill != null)
+                                        newItem.BarFill.Fill = new LinearGradientBrush(newItem.StartColor, newItem.EndColor, 0);
+                                }
+                                else if (newItem.DisplayStyle == UsageDisplayStyle.Gauge)
+                                {
+                                    if (newItem.GaugeNeedle != null)
+                                        newItem.GaugeNeedle.Stroke = new SolidColorBrush(newItem.NeedleColor);
+                                    RecolorGaugeTicks(newItem);
+                                }
+                            }
                         }
 
                         if (elemConfig.Type == "Video" && element is Image videoImg)
@@ -2162,9 +2307,20 @@ namespace CMDevicesManager.Pages
                                 StartVideoPlayback(videoInfo.FrameRate);
                             }
                         }
+
+                        // NEW: restore per-element auto-move direction (only plain text)
+                        if ((elemConfig.Type == "Text" || elemConfig.Type == "LiveText") &&
+     elemConfig.MoveDirX.HasValue && elemConfig.MoveDirY.HasValue &&
+     (Math.Abs(elemConfig.MoveDirX.Value) > 0.0001 || Math.Abs(elemConfig.MoveDirY.Value) > 0.0001))
+                        {
+                            _movingDirections[border] = (elemConfig.MoveDirX.Value, elemConfig.MoveDirY.Value);
+                        }
                     }
                 }
+
+                UpdateAutoMoveTimer(); // ensure timer runs if any moving text restored
                 LoadedFromConfigFile = true;
+                _loadedConfigFilePath = selectionDialog.SelectedConfigPath;
                 MessageBox.Show($"Configuration loaded: {config.ConfigName}", "Load Successful", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
