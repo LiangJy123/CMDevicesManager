@@ -49,10 +49,18 @@ namespace CMDevicesManager.Pages
         // Placeholder implementations for other actions
         private void PlaybackMode_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && btn.Tag is DeviceInfos device)
+            try
             {
-                ShowStatusMessage($"Playback mode clicked for {device.Name}");
-                e.Handled = true;
+                if (sender is Button btn && btn.Tag is DeviceInfos device)
+                {
+                    // 如需将选中的设备信息传到播放页，可在 DevicePlayModePage 新增构造参数
+                    NavigationService?.Navigate(new DevicePlayModePage());
+                    e.Handled = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage($"Playback navigation failed: {ex.Message}");
             }
         }
 
