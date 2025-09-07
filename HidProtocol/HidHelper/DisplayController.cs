@@ -875,7 +875,7 @@ namespace HID.DisplayController
                 throw new ArgumentException("File too large - would require more than 65535 blocks", nameof(fileData));
             }
 
-            Debug.WriteLine($"Starting file transfer: {fileData.Length} bytes in {totalBlocks} blocks");
+            //Debug.WriteLine($"Starting file transfer: {fileData.Length} bytes in {totalBlocks} blocks");
 
             // Send each block
             for (int blockIndex = 0; blockIndex < totalBlocks; blockIndex++)
@@ -894,7 +894,7 @@ namespace HID.DisplayController
                 //Thread.Sleep(10);
             }
 
-            Debug.WriteLine("File transfer completed");
+            //Debug.WriteLine("File transfer completed");
         }
 
         /// <summary>
@@ -1002,7 +1002,7 @@ namespace HID.DisplayController
             // Read file data
             byte[] fileData = File.ReadAllBytes(filePath);
 
-            Debug.WriteLine($"Transferring file: {Path.GetFileName(filePath)} ({fileData.Length} bytes, type: {fileType})");
+            //Debug.WriteLine($"Transferring file: {Path.GetFileName(filePath)} ({fileData.Length} bytes, type: {fileType})");
 
             // Send the file
             SendFileTransfer(fileData, fileType, transferId, blockSize);
