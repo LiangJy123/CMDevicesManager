@@ -1,14 +1,488 @@
 ﻿<Page x:Class="CMDevicesManager.Pages.DevicePlayModePage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:CMDevicesManager.Pages"
-      mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
-      Title="DevicePlayModePage">
+      Title="Device Play Mode"
+      Loaded="Page_Loaded"
+      Unloaded="Page_Unloaded">
+    <!-- (Styles / Resources kept exactly as your current file – trimmed here for brevity) -->          
+    <Page.Resources>
+        <SolidColorBrush x:Key="CardBg" Color="#232834"/>
+        <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
+        <SolidColorBrush x:Key="CardBorder" Color="#2E3747"/>
+        <SolidColorBrush x:Key="TitleBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C0CC"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#2A4A8B"/>
+        <DropShadowEffect x:Key="CardShadow" Color="Black" Direction="270" ShadowDepth="8" Opacity="0.35" BlurRadius="18"/>
 
-    <Grid>
-        
+        <Style x:Key="CardBorderStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Background" Value="{StaticResource CardBg}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+        </Style>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        <Style x:Key="MiniButton" TargetType="Button">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Margin" Value="4,0,4,0"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Background" Value="#38414E"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#586170"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="5"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#465160"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#2A4A8B"/>
+                                <Setter Property="BorderBrush" Value="#3C6BC0"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ModeButton" TargetType="Button" BasedOn="{StaticResource MiniButton}">
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,4"/>
+        </Style>
+        <Style x:Key="ExpanderStyleMini" TargetType="Expander">
+            <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Expander">
+                        <DockPanel>
+                            <ToggleButton x:Name="HeaderSite"
+                                          Content="{TemplateBinding Header}"
+                                          DockPanel.Dock="Top"
+                                          Foreground="{StaticResource TitleBrush}"
+                                          FontSize="13"
+                                          FontWeight="SemiBold"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          Padding="0,4,4,4"
+                                          HorizontalContentAlignment="Left"
+                                          Focusable="False">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border Background="Transparent" Padding="2,2,2,2">
+                                            <DockPanel LastChildFill="True">
+                                                <Path x:Name="Arrow" Width="10" Height="10" Margin="0,0,6,0"
+                                                      Fill="{StaticResource SubtitleBrush}"
+                                                      Data="M 0 0 L 8 0 L 4 5 Z"
+                                                      VerticalAlignment="Center"/>
+                                                <ContentPresenter VerticalAlignment="Center" />
+                                            </DockPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Arrow" Property="RenderTransform">
+                                                    <Setter.Value>
+                                                        <RotateTransform Angle="180" CenterX="4" CenterY="2.5"/>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <ContentPresenter x:Name="ExpandSite"
+                                              Margin="0,4,0,6"
+                                              Visibility="Collapsed"
+                                              Focusable="False"/>
+                        </DockPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Page.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="600"/>
+            <ColumnDefinition Width="18"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
+                   Text="Device Play Mode"
+                   FontSize="26" FontWeight="Bold"
+                   Foreground="{StaticResource TitleBrush}"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,14"/>
+
+        <!-- LEFT: reorder so Playback Modes + Display Settings are on top, Play Content fills rest -->
+        <Grid Grid.Row="1" Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- Status -->
+                <RowDefinition Height="Auto"/>  <!-- Playback Modes -->
+                <RowDefinition Height="Auto"/>  <!-- Display Settings -->
+                <RowDefinition Height="*"/>     <!-- Play Content (larger) -->
+            </Grid.RowDefinitions>
+
+            <!-- Status -->
+            <Border x:Name="ErrorMessageBorder"
+                    Grid.Row="0"
+                    Visibility="Collapsed"
+                    Background="#44FF4444"
+                    BorderBrush="#FF6666"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Margin="0,0,0,12"
+                    Padding="10,8">
+                <DockPanel>
+                    <TextBlock Text="⚠" FontSize="14" Margin="0,0,8,0" Foreground="#FF8888"/>
+                    <TextBlock x:Name="ErrorMessageTextBlock"
+                               FontSize="13"
+                               Foreground="{StaticResource TitleBrush}"
+                               TextWrapping="Wrap"/>
+                </DockPanel>
+            </Border>
+
+            <!-- Playback Modes (top) -->
+            <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="Playback Modes" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                    <UniformGrid Columns="2">
+                        <Button x:Name="RealtimeStreamingButton"
+                                Style="{StaticResource ModeButton}"
+                                Height="44"
+                                Background="#2A4A8B"
+                                BorderBrush="#4A6BAB"
+                                Click="RealtimeStreamingButton_Click">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="📺" FontSize="16" Margin="0,0,8,0"/>
+                                <TextBlock Text="实时播放" Foreground="White" FontSize="13" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="Mp4StreamingButton"
+                                Style="{StaticResource ModeButton}"
+                                Height="44"
+                                Background="#4A2A8B"
+                                BorderBrush="#6A4AAB"
+                                Click="Mp4StreamingButton_Click">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="🎬" FontSize="16" Margin="0,0,8,0"/>
+                                <TextBlock Text="视频播放" Foreground="White" FontSize="13" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- Display Settings (expanded by default here if you prefer) -->
+            <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
+                <Expander Header="Display Settings" Style="{StaticResource ExpanderStyleMini}" IsExpanded="True">
+                    <StackPanel Margin="0,4,0,0">
+                        <TextBlock Text="Rotation" FontSize="12" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
+                        <UniformGrid Columns="4" Margin="0,0,0,8">
+                            <Button x:Name="Rotation0Button" Content="0°" Tag="0" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
+                            <Button x:Name="Rotation90Button" Content="90°" Tag="90" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
+                            <Button x:Name="Rotation180Button" Content="180°" Tag="180" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
+                            <Button x:Name="Rotation270Button" Content="270°" Tag="270" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
+                        </UniformGrid>
+                        <TextBlock x:Name="CurrentRotationText" Text="Current: 0°" FontSize="11"
+                                   Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,10"/>
+                        <TextBlock Text="Brightness" FontSize="12" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
+                        <Slider x:Name="BrightnessSlider" Minimum="0" Maximum="100" Value="80"
+                                TickFrequency="10" IsSnapToTickEnabled="True"
+                                Margin="0,0,0,6"
+                                ValueChanged="BrightnessSlider_ValueChanged"/>
+                        <DockPanel LastChildFill="False" Margin="0,0,0,4">
+                            <TextBlock x:Name="BrightnessValueText"
+                                       Text="80%"
+                                       FontSize="11"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource TitleBrush}"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="25%" Tag="25" Width="40" Style="{StaticResource MiniButton}" Click="QuickBrightnessButton_Click"/>
+                                <Button Content="50%" Tag="50" Width="40" Style="{StaticResource MiniButton}" Click="QuickBrightnessButton_Click"/>
+                                <Button Content="100%" Tag="100" Width="50" Style="{StaticResource MiniButton}" Click="QuickBrightnessButton_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </StackPanel>
+                </Expander>
+            </Border>
+
+            <!-- Play Content (fills remaining space) -->
+            <Border Grid.Row="3" Style="{StaticResource CardBorderStyle}" Padding="14">
+                <DockPanel LastChildFill="True">
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                        <DockPanel>
+                            <TextBlock Text="Play Content (Configs Sequence)"
+                                       Style="{StaticResource SectionTitle}"
+                                       Margin="0,0,8,0"
+                                       DockPanel.Dock="Left"/>
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                <Button Content="Add"
+                                        Style="{StaticResource MiniButton}"
+                                        Click="AddConfigButton_Click"/>
+                                <Button Content="Clear"
+                                        Style="{StaticResource MiniButton}"
+                                        Margin="4,0,0,0"
+                                        Click="ClearConfigsButton_Click"/>
+                                <Button Content="Start"
+                                        x:Name="StartSequenceButton"
+                                        Style="{StaticResource MiniButton}"
+                                        Margin="12,0,0,0"
+                                        Background="{StaticResource AccentBrush}"
+                                        BorderBrush="#5C7FB8"
+                                        Click="StartSequenceButton_Click"/>
+                                <Button Content="Stop"
+                                        x:Name="StopSequenceButton"
+                                        Style="{StaticResource MiniButton}"
+                                        Background="#6B1F1F"
+                                        BorderBrush="#8B3F3F"
+                                        Margin="4,0,0,0"
+                                        IsEnabled="False"
+                                        Click="StopSequenceButton_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <TextBlock Text="Single config → continuous. Multiple configs → loop with per-item duration."
+                                   Foreground="{StaticResource SubtitleBrush}"
+                                   FontSize="11"/>
+                    </StackPanel>
+
+                    <Border Background="{StaticResource CardBgAlt}"
+                            BorderBrush="{StaticResource CardBorder}"
+                            BorderThickness="1"
+                            CornerRadius="10"
+                            Padding="6">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <ItemsControl x:Name="ConfigSequenceListBox"
+                                          ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Background="#262F3A"
+                                                CornerRadius="8"
+                                                Padding="8"
+                                                Margin="0,0,0,8">
+                                            <DockPanel LastChildFill="False">
+                                                <StackPanel DockPanel.Dock="Left" Width="300">
+                                                    <TextBlock Text="{Binding DisplayName}"
+                                                               FontSize="13"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource TitleBrush}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                        <TextBlock Text="Duration:"
+                                                                   FontSize="11"
+                                                                   Foreground="{StaticResource SubtitleBrush}"
+                                                                   VerticalAlignment="Center"
+                                                                   Margin="0,0,4,0"/>
+                                                        <TextBox Width="56"
+                                                                 Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                                                 IsEnabled="{Binding DataContext.IsMultiConfig, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                                 HorizontalContentAlignment="Center"
+                                                                 PreviewTextInput="DurationTextBox_PreviewTextInput"
+                                                                 MaxLength="4">
+                                                            <TextBox.Style>
+                                                                <Style TargetType="TextBox">
+                                                                    <Setter Property="Background" Value="#1B202B"/>
+                                                                    <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
+                                                                    <Setter Property="BorderThickness" Value="1"/>
+                                                                    <Setter Property="Padding" Value="4,2"/>
+                                                                    <Style.Triggers>
+                                                                        <Trigger Property="IsEnabled" Value="False">
+                                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                                        </Trigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBox.Style>
+                                                        </TextBox>
+                                                        <TextBlock Text="s"
+                                                                   FontSize="11"
+                                                                   Foreground="{StaticResource SubtitleBrush}"
+                                                                   Margin="4,0,0,0"
+                                                                   VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </StackPanel>
+
+                                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                                    <Button Content="▲" Width="34" Style="{StaticResource MiniButton}"
+                                                            Tag="{Binding}" Click="MoveConfigUp_Click"/>
+                                                    <Button Content="▼" Width="34" Style="{StaticResource MiniButton}"
+                                                            Tag="{Binding}" Margin="4,0,0,0" Click="MoveConfigDown_Click"/>
+                                                    <Button Content="✖" Width="34" Style="{StaticResource MiniButton}"
+                                                            Tag="{Binding}" Margin="4,0,0,0" Click="RemoveConfig_Click"/>
+                                                </StackPanel>
+                                            </DockPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Border>
+
+                    <!-- Hidden legacy list (compatibility) -->
+                    <ListBox x:Name="DevicesListBox"
+                             Visibility="Collapsed"
+                             Height="0"
+                             Width="0"/>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- RIGHT: Canvas View (unchanged except counters hidden) -->
+        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource CardBorderStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                    <TextBlock Text="Canvas View" FontSize="18" FontWeight="SemiBold"
+                               Foreground="{StaticResource TitleBrush}" DockPanel.Dock="Left"/>
+                    <Border x:Name="StreamingStatusIndicator"
+                            Background="#2A4A8B"
+                            Visibility="Collapsed"
+                            CornerRadius="10"
+                            Padding="6,2"
+                            Margin="12,0,0,0"
+                            DockPanel.Dock="Left">
+                        <TextBlock Text="LIVE" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                    </Border>
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                        <TextBlock Text="{Binding ConfigurationDisplayName}"
+                                   FontSize="12"
+                                   Foreground="{StaticResource SubtitleBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </DockPanel>
+
+                <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid x:Name="DesignRoot" Width="512" Height="512">
+                        <Grid>
+                            <Rectangle x:Name="BgColorRect" Fill="{Binding BackgroundBrush}"/>
+                            <Image x:Name="BgImage"
+                                   Source="{Binding BackgroundImagePath}"
+                                   Stretch="UniformToFill"
+                                   Opacity="{Binding BackgroundImageOpacity}"/>
+                        </Grid>
+                        <Canvas x:Name="DesignCanvas"
+                                Background="White"
+                                Width="512"
+                                Height="512"
+                                ClipToBounds="True"
+                                Panel.ZIndex="1"/>
+                    </Grid>
+
+                    <Grid Width="512" Height="512" Panel.ZIndex="10">
+                        <Image x:Name="StreamingImageViewer"
+                               Stretch="Uniform"
+                               Visibility="Collapsed"
+                               Panel.ZIndex="11"/>
+                        <StackPanel x:Name="PlaceholderContent"
+                                    Visibility="Collapsed"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Panel.ZIndex="12">
+                            <TextBlock Text="🖼️" FontSize="40" Foreground="#666" HorizontalAlignment="Center"/>
+                            <TextBlock Text="No streaming content"
+                                       FontSize="11"
+                                       Foreground="#888"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                        <StackPanel x:Name="LoadingIndicator"
+                                    Visibility="Collapsed"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Panel.ZIndex="13">
+                            <Grid Width="44" Height="44" Margin="0,0,0,6">
+                                <Ellipse Stroke="#4A6BAB" StrokeThickness="4" StrokeDashArray="25,25" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform>
+                                        <RotateTransform x:Name="LoadingRotation"/>
+                                    </Ellipse.RenderTransform>
+                                    <Ellipse.Triggers>
+                                        <EventTrigger RoutedEvent="Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <DoubleAnimation Storyboard.TargetName="LoadingRotation"
+                                                                     Storyboard.TargetProperty="Angle"
+                                                                     From="0" To="360"
+                                                                     Duration="0:0:2"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Ellipse.Triggers>
+                                </Ellipse>
+                            </Grid>
+                            <TextBlock Text="Loading..." FontSize="10" Foreground="#4A6BAB" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+
+                <Border Grid.Row="2"
+                        Margin="0,12,0,0"
+                        Background="{StaticResource CardBgAlt}"
+                        BorderBrush="{StaticResource CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="8,6">
+                    <DockPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Current: " FontSize="11" Foreground="{StaticResource SubtitleBrush}"/>
+                            <TextBlock x:Name="CurrentImageName"
+                                       Text="No image"
+                                       FontSize="11"
+                                       FontWeight="Medium"
+                                       Foreground="{StaticResource TitleBrush}"/>
+                            <TextBlock Text="  |  " FontSize="11" Foreground="#556170" Margin="4,0,4,0"/>
+                            <TextBlock x:Name="ImageDimensions" Text="" FontSize="11" Foreground="{StaticResource SubtitleBrush}"/>
+                        </StackPanel>
+                        <!-- Hidden counters (compat) -->
+                        <StackPanel Orientation="Horizontal" Visibility="Collapsed">
+                            <TextBlock Text="Images:" FontSize="11"/>
+                            <TextBlock x:Name="ImageCounter" Text="0" FontSize="11" Margin="4,0,12,0"/>
+                            <TextBlock Text="Devices:" FontSize="11"/>
+                            <TextBlock x:Name="ActiveDeviceCount" Text="0" FontSize="11" Margin="4,0,0,0"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+            </Grid>
+        </Border>
     </Grid>
 </Page>
