@@ -28,6 +28,16 @@ namespace CMDevicesManager.Pages
 {
     public partial class DevicePlayModePage : Page
     {
+        // 在类字段区域新增
+        private enum PlayMode
+        {
+            RealtimeConfig,
+            OfflineVideo
+        }
+        private PlayMode _currentPlayMode = PlayMode.RealtimeConfig;
+        private string? _selectedVideoPath;
+        private bool _isVideoStreaming;
+
         // Config 序列模型
         public class PlayConfigItem : INotifyPropertyChanged
         {
@@ -76,6 +86,230 @@ namespace CMDevicesManager.Pages
         {
             InitializeComponent();
             InitializeDisplayControls();
+            InitConfigSequence();
+            _currentPlayMode = PlayMode.RealtimeConfig;
+            UpdatePlayModeUI();
+        }
+        private void UpdatePlayModeUI()
+        {
+            bool isRealtime = _currentPlayMode == PlayMode.RealtimeConfig;
+
+            ConfigsContainer.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
+            VideoContainer.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
+
+            ConfigActionButtons.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
+            VideoActionButtons.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
+
+            PlayContentTitleText.Text = isRealtime ? "Play Content" : "Video Playback";
+            PlayContentHintText.Text = isRealtime
+                ? "Single config → continuous. Multiple configs → loop with per-item duration."
+                : "Select an MP4 file and start playback (loop until stopped).";
+
+            // 还原按钮状态
+            if (isRealtime)
+            {
+                StartSequenceButton.IsEnabled = !_isConfigSequenceRunning && ConfigSequence.Count > 0;
+                StopSequenceButton.IsEnabled = _isConfigSequenceRunning;
+            }
+            else
+            {
+                StartVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
+                StopVideoButton.IsEnabled = _isVideoStreaming;
+                ClearVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
+            }
+
+            UpdateModeSelectionVisuals();
+        }
+
+        // 修改播放模式按钮事件（只做模式切换 + 停止当前模式）
+        private void RealtimeStreamingButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentPlayMode == PlayMode.RealtimeConfig) return;
+
+            if (_isVideoStreaming)
+            {
+                //ShowStatusMessage("Stopping video playback...");
+                _streamingCancellationSource?.Cancel();
+                _isVideoStreaming = false;
+            }
+            _currentPlayMode = PlayMode.RealtimeConfig;
+            UpdatePlayModeUI();
+            //ShowStatusMessage("Switched to real-time (config sequence) mode.");
+        }
+        private void UpdateModeSelectionVisuals()
+        {
+            if (RealtimeStreamingButton == null || Mp4StreamingButton == null) return;
+            RealtimeStreamingButton.IsChecked = _currentPlayMode == PlayMode.RealtimeConfig;
+            Mp4StreamingButton.IsChecked = _currentPlayMode == PlayMode.OfflineVideo;
+        }
+
+
+        private void Mp4StreamingButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentPlayMode == PlayMode.OfflineVideo) return;
+
+            if (_isConfigSequenceRunning)
+            {
+                //ShowStatusMessage("Stopping config sequence...");
+                _configSequenceCts?.Cancel();
+                _isConfigSequenceRunning = false;
+            }
+            _currentPlayMode = PlayMode.OfflineVideo;
+            UpdatePlayModeUI();
+            //ShowStatusMessage("Switched to video offline playback mode.");
+        }
+
+        // 选择视频
+        private void SelectVideoButton_Click(object sender, RoutedEventArgs e)
+        {
+            var ofd = new OpenFileDialog
+            {
+                Title = "Select MP4 Video",
+                Filter = "MP4 Video (*.mp4)|*.mp4|All Files|*.*"
+            };
+            if (ofd.ShowDialog() == true)
+            {
+                _selectedVideoPath = ofd.FileName;
+                SelectedVideoNameText.Text = System.IO.Path.GetFileName(_selectedVideoPath);
+                VideoInfoText.Text = "Ready. Click Start to begin streaming frames.";
+                StartVideoButton.IsEnabled = true;
+                ClearVideoButton.IsEnabled = true;
+                //ShowStatusMessage($"Video selected: {SelectedVideoNameText.Text}");
+            }
+        }
+
+        // 清除视频选择
+        private void ClearVideoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isVideoStreaming) return;
+            _selectedVideoPath = null;
+            SelectedVideoNameText.Text = "(None)";
+            VideoInfoText.Text = "Please click 'Select Video' to choose an MP4 file.";
+            StartVideoButton.IsEnabled = false;
+            ClearVideoButton.IsEnabled = false;
+        }
+
+        // 启动视频播放
+        private async void StartVideoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_selectedVideoPath))
+            {
+                //ShowErrorMessage("No video selected.");
+                return;
+            }
+            if (_isVideoStreaming)
+            {
+                //ShowErrorMessage("Video already streaming.");
+                return;
+            }
+            if (_multiDeviceManager == null)
+            {
+                _multiDeviceManager = new MultiDeviceManager(0x2516, 0x0228);
+                _multiDeviceManager.StartMonitoring();
+            }
+
+            var devices = _multiDeviceManager.GetActiveControllers();
+            if (devices.Count == 0)
+            {
+                //ShowErrorMessage("No devices connected.");
+                return;
+            }
+
+            _isVideoStreaming = true;
+            _streamingCancellationSource = new CancellationTokenSource();
+            UpdatePlayModeUI();
+            //ShowStatusMessage($"Starting video playback: {SelectedVideoNameText.Text}");
+
+            try
+            {
+                StartKeepAliveTimer();
+                int frameDelayMs = 33; // 默认 ~30fps, 可根据实际帧率改进
+                var results = await _multiDeviceManager.ExecuteOnAllDevices(async controller =>
+                {
+                    try
+                    {
+                        bool ok = await SendMp4DataWithAdvancedDeviceSync(
+                            controller,
+                            _selectedVideoPath!,
+                            frameDelayMs,
+                            (frameData, frameIndex, transferId) =>
+                            {
+                                try { UpdateStreamingImageViewerFromFrameData(frameData); }
+                                catch { /* ignore */ }
+                            },
+                            cycleCount: int.MaxValue, // 无限循环，直到外部取消
+                            _streamingCancellationSource.Token);
+                        return ok;
+                    }
+                    catch
+                    {
+                        return false;
+                    }
+                }, timeout: TimeSpan.FromHours(6));
+                int okCount = results.Values.Count(v => v);
+               
+            }
+            catch (OperationCanceledException)
+            {
+               // ShowStatusMessage("Video playback stopped.");
+            }
+            catch (Exception ex)
+            {
+               // ShowErrorMessage("Video playback failed: " + ex.Message);
+            }
+            finally
+            {
+                StopKeepAliveTimer();
+                _streamingCancellationSource?.Dispose();
+                _streamingCancellationSource = null;
+                _isVideoStreaming = false;
+                UpdatePlayModeUI();
+            }
+        }
+
+        // 停止视频播放
+        private void StopVideoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isVideoStreaming)
+            {
+                _streamingCancellationSource?.Cancel();
+                //ShowStatusMessage("Stopping video...");
+            }
+        }
+
+        // 在 UpdateButtonStates 内（如果保留）增加模式适配（可选）
+        private void UpdateButtonStates()
+        {
+            // 原有配置（若之前为空可忽略）
+            if (_currentPlayMode == PlayMode.RealtimeConfig)
+            {
+                StartSequenceButton.IsEnabled = !_isConfigSequenceRunning && ConfigSequence.Count > 0;
+                StopSequenceButton.IsEnabled = _isConfigSequenceRunning;
+            }
+            else
+            {
+                StartVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
+                StopVideoButton.IsEnabled = _isVideoStreaming;
+                ClearVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
+            }
+        }
+
+        // 如果未调用 InitConfigSequence，请确保添加
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (_multiDeviceManager == null)
+            {
+                try
+                {
+                    _multiDeviceManager = new MultiDeviceManager(0x2516, 0x0228);
+                    _multiDeviceManager.StartMonitoring();
+                }
+                catch (Exception ex)
+                {
+                  //  ShowErrorMessage("Device manager init failed: " + ex.Message);
+                }
+            }
+            UpdatePlayModeUI();
         }
 
         private void InitializeDisplayControls()
@@ -134,7 +368,7 @@ namespace CMDevicesManager.Pages
         {
             if (_isConfigSequenceRunning)
             {
-                ShowErrorMessage("Stop sequence first.");
+                //ShowErrorMessage("Stop sequence first.");
                 return;
             }
             ConfigSequence.Clear();
@@ -168,12 +402,12 @@ namespace CMDevicesManager.Pages
         {
             if (_isConfigSequenceRunning)
             {
-                ShowErrorMessage("Sequence already running.");
+               // ShowErrorMessage("Sequence already running.");
                 return;
             }
             if (ConfigSequence.Count == 0)
             {
-                ShowErrorMessage("No config selected.");
+                //ShowErrorMessage("No config selected.");
                 return;
             }
 
@@ -181,7 +415,7 @@ namespace CMDevicesManager.Pages
             _configSequenceCts = new CancellationTokenSource();
             StartSequenceButton.IsEnabled = false;
             StopSequenceButton.IsEnabled = true;
-            ShowStatusMessage("Sequence started (loop).");
+           // ShowStatusMessage("Sequence started (loop).");
 
             try
             {
@@ -189,11 +423,11 @@ namespace CMDevicesManager.Pages
             }
             catch (OperationCanceledException)
             {
-                ShowStatusMessage("Sequence stopped.");
+                //ShowStatusMessage("Sequence stopped.");
             }
             catch (Exception ex)
             {
-                ShowErrorMessage($"Sequence error: {ex.Message}");
+                //ShowErrorMessage($"Sequence error: {ex.Message}");
             }
             finally
             {
@@ -221,7 +455,7 @@ namespace CMDevicesManager.Pages
                 if (ConfigSequence.Count == 1)
                 {
                     var single = ConfigSequence[0];
-                    ShowStatusMessage($"Loaded: {single.DisplayName} (continuous)");
+                    //ShowStatusMessage($"Loaded: {single.DisplayName} (continuous)");
                     await LoadConfigToCanvasAsync(single.FilePath, token);
                     try
                     {
@@ -241,7 +475,7 @@ namespace CMDevicesManager.Pages
                     int dur = item.DurationSeconds;
                     if (dur <= 0) dur = 5;
 
-                    ShowStatusMessage($"Loading: {item.DisplayName} ({dur}s)");
+                    //ShowStatusMessage($"Loading: {item.DisplayName} ({dur}s)");
                     await LoadConfigToCanvasAsync(item.FilePath, token);
 
                     try
@@ -254,7 +488,7 @@ namespace CMDevicesManager.Pages
                     }
                 }
             }
-            ShowStatusMessage("Sequence stopped.");
+            //ShowStatusMessage("Sequence stopped.");
         }
 
         // 数字限制 (Duration TextBox)
@@ -301,16 +535,16 @@ namespace CMDevicesManager.Pages
 
         private async void RotationButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_multiDeviceManager == null) { ShowErrorMessage("Device manager not initialized"); return; }
+            
             var actives = _multiDeviceManager.GetActiveControllers();
-            if (actives.Count == 0) { ShowErrorMessage("No devices"); return; }
+           
             if (sender is Button b && b.Tag is string s && int.TryParse(s, out int deg))
             {
                 try
                 {
-                    HideErrorMessage();
+                   
                     SetRotationButtonsEnabled(false);
-                    ShowStatusMessage($"Setting rotation {deg}° ...");
+                   
                     var results = await _multiDeviceManager.SetRotationOnAllDevices(deg);
                     int ok = results.Values.Count(v => v);
                     if (ok == results.Count)
@@ -318,14 +552,13 @@ namespace CMDevicesManager.Pages
                         _currentRotation = deg;
                         CurrentRotationText.Text = $"Current: {deg}°";
                         UpdateRotationButtonAppearance(deg);
-                        ShowStatusMessage($"Rotation {deg}° applied to {ok} device(s).");
+                       
                     }
-                    else
-                        ShowErrorMessage($"Rotation mixed result {ok}/{results.Count}");
+                    
                 }
                 catch (Exception ex)
                 {
-                    ShowErrorMessage($"Rotation failed: {ex.Message}");
+                   
                 }
                 finally
                 {
@@ -349,7 +582,7 @@ namespace CMDevicesManager.Pages
             BrightnessValueText.Text = $"{newVal}%";
             if (Math.Abs(newVal - _currentBrightness) < 1) return;
             var actives = _multiDeviceManager.GetActiveControllers();
-            if (actives.Count == 0) { ShowErrorMessage("No devices"); return; }
+            if (actives.Count == 0) {  return; }
             try
             {
                 BrightnessSlider.IsEnabled = false;
@@ -358,11 +591,11 @@ namespace CMDevicesManager.Pages
                 if (ok == results.Count)
                 {
                     _currentBrightness = newVal;
-                    ShowStatusMessage($"Brightness {newVal}% applied.");
+                   // ShowStatusMessage($"Brightness {newVal}% applied.");
                 }
                 else
                 {
-                    ShowErrorMessage("Brightness partial failure");
+                    //ShowErrorMessage("Brightness partial failure");
                     _isBrightnessSliderUpdating = true;
                     BrightnessSlider.Value = _currentBrightness;
                     BrightnessValueText.Text = $"{_currentBrightness}%";
@@ -371,7 +604,7 @@ namespace CMDevicesManager.Pages
             }
             catch (Exception ex)
             {
-                ShowErrorMessage($"Brightness failed: {ex.Message}");
+                //ShowErrorMessage($"Brightness failed: {ex.Message}");
                 _isBrightnessSliderUpdating = true;
                 BrightnessSlider.Value = _currentBrightness;
                 BrightnessValueText.Text = $"{_currentBrightness}%";
@@ -385,9 +618,9 @@ namespace CMDevicesManager.Pages
 
         private async void QuickBrightnessButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_multiDeviceManager == null) { ShowErrorMessage("Device manager not initialized"); return; }
+            if (_multiDeviceManager == null) { return; }
             var actives = _multiDeviceManager.GetActiveControllers();
-            if (actives.Count == 0) { ShowErrorMessage("No devices"); return; }
+            if (actives.Count == 0) { return; }
             if (sender is Button b && b.Tag is string s && int.TryParse(s, out int value))
             {
                 try
@@ -402,11 +635,11 @@ namespace CMDevicesManager.Pages
                     if (ok == results.Count)
                     {
                         _currentBrightness = value;
-                        ShowStatusMessage($"Brightness {value}% applied.");
+                        //ShowStatusMessage($"Brightness {value}% applied.");
                     }
                     else
                     {
-                        ShowErrorMessage("Brightness mixed result");
+                        //ShowErrorMessage("Brightness mixed result");
                         _isBrightnessSliderUpdating = true;
                         BrightnessSlider.Value = _currentBrightness;
                         BrightnessValueText.Text = $"{_currentBrightness}%";
@@ -415,7 +648,7 @@ namespace CMDevicesManager.Pages
                 }
                 catch (Exception ex)
                 {
-                    ShowErrorMessage($"Brightness failed: {ex.Message}");
+                    //ShowErrorMessage($"Brightness failed: {ex.Message}");
                     _isBrightnessSliderUpdating = true;
                     BrightnessSlider.Value = _currentBrightness;
                     BrightnessValueText.Text = $"{_currentBrightness}%";
@@ -448,11 +681,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        private void Page_Loaded(object sender, RoutedEventArgs e)
-        {
-           
-        }
-
+      
         private async void LoadCurrentDeviceSettings()
         {
             if (_multiDeviceManager == null) return;
@@ -608,23 +837,8 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        // Realtime streaming
-        private async void RealtimeStreamingButton_Click(object sender, RoutedEventArgs e)
-        {
-            
-        }
 
-        // MP4 streaming
-        private async void Mp4StreamingButton_Click(object sender, RoutedEventArgs e)
-        {
-           
-        }
-
-        // Offline
-        private async void OfflineStreamingButton_Click(object sender, RoutedEventArgs e)
-        {
-           
-        }
+       
 
         private bool PrepareStreaming(bool keepAlive = true)
         {
@@ -635,10 +849,7 @@ namespace CMDevicesManager.Pages
         private void FinishStreaming(Dictionary<DeviceInfo, bool> results)
         {
             int ok = results.Values.Count(v => v);
-            if (ok == results.Count)
-                ShowStatusMessage($"Completed on {ok} device(s).");
-            else
-                ShowErrorMessage($"Completed with mixed results {ok}/{results.Count}");
+           
         }
 
         private void CleanupStreaming()
@@ -648,31 +859,14 @@ namespace CMDevicesManager.Pages
         private void StopStreamingButton_Click(object sender, RoutedEventArgs e)
         {
             _streamingCancellationSource?.Cancel();
-            ShowStatusMessage("Stopping...");
+           
         }
 
-        private void UpdateButtonStates()
-        {
-            
-        }
+    
 
-        private void ShowStatusMessage(string message)
-        {
-            ErrorMessageTextBlock.Text = message;
-            ErrorMessageBorder.Background = new SolidColorBrush(Color.FromArgb(0x44, 0x44, 0xFF, 0x44));
-            ErrorMessageBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0xFF, 0x66, 0xFF, 0x66));
-            ErrorMessageBorder.Visibility = Visibility.Visible;
-        }
+     
 
-        private void ShowErrorMessage(string message)
-        {
-            ErrorMessageTextBlock.Text = message;
-            ErrorMessageBorder.Background = new SolidColorBrush(Color.FromArgb(0x44, 0xFF, 0x44, 0x44));
-            ErrorMessageBorder.BorderBrush = new SolidColorBrush(Color.FromArgb(0xFF, 0xFF, 0x66, 0x66));
-            ErrorMessageBorder.Visibility = Visibility.Visible;
-        }
-
-        private void HideErrorMessage() => ErrorMessageBorder.Visibility = Visibility.Collapsed;
+       
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {

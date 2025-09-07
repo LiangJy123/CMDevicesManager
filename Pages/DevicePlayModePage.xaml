@@ -6,6 +6,151 @@
       Unloaded="Page_Unloaded">
     <!-- (Styles / Resources kept exactly as your current file – trimmed here for brevity) -->          
     <Page.Resources>
+        <Style x:Key="ModeSelectToggleBaseStyle" TargetType="ToggleButton">
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Root"
+                        CornerRadius="8"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        SnapsToDevicePixels="True">
+                            <Grid>
+                                <Border x:Name="ActiveBar"
+                                Width="5"
+                                HorizontalAlignment="Left"
+                                CornerRadius="5,0,0,5"
+                                Background="{TemplateBinding Tag}"
+                                Opacity="0"/>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="6,0,6,0"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ActiveBar" Property="Opacity" Value="1"/>
+                                <Setter TargetName="Root" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.45" Color="#66222222"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.96"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModeToggleBaseStyle" TargetType="ToggleButton">
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Root"
+                        CornerRadius="8"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        SnapsToDevicePixels="True">
+                            <Grid>
+                                <!-- 选中指示条 -->
+                                <Border x:Name="ActiveBar"
+                                Width="5"
+                                HorizontalAlignment="Left"
+                                CornerRadius="5,0,0,5"
+                                Background="{TemplateBinding Tag}"
+                                Opacity="0"/>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="6,0,6,0"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ActiveBar" Property="Opacity" Value="1"/>
+                                <Setter TargetName="Root" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.45" Color="#66000000"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.95"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 实时播放：未选中=较浅蓝，选中=更深蓝 -->
+        <Style x:Key="RealtimeModeToggleStyle"
+       TargetType="ToggleButton"
+       BasedOn="{StaticResource ModeToggleBaseStyle}">
+            <!-- 未选中浅色 -->
+            <Setter Property="Background" Value="#4E82D2"/>
+            <!-- Light Blue -->
+            <Setter Property="BorderBrush" Value="#709DE0"/>
+            <Setter Property="Tag" Value="#FFC65A"/>
+            <!-- 选中指示条暖色强调 -->
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <!-- 选中深色 -->
+                    <Setter Property="Background" Value="#1D3F72"/>
+                    <!-- Darker Blue -->
+                    <Setter Property="BorderBrush" Value="#3E6AA5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- 视频离线播放：未选中=较浅紫，选中=更深紫 -->
+        <Style x:Key="Mp4ModeToggleStyle"
+       TargetType="ToggleButton"
+       BasedOn="{StaticResource ModeToggleBaseStyle}">
+            <Setter Property="Background" Value="#7A4BD1"/>
+            <!-- Light Purple -->
+            <Setter Property="BorderBrush" Value="#946EE0"/>
+            <Setter Property="Tag" Value="#FFB74D"/>
+            <!-- 指示条暖色 -->
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#3A1C6E"/>
+                    <!-- Dark Purple -->
+                    <Setter Property="BorderBrush" Value="#5A3592"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <SolidColorBrush x:Key="CardBg" Color="#232834"/>
         <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
         <SolidColorBrush x:Key="CardBorder" Color="#2E3747"/>
@@ -158,52 +303,30 @@
                 <RowDefinition Height="*"/>     <!-- Play Content (larger) -->
             </Grid.RowDefinitions>
 
-            <!-- Status -->
-            <Border x:Name="ErrorMessageBorder"
-                    Grid.Row="0"
-                    Visibility="Collapsed"
-                    Background="#44FF4444"
-                    BorderBrush="#FF6666"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Margin="0,0,0,12"
-                    Padding="10,8">
-                <DockPanel>
-                    <TextBlock Text="⚠" FontSize="14" Margin="0,0,8,0" Foreground="#FF8888"/>
-                    <TextBlock x:Name="ErrorMessageTextBlock"
-                               FontSize="13"
-                               Foreground="{StaticResource TitleBrush}"
-                               TextWrapping="Wrap"/>
-                </DockPanel>
-            </Border>
+           
 
             <!-- Playback Modes (top) -->
             <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
                 <StackPanel>
                     <TextBlock Text="Playback Modes" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
                     <UniformGrid Columns="2">
-                        <Button x:Name="RealtimeStreamingButton"
-                                Style="{StaticResource ModeButton}"
-                                Height="44"
-                                Background="#2A4A8B"
-                                BorderBrush="#4A6BAB"
-                                Click="RealtimeStreamingButton_Click">
+                        <ToggleButton x:Name="RealtimeStreamingButton"
+                  Style="{StaticResource RealtimeModeToggleStyle}"
+                  Click="RealtimeStreamingButton_Click">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <TextBlock Text="📺" FontSize="16" Margin="0,0,8,0"/>
-                                <TextBlock Text="实时播放" Foreground="White" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock Text="实时播放" FontSize="13" VerticalAlignment="Center"/>
                             </StackPanel>
-                        </Button>
-                        <Button x:Name="Mp4StreamingButton"
-                                Style="{StaticResource ModeButton}"
-                                Height="44"
-                                Background="#4A2A8B"
-                                BorderBrush="#6A4AAB"
-                                Click="Mp4StreamingButton_Click">
+                        </ToggleButton>
+
+                        <ToggleButton x:Name="Mp4StreamingButton"
+                  Style="{StaticResource Mp4ModeToggleStyle}"
+                  Click="Mp4StreamingButton_Click">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <TextBlock Text="🎬" FontSize="16" Margin="0,0,8,0"/>
-                                <TextBlock Text="视频播放" Foreground="White" FontSize="13" VerticalAlignment="Center"/>
+                                <TextBlock Text="视频离线播放" FontSize="13" VerticalAlignment="Center"/>
                             </StackPanel>
-                        </Button>
+                        </ToggleButton>
                     </UniformGrid>
                 </StackPanel>
             </Border>
@@ -247,75 +370,85 @@
             <!-- Play Content (fills remaining space) -->
             <Border Grid.Row="3" Style="{StaticResource CardBorderStyle}" Padding="14">
                 <DockPanel LastChildFill="True">
+
+                    <!-- 顶部标题与操作（根据模式切换文案/按钮显示） -->
                     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                         <DockPanel>
-                            <TextBlock Text="Play Content (Configs Sequence)"
-                                       Style="{StaticResource SectionTitle}"
-                                       Margin="0,0,8,0"
-                                       DockPanel.Dock="Left"/>
+                            <TextBlock x:Name="PlayContentTitleText"
+                           Text="Play Content"
+                           Style="{StaticResource SectionTitle}"
+                           Margin="0,0,8,0"
+                           DockPanel.Dock="Left"/>
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                <Button Content="Add"
-                                        Style="{StaticResource MiniButton}"
-                                        Click="AddConfigButton_Click"/>
-                                <Button Content="Clear"
-                                        Style="{StaticResource MiniButton}"
-                                        Margin="4,0,0,0"
-                                        Click="ClearConfigsButton_Click"/>
-                                <Button Content="Start"
-                                        x:Name="StartSequenceButton"
-                                        Style="{StaticResource MiniButton}"
-                                        Margin="12,0,0,0"
-                                        Background="{StaticResource AccentBrush}"
-                                        BorderBrush="#5C7FB8"
-                                        Click="StartSequenceButton_Click"/>
-                                <Button Content="Stop"
-                                        x:Name="StopSequenceButton"
-                                        Style="{StaticResource MiniButton}"
-                                        Background="#6B1F1F"
-                                        BorderBrush="#8B3F3F"
-                                        Margin="4,0,0,0"
-                                        IsEnabled="False"
-                                        Click="StopSequenceButton_Click"/>
+                                <!-- 实时模式按钮组（配置序列） -->
+                                <StackPanel x:Name="ConfigActionButtons" Orientation="Horizontal">
+                                    <Button Content="Add" Style="{StaticResource MiniButton}" Click="AddConfigButton_Click"/>
+                                    <Button Content="Clear" Style="{StaticResource MiniButton}" Margin="4,0,0,0"
+                                Click="ClearConfigsButton_Click"/>
+                                    <Button Content="Start" x:Name="StartSequenceButton"
+                                Style="{StaticResource MiniButton}" Margin="12,0,0,0"
+                                Background="{StaticResource AccentBrush}" BorderBrush="#5C7FB8"
+                                Click="StartSequenceButton_Click"/>
+                                    <Button Content="Stop" x:Name="StopSequenceButton"
+                                Style="{StaticResource MiniButton}" Background="#6B1F1F"
+                                BorderBrush="#8B3F3F" Margin="4,0,0,0"
+                                IsEnabled="False" Click="StopSequenceButton_Click"/>
+                                </StackPanel>
+
+                                <!-- 视频模式按钮组 -->
+                                <StackPanel x:Name="VideoActionButtons" Orientation="Horizontal" Visibility="Collapsed">
+                                    <Button Content="Select Video" Style="{StaticResource MiniButton}"
+                                Click="SelectVideoButton_Click"/>
+                                    <Button Content="Start" x:Name="StartVideoButton"
+                                Style="{StaticResource MiniButton}" Margin="12,0,0,0"
+                                Background="{StaticResource AccentBrush}" BorderBrush="#5C7FB8"
+                                Click="StartVideoButton_Click" IsEnabled="False"/>
+                                    <Button Content="Stop" x:Name="StopVideoButton"
+                                Style="{StaticResource MiniButton}" Background="#6B1F1F"
+                                BorderBrush="#8B3F3F" Margin="4,0,0,0"
+                                IsEnabled="False" Click="StopVideoButton_Click"/>
+                                    <Button Content="Clear" x:Name="ClearVideoButton"
+                                Style="{StaticResource MiniButton}" Margin="4,0,0,0"
+                                Click="ClearVideoButton_Click" IsEnabled="False"/>
+                                </StackPanel>
                             </StackPanel>
                         </DockPanel>
-                        <TextBlock Text="Single config → continuous. Multiple configs → loop with per-item duration."
-                                   Foreground="{StaticResource SubtitleBrush}"
-                                   FontSize="11"/>
+                        <TextBlock x:Name="PlayContentHintText"
+                       Text="Single config → continuous. Multiple configs → loop with per-item duration."
+                       Foreground="{StaticResource SubtitleBrush}"
+                       FontSize="11"/>
                     </StackPanel>
 
-                    <Border Background="{StaticResource CardBgAlt}"
-                            BorderBrush="{StaticResource CardBorder}"
-                            BorderThickness="1"
-                            CornerRadius="10"
-                            Padding="6">
+                    <!-- 实时播放：配置序列区域 -->
+                    <Border x:Name="ConfigsContainer"
+                Background="{StaticResource CardBgAlt}"
+                BorderBrush="{StaticResource CardBorder}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="6"
+                Visibility="Visible">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
                             <ItemsControl x:Name="ConfigSequenceListBox"
-                                          ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
+                              ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Background="#262F3A"
-                                                CornerRadius="8"
-                                                Padding="8"
-                                                Margin="0,0,0,8">
+                                        <Border Background="#262F3A" CornerRadius="8" Padding="8" Margin="0,0,0,8">
                                             <DockPanel LastChildFill="False">
                                                 <StackPanel DockPanel.Dock="Left" Width="300">
                                                     <TextBlock Text="{Binding DisplayName}"
-                                                               FontSize="13"
-                                                               FontWeight="SemiBold"
-                                                               Foreground="{StaticResource TitleBrush}"
-                                                               TextTrimming="CharacterEllipsis"/>
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource TitleBrush}"
+                                                   TextTrimming="CharacterEllipsis"/>
                                                     <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
                                                         <TextBlock Text="Duration:"
-                                                                   FontSize="11"
-                                                                   Foreground="{StaticResource SubtitleBrush}"
-                                                                   VerticalAlignment="Center"
-                                                                   Margin="0,0,4,0"/>
+                                                       FontSize="11" Foreground="{StaticResource SubtitleBrush}"
+                                                       VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                         <TextBox Width="56"
-                                                                 Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}"
-                                                                 IsEnabled="{Binding DataContext.IsMultiConfig, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                                                 HorizontalContentAlignment="Center"
-                                                                 PreviewTextInput="DurationTextBox_PreviewTextInput"
-                                                                 MaxLength="4">
+                                                     Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                                     IsEnabled="{Binding DataContext.IsMultiConfig, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                     HorizontalContentAlignment="Center"
+                                                     PreviewTextInput="DurationTextBox_PreviewTextInput"
+                                                     MaxLength="4">
                                                             <TextBox.Style>
                                                                 <Style TargetType="TextBox">
                                                                     <Setter Property="Background" Value="#1B202B"/>
@@ -332,20 +465,18 @@
                                                             </TextBox.Style>
                                                         </TextBox>
                                                         <TextBlock Text="s"
-                                                                   FontSize="11"
-                                                                   Foreground="{StaticResource SubtitleBrush}"
-                                                                   Margin="4,0,0,0"
-                                                                   VerticalAlignment="Center"/>
+                                                       FontSize="11" Foreground="{StaticResource SubtitleBrush}"
+                                                       Margin="4,0,0,0" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </StackPanel>
 
                                                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                                                     <Button Content="▲" Width="34" Style="{StaticResource MiniButton}"
-                                                            Tag="{Binding}" Click="MoveConfigUp_Click"/>
+                                                Tag="{Binding}" Click="MoveConfigUp_Click"/>
                                                     <Button Content="▼" Width="34" Style="{StaticResource MiniButton}"
-                                                            Tag="{Binding}" Margin="4,0,0,0" Click="MoveConfigDown_Click"/>
+                                                Tag="{Binding}" Margin="4,0,0,0" Click="MoveConfigDown_Click"/>
                                                     <Button Content="✖" Width="34" Style="{StaticResource MiniButton}"
-                                                            Tag="{Binding}" Margin="4,0,0,0" Click="RemoveConfig_Click"/>
+                                                Tag="{Binding}" Margin="4,0,0,0" Click="RemoveConfig_Click"/>
                                                 </StackPanel>
                                             </DockPanel>
                                         </Border>
@@ -355,11 +486,67 @@
                         </ScrollViewer>
                     </Border>
 
+                    <!-- 视频离线播放：视频选择 + 信息展示 -->
+                    <Border x:Name="VideoContainer"
+                Background="{StaticResource CardBgAlt}"
+                BorderBrush="{StaticResource CardBorder}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="18"
+                Visibility="Collapsed">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Orientation="Horizontal" Grid.Row="0">
+                                <TextBlock Text="Selected Video: "
+                               FontSize="13"
+                               Foreground="{StaticResource SubtitleBrush}"
+                               VerticalAlignment="Center"/>
+                                <TextBlock x:Name="SelectedVideoNameText"
+                               Text="(None)"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TitleBrush}"
+                               Margin="4,0,0,0"
+                               TextTrimming="CharacterEllipsis"
+                               Width="320"/>
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="1"
+                           x:Name="VideoInfoText"
+                           Text="Please click 'Select Video' to choose an MP4 file."
+                           Margin="0,8,0,12"
+                           FontSize="11"
+                           Foreground="{StaticResource SubtitleBrush}"
+                           TextWrapping="Wrap"/>
+
+                            <Border Grid.Row="2"
+                        BorderBrush="{StaticResource CardBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Background="#1E2530"
+                        Padding="12"
+                        HorizontalAlignment="Stretch">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock Text="🎬" FontSize="42" HorizontalAlignment="Center" Opacity="0.6"/>
+                                    <TextBlock Text="Video playback preview will appear on the right Canvas"
+                                   FontSize="11" Foreground="{StaticResource SubtitleBrush}"
+                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                                   
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
                     <!-- Hidden legacy list (compatibility) -->
                     <ListBox x:Name="DevicesListBox"
-                             Visibility="Collapsed"
-                             Height="0"
-                             Width="0"/>
+                 Visibility="Collapsed"
+                 Height="0"
+                 Width="0"/>
                 </DockPanel>
             </Border>
         </Grid>
@@ -374,7 +561,7 @@
                 </Grid.RowDefinitions>
 
                 <DockPanel Grid.Row="0" Margin="0,0,0,10">
-                    <TextBlock Text="Canvas View" FontSize="18" FontWeight="SemiBold"
+                    <TextBlock Text="Live Preview" FontSize="18" FontWeight="SemiBold"
                                Foreground="{StaticResource TitleBrush}" DockPanel.Dock="Left"/>
                     <Border x:Name="StreamingStatusIndicator"
                             Background="#2A4A8B"
