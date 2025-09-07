@@ -1064,11 +1064,11 @@ namespace CMDevicesManager.Pages
             // Step 2: Start a timer to send canvas periodically
             _ = Task.Run(async () =>
             {
-                Task.Delay(5000).Wait(); // Initial delay to allow device to enter real-time mode
+                //Task.Delay(5000).Wait(); // Initial delay to allow device to enter real-time mode
                 while (IsHidServiceReady && _hidDeviceService != null && _hidDeviceService.IsRealTimeDisplayEnabled)
                 {
                     await SendConfigurationToDeviceAsync();
-                    await Task.Delay(1000); // Send every 2 seconds
+                    await Task.Delay(30); // Send every 2 seconds
                 }
             });
         }
@@ -3339,7 +3339,7 @@ namespace CMDevicesManager.Pages
             CaptureCanvas();
         }
 
-        private byte[]? CaptureCanvasAsStream()
+        private byte[]? CaptureCanvasAsStream_dd()
         {
             try
             {
@@ -3598,10 +3598,18 @@ namespace CMDevicesManager.Pages
                 return null;
             }
         }
-        private byte[] CaptureCanvasAsStream_back()
+        private byte[] CaptureCanvasAsStream()
         {
             try
             {
+
+                // Ensure we're on the UI thread
+                if (!Dispatcher.CheckAccess())
+                {
+                    Logger.Warn("CaptureCanvasAsStream called from non-UI thread");
+                    return Dispatcher.Invoke(() => CaptureCanvasAsStream());
+                }
+
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
                 {
                     return null;

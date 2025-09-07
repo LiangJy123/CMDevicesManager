@@ -468,7 +468,7 @@ namespace CMDevicesManager.Services
                 
                 var results = await ExecuteOnFilteredDevicesAsync(async controller =>
                 {
-                    await controller.SendCmdRealTimeDisplayWithResponse(enable);
+                    var res = await controller.SendCmdRealTimeDisplayWithResponse(enable);
                     return true;
                 });
                 
