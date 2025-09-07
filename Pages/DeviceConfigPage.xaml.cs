@@ -3009,6 +3009,10 @@ namespace CMDevicesManager.Pages
 
         private void CaptureCanvas_Click(object sender, RoutedEventArgs e)
         {
+            CaptureCanvas();
+        }
+        private void CaptureCanvas()
+        {
             try
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
@@ -3043,10 +3047,10 @@ namespace CMDevicesManager.Pages
                 Directory.CreateDirectory(captureDir);
 
                 string safeName = string.IsNullOrWhiteSpace(CurrentConfigName) ? "CanvasCapture" : MakeSafeFileBase(CurrentConfigName);
-                string fileName = $"{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+                string fileName = $"{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.jpeg";
                 string fullPath = Path.Combine(captureDir, fileName);
 
-                var encoder = new PngBitmapEncoder();
+                var encoder = new JpegBitmapEncoder();
                 encoder.Frames.Add(BitmapFrame.Create(rtb));
                 using (var fs = new FileStream(fullPath, FileMode.Create, FileAccess.Write))
                 {

@@ -11,9 +11,13 @@
 
   <ItemGroup>
     <Compile Remove="HidProtocol\**" />
+    <Compile Remove="WinUI3\**" />
     <EmbeddedResource Remove="HidProtocol\**" />
+    <EmbeddedResource Remove="WinUI3\**" />
     <None Remove="HidProtocol\**" />
+    <None Remove="WinUI3\**" />
     <Page Remove="HidProtocol\**" />
+    <Page Remove="WinUI3\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,10 +47,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="ffmpeg.exe">
+    <Content Include="exe\ffmpeg.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="ffprobe.exe">
+    <Content Include="exe\ffprobe.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Resource Include="Fonts\FangZheng.ttf">
