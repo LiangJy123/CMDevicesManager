@@ -8,213 +8,168 @@
              mc:Ignorable="d">
 
     <UserControl.Resources>
-        <!-- Card Style -->
-        <Style x:Key="DeviceCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="16" />
-            <Setter Property="Margin" Value="8" />
-            <Setter Property="MinWidth" Value="300" />
-            <Setter Property="MaxWidth" Value="400" />
-        </Style>
-
-        <!-- Button Styles -->
-        <Style x:Key="ActionButtonStyle" TargetType="Button">
-            <Setter Property="Height" Value="32" />
-            <Setter Property="MinWidth" Value="80" />
-            <Setter Property="Margin" Value="4,0" />
-            <Setter Property="CornerRadius" Value="4" />
-        </Style>
-
-        <Style x:Key="PrimaryActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+        <!-- Settings Button Style -->
+        <Style x:Key="SettingsButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="{ThemeResource AccentButtonBackground}" />
             <Setter Property="Foreground" Value="{ThemeResource AccentButtonForeground}" />
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
         </Style>
 
-        <Style x:Key="SecondaryActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
-            <Setter Property="Background" Value="{ThemeResource ButtonBackground}" />
-            <Setter Property="Foreground" Value="{ThemeResource ButtonForeground}" />
+        <!-- Config Button Style -->
+        <Style x:Key="ConfigButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{ThemeResource AccentButtonBackground}" />
+            <Setter Property="Foreground" Value="{ThemeResource AccentButtonForeground}" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Margin" Value="16,0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
         </Style>
+
+        <!-- Status Indicator Style -->
+        <Style x:Key="StatusIndicatorStyle" TargetType="Border">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="White" />
+        </Style>
+
+        <!-- Hover animations -->
+        <Storyboard x:Name="HoverEnterStoryboard">
+            <DoubleAnimation Storyboard.TargetName="ScaleTransform" 
+                             Storyboard.TargetProperty="ScaleX" 
+                             To="1.02" Duration="0:0:0.2" />
+            <DoubleAnimation Storyboard.TargetName="ScaleTransform" 
+                             Storyboard.TargetProperty="ScaleY" 
+                             To="1.02" Duration="0:0:0.2" />
+        </Storyboard>
+        <Storyboard x:Name="HoverExitStoryboard">
+            <DoubleAnimation Storyboard.TargetName="ScaleTransform" 
+                             Storyboard.TargetProperty="ScaleX" 
+                             To="1.0" Duration="0:0:0.2" />
+            <DoubleAnimation Storyboard.TargetName="ScaleTransform" 
+                             Storyboard.TargetProperty="ScaleY" 
+                             To="1.0" Duration="0:0:0.2" />
+        </Storyboard>
     </UserControl.Resources>
 
-    <Border Style="{StaticResource DeviceCardStyle}">
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
-            <!-- Header with Device Icon and Status -->
-            <Grid Grid.Row="0" Margin="0,0,0,12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <!-- Device Icon -->
-                <Border Grid.Column="0" 
-                        Background="{ThemeResource AccentButtonBackground}"
-                        CornerRadius="20"
-                        Width="40" 
-                        Height="40" 
-                        Margin="0,0,12,0">
-                    <FontIcon Glyph="&#xE767;" 
-                              FontSize="20" 
-                              Foreground="White" 
-                              HorizontalAlignment="Center" 
-                              VerticalAlignment="Center"/>
+    <!-- Shadow container -->
+    <Grid>
+        <!-- Shadow (subtle gray border) -->
+        <Border Background="Gray" 
+                Opacity="0.2" 
+                CornerRadius="12" 
+                Margin="10,10,6,6" />
+        
+        <!-- Main card -->
+        <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Margin="8"
+                Width="280"
+                Height="380"
+                PointerEntered="Card_PointerEntered"
+                PointerExited="Card_PointerExited">
+            <Border.RenderTransform>
+                <ScaleTransform x:Name="ScaleTransform" CenterX="140" CenterY="190" />
+            </Border.RenderTransform>
+            
+            <!-- Background Image with overlay -->
+            <Grid>
+                <!-- Background Image -->
+                <Border CornerRadius="12">
+                    <Border.Background>
+                        <ImageBrush ImageSource="{x:Bind DeviceImagePath, Mode=OneWay}" 
+                                    Stretch="UniformToFill" 
+                                    Opacity="0.8" />
+                    </Border.Background>
                 </Border>
+                
+                <!-- Overlay for better text readability -->
+                <Border Background="Black" Opacity="0.3" CornerRadius="12" />
+                
+                <!-- Main Content Grid -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" /><!-- Top Bar with Settings -->
+                        <RowDefinition Height="*" />    <!-- Middle Content -->
+                        <RowDefinition Height="Auto" /><!-- Bottom Button -->
+                    </Grid.RowDefinitions>
 
-                <!-- Device Name -->
-                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                    <TextBlock Text="{x:Bind ProductName, Mode=OneWay}" 
-                               Style="{StaticResource BodyStrongTextBlockStyle}" 
-                               TextWrapping="Wrap" />
-                    <TextBlock Text="{x:Bind ManufacturerName, Mode=OneWay}" 
-                               Style="{StaticResource CaptionTextBlockStyle}" 
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </StackPanel>
+                    <!-- Top Bar with Settings Button and Status -->
+                    <Grid Grid.Row="0" Margin="16,16,16,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                <!-- Status Indicator -->
-                <Border Grid.Column="2" 
-                        Background="{x:Bind GetStatusBrush(IsConnected), Mode=OneWay}"
-                        CornerRadius="6"
-                        Width="12" 
-                        Height="12" 
-                        VerticalAlignment="Top" />
+                        <!-- Settings Button (Top Left) -->
+                        <Button Grid.Column="0" 
+                                Style="{StaticResource SettingsButtonStyle}"
+                                Click="SettingsButton_Click"
+                                ToolTipService.ToolTip="Device Settings">
+                            <FontIcon Glyph="&#xE713;" FontSize="16" />
+                        </Button>
+
+                        <!-- Status Indicator (Top Right) -->
+                        <Border Grid.Column="2" 
+                                Style="{StaticResource StatusIndicatorStyle}"
+                                Background="{x:Bind GetStatusBrush(IsConnected), Mode=OneWay}"
+                                ToolTipService.ToolTip="{x:Bind GetStatusText(IsConnected), Mode=OneWay}" />
+                    </Grid>
+
+                    <!-- Middle Content - Device Information -->
+                    <StackPanel Grid.Row="1" 
+                                VerticalAlignment="Center" 
+                                Margin="16,20,16,20">
+                        
+                        <!-- Product Name (Large, Prominent) -->
+                        <TextBlock Text="{x:Bind ProductName, Mode=OneWay}"
+                                   Style="{StaticResource TitleTextBlockStyle}"
+                                   Foreground="White"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   MaxLines="2"
+                                   FontWeight="Bold"
+                                   Margin="0,0,0,12" />
+
+                        <!-- Serial Number (Prominent) -->
+                        <Border Background="Black" 
+                                Opacity="0.5" 
+                                CornerRadius="8" 
+                                Padding="12,8"
+                                Margin="45,0,50,16">
+                            <StackPanel>
+                                <TextBlock Text="{x:Bind SerialNumber, Mode=OneWay}"
+                                           Style="{StaticResource CaptionTextBlockStyle}"
+                                           FontSize="12"
+                                           Foreground="White"
+                                           TextAlignment="Center"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Config Button (Bottom) -->
+                    <Button Grid.Row="2" 
+                            Style="{StaticResource ConfigButtonStyle}"
+                            Click="ConfigButton_Click"
+                            IsEnabled="{x:Bind IsConnected, Mode=OneWay}"
+                            Margin="16,0,16,16">
+                        <StackPanel Orientation="Horizontal" Spacing="9">
+                            <FontIcon Glyph="&#xE70F;" FontSize="16" />
+                            <TextBlock Text="Configure Device" 
+                                       Style="{StaticResource BodyTextBlockStyle}"
+                                       FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
             </Grid>
-
-            <!-- Device Information -->
-            <StackPanel Grid.Row="1" Spacing="8" Margin="0,0,0,16">
-                <!-- Serial Number -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" 
-                               Text="Serial Number:" 
-                               Style="{StaticResource CaptionTextBlockStyle}" 
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" 
-                               Width="90" />
-                    <TextBlock Grid.Column="1" 
-                               Text="{x:Bind SerialNumber, Mode=OneWay}" 
-                               Style="{StaticResource CaptionTextBlockStyle}" 
-                               TextWrapping="Wrap" />
-                </Grid>
-
-                <!-- Connection Status -->
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" 
-                               Text="Status:" 
-                               Style="{StaticResource CaptionTextBlockStyle}" 
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" 
-                               Width="90" />
-                    <TextBlock Grid.Column="1" 
-                               Text="{x:Bind GetStatusText(IsConnected), Mode=OneWay}" 
-                               Style="{StaticResource CaptionTextBlockStyle}" 
-                               Foreground="{x:Bind GetStatusBrush(IsConnected), Mode=OneWay}" />
-                </Grid>
-            </StackPanel>
-
-            <!-- Quick Actions -->
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
-                <Button ToolTipService.ToolTip="Refresh Device"
-                        Style="{StaticResource ActionButtonStyle}"
-                        Click="RefreshButton_Click">
-                    <FontIcon Glyph="&#xE72C;" FontSize="14" />
-                </Button>
-
-                <Button ToolTipService.ToolTip="Test Connection"
-                        Style="{StaticResource ActionButtonStyle}"
-                        Click="TestButton_Click">
-                    <FontIcon Glyph="&#xE7C8;" FontSize="14" />
-                </Button>
-            </StackPanel>
-
-            <!-- Main Action Buttons -->
-            <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-                <Button Style="{StaticResource PrimaryActionButtonStyle}"
-                        Click="SettingsButton_Click"
-                        IsEnabled="{x:Bind IsConnected, Mode=OneWay}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE713;" FontSize="14" />
-                        <TextBlock Text="Settings" />
-                    </StackPanel>
-                </Button>
-
-                <Button Style="{StaticResource SecondaryActionButtonStyle}"
-                        Click="ConfigButton_Click"
-                        IsEnabled="{x:Bind IsConnected, Mode=OneWay}">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE70F;" FontSize="14" />
-                        <TextBlock Text="Config" />
-                    </StackPanel>
-                </Button>
-            </StackPanel>
-
-            <!-- Advanced Actions (Collapsible) -->
-            <Expander Grid.Row="4" 
-                      Header="Advanced Actions" 
-                      IsExpanded="False"
-                      HorizontalAlignment="Stretch"
-                      HorizontalContentAlignment="Stretch">
-                <StackPanel Spacing="8" Margin="0,8,0,0">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Style="{StaticResource ActionButtonStyle}"
-                                Click="LiveViewButton_Click"
-                                IsEnabled="{x:Bind IsConnected, Mode=OneWay}"
-                                MinWidth="100">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon Glyph="&#xE714;" FontSize="12" />
-                                <TextBlock Text="Live View" FontSize="12" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Style="{StaticResource ActionButtonStyle}"
-                                Click="DiagnosticsButton_Click"
-                                IsEnabled="{x:Bind IsConnected, Mode=OneWay}"
-                                MinWidth="100">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon Glyph="&#xE9D9;" FontSize="12" />
-                                <TextBlock Text="Diagnostics" FontSize="12" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Style="{StaticResource ActionButtonStyle}"
-                                Click="FirmwareUpdateButton_Click"
-                                IsEnabled="{x:Bind IsConnected, Mode=OneWay}"
-                                MinWidth="100">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon Glyph="&#xE896;" FontSize="12" />
-                                <TextBlock Text="Update" FontSize="12" />
-                            </StackPanel>
-                        </Button>
-
-                        <Button Style="{StaticResource ActionButtonStyle}"
-                                Click="ResetButton_Click"
-                                IsEnabled="{x:Bind IsConnected, Mode=OneWay}"
-                                MinWidth="100">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <FontIcon Glyph="&#xE777;" FontSize="12" />
-                                <TextBlock Text="Reset" FontSize="12" />
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
-                </StackPanel>
-            </Expander>
-        </Grid>
-    </Border>
+        </Border>
+    </Grid>
 </UserControl>

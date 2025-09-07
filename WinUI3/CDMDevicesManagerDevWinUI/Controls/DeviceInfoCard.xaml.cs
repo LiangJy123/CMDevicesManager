@@ -2,7 +2,9 @@ using HidApi;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -27,6 +29,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                     OnPropertyChanged(nameof(SerialNumber));
                     OnPropertyChanged(nameof(ManufacturerName));
                     OnPropertyChanged(nameof(DevicePath));
+                    OnPropertyChanged(nameof(DeviceImagePath));
                 }
             }
         }
@@ -50,6 +53,7 @@ namespace CDMDevicesManagerDevWinUI.Views
         public string SerialNumber => DeviceInfo?.SerialNumber ?? "No Serial";
         public string ManufacturerName => DeviceInfo?.ManufacturerName ?? "Unknown";
         public string DevicePath => DeviceInfo?.DevicePath ?? "";
+        public string DeviceImagePath => DeviceInfo?.DeviceImagePath ?? "ms-appx:///Assets/device-default.png";
 
         #endregion
 
@@ -73,6 +77,22 @@ namespace CDMDevicesManagerDevWinUI.Views
         public DeviceInfoCard()
         {
             this.InitializeComponent();
+        }
+
+        #endregion
+
+        #region Pointer Event Handlers
+
+        private void Card_PointerEntered(object sender, PointerRoutedEventArgs e)
+        {
+            var hoverEnterStoryboard = (Storyboard)Resources["HoverEnterStoryboard"];
+            hoverEnterStoryboard?.Begin();
+        }
+
+        private void Card_PointerExited(object sender, PointerRoutedEventArgs e)
+        {
+            var hoverExitStoryboard = (Storyboard)Resources["HoverExitStoryboard"];
+            hoverExitStoryboard?.Begin();
         }
 
         #endregion

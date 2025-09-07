@@ -16,6 +16,7 @@ namespace CDMDevicesManagerDevWinUI.Views
         public string SerialNumber { get; set; } = string.Empty;
         public string ManufacturerName { get; set; } = string.Empty;
         public string DevicePath { get; set; } = string.Empty;
+        public string DeviceImagePath { get; set; } = "ms-appx:///Assets/device-default.png";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
@@ -56,6 +57,33 @@ namespace CDMDevicesManagerDevWinUI.Views
         }
 
         /// <summary>
+        /// Get device image path based on product name
+        /// </summary>
+        /// <param name="productName">Product name</param>
+        /// <returns>Image path for the device</returns>
+        private string GetDeviceImagePath(string productName)
+        {
+            var product = productName?.ToLowerInvariant() ?? "";
+            
+            // Map specific device product names to image paths
+            if (product.Contains("haf700") || product.Contains("haf 700"))
+            {
+                return "ms-appx:///Assets/Devices/HAF700.png";
+            }
+            else if (product.Contains("lcd") || product.Contains("display"))
+            {
+                return "ms-appx:///Assets/Devices/LCDDisplay.png";
+            }
+            else if (product.Contains("cooler") || product.Contains("cooling"))
+            {
+                return "ms-appx:///Assets/Devices/Cooler.png";
+            }
+            
+            // Default device image
+            return "ms-appx:///Assets/device-default.png";
+        }
+
+        /// <summary>
         /// Check if a device already exists in the ConnectedDevices collection
         /// </summary>
         /// <param name="devicePath">Device path to check</param>
@@ -87,6 +115,7 @@ namespace CDMDevicesManagerDevWinUI.Views
         {
             var devicePath = deviceInfo.Path ?? "";
             var serialNumber = deviceInfo.SerialNumber ?? "No Serial";
+            var productName = deviceInfo.ProductString ?? "Unknown Device";
 
             // Check for duplicates by device path (primary identifier)
             if (IsDeviceAlreadyConnected(devicePath))
@@ -105,10 +134,11 @@ namespace CDMDevicesManagerDevWinUI.Views
             // Create a ViewModel wrapper for the device info
             var deviceViewModel = new DeviceInfoViewModel
             {
-                ProductName = deviceInfo.ProductString ?? "Unknown Device",
+                ProductName = productName,
                 SerialNumber = serialNumber,
                 ManufacturerName = deviceInfo.ManufacturerString ?? "Unknown",
-                DevicePath = devicePath
+                DevicePath = devicePath,
+                DeviceImagePath = GetDeviceImagePath(productName)
             };
 
             ConnectedDevices.Add(deviceViewModel);
@@ -242,8 +272,16 @@ namespace CDMDevicesManagerDevWinUI.Views
         private void DeviceCard_SettingsRequested(object sender, DeviceActionEventArgs e)
         {
             // Navigate to device settings page
-            // You can navigate to existing pages like DeviceLive
-            // App.Current.NavService.NavigateTo(typeof(SettingsPage), e.DeviceInfo);
+            try
+            {
+                var settingsPage = new DeviceSettings(e.DeviceInfo);
+                this.Frame.Navigate(typeof(DeviceSettings), e.DeviceInfo);
+                System.Diagnostics.Debug.WriteLine($"Navigating to settings for device: {e.DeviceInfo.ProductName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to navigate to device settings: {ex.Message}");
+            }
         }
 
         private void DeviceCard_ConfigRequested(object sender, DeviceActionEventArgs e)
