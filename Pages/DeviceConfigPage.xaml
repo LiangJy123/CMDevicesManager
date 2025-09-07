@@ -4,7 +4,7 @@
       xmlns:converters="clr-namespace:CMDevicesManager.Converters"
       FontFamily="{DynamicResource AppFontFamily}"
       Background="Transparent"
-      Title="Device Configuration">
+      Title="Device Configuration" Loaded="Page_Loaded">
     <Page.Resources>
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
