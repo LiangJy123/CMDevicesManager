@@ -1,4 +1,5 @@
 ﻿using CMDevicesManager.Helper;
+using CMDevicesManager.Services;
 using System.Configuration;
 using System.Data;
 using System.Windows;
@@ -12,7 +13,8 @@ namespace CMDevicesManager
     /// </summary>
     public partial class App : Application
     {
-        
+        private HidDeviceService? _hidDeviceService;
+
         public App()
         {
             this.Exit += App_Exit;
@@ -22,6 +24,9 @@ namespace CMDevicesManager
         {
             Logger.Info("App Exit");
          
+            // Cleanup services
+            ServiceLocator.Cleanup();
+            
             // 保存配置
             UserConfigManager.Save();
             Logger.Shutdown();
@@ -43,6 +48,9 @@ namespace CMDevicesManager
                 // Initialize font based on user configuration
                 Logger.Info("Initializing font settings");
                 CMDevicesManager.Language.FontSwitch.ChangeFont(UserConfigManager.Current.FontFamily);
+
+                // Initialize HID Device Service
+                InitializeHidDeviceService();
 
                 // 显示启动窗口
                 var splash = new SplashWindow();
@@ -82,6 +90,34 @@ namespace CMDevicesManager
             {
                 Logger.Error("Application startup failed", ex);
                 throw;
+            }
+        }
+
+        private async void InitializeHidDeviceService()
+        {
+            try
+            {
+                Logger.Info("Initializing HID Device Service");
+                
+                _hidDeviceService = new HidDeviceService();
+                
+                // Initialize the service locator
+                ServiceLocator.Initialize(_hidDeviceService);
+                
+                // Initialize the service with default VID/PID values
+                // You can customize these values based on your devices
+                await _hidDeviceService.InitializeAsync(
+                    vendorId: 0x2516,   // Your device's vendor ID
+                    productId: 0x0228,  // Your device's product ID
+                    usagePage: 0xFFFF   // Your device's usage page
+                );
+                
+                Logger.Info("HID Device Service initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to initialize HID Device Service", ex);
+                // Don't throw here - let the app continue without HID functionality
             }
         }
     }

@@ -1,5 +1,9 @@
-﻿using CMDevicesManager.Models;
+﻿using CMDevicesManager.Helper;
+using CMDevicesManager.Models;
 using CMDevicesManager.Services;
+using CMDevicesManager.Utilities;
+using HID.DisplayController;
+using HidApi;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -9,43 +13,41 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using static CMDevicesManager.Pages.DeviceConfigPage;
+using Application = System.Windows.Application;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Button = System.Windows.Controls.Button;
 using Color = System.Windows.Media.Color;
+using Cursors = System.Windows.Input.Cursors;
 using Image = System.Windows.Controls.Image;
+using ListBox = System.Windows.Controls.ListBox;
+using MessageBox = System.Windows.MessageBox;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
-using Point = System.Windows.Point;
-using WF = System.Windows.Forms;
-using CMDevicesManager.Utilities;
-using MessageBox = System.Windows.MessageBox;
-using CMDevicesManager.Helper;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using Application = System.Windows.Application;
-using TextBox = System.Windows.Controls.TextBox;
 using Orientation = System.Windows.Controls.Orientation;
-using static CMDevicesManager.Pages.DeviceConfigPage;
-using ListBox = System.Windows.Controls.ListBox;
-using System.Threading;
-using System.Threading.Tasks;
-using Rectangle = System.Windows.Shapes.Rectangle;
-using Cursors = System.Windows.Input.Cursors;
-using Path = System.IO.Path;
-using Size = System.Windows.Size;
 using Panel = System.Windows.Controls.Panel;
-using System.Windows.Media.Animation;
-using System.Text.RegularExpressions;
+using Path = System.IO.Path;
+using Point = System.Windows.Point;
+using Rectangle = System.Windows.Shapes.Rectangle;
+using Size = System.Windows.Size;
+using TextBox = System.Windows.Controls.TextBox;
+using WF = System.Windows.Forms;
 
 namespace CMDevicesManager.Pages
 {
@@ -274,9 +276,13 @@ namespace CMDevicesManager.Pages
     // ================= Main Page =================
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
-        private readonly DeviceInfos _device;
+        //private readonly DeviceInfo _device;
         private readonly ISystemMetricsService _metrics;
         private readonly DispatcherTimer _liveTimer;
+
+        private DeviceInfo? _deviceInfo;
+        private HidDeviceService? _hidDeviceService;
+        private bool _isHidServiceInitialized = false;
 
         public ObservableCollection<SystemInfoItem> SystemInfoItems { get; } = new();
 
@@ -762,9 +768,41 @@ namespace CMDevicesManager.Pages
 
         private string ResourcesFolder => Path.Combine(OutputFolder, "Resources");
 
-        public DeviceConfigPage(DeviceInfos device)
+        #region Properties
+
+        public DeviceInfo? DeviceInfo
         {
-            _device = device ?? throw new ArgumentNullException(nameof(device));
+            get => _deviceInfo;
+            set
+            {
+                if (_deviceInfo != value)
+                {
+                    _deviceInfo = value;
+                    OnPropertyChanged();
+                    // Initialize HID service when device info is set
+                    _ = InitializeHidDeviceServiceAsync();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the HID device service is initialized and ready
+        /// </summary>
+        public bool IsHidServiceReady => _isHidServiceInitialized && _hidDeviceService?.IsInitialized == true;
+
+        /// <summary>
+        /// Gets the current HID device service instance
+        /// </summary>
+        public HidDeviceService? HidDeviceService => _hidDeviceService;
+
+        #endregion
+
+        public DeviceConfigPage(DeviceInfo deviceInfo) : this()
+        {
+            DeviceInfo = deviceInfo;
+        }
+        public DeviceConfigPage()
+        {
             InitializeComponent();
             DataContext = this;
 
@@ -791,6 +829,278 @@ namespace CMDevicesManager.Pages
 
             Unloaded += DeviceConfigPage_Unloaded;
         }
+
+
+        #region HID Device Service Management
+
+        /// <summary>
+        /// Initialize the HID device service and set up device filtering
+        /// </summary>
+        private async Task InitializeHidDeviceServiceAsync()
+        {
+            if (_deviceInfo == null || string.IsNullOrEmpty(_deviceInfo.Path))
+            {
+                Logger.Warn("Cannot initialize HID service: DeviceInfo or device path is null");
+                return;
+            }
+
+            try
+            {
+                Logger.Info($"Initializing HID Device Service for device: {_deviceInfo.ProductString} (Path: {_deviceInfo.Path})");
+
+                // Get the service from ServiceLocator
+                _hidDeviceService = ServiceLocator.HidDeviceService;
+
+                if (!_hidDeviceService.IsInitialized)
+                {
+                    Logger.Warn("HID Device Service is not initialized. Make sure it's initialized in App.xaml.cs");
+                    return;
+                }
+
+                // Set device path filter to only operate on this specific device
+                _hidDeviceService.SetDevicePathFilter(_deviceInfo.Path, enableFilter: true);
+
+                // Only subscribe to DeviceError events
+                _hidDeviceService.DeviceError += OnHidDeviceError;
+
+                _isHidServiceInitialized = true;
+                OnPropertyChanged(nameof(IsHidServiceReady));
+
+                Logger.Info($"HID Device Service initialized successfully for device: {_deviceInfo.ProductString}");
+                Logger.Info($"Device filter enabled: {_hidDeviceService.IsDevicePathFilterEnabled}");
+                Logger.Info($"Filtered device count: {_hidDeviceService.FilteredDeviceCount}");
+
+                // Verify the device is available
+                var targetDevices = _hidDeviceService.GetOperationTargetDevices();
+                if (targetDevices.Any())
+                {
+                    var targetDevice = targetDevices.First();
+                    Logger.Info($"Target device found: {targetDevice.ProductString} (Serial: {targetDevice.SerialNumber})");
+                }
+                else
+                {
+                    Logger.Warn($"Target device not found in connected devices. Device may be disconnected.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to initialize HID Device Service: {ex.Message}", ex);
+                _isHidServiceInitialized = false;
+                OnPropertyChanged(nameof(IsHidServiceReady));
+            }
+        }
+
+        /// <summary>
+        /// Send the current canvas configuration to the target HID device
+        /// </summary>
+        private async Task SendConfigurationToDeviceAsync()
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null)
+            {
+                Logger.Warn("HID Device Service is not ready for sending configuration");
+                return;
+            }
+
+            try
+            {
+                Logger.Info("Sending configuration to HID device...");
+
+                // Capture canvas as image data
+                var imageData = CaptureCanvasAsStream();
+                if (imageData == null || imageData.Length == 0)
+                {
+                    Logger.Error("Failed to capture canvas image for device transfer");
+                    return;
+                }
+
+                // Save image to temp file for transfer
+                var tempFile = Path.Combine(Path.GetTempPath(), $"canvas_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
+                await File.WriteAllBytesAsync(tempFile, imageData);
+
+                try
+                {
+                    // Transfer file to device
+                    var results = await _hidDeviceService.TransferFileAsync(tempFile);
+
+                    var successCount = results.Values.Count(r => r);
+                    var totalCount = results.Count;
+
+                    if (successCount > 0)
+                    {
+                        Logger.Info($"Configuration sent successfully to {successCount}/{totalCount} devices");
+                    }
+                    else
+                    {
+                        Logger.Warn("Failed to send configuration to any devices");
+                    }
+                }
+                finally
+                {
+                    // Clean up temp file
+                    try { File.Delete(tempFile); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to send configuration to device: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Test connection to the target HID device
+        /// </summary>
+        private async Task TestDeviceConnectionAsync()
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null)
+            {
+                Logger.Warn("HID Device Service is not ready for connection test");
+                return;
+            }
+
+            try
+            {
+                Logger.Info("Testing device connection...");
+
+                // Get device status
+                var statusResults = await _hidDeviceService.GetDeviceStatusAsync();
+
+                if (statusResults.Any())
+                {
+                    var result = statusResults.First();
+                    if (result.Value.HasValue)
+                    {
+                        var status = result.Value.Value;
+                        Logger.Info($"Device connection test successful. Device Path: {result.Key}, Brightness: {status.Brightness}%, Rotation: {status.Degree}°");
+                    }
+                    else
+                    {
+                        Logger.Warn("Device connection test failed - no status received");
+                    }
+                }
+                else
+                {
+                    Logger.Warn("Device connection test failed - no devices found");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Device connection test failed: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Set brightness on the target device
+        /// </summary>
+        /// <param name="brightness">Brightness value (0-100)</param>
+        private async Task SetDeviceBrightnessAsync(int brightness)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null)
+            {
+                Logger.Warn("HID Device Service is not ready for brightness control");
+                return;
+            }
+
+            try
+            {
+                Logger.Info($"Setting device brightness to {brightness}%");
+                var results = await _hidDeviceService.SetBrightnessAsync(brightness);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    Logger.Info($"Device brightness set to {brightness}% successfully");
+                }
+                else
+                {
+                    Logger.Warn("Failed to set device brightness");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to set brightness: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Enable or disable real-time display mode
+        /// </summary>
+        /// <param name="enable">True to enable real-time display mode</param>
+        private async Task SetRealTimeDisplayModeAsync(bool enable)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null)
+            {
+                Logger.Warn("HID Device Service is not ready for real-time mode control");
+                return;
+            }
+
+            try
+            {
+                Logger.Info($"Setting real-time display mode to {enable}");
+                var results = await _hidDeviceService.SetRealTimeDisplayAsync(enable);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    Logger.Info($"Real-time display mode {(enable ? "enabled" : "disabled")} successfully");
+                }
+                else
+                {
+                    Logger.Warn($"Failed to {(enable ? "enable" : "disable")} real-time display mode");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to set real-time mode: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Start real-time display mode and periodically send canvas to device
+        /// </summary>
+        private async Task StartRealTimeShowCanvas()
+        {
+            // Step 1: Enable real-time display mode
+            await SetRealTimeDisplayModeAsync(true);
+            // Step 2: Start a timer to send canvas periodically
+            _ = Task.Run(async () =>
+            {
+                Task.Delay(5000).Wait(); // Initial delay to allow device to enter real-time mode
+                while (IsHidServiceReady && _hidDeviceService != null && _hidDeviceService.IsRealTimeDisplayEnabled)
+                {
+                    await SendConfigurationToDeviceAsync();
+                    await Task.Delay(1000); // Send every 2 seconds
+                }
+            });
+        }
+
+        /// <summary>
+        /// Stop real-time display mode
+        /// </summary>
+        private async Task StopRealTimeShowCanvas()
+        {
+            // Step 1: Disable real-time display mode
+            await SetRealTimeDisplayModeAsync(false);
+            // The sending loop will exit automatically
+        }
+
+        #endregion
+
+        #region HID Service Event Handlers
+
+        private void OnHidDeviceError(object? sender, DeviceErrorEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (e.Device.Path == _deviceInfo?.Path)
+                {
+                    Logger.Error($"Device error for {e.Device.ProductString}: {e.Exception.Message}", e.Exception);
+                    // Handle device error (could update UI status, retry operations, etc.)
+                    // No MessageBox - just log the error
+                }
+            });
+        }
+
+        #endregion
 
         private static string NormalizeUsageStyleString(string raw)
         {
@@ -2921,6 +3231,23 @@ namespace CMDevicesManager.Pages
         // ================= Cleanup =================
         private void DeviceConfigPage_Unloaded(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                // Unsubscribe from HID service events
+                if (_hidDeviceService != null)
+                {
+                    Task.Run(() => StopRealTimeShowCanvas());
+                    _hidDeviceService.DeviceError -= OnHidDeviceError;
+
+                    // Clear the device filter for this device
+                    if (_deviceInfo != null && !string.IsNullOrEmpty(_deviceInfo.Path))
+                    {
+                        _hidDeviceService.RemoveDevicePathFromFilter(_deviceInfo.Path);
+                        Logger.Info($"Removed device path filter for: {_deviceInfo.Path}");
+                    }
+                }
+            }
+            catch { }
             try { _liveTimer.Stop(); } catch { }
             try { _metrics.Dispose(); } catch { }
             try { _autoMoveTimer.Stop(); } catch { }
@@ -3011,6 +3338,314 @@ namespace CMDevicesManager.Pages
         {
             CaptureCanvas();
         }
+
+        private byte[]? CaptureCanvasAsStream()
+        {
+            try
+            {
+                // Ensure we're on the UI thread
+                if (!Dispatcher.CheckAccess())
+                {
+                    Logger.Warn("CaptureCanvasAsStream called from non-UI thread");
+                    return Dispatcher.Invoke(() => CaptureCanvasAsStream());
+                }
+
+                // Validate DesignRoot exists and is properly initialized
+                if (DesignRoot == null)
+                {
+                    Logger.Error("DesignRoot is null - cannot capture canvas");
+                    return null;
+                }
+
+                // Check if the element is loaded and part of visual tree
+                if (!DesignRoot.IsLoaded)
+                {
+                    Logger.Warn("DesignRoot is not loaded - canvas capture may fail");
+                }
+
+                // Validate dimensions before capture
+                if (DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
+                {
+                    Logger.Warn($"DesignRoot has invalid dimensions: {DesignRoot.ActualWidth}x{DesignRoot.ActualHeight}");
+                    return null;
+                }
+
+                // Check for reasonable size limits to prevent memory issues
+                const double maxDimension = 8192; // Reasonable limit for most graphics cards
+                if (DesignRoot.ActualWidth > maxDimension || DesignRoot.ActualHeight > maxDimension)
+                {
+                    Logger.Error($"DesignRoot dimensions too large: {DesignRoot.ActualWidth}x{DesignRoot.ActualHeight}");
+                    return null;
+                }
+
+                // Store current selection state to restore later
+                Border? prevSelected = _selected;
+                Brush? prevBrush = null;
+                if (prevSelected != null)
+                {
+                    prevBrush = prevSelected.BorderBrush;
+                    prevSelected.BorderBrush = Brushes.Transparent;
+                }
+
+                try
+                {
+                    // Force layout update with timeout protection
+                    var updateTask = Task.Run(() =>
+                    {
+                        return Dispatcher.Invoke(() =>
+                        {
+                            try
+                            {
+                                DesignRoot.UpdateLayout();
+                                return true;
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error($"UpdateLayout failed: {ex.Message}");
+                                return false;
+                            }
+                        });
+                    });
+
+                    // Wait for layout update with timeout
+                    if (!updateTask.Wait(TimeSpan.FromSeconds(5)))
+                    {
+                        Logger.Error("UpdateLayout timed out");
+                        return null;
+                    }
+
+                    if (!updateTask.Result)
+                    {
+                        Logger.Error("UpdateLayout failed");
+                        return null;
+                    }
+
+                    // Calculate pixel dimensions with safety checks
+                    int pixelWidth = (int)Math.Ceiling(DesignRoot.ActualWidth);
+                    int pixelHeight = (int)Math.Ceiling(DesignRoot.ActualHeight);
+
+                    // Validate calculated dimensions
+                    if (pixelWidth <= 0 || pixelHeight <= 0)
+                    {
+                        Logger.Error($"Invalid pixel dimensions: {pixelWidth}x{pixelHeight}");
+                        return null;
+                    }
+
+                    // Additional safety check for memory usage
+                    long estimatedMemory = (long)pixelWidth * pixelHeight * 4; // 4 bytes per pixel (BGRA)
+                    const long maxMemory = 500 * 1024 * 1024; // 500MB limit
+                    if (estimatedMemory > maxMemory)
+                    {
+                        Logger.Error($"Estimated memory usage too high: {estimatedMemory / 1024 / 1024}MB");
+                        return null;
+                    }
+
+                    RenderTargetBitmap? rtb = null;
+                    try
+                    {
+                        // Create render target bitmap with error handling
+                        rtb = new RenderTargetBitmap(
+                            pixelWidth,
+                            pixelHeight,
+                            96,
+                            96,
+                            PixelFormats.Pbgra32);
+
+                        // Render with timeout protection
+                        var renderTask = Task.Run(() =>
+                        {
+                            return Dispatcher.Invoke(() =>
+                            {
+                                try
+                                {
+                                    rtb.Render(DesignRoot);
+                                    return true;
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Error($"Render failed: {ex.Message}");
+                                    return false;
+                                }
+                            });
+                        });
+
+                        if (!renderTask.Wait(TimeSpan.FromSeconds(10)))
+                        {
+                            Logger.Error("Render operation timed out");
+                            return null;
+                        }
+
+                        if (!renderTask.Result)
+                        {
+                            Logger.Error("Render operation failed");
+                            return null;
+                        }
+
+                        // Create encoder with error handling
+                        JpegBitmapEncoder? encoder = null;
+                        try
+                        {
+                            encoder = new JpegBitmapEncoder();
+                            encoder.QualityLevel = 85; // Good balance between quality and size
+
+                            // Create bitmap frame with error handling
+                            BitmapFrame? frame = null;
+                            try
+                            {
+                                frame = BitmapFrame.Create(rtb);
+                                encoder.Frames.Add(frame);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error($"Failed to create bitmap frame: {ex.Message}");
+                                return null;
+                            }
+
+                            // Encode to memory stream with size validation
+                            using var memoryStream = new MemoryStream();
+                            try
+                            {
+                                encoder.Save(memoryStream);
+
+                                // Validate output size
+                                if (memoryStream.Length == 0)
+                                {
+                                    Logger.Error("Encoded image has zero length");
+                                    return null;
+                                }
+
+                                if (memoryStream.Length > 50 * 1024 * 1024) // 50MB limit
+                                {
+                                    Logger.Warn($"Encoded image is very large: {memoryStream.Length / 1024 / 1024}MB");
+                                }
+
+                                var imageData = memoryStream.ToArray();
+                                Logger.Info($"Canvas captured successfully: {pixelWidth}x{pixelHeight}, {imageData.Length} bytes");
+                                return imageData;
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Error($"Failed to encode image: {ex.Message}");
+                                return null;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"Failed to create encoder: {ex.Message}");
+                            return null;
+                        }
+                        finally
+                        {
+                            encoder?.Frames?.Clear(); // Help with cleanup
+                        }
+                    }
+                    catch (OutOfMemoryException ex)
+                    {
+                        Logger.Error($"Out of memory during bitmap creation: {ex.Message}");
+                        return null;
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Failed to create RenderTargetBitmap: {ex.Message}");
+                        return null;
+                    }
+                    finally
+                    {
+                        // Dispose of render target bitmap
+                        rtb?.Clear();
+                    }
+                }
+                finally
+                {
+                    // Always restore selection state
+                    try
+                    {
+                        if (prevSelected != null && prevBrush != null)
+                        {
+                            prevSelected.BorderBrush = prevBrush;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Failed to restore selection state: {ex.Message}");
+                    }
+                }
+            }
+            catch (InvalidOperationException ex)
+            {
+                Logger.Error($"Invalid operation during canvas capture: {ex.Message}");
+                return null;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Logger.Error($"Access denied during canvas capture: {ex.Message}");
+                return null;
+            }
+            catch (OutOfMemoryException ex)
+            {
+                Logger.Error($"Out of memory during canvas capture: {ex.Message}");
+
+                // Force garbage collection to free memory
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Unexpected error during canvas capture: {ex.Message}", ex);
+                return null;
+            }
+        }
+        private byte[] CaptureCanvasAsStream_back()
+        {
+            try
+            {
+                if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
+                {
+                    return null;
+                }
+
+                // 记录当前选中的元素边框颜色以便恢复，避免截图出现高亮
+                Border? prevSelected = _selected;
+                Brush? prevBrush = null;
+                if (prevSelected != null)
+                {
+                    prevBrush = prevSelected.BorderBrush;
+                    prevSelected.BorderBrush = Brushes.Transparent;
+                }
+
+                // 强制刷新布局，确保最新渲染
+                DesignRoot.UpdateLayout();
+
+                int pixelWidth = (int)Math.Ceiling(DesignRoot.ActualWidth);
+                int pixelHeight = (int)Math.Ceiling(DesignRoot.ActualHeight);
+
+                var rtb = new RenderTargetBitmap(pixelWidth, pixelHeight, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(DesignRoot);
+
+                // 恢复选中边框
+                if (prevSelected != null && prevBrush != null)
+                    prevSelected.BorderBrush = prevBrush;
+
+                var encoder = new JpegBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(rtb));
+
+                // get image data as byte array
+                using var ms = new MemoryStream();
+                encoder.Save(ms);
+                byte[] imageData = ms.ToArray();
+
+                return imageData;
+
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
         private void CaptureCanvas()
         {
             try
@@ -3063,6 +3698,12 @@ namespace CMDevicesManager.Pages
             {
                 MessageBox.Show($"截图失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Call StartRealTimeShowCanvas(); with Task.Run to avoid blocking UI
+            Task.Run(() => StartRealTimeShowCanvas());
         }
 
         private void RotateImageRight_Click(object sender, RoutedEventArgs e) => RotateSelectedImage(90);
