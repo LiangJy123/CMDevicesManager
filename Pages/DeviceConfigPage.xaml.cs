@@ -3236,7 +3236,8 @@ namespace CMDevicesManager.Pages
                 // Unsubscribe from HID service events
                 if (_hidDeviceService != null)
                 {
-                    Task.Run(() => StopRealTimeShowCanvas());
+                    // Task.Run(() => StopRealTimeShowCanvas());
+                    StopRealTimeShowCanvas();
                     _hidDeviceService.DeviceError -= OnHidDeviceError;
 
                     // Clear the device filter for this device
