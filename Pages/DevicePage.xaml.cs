@@ -90,6 +90,43 @@ namespace CMDevicesManager.Pages
             }
         }
 
+        private void ConfigButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is Button btn && btn.DataContext is DeviceViewModel deviceViewModel)
+                {
+                    NavigationService?.Navigate(new DeviceConfigPage(deviceViewModel.DeviceInfo));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Navigation to DeviceConfigPage failed: {ex}");
+                ShowStatusMessage("Failed to open device configuration.", true);
+            }
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is Button btn && btn.DataContext is DeviceViewModel deviceViewModel)
+                {
+                    // For now, navigate to a general settings page or device-specific settings
+                    // You can modify this to navigate to a device-specific settings page if needed
+                    NavigationService?.Navigate(new SettingsPage());
+                    
+                    // Alternative: Create a device-specific settings page
+                    // NavigationService?.Navigate(new DeviceSettingsPage(deviceViewModel.DeviceInfo));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Navigation to SettingsPage failed: {ex}");
+                ShowStatusMessage("Failed to open device settings.", true);
+            }
+        }
+
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
             try

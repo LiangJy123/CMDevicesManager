@@ -68,268 +68,279 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <!-- The whole tile is a Button for click + hover effects -->
-                            <Button Click="DeviceCard_Click"
-                                    Cursor="Hand"
-                                    Padding="0"
+                            <!-- Card container with subtle shadow -->
+                            <Border x:Name="DeviceCard"
+                                    CornerRadius="16"
+                                    Background="#121212"
                                     Margin="12"
                                     Width="280"
                                     Height="420"
-                                    Background="Transparent"
-                                    BorderBrush="{x:Null}">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Grid x:Name="Root" ClipToBounds="True">
-                                            <Grid.RenderTransform>
-                                                <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1"/>
-                                            </Grid.RenderTransform>
-
-                                            <!-- Card container with subtle shadow -->
-                                            <Border x:Name="Card"
-                                                    CornerRadius="16"
-                                                    Background="#121212">
-                                                <Border.Effect>
-                                                    <DropShadowEffect Color="#000000" BlurRadius="18" ShadowDepth="4" Opacity="0.35" />
-                                                </Border.Effect>
-                                            </Border>
-
-                                            <!-- Device image or placeholder -->
-                                            <Border CornerRadius="16" ClipToBounds="True">
-                                                <!-- Default device icon (always visible as fallback) -->
-                                                <Border Background="#2A2A2A" CornerRadius="16">
-                                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                        <TextBlock Text="&#xE7F4;"
-                                                                   FontFamily="Segoe MDL2 Assets"
-                                                                   FontSize="72"
-                                                                   Foreground="#666666"
-                                                                   HorizontalAlignment="Center"/>
-                                                        <TextBlock Text="Device"
-                                                                   FontSize="14"
-                                                                   Foreground="#888888"
-                                                                   HorizontalAlignment="Center"
-                                                                   Margin="0,8,0,0"/>
-                                                    </StackPanel>
-                                                </Border>
-                                            </Border>
-
-                                            <!-- Gradient fade for text legibility -->
-                                            <Border VerticalAlignment="Top"
-                                                    Height="120"
-                                                    CornerRadius="16,16,0,0">
-                                                <Border.Background>
-                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                                        <GradientStop Color="#AA000000" Offset="0"/>
-                                                        <GradientStop Color="#22000000" Offset="1"/>
-                                                    </LinearGradientBrush>
-                                                </Border.Background>
-                                            </Border>
-
-                                            <!-- Device information -->
-                                            <StackPanel Orientation="Vertical" Margin="16" VerticalAlignment="Top">
-                                                <TextBlock Text="{Binding ProductString}"
-                                                           Foreground="White"
-                                                           FontSize="18"
-                                                           FontWeight="Bold"
-                                                           TextWrapping="Wrap"/>
-                                                <TextBlock Text="{Binding ManufacturerString}"
-                                                           Foreground="#CCFFFFFF"
-                                                           FontSize="12"
-                                                           Opacity="0.85"
-                                                           Margin="0,2,0,0"/>
-                                                <TextBlock Text="{Binding SerialNumber}"
-                                                           Foreground="#AAFFFFFF"
-                                                           FontSize="11"
-                                                           Opacity="0.7"
-                                                           Margin="0,2,0,0"/>
-                                            </StackPanel>
-
-                                            <!-- Connection status indicator -->
-                                            <Border Width="12" Height="12"
-                                                    CornerRadius="6"
-                                                    Background="#4CAF50"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Top"
-                                                    Margin="16">
-                                                <Border.Effect>
-                                                    <DropShadowEffect Color="#4CAF50" BlurRadius="8" ShadowDepth="0" Opacity="0.6"/>
-                                                </Border.Effect>
-                                            </Border>
-
-                                            <!-- Settings glyph (appears on hover) -->
-                                            <Border x:Name="HoverGlyphContainer"
-                                                    Width="32" Height="32"
-                                                    CornerRadius="16"
-                                                    Background="#44000000"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Bottom"
-                                                    Margin="16"
-                                                    Opacity="0">
-                                                <TextBlock Text="&#xE713;"
+                                    ClipToBounds="True">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000" BlurRadius="18" ShadowDepth="4" Opacity="0.35" />
+                                </Border.Effect>
+                                <Border.RenderTransform>
+                                    <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1"/>
+                                </Border.RenderTransform>
+                                
+                                <Grid>
+                                    <!-- Device image or placeholder -->
+                                    <Border CornerRadius="16" ClipToBounds="True">
+                                        <!-- Default device icon (always visible as fallback) -->
+                                        <Border Background="#2A2A2A" CornerRadius="16">
+                                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="&#xE7F4;"
                                                            FontFamily="Segoe MDL2 Assets"
-                                                           Foreground="White"
+                                                           FontSize="72"
+                                                           Foreground="#666666"
+                                                           HorizontalAlignment="Center"/>
+                                                <TextBlock Text="Device"
+                                                           FontSize="14"
+                                                           Foreground="#888888"
                                                            HorizontalAlignment="Center"
-                                                           VerticalAlignment="Center"
-                                                           FontSize="14"/>
-                                            </Border>
+                                                           Margin="0,8,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Border>
 
-                                            <!-- Hover overlay call-to-action -->
-                                            <Border x:Name="HoverOverlay"
-                                                    Background="#22000000"
-                                                    CornerRadius="16"
-                                                    Opacity="0"/>
+                                    <!-- Gradient fade for text legibility -->
+                                    <Border VerticalAlignment="Top"
+                                            Height="120"
+                                            CornerRadius="16,16,0,0">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                <GradientStop Color="#AA000000" Offset="0"/>
+                                                <GradientStop Color="#22000000" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                    </Border>
 
-                                            <Border x:Name="HoverCTA"
-                                                    Background="#EEFFFFFF"
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    CornerRadius="14"
-                                                    Padding="12,6"
-                                                    Opacity="0">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock Text="Configure Device"
-                                                               Foreground="#111"
-                                                               FontWeight="SemiBold"
-                                                               Margin="0,0,8,0"/>
-                                                    <TextBlock Text="&#xE76C;"
-                                                               FontFamily="Segoe MDL2 Assets"
-                                                               Foreground="#111"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </Grid>
+                                    <!-- Device information -->
+                                    <StackPanel Orientation="Vertical" Margin="16" VerticalAlignment="Top">
+                                        <TextBlock Text="{Binding ProductString}"
+                                                   Foreground="White"
+                                                   FontSize="18"
+                                                   FontWeight="Bold"
+                                                   TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding ManufacturerString}"
+                                                   Foreground="#CCFFFFFF"
+                                                   FontSize="12"
+                                                   Opacity="0.85"
+                                                   Margin="0,2,0,0"/>
+                                        <TextBlock Text="{Binding SerialNumber}"
+                                                   Foreground="#AAFFFFFF"
+                                                   FontSize="11"
+                                                   Opacity="0.7"
+                                                   Margin="0,2,0,0"/>
+                                    </StackPanel>
 
-                                        <ControlTemplate.Triggers>
-                                            <!-- Hover: show overlay, glyph, and CTA with smooth animations -->
-                                            <Trigger Property="IsMouseOver" Value="True">
-                                                <Trigger.EnterActions>
-                                                    <BeginStoryboard>
-                                                        <Storyboard>
-                                                            <DoubleAnimation Storyboard.TargetName="HoverOverlay" 
-                                                                             Storyboard.TargetProperty="Opacity"
-                                                                             To="0.15" Duration="0:0:0.2">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <CubicEase EasingMode="EaseOut"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                            <DoubleAnimation Storyboard.TargetName="HoverGlyphContainer" 
-                                                                             Storyboard.TargetProperty="Opacity"
-                                                                             To="1" Duration="0:0:0.25">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                            <DoubleAnimation Storyboard.TargetName="HoverCTA" 
-                                                                             Storyboard.TargetProperty="Opacity"
-                                                                             To="1" Duration="0:0:0.3">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <BackEase EasingMode="EaseOut" Amplitude="0.4"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                            <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                             Storyboard.TargetProperty="ScaleX"
-                                                                             To="1.03" Duration="0:0:0.25">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <CubicEase EasingMode="EaseOut"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                            <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                             Storyboard.TargetProperty="ScaleY"
-                                                                             To="1.03" Duration="0:0:0.25">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <CubicEase EasingMode="EaseOut"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                        </Storyboard>
-                                                    </BeginStoryboard>
-                                                </Trigger.EnterActions>
-                                                <Trigger.ExitActions>
-                                                    <BeginStoryboard>
-                                                        <Storyboard>
-                                                            <DoubleAnimation Storyboard.TargetName="HoverOverlay" 
-                                                                             Storyboard.TargetProperty="Opacity"
-                                                                             To="0" Duration="0:0:0.15">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <CubicEase EasingMode="EaseIn"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                            <DoubleAnimation Storyboard.TargetName="HoverGlyphContainer" 
-                                                                             Storyboard.TargetProperty="Opacity"
-                                                                             To="0" Duration="0:0:0.2">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <CubicEase EasingMode="EaseIn"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                            <DoubleAnimation Storyboard.TargetName="HoverCTA" 
-                                                                             Storyboard.TargetProperty="Opacity"
-                                                                             To="0" Duration="0:0:0.15">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <CubicEase EasingMode="EaseIn"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                            <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                             Storyboard.TargetProperty="ScaleX"
-                                                                             To="1" Duration="0:0:0.2">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <CubicEase EasingMode="EaseIn"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                            <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                             Storyboard.TargetProperty="ScaleY"
-                                                                             To="1" Duration="0:0:0.2">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <CubicEase EasingMode="EaseIn"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                        </Storyboard>
-                                                    </BeginStoryboard>
-                                                </Trigger.ExitActions>
-                                                <Setter TargetName="Card" Property="Effect">
-                                                    <Setter.Value>
-                                                        <DropShadowEffect Color="#000000" BlurRadius="24" ShadowDepth="6" Opacity="0.5"/>
-                                                    </Setter.Value>
-                                                </Setter>
-                                            </Trigger>
-                                            <!-- Pressed: slightly darker with bounce effect -->
-                                            <Trigger Property="IsPressed" Value="True">
-                                                <Trigger.EnterActions>
-                                                    <BeginStoryboard>
-                                                        <Storyboard>
-                                                            <DoubleAnimation Storyboard.TargetName="HoverOverlay" 
-                                                                             Storyboard.TargetProperty="Opacity"
-                                                                             To="0.25" Duration="0:0:0.1"/>
-                                                            <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                             Storyboard.TargetProperty="ScaleX"
-                                                                             To="0.98" Duration="0:0:0.1"/>
-                                                            <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                             Storyboard.TargetProperty="ScaleY"
-                                                                             To="0.98" Duration="0:0:0.1"/>
-                                                        </Storyboard>
-                                                    </BeginStoryboard>
-                                                </Trigger.EnterActions>
-                                                <Trigger.ExitActions>
-                                                    <BeginStoryboard>
-                                                        <Storyboard>
-                                                            <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                             Storyboard.TargetProperty="ScaleX"
-                                                                             To="1.03" Duration="0:0:0.15">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <BackEase EasingMode="EaseOut" Amplitude="0.2"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                            <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                             Storyboard.TargetProperty="ScaleY"
-                                                                             To="1.03" Duration="0:0:0.15">
-                                                                <DoubleAnimation.EasingFunction>
-                                                                    <BackEase EasingMode="EaseOut" Amplitude="0.2"/>
-                                                                </DoubleAnimation.EasingFunction>
-                                                            </DoubleAnimation>
-                                                        </Storyboard>
-                                                    </BeginStoryboard>
-                                                </Trigger.ExitActions>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
+                                    <!-- Connection status indicator -->
+                                    <Border Width="12" Height="12"
+                                            CornerRadius="6"
+                                            Background="#4CAF50"
+                                            HorizontalAlignment="Right"
+                                            VerticalAlignment="Top"
+                                            Margin="16">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#4CAF50" BlurRadius="8" ShadowDepth="0" Opacity="0.6"/>
+                                        </Border.Effect>
+                                    </Border>
+
+                                    <!-- Action buttons at bottom -->
+                                    <StackPanel x:Name="ActionButtonsPanel"
+                                                Orientation="Vertical" 
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Bottom"
+                                                Margin="12,0,12,16"
+                                                Opacity="0">
+                                        
+                                        <!-- Config Button -->
+                                        <Button x:Name="ConfigButton"
+                                                Click="ConfigButton_Click"
+                                                Background="#2196F3"
+                                                Foreground="White"
+                                                BorderBrush="Transparent"
+                                                Padding="8,8"
+                                                Margin="0,0,0,6"
+                                                Cursor="Hand"
+                                                Width="200">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="border"
+                                                            Background="{TemplateBinding Background}"
+                                                            CornerRadius="12"
+                                                            Padding="{TemplateBinding Padding}">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <TextBlock Text="&#xE713;"
+                                                                       FontFamily="Segoe MDL2 Assets"
+                                                                       FontSize="14"
+                                                                       Foreground="{TemplateBinding Foreground}"
+                                                                       HorizontalAlignment="Center"
+                                                                       Margin="0,0,10,0"/>
+                                                            <TextBlock Text="Config"
+                                                                       FontSize="11"
+                                                                       FontWeight="{TemplateBinding FontWeight}"
+                                                                       Foreground="{TemplateBinding Foreground}"
+                                                                       HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="border" Property="Background" Value="#1976D2"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter TargetName="border" Property="Background" Value="#1565C0"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+
+                                        <!-- Display Mode Button -->
+                                        <Button x:Name="DisplayModeButton"
+                                                Background="#FF9800"
+                                                Foreground="White"
+                                                BorderBrush="Transparent"
+                                                Padding="8,8"
+                                                Margin="0,6,0,6"
+                                                Cursor="Hand"
+                                                Width="200">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="border"
+                                                            Background="{TemplateBinding Background}"
+                                                            CornerRadius="12"
+                                                            Padding="{TemplateBinding Padding}">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <TextBlock Text="&#xE7F4;"
+                                                                       FontFamily="Segoe MDL2 Assets"
+                                                                       FontSize="14"
+                                                                       Foreground="{TemplateBinding Foreground}"
+                                                                       HorizontalAlignment="Center"
+                                                                       Margin="0,0,10,0"/>
+                                                            <TextBlock Text="Display"
+                                                                       FontSize="11"
+                                                                       FontWeight="{TemplateBinding FontWeight}"
+                                                                       Foreground="{TemplateBinding Foreground}"
+                                                                       HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="border" Property="Background" Value="#F57C00"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter TargetName="border" Property="Background" Value="#E65100"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+
+                                        <!-- Settings Button -->
+                                        <Button x:Name="SettingsButton"
+                                                Click="SettingsButton_Click"
+                                                Background="#666666"
+                                                Foreground="White"
+                                                BorderBrush="Transparent"
+                                                Padding="8,8"
+                                                Margin="0,6,0,0"
+                                                Cursor="Hand"
+                                                Width="200">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="border"
+                                                            Background="{TemplateBinding Background}"
+                                                            CornerRadius="12"
+                                                            Padding="{TemplateBinding Padding}">
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <TextBlock Text="&#xE115;"
+                                                                       FontFamily="Segoe MDL2 Assets"
+                                                                       FontSize="14"
+                                                                       Foreground="{TemplateBinding Foreground}"
+                                                                       HorizontalAlignment="Center"
+                                                                       Margin="0,0,10,0"/>
+                                                            <TextBlock Text="Settings"
+                                                                       FontSize="11"
+                                                                       FontWeight="{TemplateBinding FontWeight}"
+                                                                       Foreground="{TemplateBinding Foreground}"
+                                                                       HorizontalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="border" Property="Background" Value="#555555"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter TargetName="border" Property="Background" Value="#444444"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Card hover effects -->
+                                <Border.Triggers>
+                                    <EventTrigger RoutedEvent="MouseEnter">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                                 Storyboard.TargetProperty="ScaleX"
+                                                                 To="1.02" Duration="0:0:0.2">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                                 Storyboard.TargetProperty="ScaleY"
+                                                                 To="1.02" Duration="0:0:0.2">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseOut"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <!-- Show buttons on hover -->
+                                                <DoubleAnimation Storyboard.TargetName="ActionButtonsPanel" 
+                                                                 Storyboard.TargetProperty="Opacity"
+                                                                 To="1" Duration="0:0:0.25">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <BackEase EasingMode="EaseOut" Amplitude="0.3"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                    <EventTrigger RoutedEvent="MouseLeave">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                                 Storyboard.TargetProperty="ScaleX"
+                                                                 To="1" Duration="0:0:0.15">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseIn"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                                 Storyboard.TargetProperty="ScaleY"
+                                                                 To="1" Duration="0:0:0.15">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseIn"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                                <!-- Hide buttons when not hovering -->
+                                                <DoubleAnimation Storyboard.TargetName="ActionButtonsPanel" 
+                                                                 Storyboard.TargetProperty="Opacity"
+                                                                 To="0" Duration="0:0:0.2">
+                                                    <DoubleAnimation.EasingFunction>
+                                                        <CubicEase EasingMode="EaseIn"/>
+                                                    </DoubleAnimation.EasingFunction>
+                                                </DoubleAnimation>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Border.Triggers>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
