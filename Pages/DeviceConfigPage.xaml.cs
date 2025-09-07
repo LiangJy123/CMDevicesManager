@@ -3006,6 +3006,61 @@ namespace CMDevicesManager.Pages
         }
 
         private void RotateImageLeft_Click(object sender, RoutedEventArgs e) => RotateSelectedImage(-90);
+
+        private void CaptureCanvas_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
+                {
+                    MessageBox.Show("当前画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // 记录当前选中的元素边框颜色以便恢复，避免截图出现高亮
+                Border? prevSelected = _selected;
+                Brush? prevBrush = null;
+                if (prevSelected != null)
+                {
+                    prevBrush = prevSelected.BorderBrush;
+                    prevSelected.BorderBrush = Brushes.Transparent;
+                }
+
+                // 强制刷新布局，确保最新渲染
+                DesignRoot.UpdateLayout();
+
+                int pixelWidth = (int)Math.Ceiling(DesignRoot.ActualWidth);
+                int pixelHeight = (int)Math.Ceiling(DesignRoot.ActualHeight);
+
+                var rtb = new RenderTargetBitmap(pixelWidth, pixelHeight, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(DesignRoot);
+
+                // 恢复选中边框
+                if (prevSelected != null && prevBrush != null)
+                    prevSelected.BorderBrush = prevBrush;
+
+                string captureDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "captureimage");
+                Directory.CreateDirectory(captureDir);
+
+                string safeName = string.IsNullOrWhiteSpace(CurrentConfigName) ? "CanvasCapture" : MakeSafeFileBase(CurrentConfigName);
+                string fileName = $"{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+                string fullPath = Path.Combine(captureDir, fileName);
+
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(rtb));
+                using (var fs = new FileStream(fullPath, FileMode.Create, FileAccess.Write))
+                {
+                    encoder.Save(fs);
+                }
+
+                MessageBox.Show($"截图已保存:\n{fullPath}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"截图失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void RotateImageRight_Click(object sender, RoutedEventArgs e) => RotateSelectedImage(90);
         private void MirrorImageHorizontal_Click(object sender, RoutedEventArgs e) => MirrorSelectedImageHorizontal();
     }

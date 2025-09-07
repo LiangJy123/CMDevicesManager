@@ -219,6 +219,20 @@
                 <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" Width="64"
                          Style="{StaticResource DarkTextBoxStyle}"/>
             </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
+                <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" Width="64"
+              Style="{StaticResource DarkTextBoxStyle}"/>
+                <!-- 新增截图按钮 -->
+                <Button Margin="12,0,0,0"
+             Style="{StaticResource SmallButtonStyle}"
+             Click="CaptureCanvas_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE114;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                        <TextBlock Text="截图"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
         </Grid>
 
         <Grid Grid.Row="1" Margin="16,0,16,16">
