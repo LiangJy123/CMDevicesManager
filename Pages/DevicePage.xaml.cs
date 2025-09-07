@@ -14,7 +14,7 @@ namespace CMDevicesManager.Pages
 {
     public partial class DevicePage : Page
     {
-        public ObservableCollection<DeviceInfos> Devices { get; } = new();
+        public ObservableCollection<DeviceInfo> Devices { get; } = new();
 
         private MultiDeviceManager? _multiDeviceManager;
 
@@ -22,7 +22,7 @@ namespace CMDevicesManager.Pages
         {
             InitializeComponent();
 
-            Devices.Add(new DeviceInfos("haf700v2", "HAF700 V2", "Resources/Devices/HAF700V2.jpg"));
+            //Devices.Add(new DeviceInfos("haf700v2", "HAF700 V2", "Resources/Devices/HAF700V2.jpg"));
 
             DataContext = this;
         }
@@ -96,6 +96,7 @@ namespace CMDevicesManager.Pages
                 foreach (var controller in activeControllers)
                 {
                     // Potentially map to Devices collection in future
+
                 }
             }
             catch (Exception ex)
