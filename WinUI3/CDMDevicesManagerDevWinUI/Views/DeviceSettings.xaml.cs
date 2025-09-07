@@ -537,5 +537,24 @@ namespace CDMDevicesManagerDevWinUI.Views
             
             await dialog.ShowAsync();
         }
+
+        private async void CheckUpdateButton_Checked(object sender, RoutedEventArgs e)
+        {
+            var pb = sender as ProgressButton;
+            if (pb.IsChecked.Value && !pb.IsIndeterminate)
+            {
+                pb.Progress = 0;
+                while (true)
+                {
+                    pb.Progress += 1;
+                    await Task.Delay(50);
+                    if (pb.Progress == 100)
+                    {
+                        pb.IsChecked = false;
+                        break;
+                    }
+                }
+            }
+        }
     }
 }

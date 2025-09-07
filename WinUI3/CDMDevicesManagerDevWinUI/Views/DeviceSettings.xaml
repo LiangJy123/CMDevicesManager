@@ -7,6 +7,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:dev="using:DevWinUI"
     mc:Ignorable="d">
 
     <Page.Resources>
@@ -114,7 +115,26 @@
 
                 <!-- Firmware Update Section -->
                 <TextBlock Text="Firmware Update" Style="{StaticResource SectionHeaderStyle}" />
-                
+                <toolkit:SettingsExpander Description="Controls provide audible feedback" Header="Sound">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xEC4F;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard
+                        x:Name="FirmwareUpdateCard"
+                        Header="Check Firmware Update"
+                        IsEnabled="True">
+                            <toolkit:SettingsCard.Description>
+                                <HyperlinkButton Content="Check Firmware Update" />
+                            </toolkit:SettingsCard.Description>
+                            <dev:ProgressButton Width="200"
+                                    Checked="CheckUpdateButton_Checked"
+                                    CheckedContent="Checking"
+                                    Content="Check for Updates"
+                                    Unchecked="CheckUpdateButton_Checked" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
                 <Border Style="{StaticResource SettingsCardStyle}">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -130,14 +150,15 @@
                             <TextBlock x:Name="UpdateStatusText" 
                                        Text="Not checked" 
                                        VerticalAlignment="Center" />
-                        </StackPanel>
 
-                        <!-- Action Row -->
-                        <StackPanel Grid.Row="1" Orientation="Horizontal">
                             <Button x:Name="CheckUpdateButton" 
                                     Content="Check for Updates" 
                                     Style="{StaticResource ActionButtonStyle}"
                                     Click="CheckUpdateButton_Click" />
+                        </StackPanel>
+
+                        <!-- Action Row -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal">
                             <Button x:Name="InstallUpdateButton" 
                                     Content="Install Update" 
                                     Style="{StaticResource ActionButtonStyle}"
