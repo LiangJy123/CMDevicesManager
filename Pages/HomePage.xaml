@@ -12,6 +12,144 @@
       d:DataContext="{d:DesignInstance vm:HomeViewModel}">
 
     <Page.Resources>
+        <SolidColorBrush x:Key="ScrollThumbNormal" Color="#505A6B" Opacity="0.55"/>
+        <SolidColorBrush x:Key="ScrollThumbHover"  Color="#5F6B7D" Opacity="0.85"/>
+        <SolidColorBrush x:Key="ScrollThumbDrag"   Color="#6F7C90" Opacity="0.95"/>
+        <Style x:Key="RoundedThumbStyle" TargetType="Thumb">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="ThumbBorder"
+                         Background="{TemplateBinding Background}"
+                         CornerRadius="3"
+                         SnapsToDevicePixels="True"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource ScrollThumbHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource ScrollThumbDrag}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <!-- 让 Thumb 默认使用正常颜色（如果未被外层触发修改） -->
+            <Setter Property="Background" Value="{StaticResource ScrollThumbNormal}"/>
+        </Style>
+        <Style TargetType="ScrollBar">
+            <Setter Property="Foreground" Value="{StaticResource ScrollThumbNormal}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid x:Name="Root"
+                        Background="Transparent">
+                            <Track x:Name="PART_Track"
+                             IsDirectionReversed="True"
+                             Focusable="False">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Width="0" Height="0"
+                                            Command="{x:Static ScrollBar.LineUpCommand}"
+                                            Opacity="0" IsHitTestVisible="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Width="0" Height="0"
+                                            Command="{x:Static ScrollBar.LineDownCommand}"
+                                            Opacity="0" IsHitTestVisible="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb x:Name="Thumb"
+                                     Style="{StaticResource RoundedThumbStyle}"
+                                     Margin="0"/>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- 垂直 -->
+                            <Trigger Property="Orientation" Value="Vertical">
+                                <Setter TargetName="Root"  Property="Width" Value="8"/>
+                                <Setter TargetName="Thumb" Property="MinHeight" Value="24"/>
+                                <Setter TargetName="Thumb" Property="Width" Value="6"/>
+                                <Setter TargetName="Thumb" Property="Margin" Value="1,2,1,2"/>
+                            </Trigger>
+                            <!-- 水平 -->
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter TargetName="Root"  Property="Height" Value="8"/>
+                                <Setter TargetName="Thumb" Property="MinWidth" Value="24"/>
+                                <Setter TargetName="Thumb" Property="Height" Value="6"/>
+                                <Setter TargetName="Thumb" Property="Margin" Value="2,1,2,1"/>
+                            </Trigger>
+                            <!-- 整条鼠标悬停：如果 Thumb 没被触发，会提高对比度 -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource ScrollThumbHover}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ScrollViewer">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid Background="{TemplateBinding Background}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Content -->
+                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
+                                             Grid.Row="0" Grid.Column="0"
+                                             Margin="{TemplateBinding Padding}"
+                                             CanContentScroll="{TemplateBinding CanContentScroll}"/>
+
+                            <!-- Vertical ScrollBar -->
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                                Grid.Row="0" Grid.Column="1"
+                                Orientation="Vertical"
+                                Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                                Maximum="{TemplateBinding ScrollableHeight}"
+                                ViewportSize="{TemplateBinding ViewportHeight}"
+                                Value="{TemplateBinding VerticalOffset}"
+                                Width="8"
+                                Margin="0"
+                                Background="Transparent"
+                                SmallChange="16" LargeChange="64"/>
+
+                            <!-- Horizontal ScrollBar -->
+                            <ScrollBar x:Name="PART_HorizontalScrollBar"
+                                Grid.Row="1" Grid.Column="0"
+                                Orientation="Horizontal"
+                                Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
+                                Maximum="{TemplateBinding ScrollableWidth}"
+                                ViewportSize="{TemplateBinding ViewportWidth}"
+                                Value="{TemplateBinding HorizontalOffset}"
+                                Height="8"
+                                Margin="0"
+                                Background="Transparent"
+                                SmallChange="16" LargeChange="64"/>
+
+                            <!-- Corner (was white) now transparent -->
+                            <Border Grid.Row="1" Grid.Column="1"
+                             Background="Transparent"
+                             x:Name="Corner"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <!-- Colors -->
         <SolidColorBrush x:Key="CardBg" Color="#232834"/>
         <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
@@ -172,8 +310,8 @@
     </Page.Resources>
 
     <!-- ScrollViewer with hidden scrollbars but enabled scrolling -->
-    <ScrollViewer VerticalScrollBarVisibility="Hidden" 
-                  HorizontalScrollBarVisibility="Hidden"
+    <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                  HorizontalScrollBarVisibility="Auto"
                   PanningMode="VerticalOnly">
         <Grid Margin="10,10">
             <Grid.RowDefinitions>
