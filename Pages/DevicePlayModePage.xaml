@@ -6,6 +6,124 @@
       Unloaded="Page_Unloaded">
     <!-- (Styles / Resources kept exactly as your current file – trimmed here for brevity) -->          
     <Page.Resources>
+        <Style x:Key="VerticalSlimScrollBar" TargetType="ScrollBar">
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="MinHeight" Value="30"/>
+            <Setter Property="Margin" Value="2,0,2,0"/>
+            <Setter Property="Foreground" Value="#5A6A80"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid x:Name="Root" Background="Transparent">
+                            <Border x:Name="TrackBg"
+                             CornerRadius="4"
+                             Background="#14202B"
+                             Margin="0"/>
+                            <Track x:Name="PART_Track"
+                            IsDirectionReversed="true"
+                            Focusable="False">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.LineUpCommand"
+                                           Opacity="0"
+                                           IsHitTestVisible="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb x:Name="Thumb"
+                                    Height="40"
+                                    MinHeight="20"
+                                    Margin="0"
+                                    Cursor="Hand">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Border x:Name="ThumbBody"
+                                                 CornerRadius="4"
+                                                 Background="#3A4655">
+                                                    <Border.Effect>
+                                                        <DropShadowEffect BlurRadius="8"
+                                                                   ShadowDepth="0"
+                                                                   Opacity="0.25"
+                                                                   Color="#22000000"/>
+                                                    </Border.Effect>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#4F5F72"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#2A4A8B"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.LineDownCommand"
+                                           Opacity="0"
+                                           IsHitTestVisible="False"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter Property="Width" Value="Auto"/>
+                                <Setter Property="Height" Value="8"/>
+                                <Setter TargetName="TrackBg" Property="Width" Value="Auto"/>
+                                <Setter TargetName="TrackBg" Property="Height" Value="8"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TrackBg" Property="Background" Value="#182633"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ConfigListScrollViewerStyle" TargetType="ScrollViewer">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <DockPanel Grid.Column="0" Grid.Row="0">
+                                <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
+                                                CanContentScroll="{TemplateBinding CanContentScroll}"
+                                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                Content="{TemplateBinding Content}"
+                                                Margin="0"/>
+                            </DockPanel>
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                               Grid.Column="1" Grid.Row="0"
+                               Value="{TemplateBinding VerticalOffset}"
+                               Maximum="{TemplateBinding ScrollableHeight}"
+                               ViewportSize="{TemplateBinding ViewportHeight}"
+                               Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                               LargeChange="{TemplateBinding ViewportHeight}"
+                               SmallChange="16"
+                               Orientation="Vertical"
+                               Style="{StaticResource VerticalSlimScrollBar}"/>
+                            <ScrollBar x:Name="PART_HorizontalScrollBar"
+                               Grid.Column="0" Grid.Row="1"
+                               Value="{TemplateBinding HorizontalOffset}"
+                               Maximum="{TemplateBinding ScrollableWidth}"
+                               ViewportSize="{TemplateBinding ViewportWidth}"
+                               Visibility="Collapsed"
+                               Orientation="Horizontal"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <Style x:Key="ModeSelectToggleBaseStyle" TargetType="ToggleButton">
             <Setter Property="Height" Value="48"/>
             <Setter Property="FontSize" Value="13"/>
@@ -413,7 +531,7 @@
                 CornerRadius="10"
                 Padding="6"
                 Visibility="Visible">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource ConfigListScrollViewerStyle}">
                             <ItemsControl x:Name="ConfigSequenceListBox"
                               ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
                                 <ItemsControl.ItemTemplate>

@@ -627,10 +627,14 @@ namespace CMDevicesManager.Pages
             if (sender is Button btn && btn.Tag is PlayConfigItem item)
             {
                 ConfigSequence.Remove(item);
-                if (ConfigSequence.Count == 0 && _isConfigSequenceRunning)
+
+                if (ConfigSequence.Count == 0)
                 {
-                    _configSequenceCts?.Cancel();
+                    ClearCanvasForNoConfigs();
+                    return;
                 }
+
+                // 列表仍有元素，更新可编辑状态（避免第一项仍锁定）
                 UpdateDurationEditableStates();
             }
         }
