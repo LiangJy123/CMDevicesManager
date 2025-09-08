@@ -8,8 +8,10 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
-using MessageBox = System.Windows.MessageBox;
+using System.Windows.Threading;
+using Color = System.Windows.Media.Color;
 
 namespace CMDevicesManager.Pages
 {
@@ -21,6 +23,10 @@ namespace CMDevicesManager.Pages
         private DeviceInfo? _deviceInfo;
         private DisplayController? _displayController;
         private bool _isLoading = false;
+
+        // Notification system
+        private DispatcherTimer? _notificationTimer;
+        private TaskCompletionSource<bool>? _confirmationResult;
 
         public DeviceSettings()
         {
@@ -40,6 +46,14 @@ namespace CMDevicesManager.Pages
             FactoryResetButton.IsEnabled = false;
             UpdateFirmwareButton.IsEnabled = false;
             RefreshStatusButton.IsEnabled = false;
+            
+            // Disable display control toggles
+            try
+            {
+                SleepModeToggle.IsEnabled = false;
+                SuspendModeToggle.IsEnabled = false;
+            }
+            catch { /* Toggles may not be available yet */ }
         }
 
         private void EnableAllControls()
@@ -48,6 +62,14 @@ namespace CMDevicesManager.Pages
             FactoryResetButton.IsEnabled = true;
             UpdateFirmwareButton.IsEnabled = true;
             RefreshStatusButton.IsEnabled = true;
+            
+            // Enable display control toggles
+            try
+            {
+                SleepModeToggle.IsEnabled = true;
+                SuspendModeToggle.IsEnabled = true;
+            }
+            catch { /* Toggles may not be available yet */ }
         }
 
         private async void InitializeDevice()
@@ -78,13 +100,13 @@ namespace CMDevicesManager.Pages
                 }
                 else
                 {
-                    ShowErrorMessage("Invalid device path");
+                    ShowNotification("Invalid device path", true);
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to initialize device: {ex.Message}");
-                ShowErrorMessage($"Failed to connect to device: {ex.Message}");
+                ShowNotification($"Failed to connect to device: {ex.Message}", true);
                 SetConnectionStatus(false);
             }
             finally
@@ -130,7 +152,7 @@ namespace CMDevicesManager.Pages
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load device information: {ex.Message}");
-                ShowErrorMessage($"Failed to load device information: {ex.Message}");
+                ShowNotification($"Failed to load device information: {ex.Message}", true);
             }
             finally
             {
@@ -140,6 +162,11 @@ namespace CMDevicesManager.Pages
 
         private void UpdateCapabilitiesDisplay(DisplayCtrlCapabilities capabilities)
         {
+            // Device Capabilities section has been hidden in the UI
+            // This method is kept for compatibility but the UI elements are commented out
+            
+            // The following code is commented out since the UI elements are hidden:
+            /*
             // Display modes
             OffModeText.Text = $"Off Mode: {(capabilities.OffModeSupported ? "Supported" : "Not Supported")}";
             SsrModeText.Text = $"SSR Mode: {(capabilities.SsrModeSupported ? "Supported" : "Not Supported")}";
@@ -159,6 +186,9 @@ namespace CMDevicesManager.Pages
             // File limits
             MaxFileSizeText.Text = $"Max File Size: {capabilities.SsrVsMaxFileSize} MB";
             MaxFrameCountText.Text = $"Max Frame Count: {capabilities.SsrVsMaxFrameCnt}";
+            */
+            
+            Debug.WriteLine("Device capabilities loaded but UI elements are hidden");
         }
 
         private async Task RefreshDeviceStatus()
@@ -179,6 +209,14 @@ namespace CMDevicesManager.Pages
                     OsdStateText.Text = status.IsOsdActive ? "Active" : "Inactive";
                     KeepAliveText.Text = $"{status.KeepAliveTimeout}s";
                     DisplaySleepText.Text = status.IsDisplayInSleep ? "Enabled" : "Disabled";
+                    SuspendModeText.Text = "Unknown"; // Suspend mode status not available in device status
+                    
+                    // Update toggle switches state based on device status
+                    try
+                    {
+                        SleepModeToggle.IsChecked = status.IsDisplayInSleep;
+                    }
+                    catch { /* Toggle may not be available yet */ }
                 }
                 else
                 {
@@ -188,12 +226,21 @@ namespace CMDevicesManager.Pages
                     OsdStateText.Text = "N/A";
                     KeepAliveText.Text = "N/A";
                     DisplaySleepText.Text = "N/A";
+                    SuspendModeText.Text = "N/A";
+                    
+                    // Reset toggle switches
+                    try
+                    {
+                        SleepModeToggle.IsChecked = false;
+                        SuspendModeToggle.IsChecked = false;
+                    }
+                    catch { /* Toggles may not be available yet */ }
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to refresh device status: {ex.Message}");
-                ShowErrorMessage($"Failed to refresh device status: {ex.Message}");
+                ShowNotification($"Failed to refresh device status: {ex.Message}", true);
             }
             finally
             {
@@ -223,14 +270,98 @@ namespace CMDevicesManager.Pages
                 isConnected ? Colors.Green : Colors.Red);
         }
 
-        private void ShowErrorMessage(string message)
+        // Notification System Methods
+        private void ShowNotification(string message, bool isError = false, int durationMs = 5000)
         {
-            MessageBox.Show(message, "Device Settings Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            Dispatcher.Invoke(() =>
+            {
+                NotificationMessage.Text = message;
+                
+                if (isError)
+                {
+                    NotificationIcon.Text = "\uE783"; // Error icon
+                    NotificationIcon.Foreground = new SolidColorBrush(Color.FromRgb(244, 67, 54)); // Red
+                }
+                else
+                {
+                    NotificationIcon.Text = "\uE7BA"; // Success icon
+                    NotificationIcon.Foreground = new SolidColorBrush(Color.FromRgb(76, 175, 80)); // Green
+                }
+                
+                NotificationPanel.Visibility = Visibility.Visible;
+                
+                // Auto-hide after specified duration
+                _notificationTimer?.Stop();
+                _notificationTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromMilliseconds(durationMs)
+                };
+                _notificationTimer.Tick += (s, e) =>
+                {
+                    HideNotification();
+                    _notificationTimer.Stop();
+                };
+                _notificationTimer.Start();
+            });
         }
 
-        private void ShowSuccessMessage(string message)
+        private void HideNotification()
         {
-            MessageBox.Show(message, "Device Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotificationPanel.Visibility = Visibility.Collapsed;
+            _notificationTimer?.Stop();
+        }
+
+        private Task<bool> ShowConfirmationAsync(String title, String message, String confirmText = "Confirm", 
+            String cancelText = "Cancel", Boolean isWarning = false)
+        {
+            _confirmationResult = new TaskCompletionSource<bool>();
+            
+            Dispatcher.Invoke(() =>
+            {
+                ConfirmationTitle.Text = title;
+                ConfirmationMessage.Text = message;
+                ConfirmationConfirmText.Text = confirmText;
+                
+                if (isWarning)
+                {
+                    ConfirmationIcon.Text = "\uE7BA"; // Warning icon
+                    ConfirmationIcon.Foreground = new SolidColorBrush(Color.FromRgb(255, 152, 0)); // Orange
+                    ConfirmationButtonBorder.Background = new SolidColorBrush(Color.FromRgb(244, 67, 54)); // Red
+                }
+                else
+                {
+                    ConfirmationIcon.Text = "\uE8FD"; // Question icon
+                    ConfirmationIcon.Foreground = new SolidColorBrush(Color.FromRgb(33, 150, 243)); // Blue
+                    ConfirmationButtonBorder.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)); // Blue
+                }
+                
+                ConfirmationDialog.Visibility = Visibility.Visible;
+            });
+            
+            return _confirmationResult.Task;
+        }
+
+        private void HideConfirmation(bool result)
+        {
+            ConfirmationDialog.Visibility = Visibility.Collapsed;
+            _confirmationResult?.SetResult(result);
+            _confirmationResult = null;
+        }
+
+        // Event handlers for notification and confirmation dialogs
+        private void NotificationCloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            HideNotification();
+        }
+
+        private void ConfirmationCancelButton_Click(object sender, RoutedEventArgs e)
+        {
+            HideConfirmation(false);
+        }
+
+        private void ConfirmationConfirmButton_Click(object sender, RoutedEventArgs e)
+        {
+            HideConfirmation(true);
         }
 
         private async void RefreshStatusButton_Click(object sender, RoutedEventArgs e)
@@ -242,13 +373,14 @@ namespace CMDevicesManager.Pages
         {
             if (_displayController == null || _isLoading) return;
 
-            var result = MessageBox.Show(
-                "Are you sure you want to reboot the device?\n\nThe device will restart and may temporarily disconnect.",
+            var confirmed = await ShowConfirmationAsync(
                 "Confirm Device Reboot",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                "Are you sure you want to reboot the device?\n\nThe device will restart and may temporarily disconnect.",
+                "Reboot",
+                "Cancel",
+                true);
 
-            if (result != MessageBoxResult.Yes) return;
+            if (!confirmed) return;
 
             try
             {
@@ -259,7 +391,7 @@ namespace CMDevicesManager.Pages
                 // Wait a moment for the command to be sent
                 await Task.Delay(1000);
 
-                ShowSuccessMessage("Reboot command sent successfully. The device will restart shortly.");
+                ShowNotification("Reboot command sent successfully. The device will restart shortly.");
                 
                 // Wait for device to reboot and try to reconnect
                 await Task.Delay(3000);
@@ -278,7 +410,7 @@ namespace CMDevicesManager.Pages
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to reboot device: {ex.Message}");
-                ShowErrorMessage($"Failed to reboot device: {ex.Message}");
+                ShowNotification($"Failed to reboot device: {ex.Message}", true);
             }
             finally
             {
@@ -290,27 +422,29 @@ namespace CMDevicesManager.Pages
         {
             if (_displayController == null || _isLoading) return;
 
-            var result = MessageBox.Show(
+            var confirmed = await ShowConfirmationAsync(
+                "Confirm Factory Reset",
                 "WARNING: This will reset the device to factory defaults!\n\n" +
                 "All settings, configurations, and stored data will be lost.\n" +
                 "This action cannot be undone.\n\n" +
                 "Are you sure you want to continue?",
-                "Confirm Factory Reset",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                "Factory Reset",
+                "Cancel",
+                true);
 
-            if (result != MessageBoxResult.Yes) return;
+            if (!confirmed) return;
 
-            // Double confirmation
-            var confirmResult = MessageBox.Show(
+            // Double confirmation for factory reset
+            var doubleConfirmed = await ShowConfirmationAsync(
+                "Factory Reset - Final Confirmation",
                 "FINAL CONFIRMATION:\n\n" +
                 "This will permanently erase all device data and settings.\n" +
-                "Click YES only if you are absolutely certain.",
-                "Factory Reset - Final Confirmation",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Error);
+                "Click 'RESET NOW' only if you are absolutely certain.",
+                "RESET NOW",
+                "Cancel",
+                true);
 
-            if (confirmResult != MessageBoxResult.Yes) return;
+            if (!doubleConfirmed) return;
 
             try
             {
@@ -321,7 +455,7 @@ namespace CMDevicesManager.Pages
                 // Wait a moment for the command to be sent
                 await Task.Delay(1000);
 
-                ShowSuccessMessage("Factory reset command sent successfully. The device will reset to defaults and restart.");
+                ShowNotification("Factory reset command sent successfully. The device will reset to defaults and restart.");
                 
                 // Wait for device to reset and try to reconnect
                 await Task.Delay(5000);
@@ -340,7 +474,7 @@ namespace CMDevicesManager.Pages
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to perform factory reset: {ex.Message}");
-                ShowErrorMessage($"Failed to perform factory reset: {ex.Message}");
+                ShowNotification($"Failed to perform factory reset: {ex.Message}", true);
             }
             finally
             {
@@ -365,18 +499,19 @@ namespace CMDevicesManager.Pages
             var filePath = openFileDialog.FileName;
             var fileInfo = new FileInfo(filePath);
 
-            var result = MessageBox.Show(
+            var confirmed = await ShowConfirmationAsync(
+                "Confirm Firmware Update",
                 $"You are about to update the device firmware.\n\n" +
                 $"File: {fileInfo.Name}\n" +
                 $"Size: {fileInfo.Length / 1024.0:F1} KB\n\n" +
                 $"WARNING: Do not disconnect the device during firmware update!\n" +
                 $"Interrupting the update process may permanently damage the device.\n\n" +
                 $"Continue with firmware update?",
-                "Confirm Firmware Update",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                "Update Firmware",
+                "Cancel",
+                true);
 
-            if (result != MessageBoxResult.Yes) return;
+            if (!confirmed) return;
 
             try
             {
@@ -386,7 +521,7 @@ namespace CMDevicesManager.Pages
                 
                 if (success)
                 {
-                    ShowSuccessMessage(
+                    ShowNotification(
                         "Firmware update completed successfully!\n\n" +
                         "The device may restart automatically. Please wait for the process to complete.");
                     
@@ -399,13 +534,147 @@ namespace CMDevicesManager.Pages
                 }
                 else
                 {
-                    ShowErrorMessage("Firmware update failed. Please check the firmware file and try again.");
+                    ShowNotification("Firmware update failed. Please check the firmware file and try again.", true);
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to update firmware: {ex.Message}");
-                ShowErrorMessage($"Failed to update firmware: {ex.Message}");
+                ShowNotification($"Failed to update firmware: {ex.Message}", true);
+            }
+            finally
+            {
+                SetLoadingState(false);
+            }
+        }
+
+        // Display Control Settings Event Handlers
+        private async void SleepModeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_displayController == null || _isLoading) return;
+            
+            var toggle = sender as ToggleButton;
+            if (toggle == null) return;
+            
+            bool isEnabled = toggle.IsChecked == true;
+            
+            // Show confirmation for enabling sleep mode
+            if (isEnabled)
+            {
+                var confirmed = await ShowConfirmationAsync(
+                    "Enable Sleep Mode",
+                    "Are you sure you want to enable sleep mode?\n\nThe display will enter sleep mode when idle.",
+                    "Enable",
+                    "Cancel");
+
+                if (!confirmed)
+                {
+                    // Revert toggle state if user cancels
+                    toggle.IsChecked = false;
+                    return;
+                }
+            }
+
+            try
+            {
+                SetLoadingState(true, isEnabled ? "Enabling sleep mode..." : "Disabling sleep mode...");
+
+                var response = await _displayController.SendCmdDisplayInSleepWithResponse(isEnabled);
+                
+                if (response?.IsSuccess == true)
+                {
+                    ShowNotification(isEnabled ? "Sleep mode enabled successfully." : "Sleep mode disabled successfully.");
+                    // Refresh status to update display
+                    await RefreshDeviceStatus();
+                }
+                else
+                {
+                    ShowNotification($"Failed to {(isEnabled ? "enable" : "disable")} sleep mode. Please try again.", true);
+                    // Revert toggle state on failure
+                    toggle.IsChecked = !isEnabled;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to {(isEnabled ? "enable" : "disable")} sleep mode: {ex.Message}");
+                ShowNotification($"Failed to {(isEnabled ? "enable" : "disable")} sleep mode: {ex.Message}", true);
+                // Revert toggle state on exception
+                toggle.IsChecked = !isEnabled;
+            }
+            finally
+            {
+                SetLoadingState(false);
+            }
+        }
+
+        private async void SuspendModeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (_displayController == null || _isLoading) return;
+            
+            var toggle = sender as ToggleButton;
+            if (toggle == null) return;
+            
+            bool isActivated = toggle.IsChecked == true;
+            
+            // Show confirmation for activating suspend mode
+            if (isActivated)
+            {
+                var confirmed = await ShowConfirmationAsync(
+                    "Activate Suspend Mode",
+                    "Are you sure you want to activate suspend mode?\n\n" +
+                    "This will put the device into suspend mode for offline media playback.\n" +
+                    "The device may become temporarily unresponsive during this process.",
+                    "Activate",
+                    "Cancel",
+                    true);
+
+                if (!confirmed)
+                {
+                    // Revert toggle state if user cancels
+                    toggle.IsChecked = false;
+                    return;
+                }
+            }
+
+            try
+            {
+                SetLoadingState(true, isActivated ? "Activating suspend mode..." : "Clearing suspend mode...");
+
+                bool success;
+                if (isActivated)
+                {
+                    success = await _displayController.SetSuspendModeWithResponse();
+                }
+                else
+                {
+                    success = await _displayController.ClearSuspendModeWithResponse();
+                }
+                
+                if (success)
+                {
+                    ShowNotification(isActivated ? "Suspend mode activated successfully." : "Suspend mode cleared successfully.");
+                    
+                    if (!isActivated)
+                    {
+                        // Wait a moment for device to exit suspend mode
+                        await Task.Delay(2000);
+                        // Refresh status to update display
+                        await RefreshDeviceStatus();
+                    }
+                }
+                else
+                {
+                    ShowNotification($"Failed to {(isActivated ? "activate" : "clear")} suspend mode. Please try again.", true);
+                    // Revert toggle state on failure
+                    toggle.IsChecked = !isActivated;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to {(isActivated ? "activate" : "clear")} suspend mode: {ex.Message}");
+                ShowNotification($"Failed to {(isActivated ? "activate" : "clear")} suspend mode: {ex.Message}", true);
+                // Revert toggle state on exception
+                toggle.IsChecked = !isActivated;
             }
             finally
             {
@@ -417,6 +686,10 @@ namespace CMDevicesManager.Pages
         {
             try
             {
+                // Clean up timers
+                _notificationTimer?.Stop();
+                _notificationTimer = null;
+                
                 // Clean up display controller
                 _displayController?.StopResponseListener();
                 _displayController?.Dispose();

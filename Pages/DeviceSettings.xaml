@@ -11,6 +11,115 @@
       Title="Device Settings"
       Background="Transparent">
 
+    <Page.Resources>
+        <!-- Toggle Switch Base Style -->
+        <Style x:Key="BaseToggleSwitchStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="60"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Background" Value="#444444"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <!-- Track -->
+                            <Border x:Name="TrackBorder"
+                                    Width="60"
+                                    Height="30"
+                                    CornerRadius="15"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000" BlurRadius="4" ShadowDepth="1" Opacity="0.3"/>
+                                </Border.Effect>
+                            </Border>
+                            
+                            <!-- Thumb -->
+                            <Border x:Name="ThumbBorder"
+                                    Width="26"
+                                    Height="26"
+                                    CornerRadius="13"
+                                    Background="White"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
+                                    Margin="2,0,0,0">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="2" Opacity="0.4"/>
+                                </Border.Effect>
+                                <Border.RenderTransform>
+                                    <TranslateTransform x:Name="ThumbTransform" X="0"/>
+                                </Border.RenderTransform>
+                            </Border>
+                        </Grid>
+                        
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ThumbTransform"
+                                                           Storyboard.TargetProperty="X"
+                                                           To="30"
+                                                           Duration="0:0:0.2">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <QuadraticEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ThumbTransform"
+                                                           Storyboard.TargetProperty="X"
+                                                           To="0"
+                                                           Duration="0:0:0.2">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <QuadraticEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TrackBorder" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Sleep Mode Toggle Style -->
+        <Style x:Key="SleepModeToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource BaseToggleSwitchStyle}">
+            <Setter Property="Background" Value="#666666"/>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#FF5722"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Suspend Mode Toggle Style -->
+        <Style x:Key="SuspendModeToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource BaseToggleSwitchStyle}">
+            <Setter Property="Background" Value="#666666"/>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#673AB7"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Page.Resources>
+
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -48,7 +157,8 @@
                                Text="No device selected"
                                FontSize="12"
                                Foreground="#AAFFFFFF"
-                               Margin="0,2,0,0"/>
+                               Margin="0,2,0,0"
+							   Visibility="Collapsed"/>
                 </StackPanel>
 
                 <Border Grid.Column="2"
@@ -88,106 +198,173 @@
                     </Border.Effect>
                     
                     <StackPanel>
-                        <TextBlock Text="Device Information"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Foreground="#2196F3"
-                                   Margin="0,0,0,16"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <TextBlock Text="&#xE7F4;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18"
+                                       Foreground="#2196F3"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Text="Device Information"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#2196F3"/>
+                        </StackPanel>
 
                         <!-- Hardware Version -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Hardware Version:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="140"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="HardwareVersionText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE950;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#FF9800"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Hardware Version:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="HardwareVersionText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
                         <!-- Firmware Version -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Firmware Version:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="140"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="FirmwareVersionText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE8AD;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#4CAF50"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Firmware Version:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="FirmwareVersionText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
                         <!-- Serial Number -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Serial Number:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="140"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="SerialNumberText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE8D7;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#9C27B0"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Serial Number:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="SerialNumberText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
                         <!-- Manufacturer -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Manufacturer:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="140"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="ManufacturerText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE7EE;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#2196F3"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Manufacturer:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="ManufacturerText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
                         <!-- Product Name -->
-                        <Grid Margin="0,0,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Product:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="140"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="ProductNameText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE7C3;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#FF5722"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Product:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="ProductNameText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -204,15 +381,24 @@
                     <StackPanel>
                         <Grid Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBlock Grid.Column="0"
+                                       Text="&#xE7C4;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18"
+                                       Foreground="#2196F3"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1"
                                        Text="Device Status"
                                        FontSize="16"
                                        FontWeight="SemiBold"
-                                       Foreground="#2196F3"/>
-                            <Button Grid.Column="1"
+                                       Foreground="#2196F3"
+                                       VerticalAlignment="Center"/>
+                            <Button Grid.Column="2"
                                     x:Name="RefreshStatusButton"
                                     Click="RefreshStatusButton_Click"
                                     Background="Transparent"
@@ -228,99 +414,190 @@
                         </Grid>
 
                         <!-- Brightness -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Brightness:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="120"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="BrightnessText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE706;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#FFC107"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Brightness:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="BrightnessText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
                         <!-- Rotation -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Rotation:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="120"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="RotationText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE7AD;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#00BCD4"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Rotation:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="RotationText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
                         <!-- OSD State -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="OSD State:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="120"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="OsdStateText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE7F8;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#9C27B0"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="OSD State:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="OsdStateText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
                         <!-- Keep Alive Timeout -->
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Keep Alive:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="120"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="KeepAliveText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE916;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#4CAF50"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Keep Alive:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="KeepAliveText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
 
                         <!-- Display In Sleep -->
-                        <Grid Margin="0,0,0,0">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="Display Sleep:"
-                                       FontSize="12"
-                                       Foreground="#CCCCCC"
-                                       Width="120"/>
-                            <TextBlock Grid.Column="1"
-                                       x:Name="DisplaySleepText"
-                                       Text="N/A"
-                                       FontSize="12"
-                                       FontWeight="SemiBold"
-                                       Foreground="White"/>
-                        </Grid>
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE708;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#FF5722"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Display Sleep:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="DisplaySleepText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Suspend Mode Status -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Visibility="Collapsed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE769;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#673AB7"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Suspend Mode:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="SuspendModeText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -335,11 +612,18 @@
                     </Border.Effect>
                     
                     <StackPanel>
-                        <TextBlock Text="Device Management"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Foreground="#FF9800"
-                                   Margin="0,0,0,16"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <TextBlock Text="&#xE8B7;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18"
+                                       Foreground="#FF9800"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Text="Device Management"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#FF9800"/>
+                        </StackPanel>
 
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -423,108 +707,128 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Device Capabilities Panel -->
+                <!-- Display Control Settings Panel -->
                 <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2"
                         Background="#121212" 
                         CornerRadius="16" 
-                        Padding="20">
+                        Padding="20" 
+                        Margin="0,0,0,16">
                     <Border.Effect>
                         <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.3"/>
                     </Border.Effect>
                     
                     <StackPanel>
-                        <TextBlock Text="Device Capabilities"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Foreground="#4CAF50"
-                                   Margin="0,0,0,16"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <TextBlock Text="&#xE770;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18"
+                                       Foreground="#607D8B"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Text="Display Control Settings"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#607D8B"/>
+                        </StackPanel>
 
                         <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                            <StackPanel Grid.Column="0" Margin="0,0,12,0">
-                                <!-- Display Modes -->
-                                <TextBlock Text="Display Modes:"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Foreground="#CCCCCC"
-                                           Margin="0,0,0,8"/>
-                                
-                                <TextBlock x:Name="OffModeText"
-                                           Text="Off Mode: N/A"
-                                           FontSize="12"
-                                           Foreground="White"
-                                           Margin="8,0,0,4"/>
-                                
-                                <TextBlock x:Name="SsrModeText"
-                                           Text="SSR Mode: N/A"
-                                           FontSize="12"
-                                           Foreground="White"
-                                           Margin="8,0,0,4"/>
+                            <!-- Sleep Mode Controls -->
+                            <Border Grid.Row="0" 
+                                    Background="#1A1A1A" 
+                                    CornerRadius="8" 
+                                    Padding="16" 
+                                    Margin="0,0,0,12">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <TextBlock Text="&#xE708;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="16"
+                                                   Foreground="#FF5722"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"/>
+                                        <TextBlock Text="Sleep Mode"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
 
-                                <!-- Resolution -->
-                                <TextBlock Text="Resolution:"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Foreground="#CCCCCC"
-                                           Margin="0,12,0,8"/>
-                                
-                                <TextBlock x:Name="ResolutionText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           Foreground="White"
-                                           Margin="8,0,0,4"/>
+                                    <TextBlock Text="Configure the display when system enter to sleep mode."
+                                               FontSize="11"
+                                               Foreground="#AAAAAA"
+                                               Margin="0,0,0,12"
+                                               TextWrapping="Wrap"/>
+                                    
+                                    <!-- Sleep Mode Toggle Switch -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>                                       
+                                        
+                                        <ToggleButton x:Name="SleepModeToggle"
+                                                      Grid.Column="1"
+                                                      HorizontalAlignment="Left"
+                                                      Click="SleepModeToggle_Click"
+                                                      Style="{StaticResource SleepModeToggleStyle}"
+													  ToolTipService.ToolTip="OFF: When the system sleeps, the LCD Off.  ON: When the system sleeps, the LCD on and plays the customized setting."
+													  ToolTipService.Placement="MousePoint"
+													  ToolTipService.InitialShowDelay="100"/>
+                                        
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
 
-                                <!-- Max FPS -->
-                                <TextBlock x:Name="MaxFpsText"
-                                           Text="Max FPS: N/A"
-                                           FontSize="12"
-                                           Foreground="White"
-                                           Margin="8,0,0,4"/>
-                            </StackPanel>
-
-                            <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                                <!-- Hardware Features -->
-                                <TextBlock Text="Hardware Features:"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Foreground="#CCCCCC"
-                                           Margin="0,0,0,8"/>
-                                
-                                <TextBlock x:Name="HwDecodeText"
-                                           Text="Hardware Decode: N/A"
-                                           FontSize="12"
-                                           Foreground="White"
-                                           Margin="8,0,0,4"/>
-                                
-                                <TextBlock x:Name="OverlayText"
-                                           Text="Overlay Support: N/A"
-                                           FontSize="12"
-                                           Foreground="White"
-                                           Margin="8,0,0,4"/>
-
-                                <!-- File Limits -->
-                                <TextBlock Text="File Limits:"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Foreground="#CCCCCC"
-                                           Margin="0,12,0,8"/>
-                                
-                                <TextBlock x:Name="MaxFileSizeText"
-                                           Text="Max File Size: N/A"
-                                           FontSize="12"
-                                           Foreground="White"
-                                           Margin="8,0,0,4"/>
-
-                                <TextBlock x:Name="MaxFrameCountText"
-                                           Text="Max Frame Count: N/A"
-                                           FontSize="12"
-                                           Foreground="White"
-                                           Margin="8,0,0,4"/>
-                            </StackPanel>
+                            <!-- Suspend Mode Controls -->
+                            <Border Grid.Row="1" 
+                                    Background="#1A1A1A" 
+                                    CornerRadius="8" 
+                                    Padding="16">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <TextBlock Text="&#xE7C4;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="16"
+                                                   Foreground="#3F51B5"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"/>
+                                        <TextBlock Text="Suspend Mode"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    
+                                    <TextBlock Text="Setting customized style when MasterCTRL exit."
+                                               FontSize="11"
+                                               Foreground="#AAAAAA"
+                                               Margin="0,0,0,12"
+                                               TextWrapping="Wrap"/>
+                                    
+                                    <!-- Suspend Mode Toggle Switch -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ToggleButton x:Name="SuspendModeToggle"
+                                                      Grid.Column="1"
+                                                      HorizontalAlignment="Left"
+                                                      Click="SuspendModeToggle_Click"
+                                                      Style="{StaticResource SuspendModeToggleStyle}"
+													  ToolTipService.ToolTip="OFF: Play the device build-in animation.  ON: Play the below imported image or animation."
+													  ToolTipService.Placement="MousePoint"
+													  ToolTipService.InitialShowDelay="100"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
                         </Grid>
                     </StackPanel>
                 </Border>
@@ -551,6 +855,161 @@
                            HorizontalAlignment="Center"
                            Margin="0,16,0,0"/>
             </StackPanel>
+        </Border>
+
+        <!-- Notification Panel -->
+        <Border x:Name="NotificationPanel"
+                Grid.Row="0" Grid.RowSpan="2"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Center"
+                Margin="24"
+                Background="#1A1A1A"
+                BorderBrush="#444444"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16,12"
+                Visibility="Collapsed"
+                Panel.ZIndex="1000">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="20" ShadowDepth="5" Opacity="0.5"/>
+            </Border.Effect>
+            
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Icon -->
+                <TextBlock x:Name="NotificationIcon"
+                           Grid.Column="0"
+                           Text="&#xE7BA;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="16"
+                           Foreground="#4CAF50"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0"/>
+                
+                <!-- Message -->
+                <TextBlock x:Name="NotificationMessage"
+                           Grid.Column="1"
+                           Text="Operation completed successfully"
+                           FontSize="14"
+                           Foreground="White"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           MaxWidth="400"/>
+                
+                <!-- Close Button -->
+                <Button x:Name="NotificationCloseButton"
+                        Grid.Column="2"
+                        Click="NotificationCloseButton_Click"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        Padding="4"
+                        Cursor="Hand"
+                        Margin="8,0,0,0">
+                    <TextBlock Text="&#xE8BB;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="12"
+                               Foreground="#AAAAAA"/>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Confirmation Dialog -->
+        <Border x:Name="ConfirmationDialog"
+                Grid.Row="0" Grid.RowSpan="2"
+                Background="#80000000"
+                Visibility="Collapsed"
+                Panel.ZIndex="999">
+            <Border Background="#1A1A1A"
+                    BorderBrush="#444444"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="24"
+                    MaxWidth="500"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000" BlurRadius="25" ShadowDepth="8" Opacity="0.6"/>
+                </Border.Effect>
+                
+                <StackPanel>
+                    <!-- Dialog Icon and Title -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <TextBlock x:Name="ConfirmationIcon"
+                                   Text="&#xE7BA;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="20"
+                                   Foreground="#FF9800"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,0"/>
+                        <TextBlock x:Name="ConfirmationTitle"
+                                   Text="Confirm Action"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <!-- Dialog Message -->
+                    <TextBlock x:Name="ConfirmationMessage"
+                               Text="Are you sure you want to proceed?"
+                               FontSize="14"
+                               Foreground="#CCCCCC"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,20"/>
+                    
+                    <!-- Dialog Buttons -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Cancel Button -->
+                        <Border Grid.Column="0"
+                                Background="#555555"
+                                CornerRadius="6">
+                            <Button x:Name="ConfirmationCancelButton"
+                                    Click="ConfirmationCancelButton_Click"
+                                    Background="Transparent"
+                                    Foreground="White"
+                                    BorderBrush="Transparent"
+                                    Padding="12,8"
+                                    Cursor="Hand">
+                                <TextBlock Text="Cancel"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"/>
+                            </Button>
+                        </Border>
+                        
+                        <!-- Confirm Button -->
+                        <Border Grid.Column="2"
+                                x:Name="ConfirmationButtonBorder"
+                                Background="#2196F3"
+                                CornerRadius="6">
+                            <Button x:Name="ConfirmationConfirmButton"
+                                    Click="ConfirmationConfirmButton_Click"
+                                    Background="Transparent"
+                                    Foreground="White"
+                                    BorderBrush="Transparent"
+                                    Padding="12,8"
+                                    Cursor="Hand">
+                                <TextBlock x:Name="ConfirmationConfirmText"
+                                           Text="Confirm"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"/>
+                            </Button>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </Border>
     </Grid>
 </Page>
