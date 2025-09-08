@@ -8,6 +8,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +25,15 @@ using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using Timer = System.Timers.Timer;
+
+// NEW: bring in config models + enum alias
+using CMDevicesManager.Pages; // contains CanvasConfiguration / ElementConfiguration
+using LiveInfoKindAlias = CMDevicesManager.Pages.DeviceConfigPage.LiveInfoKind;
+using CMDevicesManager.Services;
+using Image = System.Windows.Controls.Image;
+using Brushes = System.Windows.Media.Brushes;
+using Point = System.Windows.Point;
+using Brush = System.Windows.Media.Brush;
 
 namespace CMDevicesManager.Pages
 {
@@ -82,6 +93,14 @@ namespace CMDevicesManager.Pages
         private int _currentBrightness = 80;
         private bool _isBrightnessSliderUpdating;
 
+        // NEW: metrics + timer for live elements
+        private readonly ISystemMetricsService _metrics = new RealSystemMetricsService();
+        private readonly System.Windows.Threading.DispatcherTimer _liveUpdateTimer;
+        private readonly List<(TextBlock Text, LiveInfoKindAlias Kind, string? DateFormat)> _liveDynamicItems = new();
+
+        // Base folder (same logic as DeviceConfigPage)
+        private readonly string _outputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager");
+
         public DevicePlayModePage()
         {
             InitializeComponent();
@@ -89,7 +108,39 @@ namespace CMDevicesManager.Pages
             InitConfigSequence();
             _currentPlayMode = PlayMode.RealtimeConfig;
             UpdatePlayModeUI();
+
+            // NEW: live timer
+            _liveUpdateTimer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _liveUpdateTimer.Tick += LiveUpdateTimer_Tick;
+            _liveUpdateTimer.Start();
         }
+
+        private void LiveUpdateTimer_Tick(object? sender, EventArgs e)
+        {
+            double cpu = _metrics.GetCpuUsagePercent();
+            double gpu = _metrics.GetGpuUsagePercent();
+            var now = DateTime.Now;
+
+            foreach (var (text, kind, fmt) in _liveDynamicItems)
+            {
+                switch (kind)
+                {
+                    case LiveInfoKindAlias.CpuUsage:
+                        text.Text = $"CPU {Math.Round(cpu)}%";
+                        break;
+                    case LiveInfoKindAlias.GpuUsage:
+                        text.Text = $"GPU {Math.Round(gpu)}%";
+                        break;
+                    case LiveInfoKindAlias.DateTime:
+                        text.Text = now.ToString(string.IsNullOrWhiteSpace(fmt) ? "yyyy-MM-dd HH:mm:ss" : fmt);
+                        break;
+                }
+            }
+        }
+
         private void UpdatePlayModeUI()
         {
             bool isRealtime = _currentPlayMode == PlayMode.RealtimeConfig;
@@ -353,6 +404,39 @@ namespace CMDevicesManager.Pages
                     FilePath = ofd.FileName,
                     DurationSeconds = 5
                 });
+
+                // 新增：自动开始播放序列（无需用户再点 Start）
+                if (_currentPlayMode == PlayMode.RealtimeConfig && !_isConfigSequenceRunning && ConfigSequence.Count > 0)
+                {
+                    StartConfigSequence(); // 异步 fire-and-forget
+                }
+            }
+        }
+        // 提取原 StartSequenceButton_Click 逻辑，供按钮和自动触发共同使用
+        private async void StartConfigSequence()
+        {
+            if (_isConfigSequenceRunning) return;
+            if (ConfigSequence.Count == 0) return;
+
+            _isConfigSequenceRunning = true;
+            _configSequenceCts = new CancellationTokenSource();
+            StartSequenceButton.IsEnabled = false;
+            StopSequenceButton.IsEnabled = true;
+
+            try
+            {
+                await RunConfigSequenceAsync(_configSequenceCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                _isConfigSequenceRunning = false;
+                _configSequenceCts?.Dispose();
+                _configSequenceCts = null;
+                StartSequenceButton.IsEnabled = true;
+                StopSequenceButton.IsEnabled = false;
             }
         }
 
@@ -372,6 +456,8 @@ namespace CMDevicesManager.Pages
                 return;
             }
             ConfigSequence.Clear();
+            DesignCanvas.Children.Clear();
+            _liveDynamicItems.Clear();
         }
 
         private void MoveConfigUp_Click(object sender, RoutedEventArgs e)
@@ -379,10 +465,7 @@ namespace CMDevicesManager.Pages
             if (sender is Button btn && btn.Tag is PlayConfigItem item)
             {
                 int idx = ConfigSequence.IndexOf(item);
-                if (idx > 0)
-                {
-                    ConfigSequence.Move(idx, idx - 1);
-                }
+                if (idx > 0) ConfigSequence.Move(idx, idx - 1);
             }
         }
 
@@ -392,51 +475,13 @@ namespace CMDevicesManager.Pages
             {
                 int idx = ConfigSequence.IndexOf(item);
                 if (idx >= 0 && idx < ConfigSequence.Count - 1)
-                {
                     ConfigSequence.Move(idx, idx + 1);
-                }
             }
         }
 
         private async void StartSequenceButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_isConfigSequenceRunning)
-            {
-               // ShowErrorMessage("Sequence already running.");
-                return;
-            }
-            if (ConfigSequence.Count == 0)
-            {
-                //ShowErrorMessage("No config selected.");
-                return;
-            }
-
-            _isConfigSequenceRunning = true;
-            _configSequenceCts = new CancellationTokenSource();
-            StartSequenceButton.IsEnabled = false;
-            StopSequenceButton.IsEnabled = true;
-           // ShowStatusMessage("Sequence started (loop).");
-
-            try
-            {
-                await RunConfigSequenceAsync(_configSequenceCts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                //ShowStatusMessage("Sequence stopped.");
-            }
-            catch (Exception ex)
-            {
-                //ShowErrorMessage($"Sequence error: {ex.Message}");
-            }
-            finally
-            {
-                _isConfigSequenceRunning = false;
-                _configSequenceCts?.Dispose();
-                _configSequenceCts = null;
-                StartSequenceButton.IsEnabled = true;
-                StopSequenceButton.IsEnabled = false;
-            }
+            StartConfigSequence();
         }
 
         private void StopSequenceButton_Click(object sender, RoutedEventArgs e)
@@ -498,23 +543,299 @@ namespace CMDevicesManager.Pages
             e.Handled = !_digitsRegex.IsMatch(e.Text);
         }
 
-        // 实际加载配置到 Canvas （TODO: 替换为你已有的配置反序列化逻辑）
+        // ============ NEW IMPLEMENTATION: Load & Render Config ============
         private async Task LoadConfigToCanvasAsync(string filePath, CancellationToken token)
         {
-            // 示例：读取 JSON 并模拟加载过程
+            if (!File.Exists(filePath))
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    CurrentImageName.Text = "(Missing config)";
+                    ImageDimensions.Text = "";
+                });
+                return;
+            }
+
+            CanvasConfiguration? cfg = null;
+            try
+            {
+                var json = await File.ReadAllTextAsync(filePath, token);
+                cfg = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
+                {
+                    Converters = { new JsonStringEnumConverter() }
+                });
+            }
+            catch
+            {
+                // ignore parsing exceptions in play mode
+            }
+
+            if (cfg == null)
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    CurrentImageName.Text = "(Invalid config)";
+                    ImageDimensions.Text = "";
+                });
+                return;
+            }
+
             await Dispatcher.InvokeAsync(() =>
             {
-                // TODO: 调用你在 DeviceConfigPage 使用的反序列化 / 应用方法
-                // 例如: var cfg = JsonSerializer.Deserialize<DisplayLayout>(File.ReadAllText(filePath));
-                // ApplyLayoutToCanvas(cfg);
+                ApplyConfigurationToPreview(cfg);
                 CurrentImageName.Text = System.IO.Path.GetFileName(filePath);
-                ImageDimensions.Text = "Config Applied";
+                ImageDimensions.Text = $"{cfg.CanvasSize}×{cfg.CanvasSize}";
             });
-
-            // 如果需要延迟或资源加载可在此扩展
             token.ThrowIfCancellationRequested();
         }
-    
+
+        private void ApplyConfigurationToPreview(CanvasConfiguration cfg)
+        {
+            _liveDynamicItems.Clear();
+            DesignCanvas.Children.Clear();
+
+            // Background color
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(cfg.BackgroundColor))
+                {
+                    var brush = (Brush)new BrushConverter().ConvertFromString(cfg.BackgroundColor);
+                    BgColorRect.Fill = brush;
+                }
+            }
+            catch
+            {
+                BgColorRect.Fill = Brushes.Black;
+            }
+
+            // Background image
+            if (!string.IsNullOrWhiteSpace(cfg.BackgroundImagePath))
+            {
+                string resolved = ResolveRelativePath(cfg.BackgroundImagePath);
+                if (File.Exists(resolved))
+                {
+                    try
+                    {
+                        var bmp = new BitmapImage();
+                        bmp.BeginInit();
+                        bmp.CacheOption = BitmapCacheOption.OnLoad;
+                        bmp.UriSource = new Uri(resolved, UriKind.Absolute);
+                        bmp.EndInit();
+                        bmp.Freeze();
+                        BgImage.Source = bmp;
+                        BgImage.Opacity = cfg.BackgroundImageOpacity <= 0 ? 1.0 : cfg.BackgroundImageOpacity;
+                    }
+                    catch
+                    {
+                        BgImage.Source = null;
+                    }
+                }
+                else
+                {
+                    BgImage.Source = null;
+                }
+            }
+            else
+            {
+                BgImage.Source = null;
+            }
+
+            foreach (var elem in cfg.Elements.OrderBy(e => e.ZIndex))
+            {
+                FrameworkElement? content = null;
+
+                switch (elem.Type)
+                {
+                    case "Text":
+                        {
+                            var tb = new TextBlock
+                            {
+                                Text = elem.Text ?? "Text",
+                                FontSize = elem.FontSize ?? 24,
+                                FontWeight = FontWeights.SemiBold
+                            };
+                            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+                            ApplyTextColors(tb, elem.UseTextGradient, elem.TextColor, elem.TextColor2);
+                            content = tb;
+                            break;
+                        }
+                    case "LiveText":
+                        {
+                            if (elem.LiveKind.HasValue)
+                            {
+                                var kind = elem.LiveKind.Value;
+                                var tb = new TextBlock
+                                {
+                                    FontSize = elem.FontSize ?? 18,
+                                    FontWeight = FontWeights.SemiBold
+                                };
+                                tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+
+                                // Initial text
+                                switch (kind)
+                                {
+                                    case LiveInfoKindAlias.CpuUsage:
+                                        tb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
+                                        break;
+                                    case LiveInfoKindAlias.GpuUsage:
+                                        tb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
+                                        break;
+                                    case LiveInfoKindAlias.DateTime:
+                                        tb.Text = DateTime.Now.ToString(string.IsNullOrWhiteSpace(elem.DateFormat) ? "yyyy-MM-dd HH:mm:ss" : elem.DateFormat);
+                                        break;
+                                    default:
+                                        tb.Text = "Live";
+                                        break;
+                                }
+
+                                // For play mode we simplify usage visuals to text.
+                                ApplyTextColors(tb, elem.UseTextGradient, elem.TextColor, elem.TextColor2);
+
+                                content = tb;
+                                _liveDynamicItems.Add((tb, kind, elem.DateFormat));
+                            }
+                            break;
+                        }
+                    case "Image":
+                        {
+                            if (!string.IsNullOrEmpty(elem.ImagePath))
+                            {
+                                string resolved = ResolveRelativePath(elem.ImagePath);
+                                if (File.Exists(resolved))
+                                {
+                                    try
+                                    {
+                                        var img = new Image { Stretch = Stretch.Uniform };
+                                        var bmp = new BitmapImage();
+                                        bmp.BeginInit();
+                                        bmp.CacheOption = BitmapCacheOption.OnLoad;
+                                        bmp.UriSource = new Uri(resolved, UriKind.Absolute);
+                                        bmp.EndInit();
+                                        bmp.Freeze();
+                                        img.Source = bmp;
+                                        content = img;
+                                    }
+                                    catch { }
+                                }
+                            }
+                            break;
+                        }
+                    case "Video":
+                        {
+                            // Placeholder (extend to real playback if required)
+                            var tb = new TextBlock
+                            {
+                                Text = "VIDEO",
+                                FontSize = 24,
+                                Foreground = Brushes.White,
+                                FontWeight = FontWeights.Bold,
+                                Background = new SolidColorBrush(Color.FromArgb(60, 0, 0, 0)),
+                                Padding = new Thickness(10)
+                            };
+                            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+                            content = tb;
+                            break;
+                        }
+                }
+
+                if (content != null)
+                {
+                    var host = new Border
+                    {
+                        Child = content,
+                        Opacity = elem.Opacity <= 0 ? 1.0 : elem.Opacity,
+                        BorderThickness = new Thickness(0)
+                    };
+
+                    var tg = new TransformGroup();
+                    tg.Children.Add(new ScaleTransform(elem.Scale <= 0 ? 1.0 : elem.Scale, elem.Scale <= 0 ? 1.0 : elem.Scale));
+                    tg.Children.Add(new TranslateTransform(elem.X, elem.Y));
+                    host.RenderTransform = tg;
+                    host.RenderTransformOrigin = new Point(0.5, 0.5);
+
+                    Canvas.SetZIndex(host, elem.ZIndex);
+                    DesignCanvas.Children.Add(host);
+                }
+            }
+        }
+
+        private void ApplyTextColors(TextBlock tb, bool? useGradient, string? c1Hex, string? c2Hex)
+        {
+            try
+            {
+                if (useGradient == true &&
+                    !string.IsNullOrWhiteSpace(c1Hex) &&
+                    !string.IsNullOrWhiteSpace(c2Hex) &&
+                    TryParseColor(c1Hex, out var c1) &&
+                    TryParseColor(c2Hex, out var c2))
+                {
+                    var lg = new LinearGradientBrush
+                    {
+                        StartPoint = new Point(0, 0),
+                        EndPoint = new Point(1, 1)
+                    };
+                    lg.GradientStops.Add(new GradientStop(c1, 0));
+                    lg.GradientStops.Add(new GradientStop(c2, 1));
+                    tb.Foreground = lg;
+                }
+                else if (!string.IsNullOrWhiteSpace(c1Hex) && TryParseColor(c1Hex, out var cSolid))
+                {
+                    tb.Foreground = new SolidColorBrush(cSolid);
+                }
+                else
+                {
+                    tb.Foreground = Brushes.White;
+                }
+            }
+            catch
+            {
+                tb.Foreground = Brushes.White;
+            }
+        }
+
+        private bool TryParseColor(string hex, out Color c)
+        {
+            c = Colors.White;
+            try
+            {
+                if (!hex.StartsWith("#")) hex = "#" + hex;
+                var brush = (SolidColorBrush)new BrushConverter().ConvertFromString(hex);
+                c = brush.Color;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private string ResolveRelativePath(string relativePath)
+        {
+            try
+            {
+                if (Path.IsPathRooted(relativePath) && File.Exists(relativePath))
+                    return relativePath;
+
+                string candidate = Path.Combine(_outputFolder, relativePath);
+                if (File.Exists(candidate)) return candidate;
+
+                candidate = Path.Combine(_outputFolder, "Resources", relativePath);
+                if (File.Exists(candidate)) return candidate;
+
+                foreach (var sub in new[] { "Images", "Backgrounds", "Videos" })
+                {
+                    candidate = Path.Combine(_outputFolder, "Resources", sub, relativePath);
+                    if (File.Exists(candidate)) return candidate;
+                }
+
+                return relativePath;
+            }
+            catch
+            {
+                return relativePath;
+            }
+        }
+        // =================== (rest of original file unchanged below) ===================
 
         private void UpdateRotationButtonAppearance(int selectedRotation)
         {
@@ -535,16 +856,16 @@ namespace CMDevicesManager.Pages
 
         private async void RotationButton_Click(object sender, RoutedEventArgs e)
         {
-            
+
             var actives = _multiDeviceManager.GetActiveControllers();
-           
+
             if (sender is Button b && b.Tag is string s && int.TryParse(s, out int deg))
             {
                 try
                 {
-                   
+
                     SetRotationButtonsEnabled(false);
-                   
+
                     var results = await _multiDeviceManager.SetRotationOnAllDevices(deg);
                     int ok = results.Values.Count(v => v);
                     if (ok == results.Count)
@@ -552,13 +873,13 @@ namespace CMDevicesManager.Pages
                         _currentRotation = deg;
                         CurrentRotationText.Text = $"Current: {deg}°";
                         UpdateRotationButtonAppearance(deg);
-                       
+
                     }
-                    
+
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                   
+
                 }
                 finally
                 {
@@ -582,7 +903,7 @@ namespace CMDevicesManager.Pages
             BrightnessValueText.Text = $"{newVal}%";
             if (Math.Abs(newVal - _currentBrightness) < 1) return;
             var actives = _multiDeviceManager.GetActiveControllers();
-            if (actives.Count == 0) {  return; }
+            if (actives.Count == 0) { return; }
             try
             {
                 BrightnessSlider.IsEnabled = false;
@@ -681,7 +1002,6 @@ namespace CMDevicesManager.Pages
             }
         }
 
-      
         private async void LoadCurrentDeviceSettings()
         {
             if (_multiDeviceManager == null) return;
@@ -733,8 +1053,6 @@ namespace CMDevicesManager.Pages
                 Console.WriteLine($"Load settings failed: {ex.Message}");
             }
         }
-
-      
 
         private void ShowStreamingStatus(bool active)
         {
@@ -838,8 +1156,6 @@ namespace CMDevicesManager.Pages
         }
 
 
-       
-
         private bool PrepareStreaming(bool keepAlive = true)
         {
             
@@ -872,9 +1188,11 @@ namespace CMDevicesManager.Pages
         {
             StopKeepAliveTimer();
             _streamingCancellationSource?.Cancel();
-        }
 
-        // Reuse methods adapted from demo (trimmed where possible)
+            // NEW: dispose metrics + stop timer
+            try { _liveUpdateTimer.Stop(); } catch { }
+            try { _metrics.Dispose(); } catch { }
+        }
 
         private async Task<bool> EnhancedRealTimeDisplayDemo(DisplayController controller, string imageDirectory, int cycleCount, CancellationToken token)
         {
@@ -961,7 +1279,7 @@ namespace CMDevicesManager.Pages
                 return false;
             }
         }
-    
+
         // MP4 advanced streaming pieces (copied essential parts)
         public delegate void Mp4DeviceDisplayCallback(VideoFrameData frameData, int frameIndex, byte transferId);
 
