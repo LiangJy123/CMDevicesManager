@@ -42,6 +42,18 @@ namespace CMDevicesManager.Pages
 {
     public partial class DevicePlayModePage : Page
     {
+        private readonly string _globalSequencePath;
+        private readonly object _globalSequenceLock = new();
+        private sealed class GlobalConfigSequence
+        {
+            public List<GlobalConfigEntry> Items { get; set; } = new();
+        }
+        private sealed class GlobalConfigEntry
+        {
+            public string FilePath { get; set; } = "";
+            public int DurationSeconds { get; set; }
+        }
+
         private sealed class UsageVisualItem
         {
             public Border HostBorder = null!;
@@ -125,9 +137,10 @@ namespace CMDevicesManager.Pages
         public class PlayConfigItem : INotifyPropertyChanged
         {
             private int _durationSeconds;
-            public bool _isDurationEditable;   // 新增
+            private bool _isDurationEditable;
             public string DisplayName { get; set; } = "";
             public string FilePath { get; set; } = "";
+
             public int DurationSeconds
             {
                 get => _durationSeconds;
@@ -140,6 +153,20 @@ namespace CMDevicesManager.Pages
                     }
                 }
             }
+
+            public bool IsDurationEditable
+            {
+                get => _isDurationEditable;
+                set
+                {
+                    if (value != _isDurationEditable)
+                    {
+                        _isDurationEditable = value;
+                        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsDurationEditable)));
+                    }
+                }
+            }
+
             public event PropertyChangedEventHandler? PropertyChanged;
         }
 
@@ -190,6 +217,90 @@ namespace CMDevicesManager.Pages
             _liveUpdateTimer.Tick += LiveUpdateTimer_Tick;
             _liveUpdateTimer.Start();
             _autoMoveTimer.Tick += AutoMoveTimer_Tick;
+            _globalSequencePath = Path.Combine(_outputFolder, "globalconfig1.json");
+            TryLoadGlobalSequence();   // 进入页面尝试恢复
+            UpdateDurationEditableStates();
+            if (ConfigSequence.Count > 0 && !_isConfigSequenceRunning)
+            {
+                StartConfigSequence();
+            }
+        }
+        private void AttachConfigItemEvents(PlayConfigItem item)
+        {
+            item.PropertyChanged += OnConfigItemPropertyChanged;
+        }
+
+        private void DetachConfigItemEvents(PlayConfigItem item)
+        {
+            item.PropertyChanged -= OnConfigItemPropertyChanged;
+        }
+
+        private void OnConfigItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(PlayConfigItem.DurationSeconds))
+            {
+                SaveGlobalSequence(); // Duration 改变即保存
+            }
+        }
+        private void TryLoadGlobalSequence()
+        {
+            try
+            {
+                if (!File.Exists(_globalSequencePath)) return;
+                string json = File.ReadAllText(_globalSequencePath);
+                var data = JsonSerializer.Deserialize<GlobalConfigSequence>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                if (data?.Items == null) return;
+
+                ConfigSequence.Clear();
+                foreach (var entry in data.Items)
+                {
+                    if (string.IsNullOrWhiteSpace(entry.FilePath)) continue;
+                    // 可选择：若文件缺失仍恢复（或跳过）。这里允许缺失（用户可手工移除）。
+                    var item = new PlayConfigItem
+                    {
+                        FilePath = entry.FilePath,
+                        DisplayName = Path.GetFileNameWithoutExtension(entry.FilePath),
+                        DurationSeconds = entry.DurationSeconds > 0 ? entry.DurationSeconds : 5
+                    };
+                    AttachConfigItemEvents(item);
+                    ConfigSequence.Add(item);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PlayMode] Load global sequence failed: {ex.Message}");
+            }
+        }
+
+        private void SaveGlobalSequence()
+        {
+            try
+            {
+                lock (_globalSequenceLock)
+                {
+                    var data = new GlobalConfigSequence
+                    {
+                        Items = ConfigSequence.Select(c => new GlobalConfigEntry
+                        {
+                            FilePath = c.FilePath,
+                            DurationSeconds = c.DurationSeconds
+                        }).ToList()
+                    };
+                    Directory.CreateDirectory(_outputFolder);
+                    var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+                    File.WriteAllText(_globalSequencePath, json);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PlayMode] Save global sequence failed: {ex.Message}");
+            }
         }
 
         private void LiveUpdateTimer_Tick(object? sender, EventArgs e)
@@ -552,7 +663,7 @@ namespace CMDevicesManager.Pages
             bool editable = ConfigSequence.Count > 1;
             foreach (var item in ConfigSequence)
             {
-                item._isDurationEditable = editable;
+                item.IsDurationEditable = editable;
             }
         }
         private void ClearCanvasForNoConfigs()
@@ -572,6 +683,7 @@ namespace CMDevicesManager.Pages
             // 重置显示信息
             CurrentImageName.Text = "No config";
             ImageDimensions.Text = "";
+            SaveGlobalSequence();
         }
 
 
@@ -587,13 +699,18 @@ namespace CMDevicesManager.Pages
             };
             if (ofd.ShowDialog() == true)
             {
-                string name = System.IO.Path.GetFileNameWithoutExtension(ofd.FileName);
-                ConfigSequence.Add(new PlayConfigItem
+                string name = Path.GetFileNameWithoutExtension(ofd.FileName);
+                var newItem = new PlayConfigItem
                 {
                     DisplayName = name,
                     FilePath = ofd.FileName,
                     DurationSeconds = 5
-                });
+                };
+                AttachConfigItemEvents(newItem);
+                ConfigSequence.Add(newItem);
+
+                UpdateDurationEditableStates();
+                SaveGlobalSequence();
 
                 if (_currentPlayMode == PlayMode.RealtimeConfig && !_isConfigSequenceRunning)
                 {
@@ -636,6 +753,7 @@ namespace CMDevicesManager.Pages
 
                 // 列表仍有元素，更新可编辑状态（避免第一项仍锁定）
                 UpdateDurationEditableStates();
+                SaveGlobalSequence();
             }
         }
 
@@ -647,6 +765,7 @@ namespace CMDevicesManager.Pages
             }
             ConfigSequence.Clear();
             ClearCanvasForNoConfigs();
+            SaveGlobalSequence();
         }
 
         private void MoveConfigUp_Click(object sender, RoutedEventArgs e)
@@ -655,6 +774,8 @@ namespace CMDevicesManager.Pages
             {
                 int idx = ConfigSequence.IndexOf(item);
                 if (idx > 0) ConfigSequence.Move(idx, idx - 1);
+                UpdateDurationEditableStates();
+                SaveGlobalSequence();
             }
         }
 
