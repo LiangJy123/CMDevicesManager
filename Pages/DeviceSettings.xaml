@@ -644,6 +644,18 @@
                                         BorderBrush="Transparent"
                                         Padding="12,10"
                                         Cursor="Hand">
+                                    <Button.ToolTip>
+                                        <ToolTip MaxWidth="300">
+                                            <StackPanel>
+                                                <TextBlock Text="Reboot Device" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                <TextBlock TextWrapping="Wrap" FontSize="12">
+                                                    Restart the device immediately. The device will disconnect temporarily and reconnect automatically after rebooting.
+                                                </TextBlock>
+                                                <TextBlock Text="⚠ Device will become temporarily unavailable" 
+                                                           FontSize="11" Foreground="Orange" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Button.ToolTip>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock Text="&#xE7E8;"
                                                    FontFamily="Segoe MDL2 Assets"
@@ -668,6 +680,24 @@
                                         BorderBrush="Transparent"
                                         Padding="12,10"
                                         Cursor="Hand">
+                                    <Button.ToolTip>
+                                        <ToolTip MaxWidth="350">
+                                            <StackPanel>
+                                                <TextBlock Text="Factory Reset" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                                    Reset the device to factory defaults. This will permanently erase all settings, configurations, and stored data.
+                                                </TextBlock>
+                                                <TextBlock Text="⚠ WARNING: This action cannot be undone!" 
+                                                           FontSize="11" FontWeight="Bold" Foreground="Red" Margin="0,4,0,0"/>
+                                                <TextBlock Text="• All device settings will be lost" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
+                                                <TextBlock Text="• All media files will be deleted" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                                <TextBlock Text="• Device will restart automatically" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Button.ToolTip>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock Text="&#xE7AD;"
                                                    FontFamily="Segoe MDL2 Assets"
@@ -692,6 +722,24 @@
                                         BorderBrush="Transparent"
                                         Padding="12,10"
                                         Cursor="Hand">
+                                    <Button.ToolTip>
+                                        <ToolTip MaxWidth="350">
+                                            <StackPanel>
+                                                <TextBlock Text="Update Firmware" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                                    Update the device firmware with a new firmware file. Select a .bin, .hex, or .fw file to upload.
+                                                </TextBlock>
+                                                <TextBlock Text="⚠ CRITICAL: Do not disconnect during update!" 
+                                                           FontSize="11" FontWeight="Bold" Foreground="Red" Margin="0,4,0,0"/>
+                                                <TextBlock Text="• Interrupting may permanently damage device" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
+                                                <TextBlock Text="• Process may take several minutes" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                                <TextBlock Text="• Device will restart after completion" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Button.ToolTip>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                         <TextBlock Text="&#xE896;"
                                                    FontFamily="Segoe MDL2 Assets"
@@ -776,11 +824,22 @@
                                                       Grid.Column="1"
                                                       HorizontalAlignment="Left"
                                                       Click="SleepModeToggle_Click"
-                                                      Style="{StaticResource SleepModeToggleStyle}"
-													  ToolTipService.ToolTip="OFF: When the system sleeps, the LCD Off.  ON: When the system sleeps, the LCD on and plays the customized setting."
-													  ToolTipService.Placement="MousePoint"
-													  ToolTipService.InitialShowDelay="100"/>
-                                        
+                                                      Style="{StaticResource SleepModeToggleStyle}">
+                                            <ToggleButton.ToolTip>
+                                                <ToolTip MaxWidth="280">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Sleep Mode Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                                            Toggle sleep mode on or off. When enabled, the display will automatically enter sleep mode when idle.
+                                                        </TextBlock>
+                                                        <TextBlock Text="ON: Display sleeps when idle" 
+                                                                   FontSize="11" Foreground="LightGreen" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="OFF: Display stays active" 
+                                                                   FontSize="11" Foreground="LightCoral" Margin="0,1,0,0"/>
+                                                    </StackPanel>
+                                                </ToolTip>
+                                            </ToggleButton.ToolTip>
+                                        </ToggleButton>
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -825,8 +884,150 @@
                                                       Style="{StaticResource SuspendModeToggleStyle}"
 													  ToolTipService.ToolTip="OFF: Play the device build-in animation.  ON: Play the below imported image or animation."
 													  ToolTipService.Placement="MousePoint"
-													  ToolTipService.InitialShowDelay="100"/>
+													  ToolTipService.InitialShowDelay="100">
+                                            <ToggleButton.ToolTip>
+                                                <ToolTip MaxWidth="320">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Suspend Mode Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                                            Toggle suspend mode for offline media playback. When activated, the device enters suspend mode to play stored media files.
+                                                        </TextBlock>
+                                                        <TextBlock Text="ON: Device plays suspend media offline" 
+                                                                   FontSize="11" Foreground="LightBlue" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="OFF: Normal operation mode" 
+                                                                   FontSize="11" Foreground="Orange" Margin="0,1,0,0"/>
+                                                        <TextBlock Text="⚠ Device may become temporarily unresponsive" 
+                                                                   FontSize="10" Foreground="Yellow" Margin="0,3,0,0"/>
+                                                    </StackPanel>
+                                                </ToolTip>
+                                            </ToggleButton.ToolTip>
+                                        </ToggleButton>
+                                        
+                                        
                                     </Grid>
+                                    
+                                    <!-- Dynamic Content Area - Shows either suspend media files or add button -->
+                                    <Border x:Name="SuspendModeContentArea"
+                                            Background="#242424"
+                                            CornerRadius="6"
+                                            Padding="12"
+                                            Margin="0,12,0,0">
+                                        
+                                        <Grid>
+                                            <!-- Active Suspend Media Display (when suspend mode is ON) -->
+                                            <StackPanel x:Name="ActiveSuspendMediaPanel"
+                                                        Visibility="Collapsed">
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="&#xE8FD;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="14"
+                                                               Foreground="#4CAF50"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,0,6,0"/>
+                                                    <TextBlock Text="Active Suspend Media Files"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#CCCCCC"/>
+                                                </StackPanel>
+                                                
+                                                <ItemsControl x:Name="SuspendMediaList">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Background="#1A1A1A"
+                                                                    CornerRadius="4"
+                                                                    Padding="8,6"
+                                                                    Margin="0,2">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    
+                                                                    <TextBlock Grid.Column="0"
+                                                                               Text="&#xE8D4;"
+                                                                               FontFamily="Segoe MDL2 Assets"
+                                                                               FontSize="12"
+                                                                               Foreground="#4CAF50"
+                                                                               VerticalAlignment="Center"
+                                                                               Margin="0,0,8,0"/>
+                                                                    
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Text="{Binding}"
+                                                                               FontSize="11"
+                                                                               Foreground="White"
+                                                                               VerticalAlignment="Center"/>
+                                                                    
+                                                                    <TextBlock Grid.Column="2"
+                                                                               Text="Active"
+                                                                               FontSize="10"
+                                                                               Foreground="#4CAF50"
+                                                                               VerticalAlignment="Center"/>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                            
+                                            <!-- Add Media Button (when suspend mode is OFF) -->
+                                            <StackPanel x:Name="AddMediaButtonPanel"
+                                                        Visibility="Visible">
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="&#xE8F4;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="14"
+                                                               Foreground="#FF9800"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,0,6,0"/>
+                                                    <TextBlock Text="No suspend media files loaded"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#CCCCCC"/>
+                                                </StackPanel>
+                                                
+                                                <Border Background="#673AB7"
+                                                        CornerRadius="4"
+                                                        Margin="0,4,0,0">
+                                                    <Button x:Name="AddSuspendMediaButton"
+                                                            Click="AddSuspendMediaButton_Click"
+                                                            Background="Transparent"
+                                                            Foreground="White"
+                                                            BorderBrush="Transparent"
+                                                            Padding="12,8"
+                                                            Cursor="Hand">
+                                                        <Button.ToolTip>
+                                                            <ToolTip MaxWidth="300">
+                                                                <StackPanel>
+                                                                    <TextBlock Text="Add Suspend Media Files" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                                    <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                                                        Select and upload media files for offline suspend mode playback. Multiple files can be selected at once.
+                                                                    </TextBlock>
+                                                                    <TextBlock Text="Supported formats:" 
+                                                                               FontSize="11" FontWeight="SemiBold" Margin="0,4,0,2"/>
+                                                                    <TextBlock Text="• Video: MP4, AVI, MOV, WMV" 
+                                                                               FontSize="10" Foreground="LightBlue" Margin="0,1,0,0"/>
+                                                                    <TextBlock Text="• Images: JPG, PNG, BMP" 
+                                                                               FontSize="10" Foreground="LightGreen" Margin="0,1,0,0"/>
+                                                                    <TextBlock Text="💡 Suspend mode will auto-activate after upload" 
+                                                                               FontSize="10" Foreground="Gold" Margin="0,3,0,0"/>
+                                                                </StackPanel>
+                                                            </ToolTip>
+                                                        </Button.ToolTip>
+                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                            <TextBlock Text="&#xE710;"
+                                                                       FontFamily="Segoe MDL2 Assets"
+                                                                       FontSize="14"
+                                                                       Margin="0,0,8,0"/>
+                                                            <TextBlock Text="Add Media Files"
+                                                                       FontSize="12"
+                                                                       FontWeight="SemiBold"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
                                 </StackPanel>
                             </Border>
                         </Grid>
