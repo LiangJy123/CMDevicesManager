@@ -286,8 +286,17 @@ namespace CDMDevicesManagerDevWinUI.Views
 
         private void DeviceCard_ConfigRequested(object sender, DeviceActionEventArgs e)
         {
-            // Navigate to device configuration page
-            // App.Current.NavService.NavigateTo(typeof(DeviceConfigPage), e.DeviceInfo);
+            // Navigate to device settings page
+            try
+            {
+                var settingsPage = new DeviceShow(e.DeviceInfo);
+                this.Frame.Navigate(typeof(DeviceShow), e.DeviceInfo);
+                System.Diagnostics.Debug.WriteLine($"Navigating to DeviceShow for device: {e.DeviceInfo.ProductName}");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to navigate to device settings: {ex.Message}");
+            }
         }
 
         private void DeviceCard_LiveViewRequested(object sender, DeviceActionEventArgs e)

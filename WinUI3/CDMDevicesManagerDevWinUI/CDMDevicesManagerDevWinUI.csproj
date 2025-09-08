@@ -49,6 +49,9 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BreadcrumbPageMappings.cs</LastGenOutput>
     </None>
+    <Page Update="Views\DeviceShow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="Views\DeviceSettings.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -70,6 +73,7 @@
 
   <ItemGroup>
     <None Remove="Views\DeviceSettings.xaml" />
+    <None Remove="Views\DeviceShow.xaml" />
   </ItemGroup>
 
   <ItemGroup>
