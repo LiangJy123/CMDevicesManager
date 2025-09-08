@@ -125,6 +125,7 @@ namespace CMDevicesManager.Pages
         public class PlayConfigItem : INotifyPropertyChanged
         {
             private int _durationSeconds;
+            public bool _isDurationEditable;   // 新增
             public string DisplayName { get; set; } = "";
             public string FilePath { get; set; } = "";
             public int DurationSeconds
@@ -538,14 +539,41 @@ namespace CMDevicesManager.Pages
             ConfigSequence.CollectionChanged += (_, __) =>
             {
                 Raise(nameof(IsMultiConfig));
-                // 自动给刚添加的单个配置设为 5 秒（UI 显示时可能禁用）
                 if (ConfigSequence.Count == 1)
                 {
                     var item = ConfigSequence[0];
                     if (item.DurationSeconds <= 0) item.DurationSeconds = 5;
                 }
+                UpdateDurationEditableStates();
             };
         }
+        private void UpdateDurationEditableStates()
+        {
+            bool editable = ConfigSequence.Count > 1;
+            foreach (var item in ConfigSequence)
+            {
+                item._isDurationEditable = editable;
+            }
+        }
+        private void ClearCanvasForNoConfigs()
+        {
+            // 停止序列
+            _configSequenceCts?.Cancel();
+
+            // 清空渲染与状态
+            DesignCanvas.Children.Clear();
+            _liveDynamicItems.Clear();
+            _usageVisualItems.Clear();
+            _movingDirections.Clear();
+
+            // 停止自动移动
+            UpdateAutoMoveTimer();
+
+            // 重置显示信息
+            CurrentImageName.Text = "No config";
+            ImageDimensions.Text = "";
+        }
+
 
         // 在构造函数结尾处调用
         // public DevicePlayModePage() { ... InitConfigSequence(); }
@@ -603,6 +631,7 @@ namespace CMDevicesManager.Pages
                 {
                     _configSequenceCts?.Cancel();
                 }
+                UpdateDurationEditableStates();
             }
         }
 
@@ -613,8 +642,7 @@ namespace CMDevicesManager.Pages
                 _configSequenceCts?.Cancel();
             }
             ConfigSequence.Clear();
-            DesignCanvas.Children.Clear();
-            _liveDynamicItems.Clear();
+            ClearCanvasForNoConfigs();
         }
 
         private void MoveConfigUp_Click(object sender, RoutedEventArgs e)

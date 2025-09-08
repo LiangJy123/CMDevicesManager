@@ -431,7 +431,7 @@
                                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                         <TextBox Width="56"
                                                      Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}"
-                                                     IsEnabled="{Binding DataContext.IsMultiConfig, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                     IsEnabled="{Binding IsDurationEditable}"
                                                      HorizontalContentAlignment="Center"
                                                      PreviewTextInput="DurationTextBox_PreviewTextInput"
                                                      MaxLength="4">
