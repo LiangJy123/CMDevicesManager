@@ -1,4 +1,6 @@
-﻿using HID.DisplayController;
+﻿using CMDevicesManager.Helper;
+using CMDevicesManager.Services;
+using HID.DisplayController;
 using HidApi;
 using Microsoft.Win32;
 using System;
@@ -23,6 +25,9 @@ namespace CMDevicesManager.Pages
     {
         private DeviceInfo? _deviceInfo;
         private DisplayController? _displayController;
+        private HidDeviceService? _hidDeviceService;
+        private bool _isHidServiceInitialized = false;
+
         private bool _isLoading = false;
 
         // Notification system
@@ -32,17 +37,231 @@ namespace CMDevicesManager.Pages
         // Suspend media tracking
         private List<string> _activeSuspendMediaFiles = new();
 
+        #region Properties
+
+        public DeviceInfo? DeviceInfo
+        {
+            get => _deviceInfo;
+            set
+            {
+                if (_deviceInfo != value)
+                {
+                    _deviceInfo = value;
+                    // Initialize HID service when device info is set
+                    _ = InitializeHidDeviceServiceAsync();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the HID device service is initialized and ready
+        /// </summary>
+        public bool IsHidServiceReady => _isHidServiceInitialized && _hidDeviceService?.IsInitialized == true;
+
+        /// <summary>
+        /// Gets the current HID device service instance
+        /// </summary>
+        public HidDeviceService? HidDeviceService => _hidDeviceService;
+
+        #endregion
+
         public DeviceSettings()
         {
             InitializeComponent();
             DisableAllControls();
+            
+            // Initialize suspend mode content area as hidden
+            InitializeSuspendModeDisplay();
         }
 
         public DeviceSettings(DeviceInfo deviceInfo) : this()
         {
-            _deviceInfo = deviceInfo;
+            DeviceInfo = deviceInfo;
             InitializeDevice();
         }
+
+
+        #region HID Device Service Management
+
+        /// <summary>
+        /// Initialize the HID device service and set up device filtering
+        /// </summary>
+        private async Task InitializeHidDeviceServiceAsync()
+        {
+            if (_deviceInfo == null || string.IsNullOrEmpty(_deviceInfo.Path))
+            {
+                Logger.Warn("Cannot initialize HID service: DeviceInfo or device path is null");
+                return;
+            }
+
+            try
+            {
+                Logger.Info($"Initializing HID Device Service for device: {_deviceInfo.ProductString} (Path: {_deviceInfo.Path})");
+
+                // Get the service from ServiceLocator
+                _hidDeviceService = ServiceLocator.HidDeviceService;
+
+                if (!_hidDeviceService.IsInitialized)
+                {
+                    Logger.Warn("HID Device Service is not initialized. Make sure it's initialized in App.xaml.cs");
+                    return;
+                }
+
+                // Set device path filter to only operate on this specific device
+                _hidDeviceService.SetDevicePathFilter(_deviceInfo.Path, enableFilter: true);
+
+                // Only subscribe to DeviceError events
+                _hidDeviceService.DeviceError += OnHidDeviceError;
+
+                _isHidServiceInitialized = true;
+
+                // Verify the device is available
+                var targetDevices = _hidDeviceService.GetOperationTargetDevices();
+                if (targetDevices.Any())
+                {
+                    var targetDevice = targetDevices.First();
+                    Logger.Info($"Target device found: {targetDevice.ProductString} (Serial: {targetDevice.SerialNumber})");
+                }
+                else
+                {
+                    Logger.Warn($"Target device not found in connected devices. Device may be disconnected.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to initialize HID Device Service: {ex.Message}", ex);
+                _isHidServiceInitialized = false;
+            }
+        }
+
+        /// <summary>
+        /// Test connection to the target HID device
+        /// </summary>
+        private async Task TestDeviceConnectionAsync()
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null)
+            {
+                Logger.Warn("HID Device Service is not ready for connection test");
+                return;
+            }
+
+            try
+            {
+                Logger.Info("Testing device connection...");
+
+                // Get device status
+                var statusResults = await _hidDeviceService.GetDeviceStatusAsync();
+
+                if (statusResults.Any())
+                {
+                    var result = statusResults.First();
+                    if (result.Value.HasValue)
+                    {
+                        var status = result.Value.Value;
+                        Logger.Info($"Device connection test successful. Device Path: {result.Key}, Brightness: {status.Brightness}%, Rotation: {status.Degree}°");
+                    }
+                    else
+                    {
+                        Logger.Warn("Device connection test failed - no status received");
+                    }
+                }
+                else
+                {
+                    Logger.Warn("Device connection test failed - no devices found");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Device connection test failed: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Set brightness on the target device
+        /// </summary>
+        /// <param name="brightness">Brightness value (0-100)</param>
+        private async Task SetDeviceBrightnessAsync(int brightness)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null)
+            {
+                Logger.Warn("HID Device Service is not ready for brightness control");
+                return;
+            }
+
+            try
+            {
+                Logger.Info($"Setting device brightness to {brightness}%");
+                var results = await _hidDeviceService.SetBrightnessAsync(brightness);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    Logger.Info($"Device brightness set to {brightness}% successfully");
+                }
+                else
+                {
+                    Logger.Warn("Failed to set device brightness");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to set brightness: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Enable or disable real-time display mode
+        /// </summary>
+        /// <param name="enable">True to enable real-time display mode</param>
+        private async Task SetRealTimeDisplayModeAsync(bool enable)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null)
+            {
+                Logger.Warn("HID Device Service is not ready for real-time mode control");
+                return;
+            }
+
+            try
+            {
+                Logger.Info($"Setting real-time display mode to {enable}");
+                var results = await _hidDeviceService.SetRealTimeDisplayAsync(enable);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    Logger.Info($"Real-time display mode {(enable ? "enabled" : "disabled")} successfully");
+                }
+                else
+                {
+                    Logger.Warn($"Failed to {(enable ? "enable" : "disable")} real-time display mode");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to set real-time mode: {ex.Message}", ex);
+            }
+        }
+
+
+        #endregion
+
+        #region HID Service Event Handlers
+
+        private void OnHidDeviceError(object? sender, DeviceErrorEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (e.Device.Path == _deviceInfo?.Path)
+                {
+                    Logger.Error($"Device error for {e.Device.ProductString}: {e.Exception.Message}", e.Exception);
+                    // Handle device error (could update UI status, retry operations, etc.)
+                    // No MessageBox - just log the error
+                }
+            });
+        }
+
+        #endregion
+
 
         private void DisableAllControls()
         {
@@ -56,7 +275,8 @@ namespace CMDevicesManager.Pages
             {
                 SleepModeToggle.IsEnabled = false;
                 SuspendModeToggle.IsEnabled = false;
-                if (AddSuspendMediaButton != null) AddSuspendMediaButton.IsEnabled = false;
+                // Safely disable add media button if it exists
+                try { if (FindName("AddSuspendMediaButton") is System.Windows.Controls.Button btn) btn.IsEnabled = false; } catch { }
             }
             catch { /* Toggles may not be available yet */ }
         }
@@ -73,7 +293,8 @@ namespace CMDevicesManager.Pages
             {
                 SleepModeToggle.IsEnabled = true;
                 SuspendModeToggle.IsEnabled = true;
-                if (AddSuspendMediaButton != null) AddSuspendMediaButton.IsEnabled = true;
+                // Safely enable add media button if it exists
+                try { if (FindName("AddSuspendMediaButton") is System.Windows.Controls.Button btn) btn.IsEnabled = true; } catch { }
             }
             catch { /* Toggles may not be available yet */ }
         }
@@ -289,27 +510,20 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                if (status.HasValue)
+                bool suspendModeActive = SuspendModeToggle?.IsChecked == true;
+                
+                // Control SuspendModeContentArea visibility based on suspend mode state
+                UpdateSuspendModeContentAreaVisibility(suspendModeActive);
+                
+                if (status.HasValue && suspendModeActive)
                 {
-                    // Check if device is in suspend mode by examining if any suspend media is active
-                    // This is inferred from the presence of active suspend media
-                    bool hasSuspendMedia = false;
+                    // When suspend mode is active, try to get the actual suspend media files
                     _activeSuspendMediaFiles.Clear();
-
-                    // Since DeviceStatus doesn't directly expose suspend media info in the struct,
-                    // we'll need to make a separate call to get the actual suspend media status
-                    // For now, we'll use the toggle state and some heuristics
-                    bool suspendModeActive = SuspendModeToggle?.IsChecked == true;
+                    LoadActiveSuspendMediaFiles();
                     
-                    if (suspendModeActive)
-                    {
-                        // When suspend mode is active, try to get the actual suspend media files
-                        // This would require a separate API call, but for now we'll simulate
-                        LoadActiveSuspendMediaFiles();
-                        hasSuspendMedia = _activeSuspendMediaFiles.Any();
-                    }
-
-                    // Update UI visibility based on suspend mode state
+                    bool hasSuspendMedia = _activeSuspendMediaFiles.Any();
+                    
+                    // Update UI visibility based on suspend media availability
                     if (hasSuspendMedia)
                     {
                         ShowActiveSuspendMedia();
@@ -321,14 +535,217 @@ namespace CMDevicesManager.Pages
                 }
                 else
                 {
-                    // No device status available, show add media button
-                    ShowAddMediaButton();
+                    // When suspend mode is off or no device status, hide the content area
+                    if (!suspendModeActive)
+                    {
+                        HideSuspendModeContent();
+                    }
+                    else
+                    {
+                        // Suspend mode is on but no device status, show add media button
+                        ShowAddMediaButton();
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to update suspend mode display: {ex.Message}");
-                ShowAddMediaButton(); // Fallback to add media button
+                HideSuspendModeContent(); // Fallback to hiding content
+            }
+        }
+
+        // Control the main SuspendModeContentArea visibility
+        private void UpdateSuspendModeContentAreaVisibility(bool suspendModeActive)
+        {
+            try
+            {
+                if (SuspendModeContentArea != null)
+                {
+                    SuspendModeContentArea.Visibility = suspendModeActive ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }
+            catch { /* UI element may not be available */ }
+        }
+
+        // Hide all suspend mode content when suspend mode is off
+        private void HideSuspendModeContent()
+        {
+            try
+            {
+                if (SuspendModeContentArea != null) 
+                    SuspendModeContentArea.Visibility = Visibility.Collapsed;
+                if (ActiveSuspendMediaPanel != null) 
+                    ActiveSuspendMediaPanel.Visibility = Visibility.Collapsed;
+                // Safely handle AddMediaButtonPanel
+                try { if (FindName("AddMediaButtonPanel") is System.Windows.Controls.Panel panel) panel.Visibility = Visibility.Collapsed; } catch { }
+                if (SuspendMediaList != null) 
+                    SuspendMediaList.ItemsSource = null;
+            }
+            catch { /* UI elements may not be available */ }
+        }
+
+        // Initialize suspend mode display state
+        private void InitializeSuspendModeDisplay()
+        {
+            try
+            {
+                // Initially hide the suspend mode content area
+                if (SuspendModeContentArea != null)
+                {
+                    SuspendModeContentArea.Visibility = Visibility.Collapsed;
+                }
+            }
+            catch { /* UI elements may not be available yet during initialization */ }
+        }
+
+        // Method to refresh suspend media display without full device status update
+        private async Task RefreshSuspendMediaDisplay()
+        {
+            try
+            {
+                bool suspendModeActive = SuspendModeToggle?.IsChecked == true;
+                
+                // Update content area visibility
+                UpdateSuspendModeContentAreaVisibility(suspendModeActive);
+                
+                if (suspendModeActive)
+                {
+                    // Get actual suspend media files from device
+                    _activeSuspendMediaFiles = await GetActiveSuspendMediaFromDevice();
+                    
+                    if (_activeSuspendMediaFiles.Any())
+                    {
+                        ShowActiveSuspendMedia();
+                    }
+                    else
+                    {
+                        ShowAddMediaButton();
+                    }
+                }
+                else
+                {
+                    HideSuspendModeContent();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to refresh suspend media display: {ex.Message}");
+                HideSuspendModeContent();
+            }
+        }
+
+        // Add Suspend Media Event Handler
+        private async void AddSuspendMediaButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_displayController == null || _isLoading) return;
+
+            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Title = "Select Suspend Media Files",
+                Filter = "Video Files (*.mp4)|*.mp4|Image Files (*.jpg;*.jpeg)|*.jpg;*.jpeg",
+                Multiselect = true,
+                CheckFileExists = true,
+                CheckPathExists = true
+            };
+
+            if (openFileDialog.ShowDialog() != true) return;
+
+            var filePaths = openFileDialog.FileNames.ToList();
+            if (!filePaths.Any()) return;
+
+            try
+            {
+                SetLoadingState(true, "Adding suspend media files...");
+
+                // Send multiple suspend files
+                bool success = await _displayController.SendMultipleSuspendFilesWithResponse(filePaths);
+                
+                if (success)
+                {
+                    ShowNotification($"Successfully added {filePaths.Count} suspend media file(s).");
+                    
+                    // Update the local list with added files
+                    _activeSuspendMediaFiles.Clear();
+                    _activeSuspendMediaFiles.AddRange(filePaths.Select(Path.GetFileName));
+                    
+                    // Activate suspend mode if not already active
+                    if (SuspendModeToggle?.IsChecked != true)
+                    {
+                        SuspendModeToggle.IsChecked = true;
+                        await _displayController.SetSuspendModeWithResponse();
+                    }
+                    
+                    // Show the active media files
+                    ShowActiveSuspendMedia();
+                }
+                else
+                {
+                    ShowNotification("Failed to add suspend media files. Please try again.", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to add suspend media files: {ex.Message}");
+                ShowNotification($"Failed to add suspend media files: {ex.Message}", true);
+            }
+            finally
+            {
+                SetLoadingState(false);
+            }
+        }
+
+        private void ShowActiveSuspendMedia()
+        {
+            try
+            {
+                // Ensure content area is visible
+                if (SuspendModeContentArea != null) SuspendModeContentArea.Visibility = Visibility.Visible;
+                
+                // Show active media panel and hide add button panel
+                if (ActiveSuspendMediaPanel != null) ActiveSuspendMediaPanel.Visibility = Visibility.Visible;
+                // Safely handle AddMediaButtonPanel
+                try { if (FindName("AddMediaButtonPanel") is System.Windows.Controls.Panel panel) panel.Visibility = Visibility.Collapsed; } catch { }
+                
+                // Update the list of active suspend media files
+                if (SuspendMediaList != null) SuspendMediaList.ItemsSource = _activeSuspendMediaFiles;
+            }
+            catch { /* UI elements may not be available */ }
+        }
+
+        private void ShowAddMediaButton()
+        {
+            try
+            {
+                // Ensure content area is visible
+                if (SuspendModeContentArea != null) SuspendModeContentArea.Visibility = Visibility.Visible;
+                
+                // Hide active media panel and show add button panel
+                if (ActiveSuspendMediaPanel != null) ActiveSuspendMediaPanel.Visibility = Visibility.Collapsed;
+                // Safely handle AddMediaButtonPanel
+                try { if (FindName("AddMediaButtonPanel") is System.Windows.Controls.Panel panel) panel.Visibility = Visibility.Visible; } catch { }
+                
+                // Clear the media list
+                if (SuspendMediaList != null) SuspendMediaList.ItemsSource = null;
+            }
+            catch { /* UI elements may not be available */ }
+        }
+
+        private void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Clean up timers
+                _notificationTimer?.Stop();
+                _notificationTimer = null;
+                
+                // Clean up display controller
+                _displayController?.StopResponseListener();
+                _displayController?.Dispose();
+                _displayController = null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error during page cleanup: {ex.Message}");
             }
         }
 
@@ -398,63 +815,6 @@ namespace CMDevicesManager.Pages
             return activeFiles;
         }
 
-        // Method to refresh suspend media display without full device status update
-        private async Task RefreshSuspendMediaDisplay()
-        {
-            try
-            {
-                if (SuspendModeToggle?.IsChecked == true)
-                {
-                    // Get actual suspend media files from device
-                    _activeSuspendMediaFiles = await GetActiveSuspendMediaFromDevice();
-                    
-                    if (_activeSuspendMediaFiles.Any())
-                    {
-                        ShowActiveSuspendMedia();
-                    }
-                    else
-                    {
-                        ShowAddMediaButton();
-                    }
-                }
-                else
-                {
-                    ShowAddMediaButton();
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to refresh suspend media display: {ex.Message}");
-                ShowAddMediaButton();
-            }
-        }
-
-        private void ShowActiveSuspendMedia()
-        {
-            try
-            {
-                if (ActiveSuspendMediaPanel != null) ActiveSuspendMediaPanel.Visibility = Visibility.Visible;
-                if (AddMediaButtonPanel != null) AddMediaButtonPanel.Visibility = Visibility.Collapsed;
-                
-                // Update the list of active suspend media files
-                if (SuspendMediaList != null) SuspendMediaList.ItemsSource = _activeSuspendMediaFiles;
-            }
-            catch { /* UI elements may not be available */ }
-        }
-
-        private void ShowAddMediaButton()
-        {
-            try
-            {
-                if (ActiveSuspendMediaPanel != null) ActiveSuspendMediaPanel.Visibility = Visibility.Collapsed;
-                if (AddMediaButtonPanel != null) AddMediaButtonPanel.Visibility = Visibility.Visible;
-                
-                // Clear the media list
-                if (SuspendMediaList != null) SuspendMediaList.ItemsSource = null;
-            }
-            catch { /* UI elements may not be available */ }
-        }
-
         // Notification System Methods
         private void ShowNotification(string message, bool isError = false, int durationMs = 5000)
         {
@@ -496,46 +856,6 @@ namespace CMDevicesManager.Pages
             _notificationTimer?.Stop();
         }
 
-        // PRESERVED FOR FUTURE USE: Confirmation Dialog System
-        // These methods and UI elements are kept for potential future requirements
-        // Currently not used - tooltips provide information instead of confirmation dialogs
-        private Task<bool> ShowConfirmationAsync(String title, String message, String confirmText = "Confirm", 
-            String cancelText = "Cancel", Boolean isWarning = false)
-        {
-            _confirmationResult = new TaskCompletionSource<bool>();
-            
-            Dispatcher.Invoke(() =>
-            {
-                ConfirmationTitle.Text = title;
-                ConfirmationMessage.Text = message;
-                ConfirmationConfirmText.Text = confirmText;
-                
-                if (isWarning)
-                {
-                    ConfirmationIcon.Text = "\uE7BA"; // Warning icon
-                    ConfirmationIcon.Foreground = new SolidColorBrush(Color.FromRgb(255, 152, 0)); // Orange
-                    ConfirmationButtonBorder.Background = new SolidColorBrush(Color.FromRgb(244, 67, 54)); // Red
-                }
-                else
-                {
-                    ConfirmationIcon.Text = "\uE8FD"; // Question icon
-                    ConfirmationIcon.Foreground = new SolidColorBrush(Color.FromRgb(33, 150, 243)); // Blue
-                    ConfirmationButtonBorder.Background = new SolidColorBrush(Color.FromRgb(33, 150, 243)); // Blue
-                }
-                
-                ConfirmationDialog.Visibility = Visibility.Visible;
-            });
-            
-            return _confirmationResult.Task;
-        }
-
-        private void HideConfirmation(bool result)
-        {
-            ConfirmationDialog.Visibility = Visibility.Collapsed;
-            _confirmationResult?.SetResult(result);
-            _confirmationResult = null;
-        }
-
         // Event handlers for notification and confirmation dialogs
         private void NotificationCloseButton_Click(object sender, RoutedEventArgs e)
         {
@@ -544,12 +864,12 @@ namespace CMDevicesManager.Pages
 
         private void ConfirmationCancelButton_Click(object sender, RoutedEventArgs e)
         {
-            HideConfirmation(false);
+            // Placeholder for confirmation dialog - preserved for future use
         }
 
         private void ConfirmationConfirmButton_Click(object sender, RoutedEventArgs e)
         {
-            HideConfirmation(true);
+            // Placeholder for confirmation dialog - preserved for future use
         }
 
         private async void RefreshStatusButton_Click(object sender, RoutedEventArgs e)
@@ -747,22 +1067,13 @@ namespace CMDevicesManager.Pages
             // No confirmation dialog needed - tooltip provides the info
             try
             {
-                SetLoadingState(true, isActivated ? "Activating suspend mode..." : "Clearing suspend mode...");
+                SetLoadingState(true, isActivated ? "Activating suspend mode..." : "Activating RealTime mode...");
 
-                bool success;
-                if (isActivated)
+                var response = await _displayController.SendCmdRealTimeDisplayWithResponse(isActivated);
+                if (response?.IsSuccess == true)
                 {
-                    success = await _displayController.SetSuspendModeWithResponse();
-                }
-                else
-                {
-                    success = await _displayController.ClearSuspendModeWithResponse();
-                }
-                
-                if (success)
-                {
-                    ShowNotification(isActivated ? "Suspend mode activated successfully." : "Suspend mode cleared successfully.");
-                    
+                    ShowNotification(isActivated ? "Suspend mode activated successfully." : "RealTime mode activated successfully.");
+
                     // Update suspend mode display based on new state
                     if (isActivated)
                     {
@@ -771,11 +1082,9 @@ namespace CMDevicesManager.Pages
                     }
                     else
                     {
-                        // When clearing suspend mode, show add media button
-                        ShowAddMediaButton();
+                        // When clearing suspend mode, hide all suspend content
+                        HideSuspendModeContent();
                         
-                        // Wait a moment for device to exit suspend mode
-                        await Task.Delay(2000);
                         // Refresh status to update display
                         await RefreshDeviceStatus();
                     }
@@ -797,85 +1106,6 @@ namespace CMDevicesManager.Pages
             finally
             {
                 SetLoadingState(false);
-            }
-        }
-
-        // Add Suspend Media Event Handler
-        private async void AddSuspendMediaButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_displayController == null || _isLoading) return;
-
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Title = "Select Suspend Media Files",
-                Filter = "Video Files (*.mp4;*.avi;*.mov;*.wmv)|*.mp4;*.avi;*.mov;*.wmv|Image Files (*.jpg;*.jpeg;*.png;*.bmp)|*.jpg;*.jpeg;*.png;*.bmp|All Files (*.*)|*.*",
-                Multiselect = true,
-                CheckFileExists = true,
-                CheckPathExists = true
-            };
-
-            if (openFileDialog.ShowDialog() != true) return;
-
-            var filePaths = openFileDialog.FileNames.ToList();
-            if (!filePaths.Any()) return;
-
-            try
-            {
-                SetLoadingState(true, "Adding suspend media files...");
-
-                // Send multiple suspend files
-                bool success = await _displayController.SendMultipleSuspendFilesWithResponse(filePaths);
-                
-                if (success)
-                {
-                    ShowNotification($"Successfully added {filePaths.Count} suspend media file(s).");
-                    
-                    // Update the local list with added files
-                    _activeSuspendMediaFiles.Clear();
-                    _activeSuspendMediaFiles.AddRange(filePaths.Select(Path.GetFileName));
-                    
-                    // Activate suspend mode if not already active
-                    if (SuspendModeToggle?.IsChecked != true)
-                    {
-                        SuspendModeToggle.IsChecked = true;
-                        await _displayController.SetSuspendModeWithResponse();
-                    }
-                    
-                    // Show the active media files
-                    ShowActiveSuspendMedia();
-                }
-                else
-                {
-                    ShowNotification("Failed to add suspend media files. Please try again.", true);
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to add suspend media files: {ex.Message}");
-                ShowNotification($"Failed to add suspend media files: {ex.Message}", true);
-            }
-            finally
-            {
-                SetLoadingState(false);
-            }
-        }
-
-        private void Page_Unloaded(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Clean up timers
-                _notificationTimer?.Stop();
-                _notificationTimer = null;
-                
-                // Clean up display controller
-                _displayController?.StopResponseListener();
-                _displayController?.Dispose();
-                _displayController = null;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error during page cleanup: {ex.Message}");
             }
         }
     }

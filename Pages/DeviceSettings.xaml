@@ -970,62 +970,6 @@
                                                 </ItemsControl>
                                             </StackPanel>
                                             
-                                            <!-- Add Media Button (when suspend mode is OFF) -->
-                                            <StackPanel x:Name="AddMediaButtonPanel"
-                                                        Visibility="Visible">
-                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                    <TextBlock Text="&#xE8F4;"
-                                                               FontFamily="Segoe MDL2 Assets"
-                                                               FontSize="14"
-                                                               Foreground="#FF9800"
-                                                               VerticalAlignment="Center"
-                                                               Margin="0,0,6,0"/>
-                                                    <TextBlock Text="No suspend media files loaded"
-                                                               FontSize="12"
-                                                               FontWeight="SemiBold"
-                                                               Foreground="#CCCCCC"/>
-                                                </StackPanel>
-                                                
-                                                <Border Background="#673AB7"
-                                                        CornerRadius="4"
-                                                        Margin="0,4,0,0">
-                                                    <Button x:Name="AddSuspendMediaButton"
-                                                            Click="AddSuspendMediaButton_Click"
-                                                            Background="Transparent"
-                                                            Foreground="White"
-                                                            BorderBrush="Transparent"
-                                                            Padding="12,8"
-                                                            Cursor="Hand">
-                                                        <Button.ToolTip>
-                                                            <ToolTip MaxWidth="300">
-                                                                <StackPanel>
-                                                                    <TextBlock Text="Add Suspend Media Files" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
-                                                                    <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
-                                                                        Select and upload media files for offline suspend mode playback. Multiple files can be selected at once.
-                                                                    </TextBlock>
-                                                                    <TextBlock Text="Supported formats:" 
-                                                                               FontSize="11" FontWeight="SemiBold" Margin="0,4,0,2"/>
-                                                                    <TextBlock Text="• Video: MP4, AVI, MOV, WMV" 
-                                                                               FontSize="10" Foreground="LightBlue" Margin="0,1,0,0"/>
-                                                                    <TextBlock Text="• Images: JPG, PNG, BMP" 
-                                                                               FontSize="10" Foreground="LightGreen" Margin="0,1,0,0"/>
-                                                                    <TextBlock Text="💡 Suspend mode will auto-activate after upload" 
-                                                                               FontSize="10" Foreground="Gold" Margin="0,3,0,0"/>
-                                                                </StackPanel>
-                                                            </ToolTip>
-                                                        </Button.ToolTip>
-                                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                            <TextBlock Text="&#xE710;"
-                                                                       FontFamily="Segoe MDL2 Assets"
-                                                                       FontSize="14"
-                                                                       Margin="0,0,8,0"/>
-                                                            <TextBlock Text="Add Media Files"
-                                                                       FontSize="12"
-                                                                       FontWeight="SemiBold"/>
-                                                        </StackPanel>
-                                                    </Button>
-                                                </Border>
-                                            </StackPanel>
                                         </Grid>
                                     </Border>
                                 </StackPanel>
