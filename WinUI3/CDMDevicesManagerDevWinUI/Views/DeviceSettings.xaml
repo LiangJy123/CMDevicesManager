@@ -10,44 +10,15 @@
     xmlns:dev="using:DevWinUI"
     mc:Ignorable="d">
 
-    <Page.Resources>
-        <!-- Card Style -->
-        <Style x:Key="SettingsCardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="20" />
-            <Setter Property="Margin" Value="0,0,0,16" />
-        </Style>
-
-        <!-- Section Header Style -->
-        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="20" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,24,0,12" />
-            <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-        </Style>
-
-        <!-- Action Button Style -->
-        <Style x:Key="ActionButtonStyle" TargetType="Button">
-            <Setter Property="MinWidth" Value="120" />
-            <Setter Property="Height" Value="36" />
-            <Setter Property="Margin" Value="0,0,12,0" />
-        </Style>
-
-        <!-- Status Indicator Style -->
-        <Style x:Key="StatusIndicatorStyle" TargetType="Ellipse">
-            <Setter Property="Width" Value="12" />
-            <Setter Property="Height" Value="12" />
-            <Setter Property="Margin" Value="0,0,8,0" />
-        </Style>
-    </Page.Resources>
-
-    <!-- Full page layout without popup constraints -->
     <Grid>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="32">
-            <StackPanel MaxWidth="800">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                      HorizontalScrollBarVisibility="Disabled"
+                      HorizontalAlignment="Center"
+                      Padding="32">
+            <StackPanel MaxWidth="800" 
+                        Spacing="6" 
+                        HorizontalAlignment="Stretch"
+                        Width="800">
 
                 <!-- Page Title -->
                 <TextBlock Text="Device Settings" 
@@ -56,233 +27,328 @@
                            Margin="0,0,0,24" />
 
                 <!-- Device Information Section -->
-                <TextBlock Text="Device Information" Style="{StaticResource SectionHeaderStyle}" />
-                
-                <Border Style="{StaticResource SettingsCardStyle}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="140" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Product Name -->
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Product:" 
-                                   FontWeight="SemiBold" Margin="0,0,0,12" />
-                        <TextBlock Grid.Row="0" Grid.Column="1" 
-                                   x:Name="ProductNameText"
-                                   Text="Unknown Product" 
-                                   Margin="0,0,0,12" />
-
-                        <!-- Serial Number -->
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Serial:" 
-                                   FontWeight="SemiBold" Margin="0,0,0,12" />
-                        <TextBlock Grid.Row="1" Grid.Column="1" 
-                                   x:Name="SerialNumberText"
-                                   Text="Unknown Serial" 
-                                   Margin="0,0,0,12" />
-
-                        <!-- Manufacturer -->
-                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Manufacturer:" 
-                                   FontWeight="SemiBold" Margin="0,0,0,12" />
-                        <TextBlock Grid.Row="2" Grid.Column="1" 
-                                   x:Name="ManufacturerText"
-                                   Text="Unknown Manufacturer" 
-                                   Margin="0,0,0,12" />
-
-                        <!-- Hardware Version -->
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Hardware:" 
-                                   FontWeight="SemiBold" Margin="0,0,0,12" />
-                        <TextBlock Grid.Row="3" Grid.Column="1" 
-                                   x:Name="HardwareVersionText" 
-                                   Text="Loading..." 
-                                   Margin="0,0,0,12" />
-
-                        <!-- Firmware Version -->
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Firmware:" 
-                                   FontWeight="SemiBold" />
-                        <TextBlock Grid.Row="4" Grid.Column="1" 
-                                   x:Name="FirmwareVersionText" 
-                                   Text="Loading..." />
-                    </Grid>
-                </Border>
-
-                <!-- Firmware Update Section -->
-                <TextBlock Text="Firmware Update" Style="{StaticResource SectionHeaderStyle}" />
-                <toolkit:SettingsExpander Description="Controls provide audible feedback" Header="Sound">
+                <toolkit:SettingsExpander Description="View detailed information about your device" 
+                                          Header="Device Information"
+                                          IsExpanded="True"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Stretch">
                     <toolkit:SettingsExpander.HeaderIcon>
-                        <FontIcon Glyph="&#xEC4F;" />
+                        <FontIcon Glyph="&#xE7F4;" />
                     </toolkit:SettingsExpander.HeaderIcon>
                     <toolkit:SettingsExpander.Items>
-                        <toolkit:SettingsCard
-                        x:Name="FirmwareUpdateCard"
-                        Header="Check Firmware Update"
-                        IsEnabled="True">
-                            <toolkit:SettingsCard.Description>
-                                <HyperlinkButton Content="Check Firmware Update" />
-                            </toolkit:SettingsCard.Description>
-                            <dev:ProgressButton Width="200"
-                                    Checked="CheckUpdateButton_Checked"
-                                    CheckedContent="Checking"
-                                    Content="Check for Updates"
-                                    Unchecked="CheckUpdateButton_Checked" />
+                        <toolkit:SettingsCard Header="Product" 
+                                              Description="Device product name"
+                                              HorizontalContentAlignment="Stretch">
+                            <TextBlock x:Name="ProductNameText" 
+                                       Text="Unknown Product" 
+                                       HorizontalAlignment="Right"
+                                       TextWrapping="Wrap" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Serial Number" 
+                                              Description="Device serial identifier"
+                                              HorizontalContentAlignment="Stretch">
+                            <TextBlock x:Name="SerialNumberText" 
+                                       Text="Unknown Serial" 
+                                       HorizontalAlignment="Right"
+                                       TextWrapping="Wrap" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Manufacturer" 
+                                              Description="Device manufacturer"
+                                              HorizontalContentAlignment="Stretch">
+                            <TextBlock x:Name="ManufacturerText" 
+                                       Text="Unknown Manufacturer" 
+                                       HorizontalAlignment="Right"
+                                       TextWrapping="Wrap" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Hardware Version" 
+                                              Description="Device hardware revision"
+                                              HorizontalContentAlignment="Stretch">
+                            <TextBlock x:Name="HardwareVersionText" 
+                                       Text="Loading..." 
+                                       HorizontalAlignment="Right"
+                                       TextWrapping="Wrap" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Firmware Version" 
+                                              Description="Device firmware version"
+                                              HorizontalContentAlignment="Stretch">
+                            <TextBlock x:Name="FirmwareVersionText" 
+                                       Text="Loading..." 
+                                       HorizontalAlignment="Right"
+                                       TextWrapping="Wrap" />
                         </toolkit:SettingsCard>
                     </toolkit:SettingsExpander.Items>
                 </toolkit:SettingsExpander>
-                <Border Style="{StaticResource SettingsCardStyle}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
 
-                        <!-- Status Row -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
-                            <Ellipse x:Name="UpdateStatusIndicator" 
-                                     Style="{StaticResource StatusIndicatorStyle}"
-                                     Fill="Gray" />
-                            <TextBlock x:Name="UpdateStatusText" 
-                                       Text="Not checked" 
-                                       VerticalAlignment="Center" />
-
+                <!-- Firmware Update Section -->
+                <toolkit:SettingsExpander Description="Check and install firmware updates" 
+                                          Header="Firmware Update"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Stretch">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE895;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Update Status" 
+                                              Description="Current firmware update status"
+                                              HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" 
+                                        Spacing="8" 
+                                        HorizontalAlignment="Right">
+                                <Ellipse x:Name="UpdateStatusIndicator" 
+                                         Width="12" Height="12" 
+                                         Fill="Gray" />
+                                <TextBlock x:Name="UpdateStatusText" 
+                                           Text="Not checked" 
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Check for Updates" 
+                                              Description="Check if new firmware is available"
+                                              HorizontalContentAlignment="Stretch">
                             <Button x:Name="CheckUpdateButton" 
                                     Content="Check for Updates" 
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    Click="CheckUpdateButton_Click" />
-                        </StackPanel>
-
-                        <!-- Action Row -->
-                        <StackPanel Grid.Row="1" Orientation="Horizontal">
+                                    Click="CheckUpdateButton_Click" 
+                                    MinWidth="120"
+                                    HorizontalAlignment="Right" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Install Update" 
+                                              Description="Install available firmware update"
+                                              HorizontalContentAlignment="Stretch">
                             <Button x:Name="InstallUpdateButton" 
                                     Content="Install Update" 
-                                    Style="{StaticResource ActionButtonStyle}"
                                     Click="InstallUpdateButton_Click"
-                                    IsEnabled="False" />
-                        </StackPanel>
-                    </Grid>
-                </Border>
+                                    IsEnabled="False" 
+                                    MinWidth="120"
+                                    HorizontalAlignment="Right" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
 
                 <!-- Device Operations Section -->
-                <TextBlock Text="Device Operations" Style="{StaticResource SectionHeaderStyle}" />
-                
-                <Border Style="{StaticResource SettingsCardStyle}">
-                    <StackPanel>
-                        <!-- Reset Operations -->
-                        <StackPanel Margin="0,0,0,16">
-                            <TextBlock Text="Reset Operations" FontWeight="SemiBold" Margin="0,0,0,12" />
-                            <StackPanel Orientation="Horizontal">
-                                <Button x:Name="RestartDeviceButton" 
-                                        Content="Restart Device" 
-                                        Style="{StaticResource ActionButtonStyle}"
-                                        Click="RestartDeviceButton_Click" />
-                                <Button x:Name="FactoryResetButton" 
-                                        Content="Factory Reset" 
-                                        Style="{StaticResource ActionButtonStyle}"
-                                        Click="FactoryResetButton_Click" />
-                            </StackPanel>
-                        </StackPanel>
-
-                        <!-- Other Operations -->
-                        <StackPanel>
-                            <TextBlock Text="Other Operations" FontWeight="SemiBold" Margin="0,0,0,12" />
-                            <StackPanel Orientation="Horizontal">
-                                <Button x:Name="RefreshInfoButton" 
-                                        Content="Refresh Information" 
-                                        Style="{StaticResource ActionButtonStyle}"
-                                        Click="RefreshInfoButton_Click" />
-                                <Button x:Name="DeviceStatusButton" 
-                                        Content="Get Device Status" 
-                                        Style="{StaticResource ActionButtonStyle}"
-                                        Click="DeviceStatusButton_Click" />
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
+                <toolkit:SettingsExpander Description="Perform device operations and maintenance" 
+                                          Header="Device Operations"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Stretch">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE713;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Restart Device" 
+                                              Description="Restart the device to apply changes"
+                                              HorizontalContentAlignment="Stretch">
+                            <Button x:Name="RestartDeviceButton" 
+                                    Content="Restart Device" 
+                                    Click="RestartDeviceButton_Click" 
+                                    MinWidth="120"
+                                    HorizontalAlignment="Right" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Factory Reset" 
+                                              Description="Reset device to factory settings"
+                                              HorizontalContentAlignment="Stretch">
+                            <Button x:Name="FactoryResetButton" 
+                                    Content="Factory Reset" 
+                                    Click="FactoryResetButton_Click" 
+                                    MinWidth="120"
+                                    HorizontalAlignment="Right" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Refresh Information" 
+                                              Description="Update device information display"
+                                              HorizontalContentAlignment="Stretch">
+                            <Button x:Name="RefreshInfoButton" 
+                                    Content="Refresh Information" 
+                                    Click="RefreshInfoButton_Click" 
+                                    MinWidth="120"
+                                    HorizontalAlignment="Right" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Device Status" 
+                                              Description="Get detailed device status"
+                                              HorizontalContentAlignment="Stretch">
+                            <Button x:Name="DeviceStatusButton" 
+                                    Content="Get Device Status" 
+                                    Click="DeviceStatusButton_Click" 
+                                    MinWidth="120"
+                                    HorizontalAlignment="Right" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
 
                 <!-- Device Configuration Section -->
-                <TextBlock Text="Device Configuration" Style="{StaticResource SectionHeaderStyle}" />
-                
-                <Border Style="{StaticResource SettingsCardStyle}">
-                    <StackPanel>
-                        <!-- Offline Mode -->
-                        <StackPanel Margin="0,0,0,16">
-                            <Grid>
+                <toolkit:SettingsExpander Description="Configure device settings and preferences" 
+                                          Header="Device Configuration"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Stretch">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE115;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Offline Mode" 
+                                              Description="Disconnect device from network services"
+                                              HorizontalContentAlignment="Stretch">
+                            <ToggleSwitch x:Name="OfflineModeToggle"
+                                          Toggled="OfflineModeToggle_Toggled"
+                                          HorizontalAlignment="Right" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Display Brightness" 
+                                              Description="Adjust the display brightness level"
+                                              HorizontalContentAlignment="Stretch">
+                            <Grid MinWidth="200" HorizontalAlignment="Right">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                
-                                <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Offline Mode" FontWeight="SemiBold" />
-                                    <TextBlock Text="Disconnect device from network services" 
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" 
-                                               FontSize="12" 
-                                               Margin="0,4,0,0" />
-                                </StackPanel>
-                                
-                                <ToggleSwitch Grid.Column="1" 
-                                              x:Name="OfflineModeToggle"
-                                              Toggled="OfflineModeToggle_Toggled" />
-                            </Grid>
-                        </StackPanel>
-
-                        <!-- Display Settings -->
-                        <StackPanel Margin="0,0,0,16">
-                            <TextBlock Text="Display Settings" FontWeight="SemiBold" Margin="0,0,0,12" />
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="100" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="50" />
-                                </Grid.ColumnDefinitions>
-                                
-                                <TextBlock Grid.Column="0" Text="Brightness:" VerticalAlignment="Center" />
-                                <Slider Grid.Column="1" 
-                                        x:Name="BrightnessSlider"
+                                <Slider x:Name="BrightnessSlider"
+                                        Grid.Column="0"
                                         Minimum="0" 
                                         Maximum="100" 
                                         Value="80"
                                         ValueChanged="BrightnessSlider_ValueChanged"
-                                        Margin="12,0" />
-                                <TextBlock Grid.Column="2" 
-                                           x:Name="BrightnessValueText"
+                                        Width="150"
+                                        Margin="0,0,12,0" />
+                                <TextBlock x:Name="BrightnessValueText"
+                                           Grid.Column="1"
                                            Text="80" 
                                            VerticalAlignment="Center" 
+                                           MinWidth="30"
                                            HorizontalAlignment="Center" />
                             </Grid>
-                        </StackPanel>
-
-                        <!-- Rotation Settings -->
-                        <StackPanel>
-                            <TextBlock Text="Display Rotation" FontWeight="SemiBold" Margin="0,0,0,12" />
-                            <StackPanel Orientation="Horizontal">
-                                <RadioButton x:Name="Rotation0" Content="0°" GroupName="Rotation" IsChecked="True" Margin="0,0,16,0" Checked="RotationChanged" />
-                                <RadioButton x:Name="Rotation90" Content="90°" GroupName="Rotation" Margin="0,0,16,0" Checked="RotationChanged" />
-                                <RadioButton x:Name="Rotation180" Content="180°" GroupName="Rotation" Margin="0,0,16,0" Checked="RotationChanged" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Display Rotation" 
+                                              Description="Set the display orientation"
+                                              HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" 
+                                        Spacing="8"
+                                        HorizontalAlignment="Right">
+                                <RadioButton x:Name="Rotation0" Content="0°" GroupName="Rotation" IsChecked="True" Checked="RotationChanged" />
+                                <RadioButton x:Name="Rotation90" Content="90°" GroupName="Rotation" Checked="RotationChanged" />
+                                <RadioButton x:Name="Rotation180" Content="180°" GroupName="Rotation" Checked="RotationChanged" />
                                 <RadioButton x:Name="Rotation270" Content="270°" GroupName="Rotation" Checked="RotationChanged" />
                             </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
 
                 <!-- Status Information Section -->
-                <TextBlock Text="Status Information" Style="{StaticResource SectionHeaderStyle}" />
-                
-                <Border Style="{StaticResource SettingsCardStyle}">
-                    <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
-                        <TextBlock x:Name="StatusInfoText" 
-                                   Text="Click 'Get Device Status' to refresh device status information."
-                                   FontFamily="Consolas"
-                                   FontSize="12"
-                                   TextWrapping="Wrap" />
-                    </ScrollViewer>
-                </Border>
+                <toolkit:SettingsExpander Description="View detailed device status information" 
+                                          Header="Status Information"
+                                          HorizontalAlignment="Stretch"
+                                          HorizontalContentAlignment="Stretch">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE946;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <!-- Display Settings Status -->
+                        <toolkit:SettingsCard Header="Brightness Level" 
+                                              Description="Current display brightness setting"
+                                              HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <ProgressBar x:Name="StatusBrightnessProgressBar"
+                                             Width="80"
+                                             Height="6"
+                                             Minimum="0"
+                                             Maximum="100"
+                                             Value="0"
+                                             VerticalAlignment="Center" />
+                                <TextBlock x:Name="StatusBrightnessText" 
+                                           Text="--%" 
+                                           VerticalAlignment="Center"
+                                           MinWidth="35" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        
+                        <toolkit:SettingsCard Header="Screen Rotation" 
+                                              Description="Current display orientation"
+                                              HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <FontIcon x:Name="StatusRotationIcon" 
+                                          Glyph="&#xE7AD;" 
+                                          FontSize="16" />
+                                <TextBlock x:Name="StatusRotationText" 
+                                           Text="--°" 
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        
+                        <toolkit:SettingsCard Header="Sleep Mode" 
+                                              Description="Display sleep state"
+                                              HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <Ellipse x:Name="StatusSleepIndicator" 
+                                         Width="12" Height="12" 
+                                         Fill="Gray" />
+                                <TextBlock x:Name="StatusSleepText" 
+                                           Text="Unknown" 
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        
+                        <toolkit:SettingsCard Header="OSD State" 
+                                              Description="On-Screen Display status"
+                                              HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <Ellipse x:Name="StatusOsdIndicator" 
+                                         Width="12" Height="12" 
+                                         Fill="Gray" />
+                                <TextBlock x:Name="StatusOsdText" 
+                                           Text="Unknown" 
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        
+                        <toolkit:SettingsCard Header="Keep Alive Timeout" 
+                                              Description="Connection timeout setting"
+                                              HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <FontIcon Glyph="&#xE916;" FontSize="16" />
+                                <TextBlock x:Name="StatusKeepAliveText" 
+                                           Text="--s" 
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        
+                        <toolkit:SettingsCard Header="Suspend Media Status" 
+                                              Description="Media slots and usage"
+                                              HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <ProgressBar x:Name="StatusMediaProgressBar"
+                                             Width="80"
+                                             Height="6"
+                                             Minimum="0"
+                                             Maximum="5"
+                                             Value="0"
+                                             VerticalAlignment="Center" />
+                                <TextBlock x:Name="StatusMediaText" 
+                                           Text="0/0" 
+                                           VerticalAlignment="Center"
+                                           MinWidth="30" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        
+                        <toolkit:SettingsCard Header="Media Slots Detail" 
+                                              Description="Individual media slot status"
+                                              HorizontalContentAlignment="Stretch">
+                            <toolkit:SettingsCard.Content>
+                                <StackPanel x:Name="MediaSlotsPanel" 
+                                            Orientation="Horizontal" 
+                                            Spacing="8"
+                                            HorizontalAlignment="Right"
+                                            Margin="0,8,0,0">
+                                    <!-- Media slot indicators will be added dynamically -->
+                                </StackPanel>
+                            </toolkit:SettingsCard.Content>
+                        </toolkit:SettingsCard>
+                        
+                        <toolkit:SettingsCard Header="Last Updated" 
+                                              Description="Status information timestamp"
+                                              HorizontalContentAlignment="Stretch">
+                            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                <FontIcon Glyph="&#xE823;" FontSize="16" />
+                                <TextBlock x:Name="StatusTimestampText" 
+                                           Text="Never" 
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
 
             </StackPanel>
         </ScrollViewer>

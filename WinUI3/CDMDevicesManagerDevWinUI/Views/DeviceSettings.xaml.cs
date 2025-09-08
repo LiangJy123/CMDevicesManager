@@ -3,7 +3,9 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Microsoft.UI.Xaml.Shapes;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using HID.DisplayController;
 using System.Diagnostics;
@@ -26,6 +28,8 @@ namespace CDMDevicesManagerDevWinUI.Views
         public DeviceSettings()
         {
             this.InitializeComponent();
+            // Initialize status display to default state
+            ClearStatusDisplay();
         }
 
         // Constructor that accepts DeviceInfoViewModel for direct navigation
@@ -183,15 +187,80 @@ namespace CDMDevicesManagerDevWinUI.Views
 
         private void UpdateStatusDisplay(DeviceStatus status)
         {
-            StatusInfoText.Text = $"Device Status Information:\n\n" +
-                                  $"Brightness: {status.Brightness}%\n" +
-                                  $"Rotation: {status.Degree}°\n" +
-                                  $"OSD State: {(status.IsOsdActive ? "Active" : "Inactive")}\n" +
-                                  $"Keep Alive Timeout: {status.KeepAliveTimeout}s\n" +
-                                  $"Display in Sleep: {(status.IsDisplayInSleep ? "Yes" : "No")}\n" +
-                                  $"Max Suspend Media: {status.MaxSuspendMediaCount}\n" +
-                                  $"Active Suspend Media: {status.ActiveSuspendMediaCount}\n" +
-                                  $"Suspend Media Indices: [{string.Join(", ", status.ActiveSuspendMediaIndices)}]";
+            // Update brightness display
+            StatusBrightnessProgressBar.Value = status.Brightness;
+            StatusBrightnessText.Text = $"{status.Brightness}%";
+            
+            // Update rotation display
+            StatusRotationText.Text = $"{status.Degree}°";
+            // Rotate the icon to match the rotation
+            var rotateTransform = new Microsoft.UI.Xaml.Media.RotateTransform { Angle = status.Degree };
+            StatusRotationIcon.RenderTransform = rotateTransform;
+            
+            // Update sleep mode display
+            StatusSleepIndicator.Fill = new SolidColorBrush(status.IsDisplayInSleep ? Colors.Orange : Colors.LimeGreen);
+            StatusSleepText.Text = status.IsDisplayInSleep ? "Sleeping" : "Active";
+            
+            // Update OSD state display
+            StatusOsdIndicator.Fill = new SolidColorBrush(status.IsOsdActive ? Colors.LimeGreen : Colors.Gray);
+            StatusOsdText.Text = status.IsOsdActive ? "Active" : "Inactive";
+            
+            // Update keep alive timeout
+            StatusKeepAliveText.Text = $"{status.KeepAliveTimeout}s";
+            
+            // Update suspend media status
+            StatusMediaProgressBar.Maximum = status.MaxSuspendMediaCount;
+            StatusMediaProgressBar.Value = status.ActiveSuspendMediaCount;
+            StatusMediaText.Text = $"{status.ActiveSuspendMediaCount}/{status.MaxSuspendMediaCount}";
+            
+            // Update media slots detail
+            UpdateMediaSlotsDisplay(status);
+            
+            // Update timestamp
+            StatusTimestampText.Text = DateTime.Now.ToString("HH:mm:ss");
+        }
+        
+        private void UpdateMediaSlotsDisplay(DeviceStatus status)
+        {
+            // Clear existing slot indicators
+            MediaSlotsPanel.Children.Clear();
+            
+            // Create visual indicators for each media slot
+            var mediaIndices = status.ActiveSuspendMediaIndices.ToArray();
+            for (int i = 0; i < status.MaxSuspendMediaCount; i++)
+            {
+                var slotContainer = new StackPanel 
+                { 
+                    Orientation = Orientation.Vertical, 
+                    Spacing = 2,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+                
+                // Slot indicator
+                var indicator = new Ellipse
+                {
+                    Width = 16,
+                    Height = 16,
+                    HorizontalAlignment = HorizontalAlignment.Center
+                };
+                
+                // Check if this slot is active
+                bool isActive = i < mediaIndices.Length && mediaIndices[i] == 1;
+                indicator.Fill = new SolidColorBrush(isActive ? Colors.LimeGreen : Colors.Gray);
+                
+                // Slot number label
+                var label = new TextBlock
+                {
+                    Text = (i + 1).ToString(),
+                    FontSize = 10,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Foreground = new SolidColorBrush(Colors.Gray)
+                };
+                
+                slotContainer.Children.Add(indicator);
+                slotContainer.Children.Add(label);
+                MediaSlotsPanel.Children.Add(slotContainer);
+            }
         }
 
         // Event Handlers
@@ -318,7 +387,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             finally
             {
                 RefreshInfoButton.IsEnabled = true;
-                RefreshInfoButton.Content = "Refresh Info";
+                RefreshInfoButton.Content = "Refresh Information";
             }
         }
 
@@ -339,45 +408,100 @@ namespace CDMDevicesManagerDevWinUI.Views
                     }
                     else
                     {
-                        StatusInfoText.Text = "Failed to retrieve device status.";
+                        // Clear status display and show error state
+                        ClearStatusDisplay();
+                        _ = ShowErrorMessageAsync("Failed to retrieve device status - no response from device.");
                     }
+                }
+                else
+                {
+                    // Clear status display and show disconnected state
+                    ClearStatusDisplay();
+                    _ = ShowErrorMessageAsync("Device not connected.");
                 }
             }
             catch (Exception ex)
             {
-                StatusInfoText.Text = $"Error retrieving status: {ex.Message}";
+                // Clear status display and show error
+                ClearStatusDisplay();
                 _ = ShowErrorMessageAsync($"Failed to get device status: {ex.Message}");
             }
             finally
             {
                 DeviceStatusButton.IsEnabled = true;
-                DeviceStatusButton.Content = "Get Status";
+                DeviceStatusButton.Content = "Get Device Status";
             }
+        }
+        
+        private void ClearStatusDisplay()
+        {
+            // Reset all status displays to default/error state
+            StatusBrightnessProgressBar.Value = 0;
+            StatusBrightnessText.Text = "N/A";
+            
+            StatusRotationText.Text = "N/A";
+            StatusRotationIcon.RenderTransform = null;
+            
+            StatusSleepIndicator.Fill = new SolidColorBrush(Colors.Gray);
+            StatusSleepText.Text = "Unknown";
+            
+            StatusOsdIndicator.Fill = new SolidColorBrush(Colors.Gray);
+            StatusOsdText.Text = "Unknown";
+            
+            StatusKeepAliveText.Text = "N/A";
+            
+            StatusMediaProgressBar.Value = 0;
+            StatusMediaProgressBar.Maximum = 1;
+            StatusMediaText.Text = "N/A";
+            
+            MediaSlotsPanel.Children.Clear();
+            
+            StatusTimestampText.Text = "Error";
         }
 
         private async void OfflineModeToggle_Toggled(object sender, RoutedEventArgs e)
         {
-            if (_isOfflineModeChanging) return;
+            if (_isOfflineModeChanging || _displayController == null) return;
 
             _isOfflineModeChanging = true;
             try
             {
                 bool isOffline = OfflineModeToggle.IsOn;
                 
-                // TODO: Implement actual offline mode toggle
-                Debug.WriteLine($"Offline mode {(isOffline ? "enabled" : "disabled")}");
+                // Offline mode = Suspend mode (false for real-time display)
+                // Online mode = Real-time mode (true for real-time display)
+                bool enableRealTimeDisplay = !isOffline;
                 
-                string message = isOffline ? 
-                    "Device switched to offline mode. Network services are disabled." :
-                    "Device switched to online mode. Network services are enabled.";
+                var response = await _displayController.SendCmdRealTimeDisplayWithResponse(enableRealTimeDisplay);
+                
+                if (response?.IsSuccess == true)
+                {
+                    Debug.WriteLine($"Real-time display {(enableRealTimeDisplay ? "enabled" : "disabled")} successfully");
                     
-                _ = ShowInfoMessageAsync(message);
+                    string message = isOffline ? 
+                        "Device switched to suspend mode. Real-time display is disabled." :
+                        "Device switched to real-time mode. Live display is enabled.";
+                        
+                    _ = ShowInfoMessageAsync(message);
+                }
+                else
+                {
+                    Debug.WriteLine($"Failed to set real-time display mode");
+                    
+                    // Revert toggle state on failure
+                    OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
+                    
+                    _ = ShowErrorMessageAsync("Failed to change display mode.");
+                }
             }
             catch (Exception ex)
             {
-                _ = ShowErrorMessageAsync($"Failed to change offline mode: {ex.Message}");
-                // Revert toggle state
+                Debug.WriteLine($"Error changing real-time display mode: {ex.Message}");
+                
+                // Revert toggle state on exception
                 OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
+                
+                _ = ShowErrorMessageAsync($"Failed to change display mode: {ex.Message}");
             }
             finally
             {
@@ -399,10 +523,17 @@ namespace CDMDevicesManagerDevWinUI.Views
                 if (response?.IsSuccess == true)
                 {
                     Debug.WriteLine($"Brightness set to {brightness}%");
+                    
+                    // Update the status display brightness immediately if visible
+                    if (StatusBrightnessProgressBar != null)
+                    {
+                        StatusBrightnessProgressBar.Value = brightness;
+                        StatusBrightnessText.Text = $"{brightness}%";
+                    }
                 }
                 else
                 {
-                    Debug.WriteLine($"Failed to set brightness: {response?.StatusCode}");
+                    Debug.WriteLine($"Failed to set brightness");
                 }
             }
             catch (Exception ex)
@@ -427,10 +558,18 @@ namespace CDMDevicesManagerDevWinUI.Views
                 if (response?.IsSuccess == true)
                 {
                     Debug.WriteLine($"Rotation set to {rotation}°");
+                    
+                    // Update the status display rotation immediately if visible
+                    if (StatusRotationText != null && StatusRotationIcon != null)
+                    {
+                        StatusRotationText.Text = $"{rotation}°";
+                        var rotateTransform = new Microsoft.UI.Xaml.Media.RotateTransform { Angle = rotation };
+                        StatusRotationIcon.RenderTransform = rotateTransform;
+                    }
                 }
                 else
                 {
-                    Debug.WriteLine($"Failed to set rotation: {response?.StatusCode}");
+                    Debug.WriteLine($"Failed to set rotation");
                 }
             }
             catch (Exception ex)
