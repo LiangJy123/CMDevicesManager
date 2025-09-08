@@ -1,4 +1,7 @@
-﻿using CMDevicesManager.Utilities;
+﻿// NEW: bring in config models + enum alias
+using CMDevicesManager.Pages; // contains CanvasConfiguration / ElementConfiguration
+using CMDevicesManager.Services;
+using CMDevicesManager.Utilities;
 using HID.DisplayController;
 using HidApi;
 using Microsoft.Win32;
@@ -20,25 +23,87 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+using System.Windows.Shapes;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
 using Button = System.Windows.Controls.Button;
 using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
-using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
-using Timer = System.Timers.Timer;
-
-// NEW: bring in config models + enum alias
-using CMDevicesManager.Pages; // contains CanvasConfiguration / ElementConfiguration
-using LiveInfoKindAlias = CMDevicesManager.Pages.DeviceConfigPage.LiveInfoKind;
-using CMDevicesManager.Services;
 using Image = System.Windows.Controls.Image;
-using Brushes = System.Windows.Media.Brushes;
+using LiveInfoKindAlias = CMDevicesManager.Pages.DeviceConfigPage.LiveInfoKind;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+using Path = System.IO.Path;
 using Point = System.Windows.Point;
-using Brush = System.Windows.Media.Brush;
+using Rectangle = System.Windows.Shapes.Rectangle;
+using Size = System.Windows.Size;
+using Timer = System.Timers.Timer;
 
 namespace CMDevicesManager.Pages
 {
     public partial class DevicePlayModePage : Page
     {
+        private sealed class UsageVisualItem
+        {
+            public Border HostBorder = null!;
+            public LiveInfoKindAlias Kind;
+            public TextBlock Text = null!;
+
+            // ProgressBar
+            public Rectangle? BarFill;
+            public Border? BarBackground;
+            public double BarTotalWidth;
+
+            // Gauge
+            public Line? GaugeNeedle;
+            public RotateTransform? GaugeNeedleRotate;
+            public List<Line> GaugeTicks = new();
+            public List<TextBlock> GaugeLabels = new();
+            public TextBlock? GaugeKindLabel;
+
+            // Theme
+            public Color StartColor;
+            public Color EndColor;
+            public Color NeedleColor;
+            public Color BarBackgroundColor;
+
+            public string DisplayStyle = "Text"; // Text / ProgressBar / Gauge
+            public string? DateFormat;
+        }
+
+        // Gauge 常量（与配置页保持）
+        private const double GaugeStartAngle = 150;
+        private const double GaugeEndAngle = 390;
+        private const double GaugeSweep = GaugeEndAngle - GaugeStartAngle; // 240°
+        private const double GaugeRadiusOuter = 70;
+        private const double GaugeRadiusInner = 60;
+        private const double GaugeNeedleLength = 56;
+        private const int GaugeMajorStep = 10;
+        private const int GaugeMinorStep = 5;
+        private const int GaugeLabelStep = 25;
+        private const double GaugeCenterX = 80;
+        private const double GaugeCenterY = 90;
+        private const double GaugeNeedleAngleOffset = 270; // 与配置页一致
+
+        private static double GaugeAngleFromPercent(double percent)
+        {
+            percent = Math.Clamp(percent, 0, 100);
+            return GaugeStartAngle + GaugeSweep * (percent / 100.0);
+        }
+        private static double GaugeRotationFromPercent(double percent)
+        {
+            return GaugeAngleFromPercent(percent) - GaugeNeedleAngleOffset; // -120 ~ +120
+        }
+        private static Color LerpColor(Color a, Color b, double t)
+        {
+            t = Math.Clamp(t, 0, 1);
+            return Color.FromArgb(
+                (byte)(a.A + (b.A - a.A) * t),
+                (byte)(a.R + (b.R - a.R) * t),
+                (byte)(a.G + (b.G - a.G) * t),
+                (byte)(a.B + (b.B - a.B) * t));
+        }
+
+        private readonly List<UsageVisualItem> _usageVisualItems = new(); // 若已存在旧列表，替换为此版本
         // 在类字段区域新增
         private enum PlayMode
         {
@@ -48,7 +113,14 @@ namespace CMDevicesManager.Pages
         private PlayMode _currentPlayMode = PlayMode.RealtimeConfig;
         private string? _selectedVideoPath;
         private bool _isVideoStreaming;
-
+        private readonly System.Windows.Threading.DispatcherTimer _autoMoveTimer = new()
+        {
+            Interval = TimeSpan.FromMilliseconds(50)
+        };
+        private readonly Dictionary<Border, (double dx, double dy)> _movingDirections = new();
+        private DateTime _lastMoveTick = DateTime.Now;
+        private double _moveSpeed = 100;          // 来自配置的 MoveSpeed
+        private int _currentCanvasSize = 512;     // 来自配置的 CanvasSize
         // Config 序列模型
         public class PlayConfigItem : INotifyPropertyChanged
         {
@@ -116,14 +188,16 @@ namespace CMDevicesManager.Pages
             };
             _liveUpdateTimer.Tick += LiveUpdateTimer_Tick;
             _liveUpdateTimer.Start();
+            _autoMoveTimer.Tick += AutoMoveTimer_Tick;
         }
 
         private void LiveUpdateTimer_Tick(object? sender, EventArgs e)
         {
             double cpu = _metrics.GetCpuUsagePercent();
             double gpu = _metrics.GetGpuUsagePercent();
-            var now = DateTime.Now;
+            DateTime now = DateTime.Now;
 
+            // 纯文本/日期（无样式）
             foreach (var (text, kind, fmt) in _liveDynamicItems)
             {
                 switch (kind)
@@ -139,6 +213,64 @@ namespace CMDevicesManager.Pages
                         break;
                 }
             }
+
+            // 带 ProgressBar / Gauge
+            foreach (var item in _usageVisualItems)
+            {
+                double raw = item.Kind == LiveInfoKindAlias.CpuUsage ? cpu :
+                             item.Kind == LiveInfoKindAlias.GpuUsage ? gpu : 0;
+
+                switch (item.DisplayStyle)
+                {
+                    case "ProgressBar":
+                        {
+                            if (item.BarFill != null)
+                            {
+                                double percent = Math.Clamp(raw, 0, 100);
+                                item.BarFill.Width = item.BarTotalWidth * (percent / 100.0);
+                                string prefix = item.Kind == LiveInfoKindAlias.CpuUsage ? "CPU" :
+                                                item.Kind == LiveInfoKindAlias.GpuUsage ? "GPU" : "";
+                                item.Text.Text = string.IsNullOrEmpty(prefix)
+                                    ? $"{Math.Round(percent)}%"
+                                    : $"{prefix} {Math.Round(percent)}%";
+
+                                // 文字颜色渐变
+                                double t = percent / 100.0;
+                                var col = LerpColor(item.StartColor, item.EndColor, t);
+                                item.Text.Foreground = new SolidColorBrush(col);
+                            }
+                            break;
+                        }
+                    case "Gauge":
+                        {
+                            if (item.GaugeNeedleRotate != null)
+                            {
+                                double target = GaugeRotationFromPercent(raw);
+                                item.GaugeNeedleRotate.Angle = target; // 可加动画，播放页直接赋值即可
+                            }
+                            item.Text.Text = $"{Math.Round(raw)}%";
+                            break;
+                        }
+                    case "Text":
+                        {
+                            if (item.Kind == LiveInfoKindAlias.DateTime)
+                            {
+                                item.Text.Text = now.ToString(string.IsNullOrWhiteSpace(item.DateFormat)
+                                    ? "yyyy-MM-dd HH:mm:ss"
+                                    : item.DateFormat);
+                            }
+                            else if (item.Kind == LiveInfoKindAlias.CpuUsage)
+                            {
+                                item.Text.Text = $"CPU {Math.Round(cpu)}%";
+                            }
+                            else if (item.Kind == LiveInfoKindAlias.GpuUsage)
+                            {
+                                item.Text.Text = $"GPU {Math.Round(gpu)}%";
+                            }
+                            break;
+                        }
+                }
+            }
         }
 
         private void UpdatePlayModeUI()
@@ -148,26 +280,14 @@ namespace CMDevicesManager.Pages
             ConfigsContainer.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
             VideoContainer.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
 
+            // 原来的 ConfigActionButtons / VideoActionButtons 如果只包含 Start/Stop，可在 XAML 中移除或设置 Visibility=Collapsed
             ConfigActionButtons.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
             VideoActionButtons.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
 
             PlayContentTitleText.Text = isRealtime ? "Play Content" : "Video Playback";
             PlayContentHintText.Text = isRealtime
-                ? "Single config → continuous. Multiple configs → loop with per-item duration."
-                : "Select an MP4 file and start playback (loop until stopped).";
-
-            // 还原按钮状态
-            if (isRealtime)
-            {
-                StartSequenceButton.IsEnabled = !_isConfigSequenceRunning && ConfigSequence.Count > 0;
-                StopSequenceButton.IsEnabled = _isConfigSequenceRunning;
-            }
-            else
-            {
-                StartVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
-                StopVideoButton.IsEnabled = _isVideoStreaming;
-                ClearVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
-            }
+                ? "Add configs to auto play (loop). Remove all to stop automatically."
+                : "Select an MP4 file to auto start playback. Clear to stop.";
 
             UpdateModeSelectionVisuals();
         }
@@ -179,13 +299,14 @@ namespace CMDevicesManager.Pages
 
             if (_isVideoStreaming)
             {
-                //ShowStatusMessage("Stopping video playback...");
                 _streamingCancellationSource?.Cancel();
                 _isVideoStreaming = false;
             }
             _currentPlayMode = PlayMode.RealtimeConfig;
             UpdatePlayModeUI();
-            //ShowStatusMessage("Switched to real-time (config sequence) mode.");
+
+            if (!_isConfigSequenceRunning && ConfigSequence.Count > 0)
+                StartConfigSequence();
         }
         private void UpdateModeSelectionVisuals()
         {
@@ -201,14 +322,69 @@ namespace CMDevicesManager.Pages
 
             if (_isConfigSequenceRunning)
             {
-                //ShowStatusMessage("Stopping config sequence...");
                 _configSequenceCts?.Cancel();
                 _isConfigSequenceRunning = false;
             }
             _currentPlayMode = PlayMode.OfflineVideo;
             UpdatePlayModeUI();
-            //ShowStatusMessage("Switched to video offline playback mode.");
+
+            if (!_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath))
+                _ = StartVideoPlaybackInternalAsync();
         }
+
+        private async Task StartVideoPlaybackInternalAsync()
+        {
+            if (string.IsNullOrEmpty(_selectedVideoPath) || _isVideoStreaming) return;
+            if (_multiDeviceManager == null)
+            {
+                _multiDeviceManager = new MultiDeviceManager(0x2516, 0x0228);
+                _multiDeviceManager.StartMonitoring();
+            }
+
+            var devices = _multiDeviceManager.GetActiveControllers();
+            if (devices.Count == 0) return;
+
+            _isVideoStreaming = true;
+            _streamingCancellationSource = new CancellationTokenSource();
+            VideoInfoText.Text = "Playing (loop)...";
+
+            try
+            {
+                StartKeepAliveTimer();
+                int frameDelayMs = 33;
+                await _multiDeviceManager.ExecuteOnAllDevices(async controller =>
+                {
+                    try
+                    {
+                        return await SendMp4DataWithAdvancedDeviceSync(
+                            controller,
+                            _selectedVideoPath!,
+                            frameDelayMs,
+                            (frameData, frameIndex, transferId) =>
+                            {
+                                try { UpdateStreamingImageViewerFromFrameData(frameData); } catch { }
+                            },
+                            cycleCount: int.MaxValue,
+                            _streamingCancellationSource.Token);
+                    }
+                    catch { return false; }
+                }, timeout: TimeSpan.FromHours(6));
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception) { }
+            finally
+            {
+                StopKeepAliveTimer();
+                _streamingCancellationSource?.Dispose();
+                _streamingCancellationSource = null;
+                _isVideoStreaming = false;
+                if (string.IsNullOrEmpty(_selectedVideoPath))
+                    VideoInfoText.Text = "Select an MP4 file to auto start.";
+                else
+                    VideoInfoText.Text = "Stopped.";
+            }
+        }
+
 
         // 选择视频
         private void SelectVideoButton_Click(object sender, RoutedEventArgs e)
@@ -222,22 +398,22 @@ namespace CMDevicesManager.Pages
             {
                 _selectedVideoPath = ofd.FileName;
                 SelectedVideoNameText.Text = System.IO.Path.GetFileName(_selectedVideoPath);
-                VideoInfoText.Text = "Ready. Click Start to begin streaming frames.";
-                StartVideoButton.IsEnabled = true;
-                ClearVideoButton.IsEnabled = true;
-                //ShowStatusMessage($"Video selected: {SelectedVideoNameText.Text}");
+                VideoInfoText.Text = "Auto starting...";
+                if (_currentPlayMode == PlayMode.OfflineVideo)
+                {
+                    _ = StartVideoPlaybackInternalAsync();
+                }
             }
         }
 
         // 清除视频选择
         private void ClearVideoButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_isVideoStreaming) return;
+            _streamingCancellationSource?.Cancel();
+            _isVideoStreaming = false;
             _selectedVideoPath = null;
             SelectedVideoNameText.Text = "(None)";
-            VideoInfoText.Text = "Please click 'Select Video' to choose an MP4 file.";
-            StartVideoButton.IsEnabled = false;
-            ClearVideoButton.IsEnabled = false;
+            VideoInfoText.Text = "Select an MP4 file to auto start.";
         }
 
         // 启动视频播放
@@ -329,21 +505,7 @@ namespace CMDevicesManager.Pages
         }
 
         // 在 UpdateButtonStates 内（如果保留）增加模式适配（可选）
-        private void UpdateButtonStates()
-        {
-            // 原有配置（若之前为空可忽略）
-            if (_currentPlayMode == PlayMode.RealtimeConfig)
-            {
-                StartSequenceButton.IsEnabled = !_isConfigSequenceRunning && ConfigSequence.Count > 0;
-                StopSequenceButton.IsEnabled = _isConfigSequenceRunning;
-            }
-            else
-            {
-                StartVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
-                StopVideoButton.IsEnabled = _isVideoStreaming;
-                ClearVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
-            }
-        }
+        
 
         // 如果未调用 InitConfigSequence，请确保添加
         private void Page_Loaded(object sender, RoutedEventArgs e)
@@ -405,38 +567,30 @@ namespace CMDevicesManager.Pages
                     DurationSeconds = 5
                 });
 
-                // 新增：自动开始播放序列（无需用户再点 Start）
-                if (_currentPlayMode == PlayMode.RealtimeConfig && !_isConfigSequenceRunning && ConfigSequence.Count > 0)
+                if (_currentPlayMode == PlayMode.RealtimeConfig && !_isConfigSequenceRunning)
                 {
-                    StartConfigSequence(); // 异步 fire-and-forget
+                    StartConfigSequence();
                 }
             }
         }
         // 提取原 StartSequenceButton_Click 逻辑，供按钮和自动触发共同使用
         private async void StartConfigSequence()
         {
-            if (_isConfigSequenceRunning) return;
-            if (ConfigSequence.Count == 0) return;
+            if (_isConfigSequenceRunning || ConfigSequence.Count == 0) return;
 
             _isConfigSequenceRunning = true;
             _configSequenceCts = new CancellationTokenSource();
-            StartSequenceButton.IsEnabled = false;
-            StopSequenceButton.IsEnabled = true;
 
             try
             {
                 await RunConfigSequenceAsync(_configSequenceCts.Token);
             }
-            catch (OperationCanceledException)
-            {
-            }
+            catch (OperationCanceledException) { }
             finally
             {
                 _isConfigSequenceRunning = false;
                 _configSequenceCts?.Dispose();
                 _configSequenceCts = null;
-                StartSequenceButton.IsEnabled = true;
-                StopSequenceButton.IsEnabled = false;
             }
         }
 
@@ -445,6 +599,10 @@ namespace CMDevicesManager.Pages
             if (sender is Button btn && btn.Tag is PlayConfigItem item)
             {
                 ConfigSequence.Remove(item);
+                if (ConfigSequence.Count == 0 && _isConfigSequenceRunning)
+                {
+                    _configSequenceCts?.Cancel();
+                }
             }
         }
 
@@ -452,8 +610,7 @@ namespace CMDevicesManager.Pages
         {
             if (_isConfigSequenceRunning)
             {
-                //ShowErrorMessage("Stop sequence first.");
-                return;
+                _configSequenceCts?.Cancel();
             }
             ConfigSequence.Clear();
             DesignCanvas.Children.Clear();
@@ -592,9 +749,15 @@ namespace CMDevicesManager.Pages
         private void ApplyConfigurationToPreview(CanvasConfiguration cfg)
         {
             _liveDynamicItems.Clear();
+            _usageVisualItems.Clear();
+            _movingDirections.Clear();
             DesignCanvas.Children.Clear();
 
-            // Background color
+            _currentCanvasSize = cfg.CanvasSize > 0 ? cfg.CanvasSize : 512;
+            _moveSpeed = cfg.MoveSpeed > 0 ? cfg.MoveSpeed : 100;
+            _lastMoveTick = DateTime.Now;
+
+            // 背景颜色
             try
             {
                 if (!string.IsNullOrWhiteSpace(cfg.BackgroundColor))
@@ -603,15 +766,12 @@ namespace CMDevicesManager.Pages
                     BgColorRect.Fill = brush;
                 }
             }
-            catch
-            {
-                BgColorRect.Fill = Brushes.Black;
-            }
+            catch { BgColorRect.Fill = Brushes.Black; }
 
-            // Background image
+            // 背景图
             if (!string.IsNullOrWhiteSpace(cfg.BackgroundImagePath))
             {
-                string resolved = ResolveRelativePath(cfg.BackgroundImagePath);
+                var resolved = ResolveRelativePath(cfg.BackgroundImagePath);
                 if (File.Exists(resolved))
                 {
                     try
@@ -623,26 +783,19 @@ namespace CMDevicesManager.Pages
                         bmp.EndInit();
                         bmp.Freeze();
                         BgImage.Source = bmp;
-                        BgImage.Opacity = cfg.BackgroundImageOpacity <= 0 ? 1.0 : cfg.BackgroundImageOpacity;
+                        BgImage.Opacity = cfg.BackgroundImageOpacity <= 0 ? 1 : cfg.BackgroundImageOpacity;
                     }
-                    catch
-                    {
-                        BgImage.Source = null;
-                    }
+                    catch { BgImage.Source = null; }
                 }
-                else
-                {
-                    BgImage.Source = null;
-                }
+                else BgImage.Source = null;
             }
-            else
-            {
-                BgImage.Source = null;
-            }
+            else BgImage.Source = null;
 
             foreach (var elem in cfg.Elements.OrderBy(e => e.ZIndex))
             {
                 FrameworkElement? content = null;
+                Border? host = null;
+                bool usageVisualCreated = false;
 
                 switch (elem.Type)
                 {
@@ -661,38 +814,54 @@ namespace CMDevicesManager.Pages
                         }
                     case "LiveText":
                         {
-                            if (elem.LiveKind.HasValue)
+                            if (!elem.LiveKind.HasValue) break;
+                            var kind = elem.LiveKind.Value;
+                            var tb = new TextBlock
                             {
-                                var kind = elem.LiveKind.Value;
-                                var tb = new TextBlock
-                                {
-                                    FontSize = elem.FontSize ?? 18,
-                                    FontWeight = FontWeights.SemiBold
-                                };
-                                tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+                                FontSize = elem.FontSize ?? 18,
+                                FontWeight = FontWeights.SemiBold
+                            };
+                            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
 
-                                // Initial text
-                                switch (kind)
-                                {
-                                    case LiveInfoKindAlias.CpuUsage:
-                                        tb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
-                                        break;
-                                    case LiveInfoKindAlias.GpuUsage:
-                                        tb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
-                                        break;
-                                    case LiveInfoKindAlias.DateTime:
-                                        tb.Text = DateTime.Now.ToString(string.IsNullOrWhiteSpace(elem.DateFormat) ? "yyyy-MM-dd HH:mm:ss" : elem.DateFormat);
-                                        break;
-                                    default:
-                                        tb.Text = "Live";
-                                        break;
-                                }
+                            // 初始文本
+                            if (kind == LiveInfoKindAlias.DateTime)
+                                tb.Text = DateTime.Now.ToString(string.IsNullOrWhiteSpace(elem.DateFormat) ? "yyyy-MM-dd HH:mm:ss" : elem.DateFormat);
+                            else if (kind == LiveInfoKindAlias.CpuUsage)
+                                tb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
+                            else if (kind == LiveInfoKindAlias.GpuUsage)
+                                tb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
 
-                                // For play mode we simplify usage visuals to text.
+                            var style = elem.UsageDisplayStyle?.Trim();
+                            bool isUsageVisual = (kind == LiveInfoKindAlias.CpuUsage || kind == LiveInfoKindAlias.GpuUsage)
+                                                 && !string.IsNullOrWhiteSpace(style)
+                                                 && !style.Equals("Text", StringComparison.OrdinalIgnoreCase);
+
+                            if (isUsageVisual)
+                            {
+                                // 直接使用 BuildUsageVisual 返回的 HostBorder，避免将其子元素再放入新的 Border 造成重复逻辑父节点异常
+                                var item = BuildUsageVisual(kind, style!,
+                                    tb,
+                                    elem.UsageStartColor,
+                                    elem.UsageEndColor,
+                                    elem.UsageNeedleColor,
+                                    elem.UsageBarBackgroundColor);
+
+                                _usageVisualItems.Add(item);
+                                host = item.HostBorder;   // 直接作为最终 host
+                                usageVisualCreated = true;
+                            }
+                            else
+                            {
                                 ApplyTextColors(tb, elem.UseTextGradient, elem.TextColor, elem.TextColor2);
-
-                                content = tb;
-                                _liveDynamicItems.Add((tb, kind, elem.DateFormat));
+                                var item = new UsageVisualItem
+                                {
+                                    Kind = kind,
+                                    Text = tb,
+                                    DisplayStyle = "Text",
+                                    DateFormat = elem.DateFormat
+                                };
+                                _usageVisualItems.Add(item);
+                                content = tb; // 后面统一包装成 border
                             }
                             break;
                         }
@@ -700,19 +869,18 @@ namespace CMDevicesManager.Pages
                         {
                             if (!string.IsNullOrEmpty(elem.ImagePath))
                             {
-                                string resolved = ResolveRelativePath(elem.ImagePath);
+                                var resolved = ResolveRelativePath(elem.ImagePath);
                                 if (File.Exists(resolved))
                                 {
                                     try
                                     {
-                                        var img = new Image { Stretch = Stretch.Uniform };
                                         var bmp = new BitmapImage();
                                         bmp.BeginInit();
                                         bmp.CacheOption = BitmapCacheOption.OnLoad;
                                         bmp.UriSource = new Uri(resolved, UriKind.Absolute);
                                         bmp.EndInit();
                                         bmp.Freeze();
-                                        img.Source = bmp;
+                                        var img = new Image { Source = bmp, Stretch = Stretch.Uniform };
                                         content = img;
                                     }
                                     catch { }
@@ -722,7 +890,6 @@ namespace CMDevicesManager.Pages
                         }
                     case "Video":
                         {
-                            // Placeholder (extend to real playback if required)
                             var tb = new TextBlock
                             {
                                 Text = "VIDEO",
@@ -738,23 +905,334 @@ namespace CMDevicesManager.Pages
                         }
                 }
 
-                if (content != null)
+                // 如果是 usageVisualCreated，则 host 已经完整；否则需要用 content 创建 host
+                if (!usageVisualCreated)
                 {
-                    var host = new Border
+                    if (content == null) continue;
+
+                    host = new Border
                     {
                         Child = content,
-                        Opacity = elem.Opacity <= 0 ? 1.0 : elem.Opacity,
-                        BorderThickness = new Thickness(0)
+                        BorderThickness = new Thickness(0),
+                        RenderTransformOrigin = new Point(0.5, 0.5)
                     };
+                }
 
-                    var tg = new TransformGroup();
-                    tg.Children.Add(new ScaleTransform(elem.Scale <= 0 ? 1.0 : elem.Scale, elem.Scale <= 0 ? 1.0 : elem.Scale));
-                    tg.Children.Add(new TranslateTransform(elem.X, elem.Y));
-                    host.RenderTransform = tg;
-                    host.RenderTransformOrigin = new Point(0.5, 0.5);
+                // 共用：设置 Opacity
+                host!.Opacity = elem.Opacity <= 0 ? 1.0 : elem.Opacity;
 
-                    Canvas.SetZIndex(host, elem.ZIndex);
-                    DesignCanvas.Children.Add(host);
+                // Transform: Scale → (Mirror) → (Rotate) → Translate
+                var tg = new TransformGroup();
+                var scale = new ScaleTransform(elem.Scale <= 0 ? 1.0 : elem.Scale, elem.Scale <= 0 ? 1.0 : elem.Scale);
+                tg.Children.Add(scale);
+
+                if (elem.MirroredX == true)
+                {
+                    tg.Children.Add(new ScaleTransform(-1, 1));
+                }
+                if (elem.Rotation.HasValue && Math.Abs(elem.Rotation.Value) > 0.01)
+                {
+                    tg.Children.Add(new RotateTransform(elem.Rotation.Value));
+                }
+                tg.Children.Add(new TranslateTransform(elem.X, elem.Y));
+                host.RenderTransform = tg;
+
+                Canvas.SetZIndex(host, elem.ZIndex);
+                DesignCanvas.Children.Add(host);
+
+                // 自动移动
+                if ((elem.Type == "Text" || elem.Type == "LiveText")
+                    && elem.MoveDirX.HasValue && elem.MoveDirY.HasValue
+                    && (Math.Abs(elem.MoveDirX.Value) > 0.0001 || Math.Abs(elem.MoveDirY.Value) > 0.0001))
+                {
+                    _movingDirections[host] = (elem.MoveDirX.Value, elem.MoveDirY.Value);
+                }
+            }
+
+            UpdateAutoMoveTimer();
+        }
+        private UsageVisualItem BuildUsageVisual(
+    LiveInfoKindAlias kind,
+    string style,
+    TextBlock baseText,
+    string? startHex,
+    string? endHex,
+    string? needleHex,
+    string? barBgHex)
+        {
+            // 解析主题色
+            var startColor = TryParseColor(startHex ?? "#50B450", out var sc) ? sc : Color.FromRgb(80, 180, 80);
+            var endColor = TryParseColor(endHex ?? "#287828", out var ec) ? ec : Color.FromRgb(40, 120, 40);
+            var needleColor = TryParseColor(needleHex ?? "#5AC85A", out var nc) ? nc : Color.FromRgb(90, 200, 90);
+            var barBgColor = TryParseColor(barBgHex ?? "#28303A", out var bc) ? bc : Color.FromRgb(40, 46, 58);
+
+            var item = new UsageVisualItem
+            {
+                Kind = kind,
+                Text = baseText,
+                StartColor = startColor,
+                EndColor = endColor,
+                NeedleColor = needleColor,
+                BarBackgroundColor = barBgColor,
+                DisplayStyle = style.Equals("Gauge", StringComparison.OrdinalIgnoreCase) ? "Gauge" :
+                               style.Equals("ProgressBar", StringComparison.OrdinalIgnoreCase) ? "ProgressBar" : "Text"
+            };
+
+            FrameworkElement root;
+
+            if (item.DisplayStyle == "ProgressBar")
+            {
+                var container = new Grid
+                {
+                    Width = 160,
+                    Height = 42
+                };
+                var barMargin = new Thickness(10, 8, 10, 20);
+
+                var barBg = new Border
+                {
+                    CornerRadius = new CornerRadius(5),
+                    Background = new SolidColorBrush(barBgColor),
+                    BorderBrush = new SolidColorBrush(Color.FromRgb(70, 80, 96)),
+                    BorderThickness = new Thickness(1),
+                    Margin = barMargin,
+                    Height = 14
+                };
+                var barFill = new Rectangle
+                {
+                    Height = 14,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                    Fill = new LinearGradientBrush(startColor, endColor, 0),
+                    Width = 0,
+                    RadiusX = 5,
+                    RadiusY = 5,
+                    Margin = barMargin
+                };
+                item.BarFill = barFill;
+                item.BarBackground = barBg;
+                item.BarTotalWidth = 160 - barMargin.Left - barMargin.Right;
+
+                baseText.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+                baseText.VerticalAlignment = VerticalAlignment.Bottom;
+                baseText.FontSize = 14;
+                baseText.Margin = new Thickness(0, 0, 0, 2);
+                baseText.Foreground = new SolidColorBrush(startColor);
+
+                var layer = new Grid();
+                layer.Children.Add(barBg);
+                layer.Children.Add(barFill);
+
+                container.Children.Add(layer);
+                container.Children.Add(baseText);
+                root = container;
+            }
+            else if (item.DisplayStyle == "Gauge")
+            {
+                var container = new Grid
+                {
+                    Width = 160,
+                    Height = 120,
+                    ClipToBounds = false
+                };
+                var canvas = new Canvas
+                {
+                    Width = 160,
+                    Height = 120,
+                    ClipToBounds = false
+                };
+
+                for (int percent = 0; percent <= 100; percent += GaugeMinorStep)
+                {
+                    bool major = percent % GaugeMajorStep == 0;
+                    double angle = GaugeAngleFromPercent(percent);
+                    double rad = angle * Math.PI / 180.0;
+
+                    double rOuter = GaugeRadiusOuter;
+                    double rInner = major ? GaugeRadiusInner : (GaugeRadiusInner + 4);
+
+                    double x1 = GaugeCenterX + rOuter * Math.Cos(rad);
+                    double y1 = GaugeCenterY + rOuter * Math.Sin(rad);
+                    double x2 = GaugeCenterX + rInner * Math.Cos(rad);
+                    double y2 = GaugeCenterY + rInner * Math.Sin(rad);
+
+                    double t = percent / 100.0;
+                    var tickColor = LerpColor(startColor, endColor, t);
+                    if (!major) tickColor = Color.FromArgb(160, tickColor.R, tickColor.G, tickColor.B);
+
+                    var tick = new Line
+                    {
+                        X1 = x1,
+                        Y1 = y1,
+                        X2 = x2,
+                        Y2 = y2,
+                        Stroke = new SolidColorBrush(tickColor),
+                        StrokeThickness = major ? 3 : 1.5,
+                        StrokeStartLineCap = PenLineCap.Round,
+                        StrokeEndLineCap = PenLineCap.Round,
+                        Tag = major ? "TickMajor" : "TickMinor",
+                        DataContext = (double)percent
+                    };
+                    canvas.Children.Add(tick);
+                    item.GaugeTicks.Add(tick);
+
+                    if (major && percent % GaugeLabelStep == 0)
+                    {
+                        double labelRadius = GaugeRadiusInner - 18;
+                        double lx = GaugeCenterX + labelRadius * Math.Cos(rad);
+                        double ly = GaugeCenterY + labelRadius * Math.Sin(rad);
+
+                        var lbl = new TextBlock
+                        {
+                            Text = percent.ToString(),
+                            FontSize = 12,
+                            Foreground = new SolidColorBrush(Color.FromRgb(200, 205, 215))
+                        };
+                        lbl.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                        Canvas.SetLeft(lbl, lx - lbl.DesiredSize.Width / 2);
+                        Canvas.SetTop(lbl, ly - lbl.DesiredSize.Height / 2);
+                        canvas.Children.Add(lbl);
+                        item.GaugeLabels.Add(lbl);
+
+                        if (percent == 50 && (kind == LiveInfoKindAlias.CpuUsage || kind == LiveInfoKindAlias.GpuUsage))
+                        {
+                            double label2Radius = labelRadius - 10;
+                            double lx2 = GaugeCenterX + label2Radius * Math.Cos(rad);
+                            double ly2 = GaugeCenterY + label2Radius * Math.Sin(rad);
+
+                            var kindLabel = new TextBlock
+                            {
+                                Text = kind == LiveInfoKindAlias.CpuUsage ? "CPU" : "GPU",
+                                FontSize = 10,
+                                FontWeight = FontWeights.SemiBold,
+                                Foreground = new SolidColorBrush(Color.FromRgb(140, 150, 165))
+                            };
+                            kindLabel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                            Canvas.SetLeft(kindLabel, lx2 - kindLabel.DesiredSize.Width / 2);
+                            Canvas.SetTop(kindLabel, ly2 - kindLabel.DesiredSize.Height / 2 + 10);
+                            canvas.Children.Add(kindLabel);
+                            item.GaugeKindLabel = kindLabel;
+                        }
+                    }
+                }
+
+                var needle = new Line
+                {
+                    X1 = GaugeCenterX,
+                    Y1 = GaugeCenterY,
+                    X2 = GaugeCenterX,
+                    Y2 = GaugeCenterY - GaugeNeedleLength,
+                    StrokeThickness = 5,
+                    Stroke = new SolidColorBrush(needleColor),
+                    StrokeStartLineCap = PenLineCap.Round,
+                    StrokeEndLineCap = PenLineCap.Triangle
+                };
+                var rt = new RotateTransform(GaugeRotationFromPercent(0), GaugeCenterX, GaugeCenterY);
+                needle.RenderTransform = rt;
+                item.GaugeNeedle = needle;
+                item.GaugeNeedleRotate = rt;
+                canvas.Children.Add(needle);
+
+                var cap = new Ellipse
+                {
+                    Width = 18,
+                    Height = 18,
+                    Fill = new SolidColorBrush(Color.FromRgb(45, 52, 63)),
+                    Stroke = new SolidColorBrush(Color.FromRgb(160, 170, 185)),
+                    StrokeThickness = 2
+                };
+                Canvas.SetLeft(cap, GaugeCenterX - 9);
+                Canvas.SetTop(cap, GaugeCenterY - 9);
+                canvas.Children.Add(cap);
+
+                baseText.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
+                baseText.VerticalAlignment = VerticalAlignment.Bottom;
+                baseText.FontSize = 18;
+
+                container.Children.Add(canvas);
+                container.Children.Add(baseText);
+                root = container;
+            }
+            else
+            {
+                // 不进入（调用方判断），留作兼容
+                root = baseText;
+            }
+
+            var wrapper = new Border { Child = root };
+            item.HostBorder = wrapper;
+            return item;
+        }
+        private void AutoMoveTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_movingDirections.Count == 0) return;
+
+            var now = DateTime.Now;
+            double dt = _lastMoveTick == default ? 0.016 : (now - _lastMoveTick).TotalSeconds;
+            _lastMoveTick = now;
+
+            // 使用显式访问而不是 var (vx, vy) = kv.Value; 以避免语法 / 版本问题
+            foreach (var kv in _movingDirections.ToList())
+            {
+                var border = kv.Key;
+                if (!DesignCanvas.Children.Contains(border))
+                {
+                    _movingDirections.Remove(border);
+                    continue;
+                }
+
+                var dir = kv.Value;
+                double vx = dir.dx;
+                double vy = dir.dy;
+                if (Math.Abs(vx) < 0.0001 && Math.Abs(vy) < 0.0001) continue;
+
+                if (border.RenderTransform is not TransformGroup tg) continue;
+                var scale = tg.Children.OfType<ScaleTransform>().FirstOrDefault();
+                var translate = tg.Children.OfType<TranslateTransform>().FirstOrDefault();
+                if (scale == null || translate == null) continue;
+
+                double dx = vx * _moveSpeed * dt;
+                double dy = vy * _moveSpeed * dt;
+                translate.X += dx;
+                translate.Y += dy;
+
+                double w = border.ActualWidth * (scale.ScaleX == 0 ? 1 : scale.ScaleX);
+                double h = border.ActualHeight * (scale.ScaleY == 0 ? 1 : scale.ScaleY);
+
+                if (translate.X > _currentCanvasSize) translate.X = -w;
+                else if (translate.X + w < 0) translate.X = _currentCanvasSize;
+
+                if (translate.Y > _currentCanvasSize) translate.Y = -h;
+                else if (translate.Y + h < 0) translate.Y = _currentCanvasSize;
+            }
+
+            UpdateAutoMoveTimer();
+        }
+
+        private void UpdateAutoMoveTimer()
+        {
+            bool any = _movingDirections.Values.Any(v => Math.Abs(v.dx) > 0.0001 || Math.Abs(v.dy) > 0.0001);
+            if (any)
+            {
+                if (!_autoMoveTimer.IsEnabled) _autoMoveTimer.Start();
+            }
+            else
+            {
+                if (_autoMoveTimer.IsEnabled) _autoMoveTimer.Stop();
+            }
+        }
+
+        private void RecolorGaugeTicks(UsageVisualItem item)
+        {
+            if (item.DisplayStyle != "Gauge") return;
+            foreach (var line in item.GaugeTicks)
+            {
+                if (line.DataContext is double p)
+                {
+                    double t = p / 100.0;
+                    var c = LerpColor(item.StartColor, item.EndColor, t);
+                    if (line.Tag as string == "TickMinor")
+                        c = Color.FromArgb(160, c.R, c.G, c.B);
+                    line.Stroke = new SolidColorBrush(c);
                 }
             }
         }
@@ -1188,9 +1666,10 @@ namespace CMDevicesManager.Pages
         {
             StopKeepAliveTimer();
             _streamingCancellationSource?.Cancel();
+            _configSequenceCts?.Cancel();
 
-            // NEW: dispose metrics + stop timer
             try { _liveUpdateTimer.Stop(); } catch { }
+            try { _autoMoveTimer.Stop(); } catch { }
             try { _metrics.Dispose(); } catch { }
         }
 
