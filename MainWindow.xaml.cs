@@ -30,6 +30,7 @@ namespace CMDevicesManager
         private DevicePage? _devicePage;
         private DevicePageDemo? _devicePageDemo;
         private SettingsPage? _settingsPage;
+        private DevicePlayModePage? _devicePlayModePage;
 
         public MainWindow()
         {
@@ -65,6 +66,7 @@ namespace CMDevicesManager
         private DevicePage GetDevicePage() => _devicePage ??= new DevicePage();
         private DevicePageDemo GetDevicePageDemo() => _devicePageDemo ??= new DevicePageDemo();
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
+        private DevicePlayModePage GetDevicePlayModePage() => _devicePlayModePage ??= new DevicePlayModePage();
 
         private void ValidateResources()
         {
@@ -128,6 +130,10 @@ namespace CMDevicesManager
                     else if (pagePath.Equals("SettingsPage"))
                     {
                         MainFrame.Navigate(GetSettingsPage());
+                    }
+                    else if (pagePath.Equals("DevicePlayModePage"))
+                    {
+                        MainFrame.Navigate(GetDevicePlayModePage());
                     }
                     else
                     {
