@@ -14,6 +14,7 @@ namespace CMDevicesManager
     public partial class App : Application
     {
         private HidDeviceService? _hidDeviceService;
+        private OfflineMediaDataService? _offlineMediaDataService;
 
         public App()
         {
@@ -49,8 +50,8 @@ namespace CMDevicesManager
                 Logger.Info("Initializing font settings");
                 CMDevicesManager.Language.FontSwitch.ChangeFont(UserConfigManager.Current.FontFamily);
 
-                // Initialize HID Device Service
-                InitializeHidDeviceService();
+                // Initialize services
+                InitializeServices();
 
                 // 显示启动窗口
                 var splash = new SplashWindow();
@@ -90,6 +91,90 @@ namespace CMDevicesManager
             {
                 Logger.Error("Application startup failed", ex);
                 throw;
+            }
+        }
+
+        private async void InitializeServices()
+        {
+            try
+            {
+                Logger.Info("Initializing application services");
+
+                // Initialize Offline Media Data Service first
+                Logger.Info("Initializing Offline Media Data Service");
+                _offlineMediaDataService = new OfflineMediaDataService();
+
+                // Initialize HID Device Service
+                Logger.Info("Initializing HID Device Service");
+                _hidDeviceService = new HidDeviceService();
+                
+                // Initialize the service locator with both services
+                ServiceLocator.InitializeAll(_hidDeviceService, _offlineMediaDataService);
+                
+                // Initialize the HID service with default VID/PID values
+                // You can customize these values based on your devices
+                await _hidDeviceService.InitializeAsync(
+                    vendorId: 0x2516,   // Your device's vendor ID
+                    productId: 0x0228,  // Your device's product ID
+                    usagePage: 0xFFFF   // Your device's usage page
+                );
+
+                // Set up event handlers for device connection/disconnection to update offline data
+                _hidDeviceService.DeviceConnected += OnDeviceConnected;
+                _hidDeviceService.DeviceDisconnected += OnDeviceDisconnected;
+                
+                Logger.Info("All services initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to initialize services", ex);
+                // Don't throw here - let the app continue with reduced functionality
+            }
+        }
+
+        private async void OnDeviceConnected(object? sender, DeviceEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"Device connected: {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
+                
+                if (_offlineMediaDataService != null && !string.IsNullOrEmpty(e.Device.SerialNumber))
+                {
+                    // Update device information in offline data
+                    _offlineMediaDataService.UpdateDeviceInfo(e.Device.SerialNumber, e.Device, isConnected: true);
+                    
+                    // Sync media files from local storage for this device
+                    _offlineMediaDataService.SyncMediaFilesFromLocal(e.Device.SerialNumber);
+                    
+                    // Get device controller and update firmware info if available
+                    var controller = _hidDeviceService?.GetController(e.Device.Path);
+                    if (controller?.DeviceFWInfo != null)
+                    {
+                        _offlineMediaDataService.UpdateDeviceFirmwareInfo(e.Device.SerialNumber, controller.DeviceFWInfo);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling device connection: {ex.Message}", ex);
+            }
+        }
+
+        private void OnDeviceDisconnected(object? sender, DeviceEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"Device disconnected: {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
+                
+                if (_offlineMediaDataService != null && !string.IsNullOrEmpty(e.Device.SerialNumber))
+                {
+                    // Update connection status in offline data
+                    _offlineMediaDataService.SetDeviceConnectionStatus(e.Device.SerialNumber, isConnected: false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling device disconnection: {ex.Message}", ex);
             }
         }
 
