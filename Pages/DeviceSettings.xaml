@@ -806,7 +806,7 @@
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
 
-                                    <TextBlock Text="Configure the display when system enter to sleep mode."
+                                    <TextBlock Text="Configure the LCD ON/OFF when system enter to sleep state."
                                                FontSize="11"
                                                Foreground="#AAAAAA"
                                                Margin="0,0,0,12"
@@ -830,11 +830,11 @@
                                                     <StackPanel>
                                                         <TextBlock Text="Sleep Mode Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
                                                         <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
-                                                            Toggle sleep mode on or off. When enabled, the display will automatically enter sleep mode when idle.
+                                                            Toggle sleep mode on or off. When enabled, the device LCD keeps on when system sleeps.
                                                         </TextBlock>
-                                                        <TextBlock Text="ON: Display sleeps when idle" 
+                                                        <TextBlock Text="ON: LCD off when system in sleep state." 
                                                                    FontSize="11" Foreground="LightGreen" Margin="0,2,0,0"/>
-                                                        <TextBlock Text="OFF: Display stays active" 
+                                                        <TextBlock Text="OFF: LCD on when system in sleep state." 
                                                                    FontSize="11" Foreground="LightCoral" Margin="0,1,0,0"/>
                                                     </StackPanel>
                                                 </ToolTip>
@@ -894,10 +894,8 @@
                                                         </TextBlock>
                                                         <TextBlock Text="ON: Device plays suspend media offline" 
                                                                    FontSize="11" Foreground="LightBlue" Margin="0,2,0,0"/>
-                                                        <TextBlock Text="OFF: Normal operation mode" 
+                                                        <TextBlock Text="OFF: Real-Time mode" 
                                                                    FontSize="11" Foreground="Orange" Margin="0,1,0,0"/>
-                                                        <TextBlock Text="⚠ Device may become temporarily unresponsive" 
-                                                                   FontSize="10" Foreground="Yellow" Margin="0,3,0,0"/>
                                                     </StackPanel>
                                                 </ToolTip>
                                             </ToggleButton.ToolTip>
