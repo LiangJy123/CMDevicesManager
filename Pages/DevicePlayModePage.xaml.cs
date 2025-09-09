@@ -42,6 +42,8 @@ namespace CMDevicesManager.Pages
 {
     public partial class DevicePlayModePage : Page
     {
+        public static event Action<CanvasConfiguration>? GlobalConfigRendered;
+        private CanvasConfiguration? _lastAppliedConfig;
         private readonly string _globalSequencePath;
         private readonly object _globalSequenceLock = new();
         private sealed class GlobalConfigSequence
@@ -668,19 +670,20 @@ namespace CMDevicesManager.Pages
         }
         private void ClearCanvasForNoConfigs()
         {
-            // 停止序列
             _configSequenceCts?.Cancel();
 
-            // 清空渲染与状态
             DesignCanvas.Children.Clear();
             _liveDynamicItems.Clear();
             _usageVisualItems.Clear();
             _movingDirections.Clear();
-
-            // 停止自动移动
             UpdateAutoMoveTimer();
 
-            // 重置显示信息
+            // 广播一个空白配置（供隐藏全局 Canvas 清空显示）
+            var blank = new CanvasConfiguration { CanvasSize = 512 };
+            GlobalConfigRendered?.Invoke(blank);
+            _lastAppliedConfig = blank;
+           
+
             CurrentImageName.Text = "No config";
             ImageDimensions.Text = "";
             SaveGlobalSequence();
@@ -919,7 +922,7 @@ namespace CMDevicesManager.Pages
                     BgColorRect.Fill = brush;
                 }
             }
-            catch { BgColorRect.Fill = Brushes.Black; }
+            catch { BgColorRect.Fill = Brushes.White; }
 
             // 背景图
             if (!string.IsNullOrWhiteSpace(cfg.BackgroundImagePath))
@@ -1103,6 +1106,8 @@ namespace CMDevicesManager.Pages
             }
 
             UpdateAutoMoveTimer();
+            _lastAppliedConfig = cfg;
+            GlobalConfigRendered?.Invoke(cfg);
         }
         private UsageVisualItem BuildUsageVisual(
     LiveInfoKindAlias kind,

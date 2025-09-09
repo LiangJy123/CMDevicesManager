@@ -131,6 +131,7 @@
     </controls:MicaWindow.Resources>
     
     <Grid>
+       
         <Border Background="#FF111114" BorderBrush="#FF111114" BorderThickness="5" CornerRadius="8">
             <Grid>
                 <Grid.RowDefinitions>
@@ -204,6 +205,27 @@
                                 <TextBlock Text="Playmode" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
+
+                        <ListBoxItem x:Name="SaveImageItem" Tag="__MirrorSaveImage">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74E;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Save" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem x:Name="MirrorToggleItem" Tag="__MirrorToggle">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock FontFamily="Segoe MDL2 Assets"
+                   Text="&#xE771;"  
+                   FontSize="22"
+                   TextAlignment="Center"
+                   HorizontalAlignment="Center"/>
+        <TextBlock Text="Mirror"
+                   Margin="0,8,0,0"
+                   FontSize="14"
+                   TextAlignment="Center"
+                   HorizontalAlignment="Center"/>
+    </StackPanel>
+                        </ListBoxItem>
                         <ListBoxItem Tag="Pages/SettingsPage.xaml" VerticalAlignment="Bottom">
                             <StackPanel Orientation="Vertical">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
@@ -219,6 +241,62 @@
                 </Grid>
             </Grid>
         </Border>
+       
+        <Grid x:Name="GlobalMirrorHost"
+      Visibility="Hidden"
+      Opacity="0"
+      IsHitTestVisible="False">
+            <!-- 半透明遮罩可取消，如果不想暗背景可删除 Background -->
+            <!--<Border Background="#66000000"/>-->
+            <Border Width="560"
+            Height="560"
+            Background="#FF1E1E1E"
+            CornerRadius="12"
+            BorderBrush="#444"
+            BorderThickness="1"
+            Padding="12"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="0,42,16,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="28"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0">
+                        <TextBlock Text="Mirror Preview (512x512)" 
+                           Foreground="White"
+                           FontSize="13"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"/>
+                        <Button Content="✕"
+                        Width="28"
+                        Height="22"
+                        HorizontalAlignment="Right"
+                        DockPanel.Dock="Right"
+                        Margin="4,0,0,0"
+                        Click="CloseMirrorPreview_Click"
+                        Style="{StaticResource TitleBarButtonStyle}"/>
+                    </DockPanel>
+
+                    <!-- 原来的镜像根容器 -->
+                    <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border BorderBrush="#333" BorderThickness="1" CornerRadius="4" Background="White">
+                            <Grid x:Name="MirrorRoot" Width="512" Height="512">
+                                <Rectangle x:Name="MirrorBgRect"/>
+                                <Image x:Name="MirrorBgImage" Stretch="UniformToFill"/>
+                                <Canvas x:Name="MirrorDesignCanvas"
+                                Width="512"
+                                Height="512"
+                                Background="White"
+                                ClipToBounds="True"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
     
     <!-- 动画 -->
@@ -236,4 +314,5 @@
             </BeginStoryboard>
         </EventTrigger>
     </controls:MicaWindow.Triggers>
+    
 </controls:MicaWindow>
