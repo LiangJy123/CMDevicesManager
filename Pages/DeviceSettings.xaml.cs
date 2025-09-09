@@ -440,6 +440,25 @@ namespace CMDevicesManager.Pages
                 var contentArea = FindName("SuspendModeContentArea") as FrameworkElement;
                 if (contentArea != null) 
                     contentArea.Visibility = Visibility.Collapsed;
+                
+                // Release image sources before clearing all media slots
+                for (int i = 0; i < 5; i++)
+                {
+                    var slotNumber = i + 1;
+                    var thumbnail = FindName($"MediaThumbnail{slotNumber}") as Image;
+                    if (thumbnail?.Source is BitmapImage bitmapToRelease)
+                    {
+                        try
+                        {
+                            thumbnail.Source = null;
+                            bitmapToRelease.StreamSource?.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"Failed to release image source for slot {slotNumber} during hide: {ex.Message}");
+                        }
+                    }
+                }
                     
                 // Clear all media slots to show add state
                 for (int i = 0; i < 5; i++)
@@ -447,7 +466,7 @@ namespace CMDevicesManager.Pages
                     UpdateMediaSlotUI(i, null, false);
                 }
                 
-                Logger.Info("Suspend mode content hidden and media slots reset");
+                Logger.Info("Suspend mode content hidden and media slots reset with image sources released");
             }
             catch (Exception ex)
             {
@@ -574,8 +593,43 @@ namespace CMDevicesManager.Pages
                 _notificationTimer?.Stop();
                 _notificationTimer = null;
                 
-                // Clear video thumbnail cache
-                _videoThumbnailCache?.Clear();
+                // Release all image sources to prevent memory leaks
+                for (int i = 1; i <= 5; i++)
+                {
+                    var thumbnail = FindName($"MediaThumbnail{i}") as Image;
+                    if (thumbnail?.Source is BitmapImage bitmapToRelease)
+                    {
+                        try
+                        {
+                            thumbnail.Source = null;
+                            bitmapToRelease.StreamSource?.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"Failed to release image source for thumbnail {i}: {ex.Message}");
+                        }
+                    }
+                }
+                
+                // Clear and dispose video thumbnail cache
+                if (_videoThumbnailCache?.Count > 0)
+                {
+                    var thumbnailsToDispose = new List<BitmapImage>(_videoThumbnailCache.Values);
+                    _videoThumbnailCache.Clear();
+                    
+                    foreach (var cachedThumbnail in thumbnailsToDispose)
+                    {
+                        try
+                        {
+                            cachedThumbnail?.StreamSource?.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"Failed to dispose cached thumbnail during cleanup: {ex.Message}");
+                        }
+                    }
+                    Logger.Info("Disposed all cached video thumbnails during page cleanup");
+                }
                 
                 // Unsubscribe from HID service events
                 if (_hidDeviceService != null)
@@ -1004,7 +1058,7 @@ namespace CMDevicesManager.Pages
                 bool hasMedia = thumbnailImage?.Visibility == Visibility.Visible || 
                                (placeholder != null && placeholder.Children.OfType<TextBlock>()
                                    .FirstOrDefault()?.Text != "\uE710"); // Not the add icon
-                
+                 
                 if (hasMedia)
                 {
                     // Double-click or specific click handling for media preview
@@ -1124,7 +1178,7 @@ namespace CMDevicesManager.Pages
                 // Need to rename the file name start suspend_1.jpg, suspend_2.mp4, etc.
                 var fileExtension = Path.GetExtension(filePath).ToLower();
                 var newFileName = $"suspend_{slotIndex}{fileExtension}";
-                
+
                 // Determine the target directory based on device serial number
                 string targetDir;
                 string newFilePath;
@@ -1216,6 +1270,23 @@ namespace CMDevicesManager.Pages
                 var removeButton = FindName($"RemoveMediaButton{slotNumber}") as Button;
                 var mediaSlot = FindName($"MediaSlot{slotNumber}") as Border;
 
+                // Release existing image source to prevent memory leaks and file locks
+                if (thumbnail?.Source is BitmapImage existingBitmap)
+                {
+                    try
+                    {
+                        // Clear the source and dispose if possible
+                        thumbnail.Source = null;
+                        
+                        // Force garbage collection of the bitmap to release file handles
+                        existingBitmap.StreamSource?.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Failed to release existing image source for slot {slotNumber}: {ex.Message}");
+                    }
+                }
+
                 if (hasMedia && !string.IsNullOrEmpty(filePath))
                 {
                     // Show media state
@@ -1229,12 +1300,16 @@ namespace CMDevicesManager.Pages
                                 var fileExtension = Path.GetExtension(filePath).ToLower();
                                 if (IsImageFile(fileExtension))
                                 {
-                                    // Display image directly
+                                    // Display image directly with proper resource management
                                     var bitmap = new BitmapImage();
                                     bitmap.BeginInit();
+                                    bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                                    bitmap.CacheOption = BitmapCacheOption.OnLoad; // Load immediately and release file handle
                                     bitmap.UriSource = new Uri(filePath);
                                     bitmap.DecodePixelWidth = 200; // Optimize for display
                                     bitmap.EndInit();
+                                    bitmap.Freeze(); // Make it thread-safe and optimize memory
+                                    
                                     thumbnail.Source = bitmap;
                                     thumbnail.Visibility = Visibility.Visible;
                                 }
@@ -1254,6 +1329,7 @@ namespace CMDevicesManager.Pages
                                         videoThumbnail = await VideoThumbnailHelper.GenerateVideoThumbnailAsync(filePath, width: 200, height: 150);
                                         if (videoThumbnail != null)
                                         {
+                                            videoThumbnail.Freeze(); // Make it thread-safe and optimize memory
                                             _videoThumbnailCache[filePath] = videoThumbnail;
                                             Logger.Info($"Generated and cached video thumbnail for slot {slotNumber}: {Path.GetFileName(filePath)}");
                                         }
@@ -1372,10 +1448,26 @@ namespace CMDevicesManager.Pages
                 }
                 else
                 {
-                    // Show empty slot
+                    // Show empty slot - ensure image source is properly released
                     if (thumbnail != null) 
                     {
-                        thumbnail.Source = null;
+                        // Properly release the image source
+                        if (thumbnail.Source is BitmapImage bitmapToRelease)
+                        {
+                            try
+                            {
+                                thumbnail.Source = null;
+                                bitmapToRelease.StreamSource?.Dispose();
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Warn($"Failed to release image source for empty slot {slotNumber}: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            thumbnail.Source = null;
+                        }
                         thumbnail.Visibility = Visibility.Collapsed;
                     }
                     if (placeholder != null) 
@@ -1452,6 +1544,23 @@ namespace CMDevicesManager.Pages
                 {
                     SetLoadingState(true, $"Removing media from slot {slotIndex + 1}...");
 
+                    // Release image source before deletion to avoid file locks
+                    var slotNumber = slotIndex + 1;
+                    var thumbnail = FindName($"MediaThumbnail{slotNumber}") as Image;
+                    if (thumbnail?.Source is BitmapImage bitmapToRelease)
+                    {
+                        try
+                        {
+                            thumbnail.Source = null;
+                            bitmapToRelease.StreamSource?.Dispose();
+                            Logger.Info($"Released image source for slot {slotNumber} before deletion");
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"Failed to release image source for slot {slotNumber}: {ex.Message}");
+                        }
+                    }
+
                     // Get the actual filename from the offline media data or local media file
                     string? fileNameToDelete = null;
                     string? localMediaPath = null;
@@ -1502,20 +1611,34 @@ namespace CMDevicesManager.Pages
                             Logger.Info($"Removed media file from offline data: slot {slotIndex + 1}");
                         }
                         
+                        // Remove from video thumbnail cache if it exists
+                        if (!string.IsNullOrEmpty(localMediaPath) && _videoThumbnailCache.ContainsKey(localMediaPath))
+                        {
+                            try
+                            {
+                                var cachedThumbnail = _videoThumbnailCache[localMediaPath];
+                                _videoThumbnailCache.Remove(localMediaPath);
+                                
+                                // Dispose the cached thumbnail to free memory
+                                cachedThumbnail?.StreamSource?.Dispose();
+                                Logger.Info($"Removed and disposed video thumbnail from cache: {Path.GetFileName(localMediaPath)}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Warn($"Failed to dispose cached thumbnail: {ex.Message}");
+                            }
+                        }
+                        
                         // Also remove the local file if it exists and wasn't handled by offline service
                         if (!string.IsNullOrEmpty(localMediaPath) && File.Exists(localMediaPath))
                         {
                             try
                             {
+                                // Small delay to ensure image source is fully released
+                                await Task.Delay(100);
+                                
                                 File.Delete(localMediaPath);
                                 Logger.Info($"Deleted local media file: {Path.GetFileName(localMediaPath)}");
-                                
-                                // Clear from video thumbnail cache if it's a video
-                                if (_videoThumbnailCache.ContainsKey(localMediaPath))
-                                {
-                                    _videoThumbnailCache.Remove(localMediaPath);
-                                    Logger.Info($"Removed video thumbnail from cache: {Path.GetFileName(localMediaPath)}");
-                                }
                             }
                             catch (Exception ex)
                             {
@@ -1633,6 +1756,25 @@ namespace CMDevicesManager.Pages
             {
                 SetLoadingState(true, "Clearing all media files...");
 
+                // Release all image sources first to prevent file locks
+                for (int i = 0; i < 5; i++)
+                {
+                    var slotNumber = i + 1;
+                    var thumbnail = FindName($"MediaThumbnail{slotNumber}") as Image;
+                    if (thumbnail?.Source is BitmapImage bitmapToRelease)
+                    {
+                        try
+                        {
+                            thumbnail.Source = null;
+                            bitmapToRelease.StreamSource?.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"Failed to release image source for slot {slotNumber}: {ex.Message}");
+                        }
+                    }
+                }
+
                 // Delete all suspend files from device
                 var results = await _hidDeviceService.DeleteSuspendFilesAsync("all");
                 var successCount = results.Values.Count(r => r);
@@ -1654,7 +1796,7 @@ namespace CMDevicesManager.Pages
                         var deviceMediasDir = _deviceInfo?.SerialNumber != null 
                             ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias", _deviceInfo.SerialNumber)
                             : null;
-                            
+                        
                         var mediasDirectories = new List<string>();
                         if (deviceMediasDir != null && Directory.Exists(deviceMediasDir))
                         {
@@ -1667,6 +1809,26 @@ namespace CMDevicesManager.Pages
                         {
                             mediasDirectories.Add(generalMediasDir);
                         }
+                        
+                        // Clear video thumbnail cache and dispose cached thumbnails first
+                        var thumbnailsToDispose = new List<BitmapImage>(_videoThumbnailCache.Values);
+                        _videoThumbnailCache.Clear();
+                        
+                        foreach (var cachedThumbnail in thumbnailsToDispose)
+                        {
+                            try
+                            {
+                                cachedThumbnail?.StreamSource?.Dispose();
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Warn($"Failed to dispose cached thumbnail: {ex.Message}");
+                            }
+                        }
+                        Logger.Info("Disposed all cached video thumbnails");
+                        
+                        // Small delay to ensure all image sources are released
+                        await Task.Delay(200);
                         
                         foreach (var mediasDir in mediasDirectories)
                         {
@@ -1682,12 +1844,6 @@ namespace CMDevicesManager.Pages
                                     {
                                         File.Delete(file);
                                         Logger.Info($"Deleted local media file: {Path.GetFileName(file)}");
-                                        
-                                        // Remove from video thumbnail cache
-                                        if (_videoThumbnailCache.ContainsKey(file))
-                                        {
-                                            _videoThumbnailCache.Remove(file);
-                                        }
                                     }
                                     catch (Exception ex)
                                     {
@@ -1697,9 +1853,7 @@ namespace CMDevicesManager.Pages
                             }
                         }
                         
-                        // Clear entire video thumbnail cache as a safety measure
-                        _videoThumbnailCache.Clear();
-                        Logger.Info("Cleared video thumbnail cache");
+                        Logger.Info("Cleared video thumbnail cache and local media files");
                     }
                     catch (Exception ex)
                     {
