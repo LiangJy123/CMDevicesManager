@@ -154,10 +154,10 @@
                                FontWeight="Bold"
                                Foreground="White"/>
                     <TextBlock x:Name="DevicePathText"
-                               Text="No device selected"
-                               FontSize="12"
-                               Foreground="#AAFFFFFF"
-                               Margin="0,2,0,0"
+                           Text="No device selected"
+                           FontSize="12"
+                           Foreground="#AAFFFFFF"
+                           Margin="0,2,0,0"
 							   Visibility="Collapsed"/>
                 </StackPanel>
 
@@ -914,9 +914,8 @@
                                             Margin="0,12,0,0">
                                         
                                         <Grid>
-                                            <!-- Active Suspend Media Display (when suspend mode is ON) -->
-                                            <StackPanel x:Name="ActiveSuspendMediaPanel"
-                                                        Visibility="Collapsed">
+                                            <!-- Suspend Media Grid Display -->
+                                            <StackPanel x:Name="SuspendMediaPanel">
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                                     <TextBlock Text="&#xE8FD;"
                                                                FontFamily="Segoe MDL2 Assets"
@@ -924,50 +923,390 @@
                                                                Foreground="#4CAF50"
                                                                VerticalAlignment="Center"
                                                                Margin="0,0,6,0"/>
-                                                    <TextBlock Text="Active Suspend Media Files"
+                                                    <TextBlock Text="Suspend Media Files"
                                                                FontSize="12"
                                                                FontWeight="SemiBold"
                                                                Foreground="#CCCCCC"/>
+                                                    <TextBlock Text="(Click empty slot to add media)"
+                                                               FontSize="10"
+                                                               Foreground="#888888"
+                                                               Margin="8,0,0,0"
+                                                               VerticalAlignment="Center"/>
                                                 </StackPanel>
                                                 
-                                                <ItemsControl x:Name="SuspendMediaList">
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Border Background="#1A1A1A"
-                                                                    CornerRadius="4"
-                                                                    Padding="8,6"
-                                                                    Margin="0,2">
-                                                                <Grid>
-                                                                    <Grid.ColumnDefinitions>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                        <ColumnDefinition Width="*"/>
-                                                                        <ColumnDefinition Width="Auto"/>
-                                                                    </Grid.ColumnDefinitions>
-                                                                    
-                                                                    <TextBlock Grid.Column="0"
-                                                                               Text="&#xE8D4;"
-                                                                               FontFamily="Segoe MDL2 Assets"
-                                                                               FontSize="12"
-                                                                               Foreground="#4CAF50"
-                                                                               VerticalAlignment="Center"
-                                                                               Margin="0,0,8,0"/>
-                                                                    
-                                                                    <TextBlock Grid.Column="1"
-                                                                               Text="{Binding}"
-                                                                               FontSize="11"
-                                                                               Foreground="White"
-                                                                               VerticalAlignment="Center"/>
-                                                                    
-                                                                    <TextBlock Grid.Column="2"
-                                                                               Text="Active"
-                                                                               FontSize="10"
-                                                                               Foreground="#4CAF50"
-                                                                               VerticalAlignment="Center"/>
-                                                                </Grid>
+                                                <!-- Media Grid - 5 slots in a horizontal layout -->
+                                                <UniformGrid x:Name="SuspendMediaGrid" 
+                                                           Rows="1" 
+                                                           Columns="5"
+                                                           Margin="0,8,0,0">
+                                                    
+                                                    <!-- Media Slot 1 -->
+                                                    <Border x:Name="MediaSlot1"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="0">
+                                                        <Grid>
+                                                            <!-- Thumbnail Image -->
+                                                            <Image x:Name="MediaThumbnail1"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            
+                                                            <!-- Add Media Placeholder -->
+                                                            <StackPanel x:Name="AddMediaPlaceholder1"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            
+                                                            <!-- Media Info Overlay -->
+                                                            <Border x:Name="MediaInfoOverlay1"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName1"
+                                                                              Text="media1.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
                                                             </Border>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
+                                                            
+                                                            <!-- Remove Button -->
+                                                            <Button x:Name="RemoveMediaButton1"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="0">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                    <!-- Media Slot 2 -->
+                                                    <Border x:Name="MediaSlot2"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="1">
+                                                        <Grid>
+                                                            <Image x:Name="MediaThumbnail2"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder2"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <Border x:Name="MediaInfoOverlay2"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName2"
+                                                                              Text="media2.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <Button x:Name="RemoveMediaButton2"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="1">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                    <!-- Media Slot 3 -->
+                                                    <Border x:Name="MediaSlot3"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="2">
+                                                        <Grid>
+                                                            <Image x:Name="MediaThumbnail3"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder3"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <Border x:Name="MediaInfoOverlay3"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName3"
+                                                                              Text="media3.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <Button x:Name="RemoveMediaButton3"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="2">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                    <!-- Media Slot 4 -->
+                                                    <Border x:Name="MediaSlot4"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="3">
+                                                        <Grid>
+                                                            <Image x:Name="MediaThumbnail4"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder4"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <Border x:Name="MediaInfoOverlay4"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName4"
+                                                                              Text="media4.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <Button x:Name="RemoveMediaButton4"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="3">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                    <!-- Media Slot 5 -->
+                                                    <Border x:Name="MediaSlot5"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="4">
+                                                        <Grid>
+                                                            <Image x:Name="MediaThumbnail5"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder5"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <Border x:Name="MediaInfoOverlay5"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName5"
+                                                                              Text="media5.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <Button x:Name="RemoveMediaButton5"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="4">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                </UniformGrid>
+                                                
+                                                <!-- Bulk Actions -->
+                                                <StackPanel Orientation="Horizontal" 
+                                                           HorizontalAlignment="Right" 
+                                                           Margin="0,8,0,0">
+                                                    <Button x:Name="AddAllMediaButton"
+                                                           Background="#4CAF50"
+                                                           Foreground="White"
+                                                           BorderBrush="Transparent"
+                                                           Padding="8,4"
+                                                           Margin="0,0,4,0"
+                                                           Click="AddAllMedia_Click">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="&#xE710;"
+                                                                      FontFamily="Segoe MDL2 Assets"
+                                                                      FontSize="12"
+                                                                      Margin="0,0,4,0"/>
+                                                            <TextBlock Text="Add Multiple"
+                                                                      FontSize="10"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    
+                                                    <Button x:Name="ClearAllMediaButton"
+                                                           Background="#F44336"
+                                                           Foreground="White"
+                                                           BorderBrush="Transparent"
+                                                           Padding="8,4"
+                                                           Click="ClearAllMedia_Click">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="&#xE74D;"
+                                                                      FontFamily="Segoe MDL2 Assets"
+                                                                      FontSize="12"
+                                                                      Margin="0,0,4,0"/>
+                                                            <TextBlock Text="Clear All"
+                                                                      FontSize="10"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+                                                
                                             </StackPanel>
                                             
                                         </Grid>
