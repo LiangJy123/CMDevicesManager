@@ -9,6 +9,7 @@ namespace CMDevicesManager.Services
     {
         private static HidDeviceService? _hidDeviceService;
         private static OfflineMediaDataService? _offlineMediaDataService;
+        private static SystemSleepMonitorService? _systemSleepMonitorService;
 
         /// <summary>
         /// Gets the HID Device Service instance
@@ -41,6 +42,21 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+        /// Gets the System Sleep Monitor Service instance
+        /// </summary>
+        public static SystemSleepMonitorService SystemSleepMonitorService
+        {
+            get
+            {
+                if (_systemSleepMonitorService == null)
+                {
+                    throw new InvalidOperationException("SystemSleepMonitorService is not initialized. Call Initialize() first.");
+                }
+                return _systemSleepMonitorService;
+            }
+        }
+
+        /// <summary>
         /// Initialize the service locator with the HID Device Service
         /// </summary>
         internal static void Initialize(HidDeviceService hidDeviceService)
@@ -57,12 +73,21 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+        /// Initialize the System Sleep Monitor Service
+        /// </summary>
+        internal static void InitializeSystemSleepMonitorService(SystemSleepMonitorService systemSleepMonitorService)
+        {
+            _systemSleepMonitorService = systemSleepMonitorService;
+        }
+
+        /// <summary>
         /// Initialize all services
         /// </summary>
-        internal static void InitializeAll(HidDeviceService hidDeviceService, OfflineMediaDataService offlineMediaDataService)
+        internal static void InitializeAll(HidDeviceService hidDeviceService, OfflineMediaDataService offlineMediaDataService, SystemSleepMonitorService? systemSleepMonitorService = null)
         {
             _hidDeviceService = hidDeviceService;
             _offlineMediaDataService = offlineMediaDataService;
+            _systemSleepMonitorService = systemSleepMonitorService;
         }
 
         /// <summary>
@@ -81,10 +106,18 @@ namespace CMDevicesManager.Services
         public static bool IsOfflineMediaServiceInitialized => _offlineMediaDataService != null;
 
         /// <summary>
+        /// Gets whether System Sleep Monitor Service is initialized
+        /// </summary>
+        public static bool IsSystemSleepMonitorServiceInitialized => _systemSleepMonitorService != null;
+
+        /// <summary>
         /// Cleanup all services
         /// </summary>
         internal static void Cleanup()
         {
+            _systemSleepMonitorService?.Dispose();
+            _systemSleepMonitorService = null;
+
             _hidDeviceService?.Dispose();
             _hidDeviceService = null;
 

@@ -108,9 +108,6 @@ namespace CMDevicesManager
                 Logger.Info("Initializing HID Device Service");
                 _hidDeviceService = new HidDeviceService();
                 
-                // Initialize the service locator with both services
-                ServiceLocator.InitializeAll(_hidDeviceService, _offlineMediaDataService);
-                
                 // Initialize the HID service with default VID/PID values
                 // You can customize these values based on your devices
                 await _hidDeviceService.InitializeAsync(
@@ -119,9 +116,24 @@ namespace CMDevicesManager
                     usagePage: 0xFFFF   // Your device's usage page
                 );
 
+                // Initialize System Sleep Monitor Service
+                Logger.Info("Initializing System Sleep Monitor Service");
+                var systemSleepMonitorService = new SystemSleepMonitorService(_hidDeviceService);
+                
+                // Initialize the service locator with all services
+                ServiceLocator.InitializeAll(_hidDeviceService, _offlineMediaDataService, systemSleepMonitorService);
+                
+                // Start monitoring system sleep events
+                systemSleepMonitorService.StartMonitoring();
+
                 // Set up event handlers for device connection/disconnection to update offline data
                 _hidDeviceService.DeviceConnected += OnDeviceConnected;
                 _hidDeviceService.DeviceDisconnected += OnDeviceDisconnected;
+                
+                // Set up event handlers for system sleep monitoring
+                systemSleepMonitorService.SystemEnteringSleep += OnSystemEnteringSleep;
+                systemSleepMonitorService.SystemResumingFromSleep += OnSystemResumingFromSleep;
+                systemSleepMonitorService.DeviceSleepModeChanged += OnDeviceSleepModeChanged;
                 
                 Logger.Info("All services initialized successfully");
             }
@@ -175,6 +187,55 @@ namespace CMDevicesManager
             catch (Exception ex)
             {
                 Logger.Error($"Error handling device disconnection: {ex.Message}", ex);
+            }
+        }
+
+        private void OnSystemEnteringSleep(object? sender, SystemSleepEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"System entering sleep mode at {e.Timestamp}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling system entering sleep: {ex.Message}", ex);
+            }
+        }
+
+        private void OnSystemResumingFromSleep(object? sender, SystemSleepEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"System resuming from sleep mode at {e.Timestamp}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling system resuming from sleep: {ex.Message}", ex);
+            }
+        }
+
+        private void OnDeviceSleepModeChanged(object? sender, DeviceSleepModeEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"Device sleep mode changed: enabled={e.SleepModeEnabled}, successful={e.SuccessfulDevices}/{e.TotalDevices} devices");
+                
+                // Log individual device results if needed
+                foreach (var result in e.DeviceResults)
+                {
+                    if (result.Value)
+                    {
+                        Logger.Info($"Device {result.Key}: sleep mode {(e.SleepModeEnabled ? "enabled" : "disabled")} successfully");
+                    }
+                    else
+                    {
+                        Logger.Warn($"Device {result.Key}: failed to {(e.SleepModeEnabled ? "enable" : "disable")} sleep mode");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling device sleep mode change: {ex.Message}", ex);
             }
         }
 
