@@ -14,6 +14,10 @@ namespace CMDevicesManager
     public partial class App : Application
     {
         private HidDeviceService? _hidDeviceService;
+<<<<<<< HEAD
+=======
+        private OfflineMediaDataService? _offlineMediaDataService;
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         public App()
         {
@@ -49,8 +53,13 @@ namespace CMDevicesManager
                 Logger.Info("Initializing font settings");
                 CMDevicesManager.Language.FontSwitch.ChangeFont(UserConfigManager.Current.FontFamily);
 
+<<<<<<< HEAD
                 // Initialize HID Device Service
                 InitializeHidDeviceService();
+=======
+                // Initialize services
+                InitializeServices();
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
                 // 显示启动窗口
                 var splash = new SplashWindow();
@@ -93,6 +102,154 @@ namespace CMDevicesManager
             }
         }
 
+<<<<<<< HEAD
+=======
+        private async void InitializeServices()
+        {
+            try
+            {
+                Logger.Info("Initializing application services");
+
+                // Initialize Offline Media Data Service first
+                Logger.Info("Initializing Offline Media Data Service");
+                _offlineMediaDataService = new OfflineMediaDataService();
+
+                // Initialize HID Device Service
+                Logger.Info("Initializing HID Device Service");
+                _hidDeviceService = new HidDeviceService();
+                
+                // Initialize the HID service with default VID/PID values
+                // You can customize these values based on your devices
+                await _hidDeviceService.InitializeAsync(
+                    vendorId: 0x2516,   // Your device's vendor ID
+                    productId: 0x0228,  // Your device's product ID
+                    usagePage: 0xFFFF   // Your device's usage page
+                );
+
+                // Initialize System Sleep Monitor Service
+                Logger.Info("Initializing System Sleep Monitor Service");
+                var systemSleepMonitorService = new SystemSleepMonitorService(_hidDeviceService);
+                
+                // Initialize the service locator with all services
+                ServiceLocator.InitializeAll(_hidDeviceService, _offlineMediaDataService, systemSleepMonitorService);
+                
+                // Start monitoring system sleep events
+                systemSleepMonitorService.StartMonitoring();
+
+                // Set up event handlers for device connection/disconnection to update offline data
+                _hidDeviceService.DeviceConnected += OnDeviceConnected;
+                _hidDeviceService.DeviceDisconnected += OnDeviceDisconnected;
+                
+                // Set up event handlers for system sleep monitoring
+                systemSleepMonitorService.SystemEnteringSleep += OnSystemEnteringSleep;
+                systemSleepMonitorService.SystemResumingFromSleep += OnSystemResumingFromSleep;
+                systemSleepMonitorService.DeviceSleepModeChanged += OnDeviceSleepModeChanged;
+                
+                Logger.Info("All services initialized successfully");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Failed to initialize services", ex);
+                // Don't throw here - let the app continue with reduced functionality
+            }
+        }
+
+        private async void OnDeviceConnected(object? sender, DeviceEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"Device connected: {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
+                
+                if (_offlineMediaDataService != null && !string.IsNullOrEmpty(e.Device.SerialNumber))
+                {
+                    // Update device information in offline data
+                    _offlineMediaDataService.UpdateDeviceInfo(e.Device.SerialNumber, e.Device, isConnected: true);
+                    
+                    // Sync media files from local storage for this device
+                    _offlineMediaDataService.SyncMediaFilesFromLocal(e.Device.SerialNumber);
+                    
+                    // Get device controller and update firmware info if available
+                    var controller = _hidDeviceService?.GetController(e.Device.Path);
+                    if (controller?.DeviceFWInfo != null)
+                    {
+                        _offlineMediaDataService.UpdateDeviceFirmwareInfo(e.Device.SerialNumber, controller.DeviceFWInfo);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling device connection: {ex.Message}", ex);
+            }
+        }
+
+        private void OnDeviceDisconnected(object? sender, DeviceEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"Device disconnected: {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
+                
+                if (_offlineMediaDataService != null && !string.IsNullOrEmpty(e.Device.SerialNumber))
+                {
+                    // Update connection status in offline data
+                    _offlineMediaDataService.SetDeviceConnectionStatus(e.Device.SerialNumber, isConnected: false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling device disconnection: {ex.Message}", ex);
+            }
+        }
+
+        private void OnSystemEnteringSleep(object? sender, SystemSleepEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"System entering sleep mode at {e.Timestamp}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling system entering sleep: {ex.Message}", ex);
+            }
+        }
+
+        private void OnSystemResumingFromSleep(object? sender, SystemSleepEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"System resuming from sleep mode at {e.Timestamp}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling system resuming from sleep: {ex.Message}", ex);
+            }
+        }
+
+        private void OnDeviceSleepModeChanged(object? sender, DeviceSleepModeEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"Device sleep mode changed: enabled={e.SleepModeEnabled}, successful={e.SuccessfulDevices}/{e.TotalDevices} devices");
+                
+                // Log individual device results if needed
+                foreach (var result in e.DeviceResults)
+                {
+                    if (result.Value)
+                    {
+                        Logger.Info($"Device {result.Key}: sleep mode {(e.SleepModeEnabled ? "enabled" : "disabled")} successfully");
+                    }
+                    else
+                    {
+                        Logger.Warn($"Device {result.Key}: failed to {(e.SleepModeEnabled ? "enable" : "disable")} sleep mode");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling device sleep mode change: {ex.Message}", ex);
+            }
+        }
+
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         private async void InitializeHidDeviceService()
         {
             try

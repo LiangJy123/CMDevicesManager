@@ -30,6 +30,10 @@ namespace CMDevicesManager
         private DevicePage? _devicePage;
         private DevicePageDemo? _devicePageDemo;
         private SettingsPage? _settingsPage;
+<<<<<<< HEAD
+=======
+        private DevicePlayModePage? _devicePlayModePage;
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         public MainWindow()
         {
@@ -65,6 +69,10 @@ namespace CMDevicesManager
         private DevicePage GetDevicePage() => _devicePage ??= new DevicePage();
         private DevicePageDemo GetDevicePageDemo() => _devicePageDemo ??= new DevicePageDemo();
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
+<<<<<<< HEAD
+=======
+        private DevicePlayModePage GetDevicePlayModePage() => _devicePlayModePage ??= new DevicePlayModePage();
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         private void ValidateResources()
         {
@@ -129,6 +137,13 @@ namespace CMDevicesManager
                     {
                         MainFrame.Navigate(GetSettingsPage());
                     }
+<<<<<<< HEAD
+=======
+                    else if (pagePath.Equals("DevicePlayModePage"))
+                    {
+                        MainFrame.Navigate(GetDevicePlayModePage());
+                    }
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                     else
                     {
                         // Fallback to URI navigation for XAML files

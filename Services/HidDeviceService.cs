@@ -14,7 +14,17 @@ using Timer = System.Threading.Timer;
 namespace CMDevicesManager.Services
 {
     /// <summary>
+<<<<<<< HEAD
     /// Service for managing HID device operations across the application
+=======
+    /// Service for managing HID device operations across the application.
+    /// 
+    /// Device Path Filtering:
+    /// - Device paths added to the filter persist throughout the application lifetime
+    /// - Disconnected devices are NOT automatically removed from the filter
+    /// - This allows filters to work seamlessly when devices reconnect
+    /// - Use ClearDevicePathFilter() or RemoveDevicePathsFromFilter() to manually manage filters
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
     /// </summary>
     public class HidDeviceService : IDisposable
     {
@@ -259,6 +269,12 @@ namespace CMDevicesManager.Services
 
         /// <summary>
         /// Clear all device path filters
+<<<<<<< HEAD
+=======
+        /// Note: This is the only way to remove device paths from the filter.
+        /// Device paths are NOT automatically removed when devices disconnect,
+        /// allowing filters to persist across device disconnections/reconnections.
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// </summary>
         public void ClearDevicePathFilter()
         {
@@ -394,6 +410,16 @@ namespace CMDevicesManager.Services
                     {
                         Logger.Warn($"Command failed for device {devicePath}: {ex.Message}");
                         results[devicePath] = false;
+<<<<<<< HEAD
+=======
+                        
+                        // Fire device error event
+                        var deviceInfo = ConnectedDevices.FirstOrDefault(d => d.Path == devicePath);
+                        if (deviceInfo != null)
+                        {
+                            DeviceError?.Invoke(this, new DeviceErrorEventArgs(deviceInfo, ex));
+                        }
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                     }
                 }
                 else
@@ -409,6 +435,78 @@ namespace CMDevicesManager.Services
             return results;
         }
 
+<<<<<<< HEAD
+=======
+        /// <summary>
+        /// Execute command with response on devices (respects device path filter)
+        /// </summary>
+        private async Task<Dictionary<string, bool>> ExecuteWithResponseOnFilteredDevicesAsync(
+            Func<DisplayController, Task<bool>> command,
+            TimeSpan? timeout = null)
+        {
+            if (_multiDeviceManager == null)
+            {
+                throw new InvalidOperationException("HID Device Service is not initialized");
+            }
+
+            var targetPaths = GetOperationTargetDevicePaths();
+            var results = new Dictionary<string, bool>();
+
+            if (!targetPaths.Any())
+            {
+                Logger.Warn("No devices match the current filter for operation");
+                return results;
+            }
+
+            Logger.Info($"Executing command with response on {targetPaths.Count} filtered devices");
+
+            foreach (var devicePath in targetPaths)
+            {
+                var controller = _multiDeviceManager.GetController(devicePath);
+                if (controller != null)
+                {
+                    try
+                    {
+                        var task = command(controller);
+                        bool result;
+                        if (timeout.HasValue)
+                        {
+                            result = await task.WaitAsync(timeout.Value);
+                        }
+                        else
+                        {
+                            result = await task;
+                        }
+                        results[devicePath] = result;
+                        Logger.Info($"Command with response succeeded for device: {devicePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Command with response failed for device {devicePath}: {ex.Message}");
+                        results[devicePath] = false;
+                        
+                        // Fire device error event
+                        var deviceInfo = ConnectedDevices.FirstOrDefault(d => d.Path == devicePath);
+                        if (deviceInfo != null)
+                        {
+                            DeviceError?.Invoke(this, new DeviceErrorEventArgs(deviceInfo, ex));
+                        }
+                    }
+                }
+                else
+                {
+                    Logger.Warn($"Controller not found for device: {devicePath}");
+                    results[devicePath] = false;
+                }
+            }
+
+            var successCount = results.Values.Count(r => r);
+            Logger.Info($"Command with response completed on {successCount}/{targetPaths.Count} filtered devices");
+
+            return results;
+        }
+
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         #endregion
 
         /// <summary>
@@ -455,6 +553,85 @@ namespace CMDevicesManager.Services
             }
         }
 
+<<<<<<< HEAD
+=======
+        #region Device Information APIs
+
+        /// <summary>
+        /// Get device firmware and hardware information (respects device path filter)
+        /// </summary>
+        /// <returns>Dictionary of device paths and device firmware info</returns>
+        public async Task<Dictionary<string, DeviceFWInfo?>> GetDeviceFirmwareInfoAsync()
+        {
+            var results = new Dictionary<string, DeviceFWInfo?>();
+            var targetPaths = GetOperationTargetDevicePaths();
+
+            foreach (var devicePath in targetPaths)
+            {
+                var controller = _multiDeviceManager?.GetController(devicePath);
+                if (controller != null)
+                {
+                    try
+                    {
+                        results[devicePath] = controller.DeviceFWInfo;
+                        Logger.Info($"Device firmware info retrieved for device: {devicePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Failed to get device firmware info from device {devicePath}: {ex.Message}");
+                        results[devicePath] = null;
+                    }
+                }
+                else
+                {
+                    Logger.Warn($"Controller not found for device: {devicePath}");
+                    results[devicePath] = null;
+                }
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Get device capabilities (respects device path filter)
+        /// </summary>
+        /// <returns>Dictionary of device paths and device capabilities</returns>
+        public async Task<Dictionary<string, DisplayCtrlCapabilities?>> GetDeviceCapabilitiesAsync()
+        {
+            var results = new Dictionary<string, DisplayCtrlCapabilities?>();
+            var targetPaths = GetOperationTargetDevicePaths();
+
+            foreach (var devicePath in targetPaths)
+            {
+                var controller = _multiDeviceManager?.GetController(devicePath);
+                if (controller != null)
+                {
+                    try
+                    {
+                        results[devicePath] = controller.Capabilities;
+                        Logger.Info($"Device capabilities retrieved for device: {devicePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Failed to get device capabilities from device {devicePath}: {ex.Message}");
+                        results[devicePath] = null;
+                    }
+                }
+                else
+                {
+                    Logger.Warn($"Controller not found for device: {devicePath}");
+                    results[devicePath] = null;
+                }
+            }
+
+            return results;
+        }
+
+        #endregion
+
+        #region Display Control APIs
+
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// <summary>
         /// Set real-time display mode on devices (respects device path filter)
         /// </summary>
@@ -491,6 +668,23 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+<<<<<<< HEAD
+=======
+        /// Set display in sleep mode on devices (respects device path filter)
+        /// </summary>
+        /// <param name="enable">True to enable sleep mode</param>
+        /// <returns>Dictionary of device paths and operation results</returns>
+        public async Task<Dictionary<string, bool>> SetDisplayInSleepAsync(bool enable)
+        {
+            return await ExecuteWithResponseOnFilteredDevicesAsync(async controller =>
+            {
+                var response = await controller.SendCmdDisplayInSleepWithResponse(enable);
+                return response?.IsSuccess == true;
+            });
+        }
+
+        /// <summary>
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// Set brightness on devices (respects device path filter)
         /// </summary>
         /// <param name="brightness">Brightness value (0-100)</param>
@@ -518,6 +712,97 @@ namespace CMDevicesManager.Services
             });
         }
 
+<<<<<<< HEAD
+=======
+        #endregion
+
+        #region Suspend Media APIs
+
+        /// <summary>
+        /// Send multiple suspend files to devices (respects device path filter)
+        /// </summary>
+        /// <param name="filePaths">List of file paths to send</param>
+        /// <param name="startingTransferId">Starting transfer ID (default: 1)</param>
+        /// <returns>Dictionary of device paths and operation results</returns>
+        public async Task<Dictionary<string, bool>> SendMultipleSuspendFilesAsync(List<string> filePaths, byte startingTransferId = 1)
+        {
+            return await ExecuteOnFilteredDevicesAsync(async controller =>
+            {
+                return await controller.SendMultipleSuspendFilesWithResponse(filePaths, startingTransferId);
+            });
+        }
+
+        /// <summary>
+        /// Set suspend mode (disable real-time display) on devices (respects device path filter)
+        /// </summary>
+        /// <returns>Dictionary of device paths and operation results</returns>
+        public async Task<Dictionary<string, bool>> SetSuspendModeAsync()
+        {
+            return await ExecuteOnFilteredDevicesAsync(async controller =>
+            {
+                return await controller.SetSuspendModeWithResponse();
+            });
+        }
+
+        /// <summary>
+        /// Delete suspend files on devices (respects device path filter)
+        /// </summary>
+        /// <param name="fileName">File name to delete (default: "all")</param>
+        /// <returns>Dictionary of device paths and operation results</returns>
+        public async Task<Dictionary<string, bool>> DeleteSuspendFilesAsync(string fileName = "all")
+        {
+            return await ExecuteOnFilteredDevicesAsync(async controller =>
+            {
+                return await controller.DeleteSuspendFilesWithResponse(fileName);
+            });
+        }
+
+        #endregion
+
+        #region Device Control APIs
+
+        /// <summary>
+        /// Reboot devices (respects device path filter)
+        /// </summary>
+        /// <returns>Dictionary of device paths and operation results</returns>
+        public async Task<Dictionary<string, bool>> RebootDevicesAsync()
+        {
+            return await ExecuteOnFilteredDevicesAsync(async controller =>
+            {
+                await Task.Run(() => controller.Reboot());
+                return true;
+            });
+        }
+
+        /// <summary>
+        /// Factory reset devices (respects device path filter)
+        /// </summary>
+        /// <returns>Dictionary of device paths and operation results</returns>
+        public async Task<Dictionary<string, bool>> FactoryResetDevicesAsync()
+        {
+            return await ExecuteOnFilteredDevicesAsync(async controller =>
+            {
+                await Task.Run(() => controller.FactoryReset());
+                return true;
+            });
+        }
+
+        /// <summary>
+        /// Update firmware on devices (respects device path filter)
+        /// </summary>
+        /// <param name="filePath">Path to firmware file</param>
+        /// <returns>Dictionary of device paths and operation results</returns>
+        public async Task<Dictionary<string, bool>> UpdateFirmwareAsync(string filePath)
+        {
+            return await ExecuteOnFilteredDevicesAsync(async controller =>
+            {
+                return await controller.FirmwareUpgradeWithFileAndResponse(filePath);
+            });
+        }
+
+        #endregion
+
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// <summary>
         /// Transfer file to devices (respects device path filter)
         /// </summary>
@@ -726,8 +1011,13 @@ namespace CMDevicesManager.Services
                         ConnectedDevices.Remove(deviceToRemove);
                     });
 
+<<<<<<< HEAD
                     // Remove from filter if it exists
                     _filteredDevicePaths.Remove(e.Device.Path);
+=======
+                    // Keep _filteredDevicePaths intact - don't remove disconnected devices from filter
+                    // This allows the filter to persist across device disconnections/reconnections
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
                     Logger.Info($"Device disconnected: {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
                     DeviceDisconnected?.Invoke(this, new DeviceEventArgs(e.Device));
