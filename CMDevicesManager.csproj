@@ -58,6 +58,9 @@
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.5-pre441" />
     <PackageReference Include="MaterialDesignThemes" Version="5.3.0-ci1105" />
     <PackageReference Include="MicaWPF" Version="6.3.0" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+    <PackageReference Include="SkiaSharp" Version="2.88.6" />
+    <PackageReference Include="SkiaSharp.Views.WPF" Version="2.88.6" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="HidProtocol\HidHelper\HidHelper.csproj" />
