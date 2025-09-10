@@ -1,4 +1,4 @@
-using Microsoft.Graphics.Canvas;
+﻿using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using Microsoft.Graphics.Canvas.Text;
 using Microsoft.UI.Xaml;
@@ -20,6 +20,7 @@ namespace DevWinUIGallery.Services
     /// Background rendering service that provides offscreen Win2D canvas rendering
     /// independent of UI thread. Renders to images that can be displayed in UI elements.
     /// Enhanced with HID device integration for real-time JPEG streaming.
+    /// Now works directly with pixel data from render target without XAML WriteableBitmap dependency.
     /// </summary>
     public class BackgroundRenderingService : IDisposable
     {
@@ -31,6 +32,7 @@ namespace DevWinUIGallery.Services
         private bool _isRunning = false;
         private readonly Queue<SoftwareBitmap> _frameQueue = new();
         private readonly object _lockObject = new();
+        private readonly object _jpegLockObject = new(); // Dedicated lock for JPEG operations
         private DateTime _startTime;
         
         // Direct element management since we're not using AdvancedBackgroundRenderer's canvas
@@ -49,10 +51,18 @@ namespace DevWinUIGallery.Services
         private DateTime _lastHidFrameTime = DateTime.MinValue;
         private readonly int _hidFrameIntervalMs = 100; // Send frame to HID every 100ms (10fps for HID)
 
+        private byte _transferId = 0; //unique number, 0~59
+
+
         /// <summary>
-        /// Fired when a new frame is ready for display
+        /// Fired when a new frame is ready for display (using WriteableBitmap for UI compatibility)
         /// </summary>
         public event EventHandler<WriteableBitmap> FrameReady;
+
+        /// <summary>
+        /// Fired when a new frame is ready as raw pixel data
+        /// </summary>
+        public event EventHandler<PixelFrameEventArgs> PixelFrameReady;
         
         /// <summary>
         /// Fired when the service status changes
@@ -72,15 +82,27 @@ namespace DevWinUIGallery.Services
         // Configuration properties
         public int TargetWidth { get; set; } = 480;
         public int TargetHeight { get; set; } = 480;
-        public int TargetFps { get; set; } = 30;
+        public int TargetFps { get; set; } = 15;
 
         public bool IsRunning => _isRunning;
         public int ElementCount => _elements.Count;
         public bool IsHidRealTimeModeEnabled => _isHidRealTimeModeEnabled;
         public int JpegQuality 
         { 
-            get => _jpegQuality; 
-            set => _jpegQuality = Math.Clamp(value, 1, 100); 
+            get 
+            {
+                lock (_jpegLockObject)
+                {
+                    return _jpegQuality;
+                }
+            }
+            set 
+            {
+                lock (_jpegLockObject)
+                {
+                    _jpegQuality = Math.Clamp(value, 1, 100);
+                }
+            }
         }
 
         public BackgroundRenderingService()
@@ -184,11 +206,21 @@ namespace DevWinUIGallery.Services
                 // Capture an initial frame to show the service is ready
                 try
                 {
-                    var initialFrame = await CaptureFrameAsync();
-                    if (initialFrame != null)
+                    var initialPixelFrame = await CapturePixelFrameAsync();
+                    if (initialPixelFrame != null)
                     {
                         StatusChanged?.Invoke(this, "Initial frame captured successfully");
-                        FrameReady?.Invoke(this, initialFrame);
+                        PixelFrameReady?.Invoke(this, initialPixelFrame);
+                        
+                        // Create WriteableBitmap for UI compatibility if FrameReady event has subscribers
+                        if (FrameReady != null)
+                        {
+                            var bitmap = await ConvertPixelDataToWriteableBitmapAsync(initialPixelFrame);
+                            if (bitmap != null)
+                            {
+                                FrameReady?.Invoke(this, bitmap);
+                            }
+                        }
                     }
                     else
                     {
@@ -241,15 +273,25 @@ namespace DevWinUIGallery.Services
                 await Task.Run(async () =>
                 {
                     await Task.Delay(100); // Small delay to ensure everything is initialized
-                    var initialFrame = await CaptureFrameAsync();
-                    if (initialFrame != null)
+                    var initialPixelFrame = await CapturePixelFrameAsync();
+                    if (initialPixelFrame != null)
                     {
-                        FrameReady?.Invoke(this, initialFrame);
+                        PixelFrameReady?.Invoke(this, initialPixelFrame);
+                        
+                        // Create WriteableBitmap for UI compatibility if FrameReady event has subscribers
+                        if (FrameReady != null)
+                        {
+                            var bitmap = await ConvertPixelDataToWriteableBitmapAsync(initialPixelFrame);
+                            if (bitmap != null)
+                            {
+                                FrameReady?.Invoke(this, bitmap);
+                            }
+                        }
                         
                         // Send initial frame to HID devices if real-time mode is enabled
                         if (_isHidRealTimeModeEnabled)
                         {
-                            await SendFrameToHidDevicesAsync(initialFrame);
+                            // await SendPixelFrameToHidDevicesAsync(initialPixelFrame);
                         }
                     }
                 });
@@ -328,11 +370,22 @@ namespace DevWinUIGallery.Services
 
             try
             {
-                // Capture frame directly from render target
-                var writeableBitmap = await CaptureFrameAsync();
-                if (writeableBitmap != null)
+                // Capture frame directly from render target as pixel data
+                var pixelFrame = await CapturePixelFrameAsync();
+                if (pixelFrame != null)
                 {
-                    FrameReady?.Invoke(this, writeableBitmap);
+                    // Fire pixel frame event first (primary event)
+                    PixelFrameReady?.Invoke(this, pixelFrame);
+                    
+                    // Create WriteableBitmap for UI compatibility if FrameReady event has subscribers
+                    if (FrameReady != null)
+                    {
+                        var bitmap = await ConvertPixelDataToWriteableBitmapAsync(pixelFrame);
+                        if (bitmap != null)
+                        {
+                            FrameReady?.Invoke(this, bitmap);
+                        }
+                    }
                     
                     // Send frame to HID devices if real-time mode is enabled and enough time has passed
                     if (_isHidRealTimeModeEnabled)
@@ -347,7 +400,7 @@ namespace DevWinUIGallery.Services
                             {
                                 try
                                 {
-                                    await SendFrameToHidDevicesAsync(writeableBitmap).ConfigureAwait(false);
+                                    await SendPixelFrameToHidDevicesAsync(pixelFrame).ConfigureAwait(false);
                                 }
                                 catch (Exception hidEx)
                                 {
@@ -365,42 +418,14 @@ namespace DevWinUIGallery.Services
             }
         }
 
-        private async Task<WriteableBitmap> ConvertRenderTargetToWriteableBitmapAsync(CanvasRenderTarget renderTarget)
-        {
-            if (renderTarget == null) return null;
-
-            try
-            {
-                // Get pixel data from render target
-                var pixels = renderTarget.GetPixelBytes();
-                
-                // Create WriteableBitmap
-                var writeableBitmap = new WriteableBitmap((int)renderTarget.SizeInPixels.Width, (int)renderTarget.SizeInPixels.Height);
-                
-                // Copy pixels to WriteableBitmap
-                using (var stream = writeableBitmap.PixelBuffer.AsStream())
-                {
-                    await stream.WriteAsync(pixels, 0, pixels.Length);
-                }
-
-                return writeableBitmap;
-            }
-            catch (Exception ex)
-            {
-                StatusChanged?.Invoke(this, $"Render target conversion failed: {ex.Message}");
-                return null;
-            }
-        }
-
         /// <summary>
-        /// Converts a WriteableBitmap to JPEG format byte array
-        /// This method must be called on the UI thread due to WriteableBitmap restrictions
+        /// Converts pixel data to WriteableBitmap for UI compatibility
         /// </summary>
-        /// <param name="bitmap">The bitmap to convert</param>
-        /// <returns>JPEG data as byte array</returns>
-        private async Task<byte[]> ConvertBitmapToJpegAsync(WriteableBitmap bitmap)
+        /// <param name="pixelFrame">The pixel frame data</param>
+        /// <returns>WriteableBitmap for UI display</returns>
+        private async Task<WriteableBitmap> ConvertPixelDataToWriteableBitmapAsync(PixelFrameEventArgs pixelFrame)
         {
-            if (bitmap == null) return null;
+            if (pixelFrame?.PixelData == null) return null;
 
             try
             {
@@ -409,8 +434,8 @@ namespace DevWinUIGallery.Services
                 if (dispatcherQueue == null)
                 {
                     // We're not on the UI thread, we need to switch to it
-                    byte[] result = null;
-                    var tcs = new TaskCompletionSource<byte[]>();
+                    WriteableBitmap result = null;
+                    var tcs = new TaskCompletionSource<WriteableBitmap>();
                     
                     // Find the main window's dispatcher queue
                     Microsoft.UI.Dispatching.DispatcherQueue mainDispatcher = null;
@@ -436,11 +461,11 @@ namespace DevWinUIGallery.Services
                     
                     if (mainDispatcher != null)
                     {
-                        mainDispatcher.TryEnqueue(async () =>
+                        mainDispatcher.TryEnqueue(() =>
                         {
                             try
                             {
-                                result = await ConvertBitmapToJpegOnUIThreadAsync(bitmap);
+                                result = ConvertPixelDataToWriteableBitmapOnUIThread(pixelFrame);
                                 tcs.SetResult(result);
                             }
                             catch (Exception ex)
@@ -453,98 +478,150 @@ namespace DevWinUIGallery.Services
                     }
                     else
                     {
-                        StatusChanged?.Invoke(this, "Cannot convert bitmap to JPEG: No UI thread available");
+                        StatusChanged?.Invoke(this, "Cannot convert pixel data to WriteableBitmap: No UI thread available");
                         return null;
                     }
                 }
                 else
                 {
                     // We're already on the UI thread
-                    return await ConvertBitmapToJpegOnUIThreadAsync(bitmap);
+                    return ConvertPixelDataToWriteableBitmapOnUIThread(pixelFrame);
                 }
             }
             catch (Exception ex)
             {
-                StatusChanged?.Invoke(this, $"JPEG conversion failed: {ex.Message}");
+                StatusChanged?.Invoke(this, $"Pixel data to WriteableBitmap conversion failed: {ex.Message}");
                 return null;
             }
         }
 
         /// <summary>
-        /// Internal method to convert bitmap to JPEG on UI thread
+        /// Internal method to convert pixel data to WriteableBitmap on UI thread
         /// </summary>
-        private async Task<byte[]> ConvertBitmapToJpegOnUIThreadAsync(WriteableBitmap bitmap)
+        private WriteableBitmap ConvertPixelDataToWriteableBitmapOnUIThread(PixelFrameEventArgs pixelFrame)
         {
-            using (var stream = new InMemoryRandomAccessStream())
+            // Create WriteableBitmap
+            var writeableBitmap = new WriteableBitmap(pixelFrame.Width, pixelFrame.Height);
+            
+            // Copy pixels to WriteableBitmap
+            using (var stream = writeableBitmap.PixelBuffer.AsStream())
             {
-                // Create JPEG encoder
-                var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, stream);
-                
-                // Get pixel data from WriteableBitmap (must be on UI thread)
-                var pixelBuffer = bitmap.PixelBuffer;
-                var pixels = pixelBuffer.ToArray();
+                stream.Write(pixelFrame.PixelData, 0, pixelFrame.PixelData.Length);
+            }
 
-                // Set pixel data
-                encoder.SetPixelData(
-                    BitmapPixelFormat.Bgra8,
-                    BitmapAlphaMode.Premultiplied,
-                    (uint)bitmap.PixelWidth,
-                    (uint)bitmap.PixelHeight,
-                    96, 96, pixels);
+            return writeableBitmap;
+        }
 
-                // Encode to stream
-                await encoder.FlushAsync();
-                
-                // Convert stream to byte array
-                var buffer = new byte[stream.Size];
-                await stream.ReadAsync(buffer.AsBuffer(), (uint)stream.Size, InputStreamOptions.None);
-                
-                return buffer;
+        /// <summary>
+        /// Converts pixel data directly to JPEG format byte array
+        /// </summary>
+        /// <param name="pixelFrame">The pixel frame data</param>
+        /// <returns>JPEG data as byte array</returns>
+        private async Task<byte[]> ConvertPixelDataToJpegAsync(PixelFrameEventArgs pixelFrame)
+        {
+            if (pixelFrame?.PixelData == null) return null;
+
+            try
+            {
+                // Lock to ensure thread-safe JPEG conversion
+                return await Task.Run(async () =>
+                {
+                    lock (_jpegLockObject)
+                    {
+                        // Perform JPEG conversion in a thread-safe manner
+                        return ConvertPixelDataToJpegSync(pixelFrame);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                StatusChanged?.Invoke(this, $"Pixel data to JPEG conversion failed: {ex.Message}");
+                return null;
             }
         }
 
         /// <summary>
-        /// Sends the current frame as JPEG data to HID devices
+        /// Synchronous JPEG conversion method to be used within lock
         /// </summary>
-        /// <param name="bitmap">The bitmap to send</param>
-        /// <returns>True if successful</returns>
-        private async Task<bool> SendFrameToHidDevicesAsync(WriteableBitmap bitmap)
+        /// <param name="pixelFrame">The pixel frame data</param>
+        /// <returns>JPEG data as byte array</returns>
+        private byte[] ConvertPixelDataToJpegSync(PixelFrameEventArgs pixelFrame)
         {
-            if (!_isHidRealTimeModeEnabled || _hidService == null || bitmap == null)
-                return false;
-
             try
             {
-                // Convert bitmap to JPEG (this will handle UI thread switching internally)
-                var jpegData = await ConvertBitmapToJpegAsync(bitmap);
+                using (var stream = new InMemoryRandomAccessStream())
+                {
+                    // Create JPEG encoder
+                    var encoder = BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, stream).GetAwaiter().GetResult();
+                    
+                    // Set pixel data directly from our pixel frame
+                    encoder.SetPixelData(
+                        BitmapPixelFormat.Bgra8,
+                        BitmapAlphaMode.Premultiplied,
+                        (uint)pixelFrame.Width,
+                        (uint)pixelFrame.Height,
+                        96, 96, pixelFrame.PixelData);
+
+                    // Encode to stream
+                    encoder.FlushAsync().GetAwaiter().GetResult();
+                    
+                    // Convert stream to byte array
+                    var buffer = new byte[stream.Size];
+                    stream.ReadAsync(buffer.AsBuffer(), (uint)stream.Size, InputStreamOptions.None).GetAwaiter().GetResult();
+                    
+                    return buffer;
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusChanged?.Invoke(this, $"Synchronous JPEG conversion failed: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Sends the current frame as JPEG data to HID devices using pixel data directly
+        /// </summary>
+        /// <param name="pixelFrame">The pixel frame to send</param>
+        /// <returns>True if successful</returns>
+        private async Task<bool> SendPixelFrameToHidDevicesAsync(PixelFrameEventArgs pixelFrame)
+        {
+            if (!_isHidRealTimeModeEnabled || _hidService == null || pixelFrame?.PixelData == null)
+                return false;
+
+            byte[] jpegData = null;
+            byte transferId;
+            
+            try
+            {
+                // Convert pixel data to JPEG directly with locking
+                jpegData = await ConvertPixelDataToJpegAsync(pixelFrame);
                 if (jpegData == null || jpegData.Length == 0)
                 {
-                    StatusChanged?.Invoke(this, "Failed to convert frame to JPEG");
+                    StatusChanged?.Invoke(this, "Failed to convert pixel frame to JPEG");
                     return false;
                 }
 
-                // Create a unique temporary file name with timestamp to avoid conflicts
-                var tempFileName = Path.Combine(Path.GetTempPath(), $"hid_frame_{DateTime.Now:yyyyMMdd_HHmmss_fff}_{Guid.NewGuid():N}.jpg");
-                
-                // Save JPEG to temporary file
-                await File.WriteAllBytesAsync(tempFileName, jpegData);
+                // Lock during JPEG data operations and transfer ID management
+                lock (_jpegLockObject)
+                {
+                    // Create a protected copy of jpegData to prevent modification during transmission
+                    var jpegDataCopy = new byte[jpegData.Length];
+                    Array.Copy(jpegData, jpegDataCopy, jpegData.Length);
+                    jpegData = jpegDataCopy;
+                    
+                    // Get current transfer ID safely
+                    transferId = _transferId;
+                    
+                    // Update transfer ID
+                    _transferId++;
+                    if (_transferId > 59) _transferId = 1;
+                }
 
-                // Send file to HID devices using TransferFileAsync
-                var results = await _hidService.TransferFileAsync(tempFileName);
+                // Send data to HID devices using TransferDataAsync (outside of lock to prevent blocking)
+                var results = await _hidService.TransferDataAsync(jpegData, transferId);
                 var successCount = results.Values.Count(r => r);
                 var totalCount = results.Count;
-
-                // Clean up temporary file
-                try
-                {
-                    if (File.Exists(tempFileName))
-                        File.Delete(tempFileName);
-                }
-                catch (Exception cleanupEx)
-                {
-                    // Log cleanup errors but don't fail the operation
-                    StatusChanged?.Invoke(this, $"Warning: Failed to cleanup temp file {tempFileName}: {cleanupEx.Message}");
-                }
 
                 if (successCount > 0)
                 {
@@ -553,7 +630,7 @@ namespace DevWinUIGallery.Services
                         FrameSize = jpegData.Length,
                         DevicesSucceeded = successCount,
                         DevicesTotal = totalCount,
-                        JpegQuality = _jpegQuality,
+                        JpegQuality = JpegQuality, // Use property instead of direct field access
                         Timestamp = DateTime.Now
                     };
                     
@@ -568,8 +645,13 @@ namespace DevWinUIGallery.Services
             }
             catch (Exception ex)
             {
-                StatusChanged?.Invoke(this, $"Error sending frame to HID devices: {ex.Message}");
+                StatusChanged?.Invoke(this, $"Error sending pixel frame to HID devices: {ex.Message}");
                 return false;
+            }
+            finally
+            {
+                // Clear jpegData reference to help GC
+                jpegData = null;
             }
         }
 
@@ -584,10 +666,20 @@ namespace DevWinUIGallery.Services
             {
                 try
                 {
-                    var frame = await CaptureFrameAsync();
-                    if (frame != null)
+                    var pixelFrame = await CapturePixelFrameAsync();
+                    if (pixelFrame != null)
                     {
-                        FrameReady?.Invoke(this, frame);
+                        PixelFrameReady?.Invoke(this, pixelFrame);
+                        
+                        // Create WriteableBitmap for UI compatibility if FrameReady event has subscribers
+                        if (FrameReady != null)
+                        {
+                            var bitmap = await ConvertPixelDataToWriteableBitmapAsync(pixelFrame);
+                            if (bitmap != null)
+                            {
+                                FrameReady?.Invoke(this, bitmap);
+                            }
+                        }
                         
                         // Send to HID devices if real-time mode is enabled (non-blocking)
                         if (_isHidRealTimeModeEnabled)
@@ -596,7 +688,7 @@ namespace DevWinUIGallery.Services
                             {
                                 try
                                 {
-                                    await SendFrameToHidDevicesAsync(frame).ConfigureAwait(false);
+                                    // await SendPixelFrameToHidDevicesAsync(pixelFrame).ConfigureAwait(false);
                                 }
                                 catch (Exception hidEx)
                                 {
@@ -620,10 +712,10 @@ namespace DevWinUIGallery.Services
         }
 
         /// <summary>
-        /// Captures the current frame as a WriteableBitmap
+        /// Captures the current frame as pixel data directly from render target
         /// </summary>
-        /// <returns></returns>
-        public async Task<WriteableBitmap> CaptureFrameAsync()
+        /// <returns>Pixel frame data</returns>
+        public async Task<PixelFrameEventArgs> CapturePixelFrameAsync()
         {
             if (!_isInitialized || _renderer == null || _renderTarget == null) return null;
 
@@ -635,15 +727,36 @@ namespace DevWinUIGallery.Services
                     DrawFrameUsingRenderer(session, DateTime.Now);
                 }
 
-                // Convert render target to WriteableBitmap
-                return await ConvertRenderTargetToWriteableBitmapAsync(_renderTarget);
+                // Get pixel data directly from render target
+                var pixels = _renderTarget.GetPixelBytes();
+                
+                return new PixelFrameEventArgs
+                {
+                    PixelData = pixels,
+                    Width = (int)_renderTarget.SizeInPixels.Width,
+                    Height = (int)_renderTarget.SizeInPixels.Height,
+                    Format = PixelFormat.Bgra8,
+                    Timestamp = DateTime.Now
+                };
             }
             catch (Exception ex)
             {
-                StatusChanged?.Invoke(this, $"Frame capture failed: {ex.Message}");
+                StatusChanged?.Invoke(this, $"Pixel frame capture failed: {ex.Message}");
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Captures the current frame as a WriteableBitmap (for backward compatibility)
+        /// </summary>
+        /// <returns></returns>
+        public async Task<WriteableBitmap> CaptureFrameAsync()
+        {
+            var pixelFrame = await CapturePixelFrameAsync();
+            if (pixelFrame == null) return null;
+
+            return await ConvertPixelDataToWriteableBitmapAsync(pixelFrame);
         }
 
         /// <summary>
@@ -696,13 +809,15 @@ namespace DevWinUIGallery.Services
                         new Vector2(debugX, 30), Microsoft.UI.Colors.LightGray, debugFormat);
                     session.DrawText($"Time: {currentTime:HH:mm:ss.fff}", 
                         new Vector2(debugX, 50), Microsoft.UI.Colors.LimeGreen, debugFormat);
+                    session.DrawText($"Direct Pixel Mode", 
+                        new Vector2(debugX, 110), Microsoft.UI.Colors.Magenta, debugFormat);
                     
                     // Show HID status
                     if (_isHidRealTimeModeEnabled)
                     {
                         session.DrawText($"HID: Real-time ON", 
                             new Vector2(debugX, 70), Microsoft.UI.Colors.Cyan, debugFormat);
-                        session.DrawText($"JPEG: {_jpegQuality}%", 
+                        session.DrawText($"JPEG: {JpegQuality}%", 
                             new Vector2(debugX, 90), Microsoft.UI.Colors.Cyan, debugFormat);
                     }
                     else
@@ -731,17 +846,17 @@ namespace DevWinUIGallery.Services
                     var centerX = TargetWidth / 2f;
                     var startY = TargetHeight / 2f - 100;
 
-                    session.DrawText("?? Background Rendering Service", 
+                    session.DrawText("🎨 Direct Pixel Rendering Service", 
                         new Vector2(centerX, startY), Microsoft.UI.Colors.White, titleFormat);
-                    session.DrawText("Ready to render amazing content!", 
+                    session.DrawText("Working with raw pixel data from render target!", 
                         new Vector2(centerX, startY + 50), Microsoft.UI.Colors.LightBlue, textFormat);
-                    session.DrawText($"Canvas Size: {TargetWidth} � {TargetHeight} pixels", 
+                    session.DrawText($"Canvas Size: {TargetWidth} × {TargetHeight} pixels", 
                         new Vector2(centerX, startY + 80), Microsoft.UI.Colors.Gray, textFormat);
                     
                     // Show HID integration status
                     if (_hidService != null)
                     {
-                        var hidStatus = _isHidRealTimeModeEnabled ? "?? HID Real-time Mode ACTIVE" : "?? HID Service Connected";
+                        var hidStatus = _isHidRealTimeModeEnabled ? "🔄 HID Real-time Mode ACTIVE" : "🔌 HID Service Connected";
                         session.DrawText(hidStatus, 
                             new Vector2(centerX, startY + 120), 
                             _isHidRealTimeModeEnabled ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Yellow, 
@@ -755,9 +870,13 @@ namespace DevWinUIGallery.Services
                     }
                     else
                     {
-                        session.DrawText("?? HID Service Not Available", 
+                        session.DrawText("❌ HID Service Not Available", 
                             new Vector2(centerX, startY + 120), Microsoft.UI.Colors.Red, textFormat);
                     }
+                    
+                    // Show pixel mode indicator
+                    session.DrawText("✨ Direct Pixel Mode: No WriteableBitmap dependency", 
+                        new Vector2(centerX, startY + 170), Microsoft.UI.Colors.Magenta, textFormat);
                     
                     // Draw animated elements to show the service is working
                     var elapsedTime = (DateTime.Now - _startTime).TotalSeconds;
@@ -1025,6 +1144,29 @@ namespace DevWinUIGallery.Services
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Event arguments for pixel frame events
+    /// </summary>
+    public class PixelFrameEventArgs : EventArgs
+    {
+        public byte[] PixelData { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public PixelFormat Format { get; set; }
+        public DateTime Timestamp { get; set; }
+    }
+
+    /// <summary>
+    /// Pixel format enumeration
+    /// </summary>
+    public enum PixelFormat
+    {
+        Bgra8,
+        Rgba8,
+        Rgb24,
+        Gray8
     }
 
     /// <summary>

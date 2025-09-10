@@ -785,12 +785,28 @@ namespace CMDevicesManager.Services
         /// Transfer file to devices (respects device path filter)
         /// </summary>
         /// <param name="filePath">Path to file to transfer</param>
+        /// <param name="transferId">0-59, every call need make sure the value is not same </param>
         /// <returns>Dictionary of device paths and operation results</returns>
-        public async Task<Dictionary<string, bool>> TransferFileAsync(string filePath)
+        public async Task<Dictionary<string, bool>> TransferFileAsync(string filePath, byte transferId)
         {
             return await ExecuteOnFilteredDevicesAsync(async controller =>
             {
-                await Task.Run(() => controller.SendFileFromDisk(filePath, transferId: 1));
+                controller.SendFileFromDisk(filePath, transferId: transferId);
+                return true;
+            });
+        }
+
+        /// <summary>
+        /// Transfer jpeg format data to devices (respects device path filter)
+        /// </summary>
+        /// <param name="jpegData">Path to file to transfer</param>
+        /// <param name="transferId">0-59, every call need make sure the value is not same </param>
+        /// <returns>Dictionary of device paths and operation results</returns>
+        public async Task<Dictionary<string, bool>> TransferDataAsync(byte[] jpegData, byte transferId)
+        {
+            return await ExecuteOnFilteredDevicesAsync(async controller =>
+            {
+                controller.SendFileTransfer(jpegData, fileType:1, transferId: transferId);
                 return true;
             });
         }

@@ -48,82 +48,85 @@
                 </Border>
 
                 <!-- Overlay Controls -->
-                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Top" 
-                            Margin="20" Spacing="10" Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-                            Padding="15" CornerRadius="8">
-                    <TextBlock Text="Renderer Controls" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+                <ScrollViewer HorizontalAlignment="Right" VerticalAlignment="Top" 
+                             Margin="20" 
+                             MaxHeight="600"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Disabled"
+                             ZoomMode="Disabled">
+                    <StackPanel Spacing="10" Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
+                                Padding="15" CornerRadius="8">
+                        <TextBlock Text="Renderer Controls" Style="{ThemeResource SubtitleTextBlockStyle}"/>
 
-                    <Button x:Name="StartStopButton" Content="Start Rendering" Click="OnStartStopClick"/>
-                    <Button x:Name="CaptureButton" Content="Capture Frame" Click="OnCaptureFrameClick"/>
-                    <Button x:Name="ClearButton" Content="Clear Elements" Click="OnClearElementsClick"/>
+                        <Button x:Name="StartStopButton" Content="Start Rendering" Click="OnStartStopClick"/>
+                        <Button x:Name="CaptureButton" Content="Capture Frame" Click="OnCaptureFrameClick"/>
+                        <Button x:Name="ClearButton" Content="Clear Elements" Click="OnClearElementsClick"/>
 
-                    <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
+                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
 
-                    <TextBlock Text="🔗 HID Device Integration" Style="{ThemeResource BodyStrongTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                    <TextBlock Text="Real-time JPEG streaming to connected HID devices" 
-                               Style="{ThemeResource CaptionTextBlockStyle}" 
-                               TextWrapping="Wrap"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                    
-                    <StackPanel Orientation="Horizontal" Spacing="5">
-                        <TextBlock Text="JPEG Quality:" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="JpegQualityComboBox" SelectedIndex="2" SelectionChanged="OnJpegQualityChanged" Width="80">
-                            <ComboBoxItem Content="50%"/>
-                            <ComboBoxItem Content="75%"/>
-                            <ComboBoxItem Content="85%"/>
-                            <ComboBoxItem Content="95%"/>
-                        </ComboBox>
+                        <TextBlock Text="🔗 HID Device Integration" Style="{ThemeResource BodyStrongTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="Real-time JPEG streaming to connected HID devices" 
+                                   Style="{ThemeResource CaptionTextBlockStyle}" 
+                                   TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <TextBlock Text="JPEG Quality:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="JpegQualityComboBox" SelectedIndex="2" SelectionChanged="OnJpegQualityChanged" Width="80">
+                                <ComboBoxItem Content="50%"/>
+                                <ComboBoxItem Content="75%"/>
+                                <ComboBoxItem Content="85%"/>
+                                <ComboBoxItem Content="95%"/>
+                            </ComboBox>
+                        </StackPanel>
+                        
+                        <CheckBox x:Name="HidRealTimeModeCheckBox" Content="Enable HID Real-time Mode" 
+                                  Checked="OnHidRealTimeModeChanged" Unchecked="OnHidRealTimeModeChanged"
+                                  IsChecked="True"/>
+
+                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
+
+                        <TextBlock Text="💡 Interaction Tip" Style="{ThemeResource BodyStrongTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="Click and drag elements to move them around!" 
+                                   Style="{ThemeResource CaptionTextBlockStyle}" 
+                                   TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+
+                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
+
+                        <TextBlock Text="Render Settings" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <TextBlock Text="Size:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="RenderSizeComboBox" SelectedIndex="0" SelectionChanged="OnRenderSizeChanged">
+                                <ComboBoxItem Content="480x480"/>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <TextBlock Text="FPS:" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="FpsComboBox" SelectedIndex="0" SelectionChanged="OnFpsChanged">
+                                <ComboBoxItem Content="15"/>
+                                <ComboBoxItem Content="30"/>
+                                <ComboBoxItem Content="60"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
+
+                        <TextBlock Text="Add Elements" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                        <Button Content="🧪 Test Simple Text" Click="OnTestSimpleTextClick" Background="LightBlue"/>
+                        <Button Content="Add Live Time" Click="OnAddLiveTimeClick"/>
+                        <Button Content="Add Floating Text" Click="OnAddFloatingTextClick"/>
+                        <Button Content="Add Particle System" Click="OnAddParticleSystemClick"/>
+                        <Button Content="Add Sample Image" Click="OnAddSampleImageClick"/>
+
+                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
+
+                        <TextBlock Text="Effects" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                        <CheckBox x:Name="GlowEffectCheckBox" Content="Text Glow Effect" Checked="OnGlowEffectChanged" Unchecked="OnGlowEffectChanged"/>
+                        <CheckBox x:Name="BreathingEffectCheckBox" Content="Breathing Animation" Checked="OnBreathingEffectChanged" Unchecked="OnBreathingEffectChanged"/>
+                        <CheckBox x:Name="MovementEffectCheckBox" Content="Movement Animation" Checked="OnMovementEffectChanged" Unchecked="OnMovementEffectChanged"/>
                     </StackPanel>
-                    
-                    <CheckBox x:Name="HidRealTimeModeCheckBox" Content="Enable HID Real-time Mode" 
-                              Checked="OnHidRealTimeModeChanged" Unchecked="OnHidRealTimeModeChanged"
-                              IsChecked="True"/>
-
-                    <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-
-                    <TextBlock Text="💡 Interaction Tip" Style="{ThemeResource BodyStrongTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                    <TextBlock Text="Click and drag elements to move them around!" 
-                               Style="{ThemeResource CaptionTextBlockStyle}" 
-                               TextWrapping="Wrap"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-
-                    <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-
-                    <TextBlock Text="Render Settings" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                    <StackPanel Orientation="Horizontal" Spacing="5">
-                        <TextBlock Text="Size:" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="RenderSizeComboBox" SelectedIndex="1" SelectionChanged="OnRenderSizeChanged">
-                            <ComboBoxItem Content="48x480"/>
-                            <ComboBoxItem Content="800x600"/>
-                            <ComboBoxItem Content="1024x768"/>
-                            <ComboBoxItem Content="1280x720"/>
-                        </ComboBox>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="5">
-                        <TextBlock Text="FPS:" VerticalAlignment="Center"/>
-                        <ComboBox x:Name="FpsComboBox" SelectedIndex="1" SelectionChanged="OnFpsChanged">
-                            <ComboBoxItem Content="15"/>
-                            <ComboBoxItem Content="30"/>
-                            <ComboBoxItem Content="60"/>
-                        </ComboBox>
-                    </StackPanel>
-
-                    <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-
-                    <TextBlock Text="Add Elements" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                    <Button Content="🧪 Test Simple Text" Click="OnTestSimpleTextClick" Background="LightBlue"/>
-                    <Button Content="Add Live Time" Click="OnAddLiveTimeClick"/>
-                    <Button Content="Add Floating Text" Click="OnAddFloatingTextClick"/>
-                    <Button Content="Add Particle System" Click="OnAddParticleSystemClick"/>
-                    <Button Content="Add Sample Image" Click="OnAddSampleImageClick"/>
-
-                    <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-
-                    <TextBlock Text="Effects" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                    <CheckBox x:Name="GlowEffectCheckBox" Content="Text Glow Effect" Checked="OnGlowEffectChanged" Unchecked="OnGlowEffectChanged"/>
-                    <CheckBox x:Name="BreathingEffectCheckBox" Content="Breathing Animation" Checked="OnBreathingEffectChanged" Unchecked="OnBreathingEffectChanged"/>
-                    <CheckBox x:Name="MovementEffectCheckBox" Content="Movement Animation" Checked="OnMovementEffectChanged" Unchecked="OnMovementEffectChanged"/>
-                </StackPanel>
+                </ScrollViewer>
             </Grid>
         </Border>
 

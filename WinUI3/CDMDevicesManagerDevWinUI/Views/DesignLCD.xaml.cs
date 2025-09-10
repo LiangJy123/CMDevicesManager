@@ -75,7 +75,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                 // We'll load the sample image using a temporary CanvasDevice
                 // since we need a device context to load CanvasBitmap
                 var device = CanvasDevice.GetSharedDevice();
-                var uri = new Uri("ms-appx:///Assets/SampleData/LandscapeImage1.jpg");
+                var uri = new Uri("ms-appx:///Assets/sample.jpg");
                 _sampleImage = await CanvasBitmap.LoadAsync(device, uri);
                 StatusText.Text = "Background rendering service ready - you can start adding elements!";
             }
@@ -227,7 +227,7 @@ namespace CDMDevicesManagerDevWinUI.Views
 
             switch (sizeText)
             {
-                case "48x480":
+                case "480x480":
                     _renderingService.SetRenderSize(480, 480);
                     break;
                 case "800x600":

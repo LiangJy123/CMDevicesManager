@@ -24,7 +24,8 @@ namespace CMDevicesManager.Helper
         private static readonly BlockingCollection<(LogLevel Level, string Message, Exception Ex)> _logQueue
             = new BlockingCollection<(LogLevel, string, Exception)>();
 
-        private static readonly string LogFile = "app.log"; // 单一日志文件
+        // Use application's local data directory or fallback to application directory
+        private static readonly string LogFile = GetLogFilePath();
         private static readonly long MaxFileSize = 50 * 1024 * 1024; // 50 MB
         private static readonly LogLevel MinLogLevel = LogLevel.Info; // 日志过滤等级
 
@@ -39,6 +40,38 @@ namespace CMDevicesManager.Helper
         static Logger()
         {
             Task.Factory.StartNew(ProcessLogQueue, TaskCreationOptions.LongRunning);
+        }
+
+        private static string GetLogFilePath()
+        {
+            try
+            {
+                // Try to use LocalApplicationData first (recommended for WinUI3 apps)
+                string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string appFolder = Path.Combine(localAppData, "CMDevicesManager");
+                
+                // Create directory if it doesn't exist
+                if (!Directory.Exists(appFolder))
+                {
+                    Directory.CreateDirectory(appFolder);
+                }
+                
+                return Path.Combine(appFolder, "app.log");
+            }
+            catch
+            {
+                try
+                {
+                    // Fallback to application directory
+                    string appDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? Environment.CurrentDirectory;
+                    return Path.Combine(appDir, "app.log");
+                }
+                catch
+                {
+                    // Last resort: temp directory
+                    return Path.Combine(Path.GetTempPath(), "CMDevicesManager_app.log");
+                }
+            }
         }
 
         public static void Info(string message) => Enqueue(LogLevel.Info, message, null);
@@ -73,35 +106,44 @@ namespace CMDevicesManager.Helper
 
         private static void WriteLog(string text)
         {
-            // 如果文件超过 50MB，则覆盖
-            if (File.Exists(LogFile) && new FileInfo(LogFile).Length > MaxFileSize)
+            try
             {
-                File.Delete(LogFile);
-            }
-
-            // Encryption is disabled by default for transparency
-            if (EnableEncryption)
-            {
-                try
+                // 如果文件超过 50MB，则覆盖
+                if (File.Exists(LogFile) && new FileInfo(LogFile).Length > MaxFileSize)
                 {
-                    byte[] plainBytes = Encoding.UTF8.GetBytes(text + Environment.NewLine);
-                    byte[] encryptedBytes = Encrypt(plainBytes);
+                    File.Delete(LogFile);
+                }
 
-                    using (var fs = new FileStream(LogFile, FileMode.Append, FileAccess.Write, FileShare.Read))
+                // Encryption is disabled by default for transparency
+                if (EnableEncryption)
+                {
+                    try
                     {
-                        fs.Write(encryptedBytes, 0, encryptedBytes.Length);
+                        byte[] plainBytes = Encoding.UTF8.GetBytes(text + Environment.NewLine);
+                        byte[] encryptedBytes = Encrypt(plainBytes);
+
+                        using (var fs = new FileStream(LogFile, FileMode.Append, FileAccess.Write, FileShare.Read))
+                        {
+                            fs.Write(encryptedBytes, 0, encryptedBytes.Length);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Fallback to plain text if encryption fails
+                        File.AppendAllText(LogFile, $"[ENCRYPTION_ERROR] {ex.Message}" + Environment.NewLine);
+                        File.AppendAllText(LogFile, text + Environment.NewLine);
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    // Fallback to plain text if encryption fails
-                    File.AppendAllText(LogFile, $"[ENCRYPTION_ERROR] {ex.Message}" + Environment.NewLine);
                     File.AppendAllText(LogFile, text + Environment.NewLine);
                 }
             }
-            else
+            catch (Exception ex)
             {
-                File.AppendAllText(LogFile, text + Environment.NewLine);
+                // If all else fails, try to write to debug output
+                System.Diagnostics.Debug.WriteLine($"[LOGGER_ERROR] Failed to write log: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[LOGGER_ERROR] Original message: {text}");
             }
         }
 
@@ -154,6 +196,11 @@ namespace CMDevicesManager.Helper
             string text = Encoding.UTF8.GetString(decrypted);
             return text.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
         }
+
+        /// <summary>
+        /// Gets the current log file path being used
+        /// </summary>
+        public static string GetCurrentLogFilePath() => LogFile;
 
         public static void Shutdown()
         {
