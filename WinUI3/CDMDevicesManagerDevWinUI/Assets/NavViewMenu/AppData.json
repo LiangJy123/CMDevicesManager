@@ -14,14 +14,28 @@
           "Title": "Home",
           "Subtitle": "CDMDevicesManagerDevWinUI",
           "ImagePath": "ms-appx:///Assets/AppIcon.png",
-          "HideItem": true
+          "HideItem": false
         },
         {
           "UniqueId": "CDMDevicesManagerDevWinUI.Views.Devices",
           "Title": "Devices",
           "Subtitle": "Devices",
           "ImagePath": "ms-appx:///Assets/AppIcon.png",
-          "HideItem": true
+          "HideItem": false
+        },
+        {
+          "UniqueId": "CDMDevicesManagerDevWinUI.Views.DesignLCD",
+          "Title": "Designer",
+          "Subtitle": "Designer",
+          "ImagePath": "ms-appx:///Assets/AppIcon.png",
+          "HideItem": false
+        },
+        {
+          "UniqueId": "CDMDevicesManagerDevWinUI.Views.SettingsPage",
+          "Title": "Settings",
+          "Subtitle": "App Settings",
+          "ImagePath": "ms-appx:///Assets/AppIcon.png",
+          "HideItem": false
         }
       ]
     }

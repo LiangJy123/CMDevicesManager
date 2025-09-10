@@ -17,5 +17,7 @@ public partial class NavigationPageMappings
     {
         {"CDMDevicesManagerDevWinUI.Views.HomeLandingPage", typeof(CDMDevicesManagerDevWinUI.Views.HomeLandingPage)},
         {"CDMDevicesManagerDevWinUI.Views.Devices", typeof(CDMDevicesManagerDevWinUI.Views.Devices)},
+        {"CDMDevicesManagerDevWinUI.Views.DesignLCD", typeof(CDMDevicesManagerDevWinUI.Views.DesignLCD)},
+        {"CDMDevicesManagerDevWinUI.Views.SettingsPage", typeof(CDMDevicesManagerDevWinUI.Views.SettingsPage)},
     };
 }

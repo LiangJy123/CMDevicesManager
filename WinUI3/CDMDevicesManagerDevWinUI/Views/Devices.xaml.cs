@@ -289,7 +289,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             // Navigate to device settings page
             try
             {
-                var settingsPage = new DeviceShow(e.DeviceInfo);
+                //var settingsPage = new DeviceShow(e.DeviceInfo);
                 this.Frame.Navigate(typeof(DeviceShow), e.DeviceInfo);
                 System.Diagnostics.Debug.WriteLine($"Navigating to DeviceShow for device: {e.DeviceInfo.ProductName}");
             }

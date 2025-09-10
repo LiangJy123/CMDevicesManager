@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using HID.DisplayController;
 using System.Diagnostics;
+using CMDevicesManager.Services;
 
 namespace CDMDevicesManagerDevWinUI.Views
 {
@@ -18,7 +19,7 @@ namespace CDMDevicesManagerDevWinUI.Views
     public sealed partial class DeviceSettings : Page
     {
         private DeviceInfoViewModel? _deviceViewModel;
-        private DisplayController? _displayController;
+        private HidDeviceService? _hidService;
         private bool _isOfflineModeChanging = false;
         private bool _isBrightnessChanging = false;
         private bool _isRotationChanging = false;
@@ -40,7 +41,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             this.Loaded += (s, e) => 
             {
                 UpdateDeviceInfoDisplay();
-                InitializeDeviceController();
+                InitializeHidService();
                 _ = LoadDeviceInformationAsync();
             };
         }
@@ -53,7 +54,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             {
                 _deviceViewModel = deviceViewModel;
                 UpdateDeviceInfoDisplay();
-                InitializeDeviceController();
+                InitializeHidService();
                 _ = LoadDeviceInformationAsync();
             }
         }
@@ -61,7 +62,7 @@ namespace CDMDevicesManagerDevWinUI.Views
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             base.OnNavigatedFrom(e);
-            CleanupDeviceController();
+            CleanupHidService();
         }
 
         private void UpdateDeviceInfoDisplay()
@@ -74,31 +75,41 @@ namespace CDMDevicesManagerDevWinUI.Views
             }
         }
 
-        private void InitializeDeviceController()
-        {
-            if (_deviceViewModel?.DevicePath != null)
-            {
-                try
-                {
-                    _displayController = new DisplayController(_deviceViewModel.DevicePath);
-                    _displayController.StartResponseListener();
-                    Debug.WriteLine($"Initialized DisplayController for device: {_deviceViewModel.ProductName}");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Failed to initialize DisplayController: {ex.Message}");
-                    _ = ShowErrorMessageAsync($"Failed to connect to device: {ex.Message}");
-                }
-            }
-        }
-
-        private void CleanupDeviceController()
+        private void InitializeHidService()
         {
             try
             {
-                _displayController?.StopResponseListener();
-                _displayController?.Dispose();
-                _displayController = null;
+                if (ServiceLocator.IsHidDeviceServiceInitialized)
+                {
+                    _hidService = ServiceLocator.HidDeviceService;
+                    
+                    // Set device path filter to target only the current device
+                    if (_deviceViewModel?.DevicePath != null)
+                    {
+                        _hidService.SetDevicePathFilter(_deviceViewModel.DevicePath);
+                        Debug.WriteLine($"Initialized HidDeviceService for device: {_deviceViewModel.ProductName}");
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("HidDeviceService is not initialized");
+                    _ = ShowErrorMessageAsync("Device service is not available. Please restart the application.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to initialize HidDeviceService: {ex.Message}");
+                _ = ShowErrorMessageAsync($"Failed to connect to device service: {ex.Message}");
+            }
+        }
+
+        private void CleanupHidService()
+        {
+            try
+            {
+                // Clear device path filter when leaving the page
+                _hidService?.ClearDevicePathFilter();
+                _hidService = null;
             }
             catch (Exception ex)
             {
@@ -114,16 +125,25 @@ namespace CDMDevicesManagerDevWinUI.Views
 
         private async Task LoadFirmwareInformationAsync()
         {
-            if (_displayController == null) return;
+            if (_hidService == null) return;
 
             try
             {
-                // Get device firmware and hardware info
-                var deviceInfo = _displayController.DeviceFWInfo;
-                if (deviceInfo != null)
+                // Get device firmware and hardware info using HidService
+                var firmwareInfoResults = await _hidService.GetDeviceFirmwareInfoAsync();
+                
+                if (firmwareInfoResults.Any() && _deviceViewModel?.DevicePath != null)
                 {
-                    HardwareVersionText.Text = deviceInfo.HardwareVersion.ToString();
-                    FirmwareVersionText.Text = deviceInfo.FirmwareVersion.ToString();
+                    if (firmwareInfoResults.TryGetValue(_deviceViewModel.DevicePath, out var deviceInfo) && deviceInfo != null)
+                    {
+                        HardwareVersionText.Text = deviceInfo.HardwareVersion.ToString();
+                        FirmwareVersionText.Text = deviceInfo.FirmwareVersion.ToString();
+                    }
+                    else
+                    {
+                        HardwareVersionText.Text = "N/A";
+                        FirmwareVersionText.Text = "N/A";
+                    }
                 }
                 else
                 {
@@ -143,31 +163,35 @@ namespace CDMDevicesManagerDevWinUI.Views
 
         private async Task LoadCurrentDeviceSettingsAsync()
         {
-            if (_displayController == null) return;
+            if (_hidService == null) return;
 
             try
             {
-                // Get current device status
-                var deviceStatus = await _displayController.GetDeviceStatus();
-                if (deviceStatus.HasValue)
+                // Get current device status using HidService
+                var statusResults = await _hidService.GetDeviceStatusAsync();
+                
+                if (statusResults.Any() && _deviceViewModel?.DevicePath != null)
                 {
-                    var status = deviceStatus.Value;
-                    
-                    // Update brightness slider
-                    _isBrightnessChanging = true;
-                    BrightnessSlider.Value = status.Brightness;
-                    BrightnessValueText.Text = status.Brightness.ToString();
-                    _isBrightnessChanging = false;
+                    if (statusResults.TryGetValue(_deviceViewModel.DevicePath, out var deviceStatus) && deviceStatus.HasValue)
+                    {
+                        var status = deviceStatus.Value;
+                        
+                        // Update brightness slider
+                        _isBrightnessChanging = true;
+                        BrightnessSlider.Value = status.Brightness;
+                        BrightnessValueText.Text = status.Brightness.ToString();
+                        _isBrightnessChanging = false;
 
-                    // Update rotation radio buttons
-                    _isRotationChanging = true;
-                    UpdateRotationSelection(status.Degree);
-                    _isRotationChanging = false;
+                        // Update rotation radio buttons
+                        _isRotationChanging = true;
+                        UpdateRotationSelection(status.Degree);
+                        _isRotationChanging = false;
 
-                    // Update status information
-                    UpdateStatusDisplay(status);
+                        // Update status information
+                        UpdateStatusDisplay(status);
 
-                    Debug.WriteLine($"Loaded current device settings: Brightness={status.Brightness}%, Rotation={status.Degree}°");
+                        Debug.WriteLine($"Loaded current device settings: Brightness={status.Brightness}%, Rotation={status.Degree}°");
+                    }
                 }
             }
             catch (Exception ex)
@@ -398,26 +422,36 @@ namespace CDMDevicesManagerDevWinUI.Views
 
             try
             {
-                if (_displayController != null)
+                if (_hidService != null)
                 {
-                    var deviceStatus = await _displayController.GetDeviceStatus();
-                    if (deviceStatus.HasValue)
+                    var statusResults = await _hidService.GetDeviceStatusAsync();
+                    
+                    if (statusResults.Any() && _deviceViewModel?.DevicePath != null)
                     {
-                        UpdateStatusDisplay(deviceStatus.Value);
-                        _ = ShowInfoMessageAsync("Device status retrieved successfully.");
+                        if (statusResults.TryGetValue(_deviceViewModel.DevicePath, out var deviceStatus) && deviceStatus.HasValue)
+                        {
+                            UpdateStatusDisplay(deviceStatus.Value);
+                            _ = ShowInfoMessageAsync("Device status retrieved successfully.");
+                        }
+                        else
+                        {
+                            // Clear status display and show error state
+                            ClearStatusDisplay();
+                            _ = ShowErrorMessageAsync("Failed to retrieve device status - no response from device.");
+                        }
                     }
                     else
                     {
                         // Clear status display and show error state
                         ClearStatusDisplay();
-                        _ = ShowErrorMessageAsync("Failed to retrieve device status - no response from device.");
+                        _ = ShowErrorMessageAsync("No devices found or device not responding.");
                     }
                 }
                 else
                 {
                     // Clear status display and show disconnected state
                     ClearStatusDisplay();
-                    _ = ShowErrorMessageAsync("Device not connected.");
+                    _ = ShowErrorMessageAsync("Device service not available.");
                 }
             }
             catch (Exception ex)
@@ -457,182 +491,6 @@ namespace CDMDevicesManagerDevWinUI.Views
             MediaSlotsPanel.Children.Clear();
             
             StatusTimestampText.Text = "Error";
-        }
-
-        private async void OfflineModeToggle_Toggled(object sender, RoutedEventArgs e)
-        {
-            if (_isOfflineModeChanging || _displayController == null) return;
-
-            _isOfflineModeChanging = true;
-            try
-            {
-                bool isOffline = OfflineModeToggle.IsOn;
-                
-                // Offline mode = Suspend mode (false for real-time display)
-                // Online mode = Real-time mode (true for real-time display)
-                bool enableRealTimeDisplay = !isOffline;
-                
-                var response = await _displayController.SendCmdRealTimeDisplayWithResponse(enableRealTimeDisplay);
-                
-                if (response?.IsSuccess == true)
-                {
-                    Debug.WriteLine($"Real-time display {(enableRealTimeDisplay ? "enabled" : "disabled")} successfully");
-                    
-                    string message = isOffline ? 
-                        "Device switched to suspend mode. Real-time display is disabled." :
-                        "Device switched to real-time mode. Live display is enabled.";
-                        
-                    _ = ShowInfoMessageAsync(message);
-                }
-                else
-                {
-                    Debug.WriteLine($"Failed to set real-time display mode");
-                    
-                    // Revert toggle state on failure
-                    OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
-                    
-                    _ = ShowErrorMessageAsync("Failed to change display mode.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error changing real-time display mode: {ex.Message}");
-                
-                // Revert toggle state on exception
-                OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
-                
-                _ = ShowErrorMessageAsync($"Failed to change display mode: {ex.Message}");
-            }
-            finally
-            {
-                _isOfflineModeChanging = false;
-            }
-        }
-
-        private async void BrightnessSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-        {
-            if (_isBrightnessChanging || _displayController == null) return;
-
-            try
-            {
-                int brightness = (int)e.NewValue;
-                BrightnessValueText.Text = brightness.ToString();
-                
-                var response = await _displayController.SendCmdBrightnessWithResponse(brightness);
-                
-                if (response?.IsSuccess == true)
-                {
-                    Debug.WriteLine($"Brightness set to {brightness}%");
-                    
-                    // Update the status display brightness immediately if visible
-                    if (StatusBrightnessProgressBar != null)
-                    {
-                        StatusBrightnessProgressBar.Value = brightness;
-                        StatusBrightnessText.Text = $"{brightness}%";
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine($"Failed to set brightness");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error setting brightness: {ex.Message}");
-            }
-        }
-
-        private async void RotationChanged(object sender, RoutedEventArgs e)
-        {
-            if (_isRotationChanging || _displayController == null) return;
-
-            try
-            {
-                int rotation = 0;
-                if (Rotation90.IsChecked == true) rotation = 90;
-                else if (Rotation180.IsChecked == true) rotation = 180;
-                else if (Rotation270.IsChecked == true) rotation = 270;
-
-                var response = await _displayController.SendCmdRotateWithResponse(rotation);
-                
-                if (response?.IsSuccess == true)
-                {
-                    Debug.WriteLine($"Rotation set to {rotation}°");
-                    
-                    // Update the status display rotation immediately if visible
-                    if (StatusRotationText != null && StatusRotationIcon != null)
-                    {
-                        StatusRotationText.Text = $"{rotation}°";
-                        var rotateTransform = new Microsoft.UI.Xaml.Media.RotateTransform { Angle = rotation };
-                        StatusRotationIcon.RenderTransform = rotateTransform;
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine($"Failed to set rotation");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error setting rotation: {ex.Message}");
-            }
-        }
-
-        // Helper Methods
-
-        private async Task RestartDeviceAsync()
-        {
-            if (_displayController == null) return;
-
-            RestartDeviceButton.IsEnabled = false;
-            RestartDeviceButton.Content = "Restarting...";
-
-            try
-            {
-                _displayController.Reboot();
-                _ = ShowInfoMessageAsync("Device restart initiated. The device will reconnect shortly.");
-                
-                // Wait a bit for the device to restart
-                await Task.Delay(3000);
-            }
-            catch (Exception ex)
-            {
-                _ = ShowErrorMessageAsync($"Failed to restart device: {ex.Message}");
-            }
-            finally
-            {
-                RestartDeviceButton.IsEnabled = true;
-                RestartDeviceButton.Content = "Restart Device";
-            }
-        }
-
-        private async Task PerformFactoryResetAsync()
-        {
-            if (_displayController == null) return;
-
-            FactoryResetButton.IsEnabled = false;
-            FactoryResetButton.Content = "Resetting...";
-
-            try
-            {
-                _displayController.FactoryReset();
-                _ = ShowInfoMessageAsync("Factory reset initiated. Device will restart with default settings.");
-                
-                // Wait a bit for the reset to complete
-                await Task.Delay(3000);
-                
-                // Refresh device information after reset
-                await LoadDeviceInformationAsync();
-            }
-            catch (Exception ex)
-            {
-                _ = ShowErrorMessageAsync($"Failed to perform factory reset: {ex.Message}");
-            }
-            finally
-            {
-                FactoryResetButton.IsEnabled = true;
-                FactoryResetButton.Content = "Factory Reset";
-            }
         }
 
         private async Task<bool> ShowConfirmationDialogAsync(string title, string message)
@@ -693,6 +551,204 @@ namespace CDMDevicesManagerDevWinUI.Views
                         break;
                     }
                 }
+            }
+        }
+
+        private async void OfflineModeToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_isOfflineModeChanging || _hidService == null) return;
+
+            _isOfflineModeChanging = true;
+            try
+            {
+                bool isOffline = OfflineModeToggle.IsOn;
+                
+                // Offline mode = Suspend mode (false for real-time display)
+                // Online mode = Real-time mode (true for real-time display)
+                bool enableRealTimeDisplay = !isOffline;
+                
+                var results = await _hidService.SetRealTimeDisplayAsync(enableRealTimeDisplay);
+                
+                // Check if the operation was successful for our device
+                bool success = false;
+                if (_deviceViewModel?.DevicePath != null && results.TryGetValue(_deviceViewModel.DevicePath, out success) && success)
+                {
+                    Debug.WriteLine($"Real-time display {(enableRealTimeDisplay ? "enabled" : "disabled")} successfully");
+                    
+                    string message = isOffline ? 
+                        "Device switched to suspend mode. Real-time display is disabled." :
+                        "Device switched to real-time mode. Live display is enabled.";
+                        
+                    _ = ShowInfoMessageAsync(message);
+                }
+                else
+                {
+                    Debug.WriteLine($"Failed to set real-time display mode");
+                    
+                    // Revert toggle state on failure
+                    OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
+                    
+                    _ = ShowErrorMessageAsync("Failed to change display mode.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error changing real-time display mode: {ex.Message}");
+                
+                // Revert toggle state on exception
+                OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
+                
+                _ = ShowErrorMessageAsync($"Failed to change display mode: {ex.Message}");
+            }
+            finally
+            {
+                _isOfflineModeChanging = false;
+            }
+        }
+
+        private async void BrightnessSlider_ValueChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            if (_isBrightnessChanging || _hidService == null) return;
+
+            try
+            {
+                int brightness = (int)e.NewValue;
+                BrightnessValueText.Text = brightness.ToString();
+                
+                var results = await _hidService.SetBrightnessAsync(brightness);
+                
+                // Check if the operation was successful for our device
+                bool success = false;
+                if (_deviceViewModel?.DevicePath != null && results.TryGetValue(_deviceViewModel.DevicePath, out success) && success)
+                {
+                    Debug.WriteLine($"Brightness set to {brightness}%");
+                    
+                    // Update the status display brightness immediately if visible
+                    if (StatusBrightnessProgressBar != null)
+                    {
+                        StatusBrightnessProgressBar.Value = brightness;
+                        StatusBrightnessText.Text = $"{brightness}%";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error setting brightness: {ex.Message}");
+            }
+        }
+
+        private async void RotationChanged(object sender, RoutedEventArgs e)
+        {
+            if (_isRotationChanging || _hidService == null) return;
+
+            try
+            {
+                int rotation = 0;
+                if (Rotation90.IsChecked == true) rotation = 90;
+                else if (Rotation180.IsChecked == true) rotation = 180;
+                else if (Rotation270.IsChecked == true) rotation = 270;
+
+                var results = await _hidService.SetRotationAsync(rotation);
+                
+                // Check if the operation was successful for our device
+                bool success = false;
+                if (_deviceViewModel?.DevicePath != null && results.TryGetValue(_deviceViewModel.DevicePath, out success) && success)
+                {
+                    Debug.WriteLine($"Rotation set to {rotation}°");
+                    
+                    // Update the status display rotation immediately if visible
+                    if (StatusRotationText != null && StatusRotationIcon != null)
+                    {
+                        StatusRotationText.Text = $"{rotation}°";
+                        var rotateTransform = new Microsoft.UI.Xaml.Media.RotateTransform { Angle = rotation };
+                        StatusRotationIcon.RenderTransform = rotateTransform;
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine($"Failed to set rotation");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error setting rotation: {ex.Message}");
+            }
+        }
+
+        // Helper Methods
+
+        private async Task RestartDeviceAsync()
+        {
+            if (_hidService == null) return;
+
+            RestartDeviceButton.IsEnabled = false;
+            RestartDeviceButton.Content = "Restarting...";
+
+            try
+            {
+                var results = await _hidService.RebootDevicesAsync();
+                
+                // Check if the operation was successful for our device
+                bool success = false;
+                if (_deviceViewModel?.DevicePath != null && results.TryGetValue(_deviceViewModel.DevicePath, out success) && success)
+                {
+                    _ = ShowInfoMessageAsync("Device restart initiated. The device will reconnect shortly.");
+                    
+                    // Wait a bit for the device to restart
+                    await Task.Delay(3000);
+                }
+                else
+                {
+                    _ = ShowErrorMessageAsync("Failed to restart device.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _ = ShowErrorMessageAsync($"Failed to restart device: {ex.Message}");
+            }
+            finally
+            {
+                RestartDeviceButton.IsEnabled = true;
+                RestartDeviceButton.Content = "Restart Device";
+            }
+        }
+
+        private async Task PerformFactoryResetAsync()
+        {
+            if (_hidService == null) return;
+
+            FactoryResetButton.IsEnabled = false;
+            FactoryResetButton.Content = "Resetting...";
+
+            try
+            {
+                var results = await _hidService.FactoryResetDevicesAsync();
+                
+                // Check if the operation was successful for our device
+                bool success = false;
+                if (_deviceViewModel?.DevicePath != null && results.TryGetValue(_deviceViewModel.DevicePath, out success) && success)
+                {
+                    _ = ShowInfoMessageAsync("Factory reset initiated. Device will restart with default settings.");
+                    
+                    // Wait a bit for the reset to complete
+                    await Task.Delay(3000);
+                    
+                    // Refresh device information after reset
+                    await LoadDeviceInformationAsync();
+                }
+                else
+                {
+                    _ = ShowErrorMessageAsync("Failed to perform factory reset.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _ = ShowErrorMessageAsync($"Failed to perform factory reset: {ex.Message}");
+            }
+            finally
+            {
+                FactoryResetButton.IsEnabled = true;
+                FactoryResetButton.Content = "Factory Reset";
             }
         }
     }

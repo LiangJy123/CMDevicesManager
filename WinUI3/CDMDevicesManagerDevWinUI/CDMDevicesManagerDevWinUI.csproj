@@ -49,6 +49,9 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BreadcrumbPageMappings.cs</LastGenOutput>
     </None>
+    <Page Update="Views\DesignLCD.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="Views\DeviceShow.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -72,6 +75,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Views\DesignLCD.xaml" />
     <None Remove="Views\DeviceSettings.xaml" />
     <None Remove="Views\DeviceShow.xaml" />
   </ItemGroup>
@@ -93,6 +97,9 @@
     <PackageReference Include="DevWinUI" Version="8.9.2" />
     <PackageReference Include="DevWinUI.ContextMenu" Version="8.9.1" />
     <PackageReference Include="DevWinUI.Controls" Version="8.9.2" />
+    <PackageReference Include="FFMpegCore" Version="5.2.0" />
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.4" />
+    <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.3.2" />
     <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4948" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
