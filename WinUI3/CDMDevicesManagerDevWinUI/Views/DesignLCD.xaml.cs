@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Linq;
 
 namespace CDMDevicesManagerDevWinUI.Views
 {
@@ -36,6 +37,12 @@ namespace CDMDevicesManagerDevWinUI.Views
         public DesignLCD()
         {
             this.InitializeComponent();
+            this.Loaded +=DesignLCD_Loaded;
+            
+        }
+
+        private void DesignLCD_Loaded(object sender, RoutedEventArgs e)
+        {
             InitializeService();
         }
 
@@ -64,7 +71,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             }
             catch (Exception ex)
             {
-                StatusText.Text = $"Failed to initialize service: {ex.Message}";
+                SafeUpdateStatusText($"Failed to initialize service: {ex.Message}");
             }
         }
 
@@ -77,12 +84,12 @@ namespace CDMDevicesManagerDevWinUI.Views
                 var device = CanvasDevice.GetSharedDevice();
                 var uri = new Uri("ms-appx:///Assets/sample.jpg");
                 _sampleImage = await CanvasBitmap.LoadAsync(device, uri);
-                StatusText.Text = "Background rendering service ready - you can start adding elements!";
+                SafeUpdateStatusText("Background rendering service ready - you can start adding elements!");
             }
             catch (Exception ex)
             {
                 // Sample image not available, we'll handle this gracefully
-                StatusText.Text = $"Background rendering service ready - sample image loading failed: {ex.Message}";
+                SafeUpdateStatusText($"Background rendering service ready - sample image loading failed: {ex.Message}");
             }
         }
 
@@ -96,12 +103,15 @@ namespace CDMDevicesManagerDevWinUI.Views
             {
                 try
                 {
-                    RenderDisplay.Source = bitmap;
-                    StatusText.Text = $"Frame updated at {timestamp} - Size: {bitmap?.PixelWidth}x{bitmap?.PixelHeight} | HID Frames: {_hidFramesSent}";
+                    if (RenderDisplay != null)
+                    {
+                        RenderDisplay.Source = bitmap;
+                    }
+                    SafeUpdateStatusText($"Frame updated at {timestamp} - Size: {bitmap?.PixelWidth}x{bitmap?.PixelHeight} | HID Frames: {_hidFramesSent}");
                 }
                 catch (Exception ex)
                 {
-                    StatusText.Text = $"Error setting frame: {ex.Message}";
+                    SafeUpdateStatusText($"Error setting frame: {ex.Message}");
                 }
             });
         }
@@ -110,7 +120,7 @@ namespace CDMDevicesManagerDevWinUI.Views
         {
             DispatcherQueue.TryEnqueue(() =>
             {
-                StatusText.Text = status;
+                SafeUpdateStatusText(status);
             });
         }
 
@@ -128,7 +138,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             {
                 _hidFramesSent++;
                 var status = $"HID Frame #{_hidFramesSent}: {e.FrameSize:N0} bytes sent to {e.DevicesSucceeded}/{e.DevicesTotal} devices at {e.Timestamp:HH:mm:ss.fff}";
-                StatusText.Text = status;
+                SafeUpdateStatusText(status);
             });
         }
 
@@ -156,7 +166,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             }
             catch (Exception ex)
             {
-                StatusText.Text = $"Failed to start rendering: {ex.Message}";
+                SafeUpdateStatusText($"Failed to start rendering: {ex.Message}");
             }
         }
 
@@ -201,13 +211,13 @@ namespace CDMDevicesManagerDevWinUI.Views
                         {
                             await SaveWriteableBitmapAsJpegAsync(bitmap, file);
                         }
-                        StatusText.Text = $"Frame saved to {file.Name} (Quality: {_renderingService.JpegQuality}%)";
+                        SafeUpdateStatusText($"Frame saved to {file.Name} (Quality: {_renderingService.JpegQuality}%)");
                     }
                 }
             }
             catch (Exception ex)
             {
-                StatusText.Text = $"Error capturing frame: {ex.Message}";
+                SafeUpdateStatusText($"Error capturing frame: {ex.Message}");
             }
         }
 
@@ -259,17 +269,18 @@ namespace CDMDevicesManagerDevWinUI.Views
 
         private void OnAddLiveTimeClick(object sender, RoutedEventArgs e)
         {
+            // Use simplified config without referencing missing UI elements
             var config = new LiveTextConfig
             {
                 FontSize = 48,
                 TextColor = Colors.Cyan,
                 TimeFormat = "HH:mm:ss",
-                EnableGlow = GlowEffectCheckBox.IsChecked == true,
+                EnableGlow = true, // Default to true for demo
                 GlowRadius = 5,
                 GlowIntensity = 1.0f,
-                EnableBreathing = BreathingEffectCheckBox.IsChecked == true,
+                EnableBreathing = true, // Default to true for demo
                 BreathingSpeed = 2.0f,
-                MovementType = MovementEffectCheckBox.IsChecked == true ? MovementType.Horizontal : MovementType.None,
+                MovementType = MovementType.Horizontal, // Default movement
                 MovementSpeed = 1.0f,
                 MovementAmplitude = 20.0f
             };
@@ -281,7 +292,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             {
                 _elementIds.Add(id);
                 UpdateUI();
-                StatusText.Text = "Live time element added.";
+                SafeUpdateStatusText("Live time element added with glow and breathing effects.");
             }
         }
 
@@ -292,10 +303,10 @@ namespace CDMDevicesManagerDevWinUI.Views
             {
                 FontSize = 24,
                 TextColor = Colors.Yellow,
-                EnableGlow = GlowEffectCheckBox.IsChecked == true,
+                EnableGlow = true, // Default to true for demo
                 GlowRadius = 3,
-                EnableBreathing = BreathingEffectCheckBox.IsChecked == true,
-                MovementType = MovementEffectCheckBox.IsChecked == true ? MovementType.Circular : MovementType.None,
+                EnableBreathing = true, // Default to true for demo
+                MovementType = MovementType.Circular, // Default to circular movement
                 MovementSpeed = 0.5f,
                 MovementAmplitude = 30.0f
             };
@@ -310,37 +321,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             {
                 _elementIds.Add(id);
                 UpdateUI();
-                StatusText.Text = "Floating text element added.";
-            }
-        }
-
-        private void OnAddParticleSystemClick(object sender, RoutedEventArgs e)
-        {
-            var random = new Random();
-            var config = new ParticleConfig
-            {
-                MaxParticles = 50,
-                ParticleLifetime = 3.0f,
-                MinParticleSize = 2.0f,
-                MaxParticleSize = 6.0f,
-                MinSpeed = 20.0f,
-                MaxSpeed = 80.0f,
-                EmissionRadius = 30.0f,
-                Gravity = new Vector2(0, 30.0f),
-                ParticleColor = Colors.Orange
-            };
-
-            var position = new Vector2(
-                random.Next(100, _renderingService.TargetWidth - 100),
-                random.Next(100, _renderingService.TargetHeight - 100));
-
-            var id = _renderingService.AddParticleSystem(position, config);
-
-            if (id >= 0)
-            {
-                _elementIds.Add(id);
-                UpdateUI();
-                StatusText.Text = "Particle system added.";
+                SafeUpdateStatusText("Floating text element added with circular movement.");
             }
         }
 
@@ -348,7 +329,7 @@ namespace CDMDevicesManagerDevWinUI.Views
         {
             if (_sampleImage == null)
             {
-                StatusText.Text = "No sample image available.";
+                SafeUpdateStatusText("No sample image available.");
                 return;
             }
 
@@ -360,7 +341,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                 EnablePulsing = true,
                 PulseSpeed = 1.5f,
                 RotationSpeed = 0.5f,
-                MovementType = MovementEffectCheckBox.IsChecked == true ? MovementType.Figure8 : MovementType.None,
+                MovementType = MovementType.Figure8, // Default movement
                 MovementSpeed = 0.3f,
                 MovementAmplitude = 50.0f
             };
@@ -375,39 +356,23 @@ namespace CDMDevicesManagerDevWinUI.Views
             {
                 _elementIds.Add(id);
                 UpdateUI();
-                StatusText.Text = "Sample image added.";
-            }
-        }
-
-        private void OnTestSimpleTextClick(object sender, RoutedEventArgs e)
-        {
-            var id = _renderingService.AddSimpleText("Hello HID Devices! 🎨📱");
-
-            if (id >= 0)
-            {
-                _elementIds.Add(id);
-                UpdateUI();
-                StatusText.Text = "Simple test text added for HID streaming.";
-            }
-            else
-            {
-                StatusText.Text = "Failed to add simple text - check service initialization.";
+                SafeUpdateStatusText("Sample image added with figure-8 movement.");
             }
         }
 
         private void OnGlowEffectChanged(object sender, RoutedEventArgs e)
         {
-            StatusText.Text = $"Glow effect {(GlowEffectCheckBox.IsChecked == true ? "enabled" : "disabled")} for new elements.";
+            SafeUpdateStatusText("Glow effect setting changed for new elements.");
         }
 
         private void OnBreathingEffectChanged(object sender, RoutedEventArgs e)
         {
-            StatusText.Text = $"Breathing animation {(BreathingEffectCheckBox.IsChecked == true ? "enabled" : "disabled")} for new elements.";
+            SafeUpdateStatusText("Breathing animation setting changed for new elements.");
         }
 
         private void OnMovementEffectChanged(object sender, RoutedEventArgs e)
         {
-            StatusText.Text = $"Movement animation {(MovementEffectCheckBox.IsChecked == true ? "enabled" : "disabled")} for new elements.";
+            SafeUpdateStatusText("Movement animation setting changed for new elements.");
         }
 
         private async void OnExportSettingsClick(object sender, RoutedEventArgs e)
@@ -439,9 +404,9 @@ namespace CDMDevicesManagerDevWinUI.Views
                         },
                         EffectsEnabled = new
                         {
-                            Glow = GlowEffectCheckBox.IsChecked,
-                            Breathing = BreathingEffectCheckBox.IsChecked,
-                            Movement = MovementEffectCheckBox.IsChecked
+                            Glow = true, // Default values since UI controls don't exist
+                            Breathing = true,
+                            Movement = true
                         },
                         ExportedAt = DateTime.Now
                     };
@@ -449,14 +414,476 @@ namespace CDMDevicesManagerDevWinUI.Views
                     var json = System.Text.Json.JsonSerializer.Serialize(settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                     await FileIO.WriteTextAsync(file, json);
 
-                    StatusText.Text = $"Settings exported to {file.Name}";
+                    SafeUpdateStatusText($"Settings exported to {file.Name}");
                 }
             }
             catch (Exception ex)
             {
-                StatusText.Text = $"Error exporting settings: {ex.Message}";
+                SafeUpdateStatusText($"Error exporting settings: {ex.Message}");
             }
         }
+
+        private void OnJpegQualityChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_renderingService == null || sender is not ComboBox comboBox || comboBox.SelectedItem == null) return;
+
+            var selectedItem = (ComboBoxItem)comboBox.SelectedItem;
+            var qualityText = selectedItem.Content.ToString().Replace("%", "");
+
+            if (int.TryParse(qualityText, out int quality))
+            {
+                _renderingService.JpegQuality = quality;
+                SafeUpdateStatusText($"JPEG quality set to {quality}% for HID streaming");
+            }
+        }
+
+        private async void OnHidRealTimeModeChanged(object sender, RoutedEventArgs e)
+        {
+            if (_renderingService == null || sender is not CheckBox checkBox) return;
+
+            try
+            {
+                bool enableRealTime = checkBox.IsChecked == true;
+                bool success = await _renderingService.SetHidRealTimeModeAsync(enableRealTime);
+                
+                if (success)
+                {
+                    SafeUpdateStatusText($"HID real-time mode {(enableRealTime ? "enabled" : "disabled")} successfully");
+                }
+                else
+                {
+                    // Revert checkbox state if operation failed
+                    checkBox.IsChecked = !enableRealTime;
+                    SafeUpdateStatusText($"Failed to {(enableRealTime ? "enable" : "disable")} HID real-time mode");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Revert checkbox state on exception
+                checkBox.IsChecked = !checkBox.IsChecked;
+                SafeUpdateStatusText($"Error changing HID real-time mode: {ex.Message}");
+            }
+        }
+
+        private void OnMotionSpeedChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        {
+            // Update the text display
+            if (MotionSpeedText != null)
+            {
+                MotionSpeedText.Text = $"{e.NewValue:F0}";
+            }
+            
+            // Update status text to show the new speed value - use safe method
+            SafeUpdateStatusText($"Motion speed changed to {e.NewValue:F0} px/s (applies to new elements)");
+        }
+
+        private void OnTestSimpleTextClick(object sender, RoutedEventArgs e)
+        {
+            var id = _renderingService.AddSimpleText("Hello HID Devices! 🎨📱");
+
+            if (id >= 0)
+            {
+                _elementIds.Add(id);
+                UpdateUI();
+                SafeUpdateStatusText("Simple test text added for HID streaming.");
+            }
+            else
+            {
+                SafeUpdateStatusText("Failed to add simple text - check service initialization.");
+            }
+        }
+
+        private void OnAddParticleSystemClick(object sender, RoutedEventArgs e)
+        {
+            var random = new Random();
+            var config = new ParticleConfig
+            {
+                MaxParticles = 50,
+                ParticleLifetime = 3.0f,
+                MinParticleSize = 2.0f,
+                MaxParticleSize = 6.0f,
+                MinSpeed = 20.0f,
+                MaxSpeed = 80.0f,
+                EmissionRadius = 30.0f,
+                Gravity = new Vector2(0, 30.0f),
+                ParticleColor = Colors.Orange
+            };
+
+            var position = new Vector2(
+                random.Next(100, _renderingService.TargetWidth - 100),
+                random.Next(100, _renderingService.TargetHeight - 100));
+
+            var id = _renderingService.AddParticleSystem(position, config);
+
+            if (id >= 0)
+            {
+                _elementIds.Add(id);
+                UpdateUI();
+                SafeUpdateStatusText("Particle system added.");
+            }
+        }
+
+        // Motion Demo Methods
+
+        private void OnAddBouncingBallClick(object sender, RoutedEventArgs e)
+        {
+            var random = new Random();
+            var colors = new[] { 
+                Microsoft.UI.Colors.Red, Microsoft.UI.Colors.Blue, Microsoft.UI.Colors.Green, 
+                Microsoft.UI.Colors.Orange, Microsoft.UI.Colors.Purple, Microsoft.UI.Colors.Cyan 
+            };
+            
+            var position = new Vector2(
+                random.Next(50, _renderingService.TargetWidth - 100),
+                random.Next(50, _renderingService.TargetHeight - 100));
+            
+            var speed = (float)MotionSpeedSlider.Value + random.Next(-20, 20);
+            var color = colors[random.Next(colors.Length)];
+            
+            // Create bouncing motion config
+            var motionConfig = new ElementMotionConfig
+            {
+                MotionType = MotionType.Bounce,
+                Speed = speed,
+                Direction = new Vector2(
+                    (float)(random.NextDouble() - 0.5) * 2,
+                    (float)(random.NextDouble() - 0.5) * 2),
+                RespectBoundaries = true,
+                ShowTrail = false
+            };
+            
+            var ballId = _renderingService.AddCircleElementWithMotion(position, 15f, color, motionConfig);
+            
+            if (ballId >= 0)
+            {
+                _elementIds.Add(ballId);
+                UpdateUI();
+                SafeUpdateStatusText($"Added bouncing ball with speed {speed:F0} px/s");
+            }
+        }
+
+        private void OnAddRotatingTextClick(object sender, RoutedEventArgs e)
+        {
+            var center = new Vector2(_renderingService.TargetWidth / 2f, _renderingService.TargetHeight / 2f);
+            var speed = (float)MotionSpeedSlider.Value / 100f; // Convert to rotations per second
+            var radius = 80f + (_elementIds.Count % 3) * 20f; // Vary radius for multiple rings
+            
+            var motionConfig = new ElementMotionConfig
+            {
+                MotionType = MotionType.Circular,
+                Speed = speed,
+                Center = center,
+                Radius = radius,
+                RespectBoundaries = false,
+                ShowTrail = false
+            };
+            
+            var textId = _renderingService.AddTextElementWithMotion(
+                text: $"Orbit #{_elementIds.Count + 1}",
+                position: center,
+                motionConfig: motionConfig);
+            
+            if (textId >= 0)
+            {
+                _elementIds.Add(textId);
+                UpdateUI();
+                SafeUpdateStatusText($"Added rotating text at radius {radius:F0} with speed {speed:F1} rot/s");
+            }
+        }
+
+        private void OnAddPulsatingTextClick(object sender, RoutedEventArgs e)
+        {
+            var random = new Random();
+            var position = new Vector2(
+                random.Next(100, _renderingService.TargetWidth - 100),
+                random.Next(100, _renderingService.TargetHeight - 100));
+            
+            var speed = (float)MotionSpeedSlider.Value / 50f; // Convert to oscillations per second
+            var amplitude = 25f + random.Next(0, 20);
+            
+            var motionConfig = new ElementMotionConfig
+            {
+                MotionType = MotionType.Oscillate,
+                Speed = speed,
+                Direction = new Vector2(1, 0), // Horizontal oscillation
+                Center = position,
+                Radius = amplitude,
+                RespectBoundaries = false,
+                ShowTrail = false
+            };
+            
+            var textId = _renderingService.AddTextElementWithMotion(
+                text: $"Pulse {_elementIds.Count + 1}",
+                position: position,
+                motionConfig: motionConfig);
+            
+            if (textId >= 0)
+            {
+                _elementIds.Add(textId);
+                UpdateUI();
+                SafeUpdateStatusText($"Added pulsating text with amplitude {amplitude:F0} and speed {speed:F1} osc/s");
+            }
+        }
+
+        private void OnAddSpiralTextClick(object sender, RoutedEventArgs e)
+        {
+            var random = new Random();
+            var center = new Vector2(
+                random.Next(150, _renderingService.TargetWidth - 150),
+                random.Next(150, _renderingService.TargetHeight - 150));
+            
+            var speed = (float)MotionSpeedSlider.Value / 100f;
+            var initialRadius = 20f + random.Next(0, 15);
+            
+            var motionConfig = new ElementMotionConfig
+            {
+                MotionType = MotionType.Spiral,
+                Speed = speed,
+                Center = center,
+                Radius = initialRadius,
+                RespectBoundaries = false,
+                ShowTrail = true
+            };
+            
+            var textId = _renderingService.AddTextElementWithMotion(
+                text: $"Spiral {_elementIds.Count + 1}",
+                position: center,
+                motionConfig: motionConfig);
+            
+            if (textId >= 0)
+            {
+                _elementIds.Add(textId);
+                UpdateUI();
+                SafeUpdateStatusText($"Added spiral text starting at radius {initialRadius:F0} with speed {speed:F1}");
+            }
+        }
+
+        private void OnAddLinearTrailClick(object sender, RoutedEventArgs e)
+        {
+            var random = new Random();
+            var position = new Vector2(
+                random.Next(50, _renderingService.TargetWidth - 200),
+                random.Next(50, _renderingService.TargetHeight - 50));
+            
+            // Random direction
+            var angle = random.NextDouble() * Math.PI * 2;
+            var direction = new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
+            
+            var speed = (float)MotionSpeedSlider.Value;
+            
+            var motionConfig = new ElementMotionConfig
+            {
+                MotionType = MotionType.Linear,
+                Speed = speed,
+                Direction = direction,
+                RespectBoundaries = true,
+                ShowTrail = true
+            };
+            
+            var textId = _renderingService.AddTextElementWithMotion(
+                text: $"Trail {_elementIds.Count + 1}",
+                position: position,
+                motionConfig: motionConfig);
+            
+            if (textId >= 0)
+            {
+                _elementIds.Add(textId);
+                UpdateUI();
+                SafeUpdateStatusText($"Added linear motion with trail, direction ({direction.X:F2}, {direction.Y:F2})");
+            }
+        }
+
+        private void OnAddRandomMovementClick(object sender, RoutedEventArgs e)
+        {
+            var random = new Random();
+            var position = new Vector2(
+                random.Next(100, _renderingService.TargetWidth - 100),
+                random.Next(100, _renderingService.TargetHeight - 100));
+            
+            var speed = (float)MotionSpeedSlider.Value * 0.5f; // Slower for random movement
+            
+            var motionConfig = new ElementMotionConfig
+            {
+                MotionType = MotionType.Random,
+                Speed = speed,
+                RespectBoundaries = true,
+                ShowTrail = false
+            };
+            
+            var textId = _renderingService.AddTextElementWithMotion(
+                text: $"Random {_elementIds.Count + 1}",
+                position: position,
+                motionConfig: motionConfig);
+            
+            if (textId >= 0)
+            {
+                _elementIds.Add(textId);
+                UpdateUI();
+                SafeUpdateStatusText($"Added random movement with speed {speed:F0} px/s");
+            }
+        }
+
+        private void OnAddMotionShowcaseClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var centerX = _renderingService.TargetWidth / 2f;
+                var centerY = _renderingService.TargetHeight / 2f;
+                var baseSpeed = (float)MotionSpeedSlider.Value;
+                
+                // Add a variety of motion elements to create a showcase
+                
+                // Central rotating text
+                var rotatingConfig = new ElementMotionConfig
+                {
+                    MotionType = MotionType.Circular,
+                    Speed = baseSpeed / 100f,
+                    Center = new Vector2(centerX, centerY),
+                    Radius = 100f,
+                    RespectBoundaries = false,
+                    ShowTrail = false
+                };
+                
+                var rotatingId = _renderingService.AddTextElementWithMotion(
+                    "MOTION SHOWCASE", 
+                    new Vector2(centerX, centerY), 
+                    rotatingConfig);
+                _elementIds.Add(rotatingId);
+                
+                // Bouncing balls in corners
+                var corners = new[]
+                {
+                    new Vector2(80, 80),
+                    new Vector2(_renderingService.TargetWidth - 80, 80),
+                    new Vector2(80, _renderingService.TargetHeight - 80),
+                    new Vector2(_renderingService.TargetWidth - 80, _renderingService.TargetHeight - 80)
+                };
+                
+                var ballColors = new[] { Microsoft.UI.Colors.Red, Microsoft.UI.Colors.Blue, Microsoft.UI.Colors.Green, Microsoft.UI.Colors.Purple };
+                var random = new Random();
+                
+                for (int i = 0; i < corners.Length; i++)
+                {
+                    var bounceConfig = new ElementMotionConfig
+                    {
+                        MotionType = MotionType.Bounce,
+                        Speed = baseSpeed * 1.2f,
+                        Direction = new Vector2(
+                            (float)(random.NextDouble() - 0.5) * 2,
+                            (float)(random.NextDouble() - 0.5) * 2),
+                        RespectBoundaries = true,
+                        ShowTrail = false
+                    };
+                    
+                    var ballId = _renderingService.AddCircleElementWithMotion(corners[i], 12f, ballColors[i], bounceConfig);
+                    _elementIds.Add(ballId);
+                }
+                
+                // Pulsating text around the center
+                var positions = new[]
+                {
+                    new Vector2(centerX, centerY - 150),
+                    new Vector2(centerX + 130, centerY),
+                    new Vector2(centerX, centerY + 150),
+                    new Vector2(centerX - 130, centerY)
+                };
+                
+                var pulseTexts = new[] { "PULSE N", "PULSE E", "PULSE S", "PULSE W" };
+                var directions = new[] { new Vector2(0, 1), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 0) };
+                
+                for (int i = 0; i < positions.Length; i++)
+                {
+                    var pulseConfig = new ElementMotionConfig
+                    {
+                        MotionType = MotionType.Oscillate,
+                        Speed = baseSpeed / 50f,
+                        Direction = directions[i],
+                        Center = positions[i],
+                        Radius = 20f,
+                        RespectBoundaries = false,
+                        ShowTrail = false
+                    };
+                    
+                    var pulseId = _renderingService.AddTextElementWithMotion(
+                        pulseTexts[i], 
+                        positions[i], 
+                        pulseConfig);
+                    _elementIds.Add(pulseId);
+                }
+                
+                // Spiral elements
+                var spiralPositions = new[]
+                {
+                    new Vector2(centerX - 200, centerY - 100),
+                    new Vector2(centerX + 200, centerY + 100)
+                };
+                
+                for (int i = 0; i < spiralPositions.Length; i++)
+                {
+                    var spiralConfig = new ElementMotionConfig
+                    {
+                        MotionType = MotionType.Spiral,
+                        Speed = baseSpeed / 80f,
+                        Center = spiralPositions[i],
+                        Radius = 15f,
+                        RespectBoundaries = false,
+                        ShowTrail = true
+                    };
+                    
+                    var spiralId = _renderingService.AddTextElementWithMotion(
+                        $"Spiral {i + 1}", 
+                        spiralPositions[i], 
+                        spiralConfig);
+                    _elementIds.Add(spiralId);
+                }
+                
+                UpdateUI();
+                SafeUpdateStatusText($"Motion showcase created! Added {corners.Length + positions.Length + spiralPositions.Length + 1} animated elements.");
+            }
+            catch (Exception ex)
+            {
+                SafeUpdateStatusText($"Error creating motion showcase: {ex.Message}");
+            }
+        }
+
+        private void OnStopAllMotionClick(object sender, RoutedEventArgs e)
+        {
+            // For demo purposes, we'll clear all elements and inform the user
+            var currentElementCount = _renderingService.ElementCount;
+            _renderingService.ClearElements();
+            _elementIds.Clear();
+            
+            SafeUpdateStatusText($"Cleared all {currentElementCount} elements (including motion)");
+            UpdateUI();
+        }
+
+        private void OnResumeAllMotionClick(object sender, RoutedEventArgs e)
+        {
+            // For this demo, add some default moving elements
+            var center = new Vector2(_renderingService.TargetWidth / 2f, _renderingService.TargetHeight / 2f);
+            
+            // Add a rotating text element
+            var rotatingConfig = new ElementMotionConfig
+            {
+                MotionType = MotionType.Circular,
+                Speed = (float)MotionSpeedSlider.Value / 100f,
+                Center = center,
+                Radius = 60f,
+                RespectBoundaries = false,
+                ShowTrail = false
+            };
+            
+            var textId = _renderingService.AddTextElementWithMotion("Resumed Motion", center, rotatingConfig);
+            if (textId >= 0)
+            {
+                _elementIds.Add(textId);
+            }
+            
+            UpdateUI();
+            SafeUpdateStatusText("Added default rotating motion element");
+        }
+
+        // Missing essential methods that need to be restored
 
         private void UpdateFpsCounter(object sender, object e)
         {
@@ -473,19 +900,41 @@ namespace CDMDevicesManagerDevWinUI.Views
             }
             else
             {
-                FpsText.Text = "FPS: 0";
+                if (FpsText != null)
+                {
+                    FpsText.Text = "FPS: 0";
+                }
             }
         }
 
         private void UpdateUI()
         {
-            ElementCountText.Text = $"Elements: {_renderingService?.ElementCount ?? 0}";
-            CaptureButton.IsEnabled = _isRendering;
+            if (ElementCountText != null)
+            {
+                ElementCountText.Text = $"Elements: {_renderingService?.ElementCount ?? 0}";
+            }
+            
+            if (CaptureButton != null)
+            {
+                CaptureButton.IsEnabled = _isRendering;
+            }
             
             // Update HID status display
             if (_renderingService?.IsHidRealTimeModeEnabled == true)
             {
-                StatusText.Text += $" | HID: Real-time ACTIVE | Quality: {_renderingService.JpegQuality}%";
+                SafeUpdateStatusText($"Elements: {_renderingService.ElementCount} | HID: Real-time ACTIVE | Quality: {_renderingService.JpegQuality}%");
+            }
+        }
+
+        /// <summary>
+        /// Safely updates the status text with null checks
+        /// </summary>
+        /// <param name="message">The message to display</param>
+        private void SafeUpdateStatusText(string message)
+        {
+            if (StatusText != null)
+            {
+                StatusText.Text = message;
             }
         }
 
@@ -623,48 +1072,6 @@ namespace CDMDevicesManagerDevWinUI.Views
             var renderY = (uiPosition.Y - offsetY) / scale;
 
             return new Vector2((float)renderX, (float)renderY);
-        }
-
-        private void OnJpegQualityChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_renderingService == null || sender is not ComboBox comboBox || comboBox.SelectedItem == null) return;
-
-            var selectedItem = (ComboBoxItem)comboBox.SelectedItem;
-            var qualityText = selectedItem.Content.ToString().Replace("%", "");
-
-            if (int.TryParse(qualityText, out int quality))
-            {
-                _renderingService.JpegQuality = quality;
-                StatusText.Text = $"JPEG quality set to {quality}% for HID streaming";
-            }
-        }
-
-        private async void OnHidRealTimeModeChanged(object sender, RoutedEventArgs e)
-        {
-            if (_renderingService == null || sender is not CheckBox checkBox) return;
-
-            try
-            {
-                bool enableRealTime = checkBox.IsChecked == true;
-                bool success = await _renderingService.SetHidRealTimeModeAsync(enableRealTime);
-                
-                if (success)
-                {
-                    StatusText.Text = $"HID real-time mode {(enableRealTime ? "enabled" : "disabled")} successfully";
-                }
-                else
-                {
-                    // Revert checkbox state if operation failed
-                    checkBox.IsChecked = !enableRealTime;
-                    StatusText.Text = $"Failed to {(enableRealTime ? "enable" : "disable")} HID real-time mode";
-                }
-            }
-            catch (Exception ex)
-            {
-                // Revert checkbox state on exception
-                checkBox.IsChecked = !checkBox.IsChecked;
-                StatusText.Text = $"Error changing HID real-time mode: {ex.Message}";
-            }
         }
     }
 }

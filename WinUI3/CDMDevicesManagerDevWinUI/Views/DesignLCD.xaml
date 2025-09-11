@@ -121,10 +121,36 @@
 
                         <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
 
-                        <TextBlock Text="Effects" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                        <CheckBox x:Name="GlowEffectCheckBox" Content="Text Glow Effect" Checked="OnGlowEffectChanged" Unchecked="OnGlowEffectChanged"/>
-                        <CheckBox x:Name="BreathingEffectCheckBox" Content="Breathing Animation" Checked="OnBreathingEffectChanged" Unchecked="OnBreathingEffectChanged"/>
-                        <CheckBox x:Name="MovementEffectCheckBox" Content="Movement Animation" Checked="OnMovementEffectChanged" Unchecked="OnMovementEffectChanged"/>
+                        <TextBlock Text="🎭 Motion Demos" Style="{ThemeResource BodyStrongTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+                        <TextBlock Text="Explore different motion patterns and animations" 
+                                   Style="{ThemeResource CaptionTextBlockStyle}" 
+                                   TextWrapping="Wrap"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        
+                        <Button Content="🏐 Bouncing Ball" Click="OnAddBouncingBallClick" Background="Orange"/>
+                        <Button Content="🔄 Rotating Text" Click="OnAddRotatingTextClick" Background="Cyan"/>
+                        <Button Content="💓 Pulsating Text" Click="OnAddPulsatingTextClick" Background="LimeGreen"/>
+                        <Button Content="🌀 Spiral Motion" Click="OnAddSpiralTextClick" Background="Magenta"/>
+                        <Button Content="➡️ Linear Trail" Click="OnAddLinearTrailClick" Background="Yellow"/>
+                        <Button Content="🎲 Random Movement" Click="OnAddRandomMovementClick" Background="HotPink"/>
+                        <Button Content="🎨 Motion Showcase" Click="OnAddMotionShowcaseClick" Background="Gold"/>
+
+                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
+
+                        <TextBlock Text="Motion Controls" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
+                        <StackPanel Orientation="Horizontal" Spacing="5">
+                            <TextBlock Text="Speed:" VerticalAlignment="Center"/>
+                            <Slider x:Name="MotionSpeedSlider" 
+                                    Minimum="10" Maximum="300" Value="100" 
+                                    Width="100" 
+                                    ValueChanged="OnMotionSpeedChanged"/>
+                            <TextBlock x:Name="MotionSpeedText" Text="100" VerticalAlignment="Center" Width="30"/>
+                        </StackPanel>
+                        
+                        <Button Content="⏸️ Stop All Motion" Click="OnStopAllMotionClick" Background="Red"/>
+                        <Button Content="▶️ Resume All Motion" Click="OnResumeAllMotionClick" Background="Green"/>
+
+                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>

@@ -21,6 +21,7 @@ namespace DevWinUIGallery.Services
     /// independent of UI thread. Renders to images that can be displayed in UI elements.
     /// Enhanced with HID device integration for real-time JPEG streaming.
     /// Now works directly with pixel data from render target without XAML WriteableBitmap dependency.
+    /// Enhanced with motion support for animated elements.
     /// </summary>
     public class BackgroundRenderingService : IDisposable
     {
@@ -53,6 +54,8 @@ namespace DevWinUIGallery.Services
 
         private byte _transferId = 0; //unique number, 0~59
 
+        // Motion system properties
+        private DateTime _lastMotionUpdateTime = DateTime.MinValue;
 
         /// <summary>
         /// Fired when a new frame is ready for display (using WriteableBitmap for UI compatibility)
@@ -760,152 +763,6 @@ namespace DevWinUIGallery.Services
         }
 
         /// <summary>
-        /// Simplified frame drawing for demo purposes
-        /// </summary>
-        private void DrawFrameUsingRenderer(CanvasDrawingSession session, DateTime currentTime)
-        {
-            try
-            {
-                // Clear with background
-                session.Clear(Microsoft.UI.Colors.Black);
-                
-                if (_elements.Count > 0)
-                {
-                    // Draw all elements
-                    foreach (var element in _elements)
-                    {
-                        if (!element.IsVisible) continue;
-                        
-                        try
-                        {
-                            // Simplified drawing
-                            var textFormat = new CanvasTextFormat
-                            {
-                                FontSize = 24,
-                                FontFamily = "Segoe UI"
-                            };
-
-                            var text = element.Text ?? "Sample Text";
-                            session.DrawText(text, element.Position, Microsoft.UI.Colors.White, textFormat);
-                        }
-                        catch (Exception ex)
-                        {
-                            StatusChanged?.Invoke(this, $"Error drawing element {element.Id}: {ex.Message}");
-                        }
-                    }
-                    
-                    // Add debug info overlay
-                    var debugFormat = new CanvasTextFormat
-                    {
-                        FontSize = 16,
-                        FontFamily = "Segoe UI",
-                        HorizontalAlignment = CanvasHorizontalAlignment.Right
-                    };
-                    
-                    var debugX = TargetWidth - 250;
-                    session.DrawText($"Elements: {_elements.Count}", 
-                        new Vector2(debugX, 10), Microsoft.UI.Colors.LightGray, debugFormat);
-                    session.DrawText($"Size: {TargetWidth}x{TargetHeight}", 
-                        new Vector2(debugX, 30), Microsoft.UI.Colors.LightGray, debugFormat);
-                    session.DrawText($"Time: {currentTime:HH:mm:ss.fff}", 
-                        new Vector2(debugX, 50), Microsoft.UI.Colors.LimeGreen, debugFormat);
-                    session.DrawText($"Direct Pixel Mode", 
-                        new Vector2(debugX, 110), Microsoft.UI.Colors.Magenta, debugFormat);
-                    
-                    // Show HID status
-                    if (_isHidRealTimeModeEnabled)
-                    {
-                        session.DrawText($"HID: Real-time ON", 
-                            new Vector2(debugX, 70), Microsoft.UI.Colors.Cyan, debugFormat);
-                        session.DrawText($"JPEG: {JpegQuality}%", 
-                            new Vector2(debugX, 90), Microsoft.UI.Colors.Cyan, debugFormat);
-                    }
-                    else
-                    {
-                        session.DrawText($"HID: Display only", 
-                            new Vector2(debugX, 70), Microsoft.UI.Colors.Orange, debugFormat);
-                    }
-                }
-                else
-                {
-                    // Show placeholder content
-                    var titleFormat = new CanvasTextFormat
-                    {
-                        FontSize = 32,
-                        FontFamily = "Segoe UI",
-                        HorizontalAlignment = CanvasHorizontalAlignment.Center
-                    };
-                    
-                    var textFormat = new CanvasTextFormat
-                    {
-                        FontSize = 18,
-                        FontFamily = "Segoe UI",
-                        HorizontalAlignment = CanvasHorizontalAlignment.Center
-                    };
-
-                    var centerX = TargetWidth / 2f;
-                    var startY = TargetHeight / 2f - 100;
-
-                    session.DrawText("🎨 Direct Pixel Rendering Service", 
-                        new Vector2(centerX, startY), Microsoft.UI.Colors.White, titleFormat);
-                    session.DrawText("Working with raw pixel data from render target!", 
-                        new Vector2(centerX, startY + 50), Microsoft.UI.Colors.LightBlue, textFormat);
-                    session.DrawText($"Canvas Size: {TargetWidth} × {TargetHeight} pixels", 
-                        new Vector2(centerX, startY + 80), Microsoft.UI.Colors.Gray, textFormat);
-                    
-                    // Show HID integration status
-                    if (_hidService != null)
-                    {
-                        var hidStatus = _isHidRealTimeModeEnabled ? "🔄 HID Real-time Mode ACTIVE" : "🔌 HID Service Connected";
-                        session.DrawText(hidStatus, 
-                            new Vector2(centerX, startY + 120), 
-                            _isHidRealTimeModeEnabled ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Yellow, 
-                            textFormat);
-                        
-                        if (_isHidRealTimeModeEnabled)
-                        {
-                            session.DrawText($"JPEG Quality: {_jpegQuality}% | Frame Rate: {_hidFrameIntervalMs}ms", 
-                                new Vector2(centerX, startY + 140), Microsoft.UI.Colors.Cyan, textFormat);
-                        }
-                    }
-                    else
-                    {
-                        session.DrawText("❌ HID Service Not Available", 
-                            new Vector2(centerX, startY + 120), Microsoft.UI.Colors.Red, textFormat);
-                    }
-                    
-                    // Show pixel mode indicator
-                    session.DrawText("✨ Direct Pixel Mode: No WriteableBitmap dependency", 
-                        new Vector2(centerX, startY + 170), Microsoft.UI.Colors.Magenta, textFormat);
-                    
-                    // Draw animated elements to show the service is working
-                    var elapsedTime = (DateTime.Now - _startTime).TotalSeconds;
-                    
-                    var animatedX = centerX + (float)(Math.Sin(elapsedTime * 2) * 100);
-                    session.FillCircle(new Vector2(animatedX, startY + 200), 12, Microsoft.UI.Colors.Orange);
-                    
-                    var pulseSize = 8 + (float)(Math.Sin(elapsedTime * 3) * 4);
-                    session.FillCircle(new Vector2(centerX - 50, startY + 200), pulseSize, Microsoft.UI.Colors.LimeGreen);
-                    
-                    var rotateAngle = elapsedTime * 1.5;
-                    var rotateX = centerX + 50 + (float)(Math.Cos(rotateAngle) * 30);
-                    var rotateY = startY + 200 + (float)(Math.Sin(rotateAngle) * 30);
-                    session.FillCircle(new Vector2(rotateX, rotateY), 8, Microsoft.UI.Colors.HotPink);
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusChanged?.Invoke(this, $"Drawing error: {ex.Message}");
-                
-                // Fallback drawing
-                session.Clear(Microsoft.UI.Colors.DarkRed);
-                var errorFormat = new CanvasTextFormat { FontSize = 16, FontFamily = "Segoe UI" };
-                session.DrawText($"Rendering Error: {ex.Message}", 
-                    new Vector2(50, 50), Microsoft.UI.Colors.White, errorFormat);
-            }
-        }
-
-        /// <summary>
         /// Simple method to add a basic text element for testing
         /// </summary>
         /// <param name="text">The text to display</param>
@@ -1144,6 +1001,601 @@ namespace DevWinUIGallery.Services
                 }
             }
         }
+
+        /// <summary>
+        /// Simplified frame drawing for demo purposes with motion support
+        /// </summary>
+        private void DrawFrameUsingRenderer(CanvasDrawingSession session, DateTime currentTime)
+        {
+            try
+            {
+                // Update element positions based on motion
+                UpdateElementMotion(currentTime);
+                
+                // Clear with background
+                session.Clear(Microsoft.UI.Colors.Black);
+                
+                if (_elements.Count > 0)
+                {
+                    // Draw all elements
+                    foreach (var element in _elements)
+                    {
+                        if (!element.IsVisible) continue;
+                        
+                        try
+                        {
+                            DrawElement(session, element, currentTime);
+                        }
+                        catch (Exception ex)
+                        {
+                            StatusChanged?.Invoke(this, $"Error drawing element {element.Id}: {ex.Message}");
+                        }
+                    }
+                    
+                    // Add debug info overlay
+                    DrawDebugOverlay(session, currentTime);
+                }
+                else
+                {
+                    // Show placeholder content with animated elements
+                    DrawPlaceholderContent(session, currentTime);
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusChanged?.Invoke(this, $"Drawing error: {ex.Message}");
+                
+                // Fallback drawing
+                session.Clear(Microsoft.UI.Colors.DarkRed);
+                var errorFormat = new CanvasTextFormat { FontSize = 16, FontFamily = "Segoe UI" };
+                session.DrawText($"Rendering Error: {ex.Message}", 
+                    new Vector2(50, 50), Microsoft.UI.Colors.White, errorFormat);
+            }
+        }
+
+        /// <summary>
+        /// Updates element positions based on their motion properties
+        /// </summary>
+        private void UpdateElementMotion(DateTime currentTime)
+        {
+            if (_lastMotionUpdateTime == DateTime.MinValue)
+                _lastMotionUpdateTime = currentTime;
+
+            var deltaTime = (float)(currentTime - _lastMotionUpdateTime).TotalSeconds;
+            _lastMotionUpdateTime = currentTime;
+
+            foreach (var element in _elements.Where(e => e.HasMotion))
+            {
+                // Skip motion update if element is being dragged
+                if (_isDragging && _draggedElement == element)
+                    continue;
+
+                var elapsedTime = (float)(currentTime - element.StartTime).TotalSeconds;
+                
+                // Update motion trail if enabled
+                if (element.ShowMotionTrail && element.MotionTrail != null)
+                {
+                    element.MotionTrail.Add(element.Position);
+                    if (element.MotionTrail.Count > 10) // Keep only last 10 positions
+                    {
+                        element.MotionTrail.RemoveAt(0);
+                    }
+                }
+                
+                switch (element.MotionType)
+                {
+                    case MotionType.Linear:
+                        UpdateLinearMotion(element, deltaTime);
+                        break;
+                    case MotionType.Circular:
+                        UpdateCircularMotion(element, elapsedTime);
+                        break;
+                    case MotionType.Oscillate:
+                        UpdateOscillateMotion(element, elapsedTime);
+                        break;
+                    case MotionType.Bounce:
+                        UpdateBounceMotion(element, deltaTime);
+                        break;
+                    case MotionType.Spiral:
+                        UpdateSpiralMotion(element, elapsedTime);
+                        break;
+                    case MotionType.Random:
+                        UpdateRandomMotion(element, deltaTime);
+                        break;
+                }
+
+                // Apply boundaries if enabled
+                if (element.RespectBoundaries)
+                {
+                    ApplyBoundaries(element);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Updates linear motion for an element
+        /// </summary>
+        private void UpdateLinearMotion(SimpleRenderElement element, float deltaTime)
+        {
+            var velocity = Vector2.Normalize(element.MotionDirection) * element.MotionSpeed * deltaTime;
+            element.Position += velocity;
+        }
+
+        /// <summary>
+        /// Updates circular motion for an element
+        /// </summary>
+        private void UpdateCircularMotion(SimpleRenderElement element, float elapsedTime)
+        {
+            var angle = elapsedTime * element.MotionSpeed * 0.1f; // Scale speed for circular motion
+            var radius = element.MotionRadius;
+            
+            element.Position = element.MotionCenter + new Vector2(
+                (float)Math.Cos(angle) * radius,
+                (float)Math.Sin(angle) * radius);
+        }
+
+        /// <summary>
+        /// Updates oscillating motion for an element
+        /// </summary>
+        private void UpdateOscillateMotion(SimpleRenderElement element, float elapsedTime)
+        {
+            var oscillation = (float)Math.Sin(elapsedTime * element.MotionSpeed) * element.MotionRadius;
+            var direction = Vector2.Normalize(element.MotionDirection);
+            
+            element.Position = element.MotionCenter + direction * oscillation;
+        }
+
+        /// <summary>
+        /// Updates bouncing motion for an element
+        /// </summary>
+        private void UpdateBounceMotion(SimpleRenderElement element, float deltaTime)
+        {
+            var velocity = element.MotionDirection * element.MotionSpeed * deltaTime;
+            var newPosition = element.Position + velocity;
+            
+            // Check boundaries and reverse direction if needed
+            bool bounced = false;
+            
+            if (newPosition.X <= 0 || newPosition.X >= TargetWidth - 100) // Assuming element width ~100
+            {
+                element.MotionDirection = new Vector2(-element.MotionDirection.X, element.MotionDirection.Y);
+                bounced = true;
+            }
+            
+            if (newPosition.Y <= 0 || newPosition.Y >= TargetHeight - 50) // Assuming element height ~50
+            {
+                element.MotionDirection = new Vector2(element.MotionDirection.X, -element.MotionDirection.Y);
+                bounced = true;
+            }
+            
+            if (!bounced)
+            {
+                element.Position = newPosition;
+            }
+            else
+            {
+                // Apply bounce with new direction
+                element.Position += element.MotionDirection * element.MotionSpeed * deltaTime;
+            }
+        }
+
+        /// <summary>
+        /// Updates spiral motion for an element
+        /// </summary>
+        private void UpdateSpiralMotion(SimpleRenderElement element, float elapsedTime)
+        {
+            var angle = elapsedTime * element.MotionSpeed * 0.1f;
+            var radius = element.MotionRadius * (1.0f + elapsedTime * 0.1f); // Expanding spiral
+            
+            element.Position = element.MotionCenter + new Vector2(
+                (float)Math.Cos(angle) * radius,
+                (float)Math.Sin(angle) * radius);
+        }
+
+        /// <summary>
+        /// Updates random motion for an element
+        /// </summary>
+        private void UpdateRandomMotion(SimpleRenderElement element, float deltaTime)
+        {
+            var random = new Random((int)(DateTime.Now.Ticks + element.Id));
+            var randomDirection = new Vector2(
+                (float)(random.NextDouble() - 0.5) * 2,
+                (float)(random.NextDouble() - 0.5) * 2);
+            
+            var velocity = Vector2.Normalize(randomDirection) * element.MotionSpeed * deltaTime * 0.5f;
+            element.Position += velocity;
+        }
+
+        /// <summary>
+        /// Applies boundary constraints to element position
+        /// </summary>
+        private void ApplyBoundaries(SimpleRenderElement element)
+        {
+            element.Position = new Vector2(
+                Math.Max(0, Math.Min(TargetWidth - 100, element.Position.X)),
+                Math.Max(0, Math.Min(TargetHeight - 50, element.Position.Y)));
+        }
+
+        /// <summary>
+        /// Draws an individual element
+        /// </summary>
+        private void DrawElement(CanvasDrawingSession session, SimpleRenderElement element, DateTime currentTime)
+        {
+            switch (element.Type?.ToLower())
+            {
+                case "livetext":
+                case "text":
+                    DrawTextElement(session, element);
+                    break;
+                case "image":
+                    DrawImageElement(session, element);
+                    break;
+                case "circle":
+                    DrawCircleElement(session, element);
+                    break;
+                case "rectangle":
+                    DrawRectangleElement(session, element);
+                    break;
+                case "particlesystem":
+                    DrawParticleSystemElement(session, element, currentTime);
+                    break;
+                default:
+                    DrawTextElement(session, element); // Default to text
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Draws a text element
+        /// </summary>
+        private void DrawTextElement(CanvasDrawingSession session, SimpleRenderElement element)
+        {
+            var textFormat = new CanvasTextFormat
+            {
+                FontSize = element.FontSize,
+                FontFamily = element.FontFamily ?? "Segoe UI"
+            };
+
+            var text = element.Text ?? "Sample Text";
+            var color = element.Color;
+            
+            // Apply motion trail effect if enabled
+            if (element.ShowMotionTrail && element.HasMotion)
+            {
+                DrawMotionTrail(session, element, textFormat);
+            }
+            
+            session.DrawText(text, element.Position, color, textFormat);
+        }
+
+        /// <summary>
+        /// Draws an image element
+        /// </summary>
+        private void DrawImageElement(CanvasDrawingSession session, SimpleRenderElement element)
+        {
+            if (element.Image != null)
+            {
+                var destinationRect = new Windows.Foundation.Rect(
+                    element.Position.X, element.Position.Y,
+                    element.Size.X, element.Size.Y);
+                
+                session.DrawImage(element.Image, destinationRect);
+            }
+        }
+
+        /// <summary>
+        /// Draws a circle element
+        /// </summary>
+        private void DrawCircleElement(CanvasDrawingSession session, SimpleRenderElement element)
+        {
+            var radius = Math.Max(element.Size.X, element.Size.Y) / 2f;
+            var center = element.Position + new Vector2(radius, radius);
+            
+            if (element.IsFilled)
+            {
+                session.FillCircle(center, radius, element.Color);
+            }
+            else
+            {
+                session.DrawCircle(center, radius, element.Color, element.StrokeWidth);
+            }
+        }
+
+        /// <summary>
+        /// Draws a rectangle element
+        /// </summary>
+        private void DrawRectangleElement(CanvasDrawingSession session, SimpleRenderElement element)
+        {
+            var rect = new Windows.Foundation.Rect(
+                element.Position.X, element.Position.Y,
+                element.Size.X, element.Size.Y);
+            
+            if (element.IsFilled)
+            {
+                session.FillRectangle(rect, element.Color);
+            }
+            else
+            {
+                session.DrawRectangle(rect, element.Color, element.StrokeWidth);
+            }
+        }
+
+        /// <summary>
+        /// Draws a particle system element
+        /// </summary>
+        private void DrawParticleSystemElement(CanvasDrawingSession session, SimpleRenderElement element, DateTime currentTime)
+        {
+            var elapsedTime = (float)(currentTime - element.StartTime).TotalSeconds;
+            var particleCount = 20;
+            var random = new Random(element.Id);
+            
+            for (int i = 0; i < particleCount; i++)
+            {
+                var particleAge = (elapsedTime + i * 0.1f) % 2.0f; // 2 second particle life
+                var alpha = Math.Max(0, 1.0f - particleAge / 2.0f);
+                
+                var angle = i * (Math.PI * 2 / particleCount) + elapsedTime;
+                var distance = particleAge * 30;
+                
+                var particlePos = element.Position + new Vector2(
+                    (float)(Math.Cos(angle) * distance),
+                    (float)(Math.Sin(angle) * distance));
+                
+                var particleColor = Windows.UI.Color.FromArgb(
+                    (byte)(alpha * 255),
+                    element.Color.R, element.Color.G, element.Color.B);
+                
+                session.FillCircle(particlePos, 3, particleColor);
+            }
+        }
+
+        /// <summary>
+        /// Draws motion trail for an element
+        /// </summary>
+        private void DrawMotionTrail(CanvasDrawingSession session, SimpleRenderElement element, CanvasTextFormat textFormat)
+        {
+            if (element.MotionTrail?.Count == 0) return;
+            
+            for (int i = 0; i < element.MotionTrail.Count; i++)
+            {
+                var alpha = (float)(i + 1) / element.MotionTrail.Count * 0.3f; // Fade trail
+                var trailColor = Windows.UI.Color.FromArgb(
+                    (byte)(alpha * 255),
+                    element.Color.R, element.Color.G, element.Color.B);
+                
+                session.DrawText(element.Text ?? "Sample Text", element.MotionTrail[i], trailColor, textFormat);
+            }
+        }
+
+        /// <summary>
+        /// Draws debug overlay
+        /// </summary>
+        private void DrawDebugOverlay(CanvasDrawingSession session, DateTime currentTime)
+        {
+            var debugFormat = new CanvasTextFormat
+            {
+                FontSize = 16,
+                FontFamily = "Segoe UI",
+                HorizontalAlignment = CanvasHorizontalAlignment.Right
+            };
+            
+            var debugX = TargetWidth - 250;
+            session.DrawText($"Elements: {_elements.Count}", 
+                new Vector2(debugX, 10), Microsoft.UI.Colors.LightGray, debugFormat);
+            session.DrawText($"Moving: {_elements.Count(e => e.HasMotion)}", 
+                new Vector2(debugX, 30), Microsoft.UI.Colors.Cyan, debugFormat);
+            session.DrawText($"Size: {TargetWidth}x{TargetHeight}", 
+                new Vector2(debugX, 50), Microsoft.UI.Colors.LightGray, debugFormat);
+            session.DrawText($"Time: {currentTime:HH:mm:ss.fff}", 
+                new Vector2(debugX, 70), Microsoft.UI.Colors.LimeGreen, debugFormat);
+            session.DrawText($"Direct Pixel Mode", 
+                new Vector2(debugX, 130), Microsoft.UI.Colors.Magenta, debugFormat);
+            
+            // Show HID status
+            if (_isHidRealTimeModeEnabled)
+            {
+                session.DrawText($"HID: Real-time ON", 
+                    new Vector2(debugX, 90), Microsoft.UI.Colors.Cyan, debugFormat);
+                session.DrawText($"JPEG: {JpegQuality}%", 
+                    new Vector2(debugX, 110), Microsoft.UI.Colors.Cyan, debugFormat);
+            }
+            else
+            {
+                session.DrawText($"HID: Display only", 
+                    new Vector2(debugX, 90), Microsoft.UI.Colors.Orange, debugFormat);
+            }
+        }
+
+        /// <summary>
+        /// Draws placeholder content when no elements are present
+        /// </summary>
+        private void DrawPlaceholderContent(CanvasDrawingSession session, DateTime currentTime)
+        {
+            var titleFormat = new CanvasTextFormat
+            {
+                FontSize = 32,
+                FontFamily = "Segoe UI",
+                HorizontalAlignment = CanvasHorizontalAlignment.Center
+            };
+            
+            var textFormat = new CanvasTextFormat
+            {
+                FontSize = 18,
+                FontFamily = "Segoe UI",
+                HorizontalAlignment = CanvasHorizontalAlignment.Center
+            };
+
+            var centerX = TargetWidth / 2f;
+            var startY = TargetHeight / 2f - 100;
+
+            session.DrawText("🎨 Motion-Enhanced Rendering Service", 
+                new Vector2(centerX, startY), Microsoft.UI.Colors.White, titleFormat);
+            session.DrawText("Now with animated element motion support!", 
+                new Vector2(centerX, startY + 50), Microsoft.UI.Colors.LightBlue, textFormat);
+            session.DrawText($"Canvas Size: {TargetWidth} × {TargetHeight} pixels", 
+                new Vector2(centerX, startY + 80), Microsoft.UI.Colors.Gray, textFormat);
+            
+            // Show HID integration status
+            if (_hidService != null)
+            {
+                var hidStatus = _isHidRealTimeModeEnabled ? "🔄 HID Real-time Mode ACTIVE" : "🔌 HID Service Connected";
+                session.DrawText(hidStatus, 
+                    new Vector2(centerX, startY + 120), 
+                    _isHidRealTimeModeEnabled ? Microsoft.UI.Colors.LimeGreen : Microsoft.UI.Colors.Yellow, 
+                    textFormat);
+                
+                if (_isHidRealTimeModeEnabled)
+                {
+                    session.DrawText($"JPEG Quality: {_jpegQuality}% | Frame Rate: {_hidFrameIntervalMs}ms", 
+                        new Vector2(centerX, startY + 140), Microsoft.UI.Colors.Cyan, textFormat);
+                }
+            }
+            else
+            {
+                session.DrawText("❌ HID Service Not Available", 
+                    new Vector2(centerX, startY + 120), Microsoft.UI.Colors.Red, textFormat);
+            }
+            
+            // Show motion capabilities
+            session.DrawText("✨ Motion Types: Linear, Circular, Bounce, Spiral, Random", 
+                new Vector2(centerX, startY + 170), Microsoft.UI.Colors.Magenta, textFormat);
+            
+            // Draw animated elements to show motion capabilities
+            var elapsedTime = (DateTime.Now - _startTime).TotalSeconds;
+            
+            // Linear motion example
+            var animatedX = centerX + (float)(Math.Sin(elapsedTime * 2) * 100);
+            session.FillCircle(new Vector2(animatedX, startY + 210), 12, Microsoft.UI.Colors.Orange);
+            
+            // Pulsing example
+            var pulseSize = 8 + (float)(Math.Sin(elapsedTime * 3) * 4);
+            session.FillCircle(new Vector2(centerX - 50, startY + 210), pulseSize, Microsoft.UI.Colors.LimeGreen);
+            
+            // Circular motion example
+            var rotateAngle = elapsedTime * 1.5;
+            var rotateX = centerX + 50 + (float)(Math.Cos(rotateAngle) * 30);
+            var rotateY = startY + 210 + (float)(Math.Sin(rotateAngle) * 30);
+            session.FillCircle(new Vector2(rotateX, rotateY), 8, Microsoft.UI.Colors.HotPink);
+        }
+
+        /// <summary>
+        /// Adds a text element with motion capabilities
+        /// </summary>
+        /// <param name="text">The text to display</param>
+        /// <param name="position">Initial position</param>
+        /// <param name="motionConfig">Motion configuration</param>
+        /// <returns>Element ID</returns>
+        public int AddTextElementWithMotion(string text, Vector2 position, ElementMotionConfig motionConfig = null)
+        {
+            if (!_isInitialized)
+            {
+                StatusChanged?.Invoke(this, "Cannot add element: Service not initialized");
+                return -1;
+            }
+
+            var element = new SimpleRenderElement
+            {
+                Id = _nextElementId++,
+                Type = "Text",
+                Position = position,
+                Text = text,
+                StartTime = DateTime.Now,
+                IsVisible = true,
+                Color = Microsoft.UI.Colors.White,
+                FontSize = 24,
+                FontFamily = "Segoe UI"
+            };
+
+            // Apply motion configuration if provided
+            if (motionConfig != null)
+            {
+                ConfigureElementMotion(element, motionConfig);
+            }
+
+            _elements.Add(element);
+            StatusChanged?.Invoke(this, $"Added text element with motion (ID: {element.Id}). Total elements: {_elements.Count}");
+            TriggerFrameUpdateAndHidSend("text element with motion addition");
+            return element.Id;
+        }
+
+        /// <summary>
+        /// Adds a circle element with motion capabilities
+        /// </summary>
+        /// <param name="position">Initial position</param>
+        /// <param name="radius">Circle radius</param>
+        /// <param name="color">Circle color</param>
+        /// <param name="motionConfig">Motion configuration</param>
+        /// <returns>Element ID</returns>
+        public int AddCircleElementWithMotion(Vector2 position, float radius, Windows.UI.Color color, ElementMotionConfig motionConfig = null)
+        {
+            if (!_isInitialized)
+            {
+                StatusChanged?.Invoke(this, "Cannot add element: Service not initialized");
+                return -1;
+            }
+
+            var element = new SimpleRenderElement
+            {
+                Id = _nextElementId++,
+                Type = "Circle",
+                Position = position,
+                Size = new Vector2(radius * 2, radius * 2),
+                Color = color,
+                StartTime = DateTime.Now,
+                IsVisible = true,
+                IsFilled = true
+            };
+
+            // Apply motion configuration if provided
+            if (motionConfig != null)
+            {
+                ConfigureElementMotion(element, motionConfig);
+            }
+
+            _elements.Add(element);
+            StatusChanged?.Invoke(this, $"Added circle element with motion (ID: {element.Id}). Total elements: {_elements.Count}");
+            TriggerFrameUpdateAndHidSend("circle element with motion addition");
+            return element.Id;
+        }
+
+        /// <summary>
+        /// Configures motion properties for an element
+        /// </summary>
+        /// <param name="element">The element to configure</param>
+        /// <param name="config">Motion configuration</param>
+        private void ConfigureElementMotion(SimpleRenderElement element, ElementMotionConfig config)
+        {
+            element.HasMotion = true;
+            element.MotionType = config.MotionType;
+            element.MotionSpeed = config.Speed;
+            element.MotionDirection = Vector2.Normalize(config.Direction);
+            element.MotionCenter = config.Center ?? element.Position;
+            element.MotionRadius = config.Radius;
+            element.RespectBoundaries = config.RespectBoundaries;
+            element.ShowMotionTrail = config.ShowTrail;
+            
+            if (config.ShowTrail)
+            {
+                element.MotionTrail = new List<Vector2>();
+            }
+        }
+
+        /// <summary>
+        /// Updates motion properties for an existing element
+        /// </summary>
+        /// <param name="elementId">Element ID</param>
+        /// <param name="motionConfig">New motion configuration</param>
+        /// <returns>True if successful</returns>
+        public bool SetElementMotion(int elementId, ElementMotionConfig motionConfig)
+        {
+            var element = _elements.FirstOrDefault(e => e.Id == elementId);
+            if (element == null) return false;
+
+            ConfigureElementMotion(element, motionConfig);
+            
+            StatusChanged?.Invoke(this, $"Updated motion for element {elementId} - Type: {motionConfig.MotionType}, Speed: {motionConfig.Speed}");
+            return true;
+        }
     }
 
     /// <summary>
@@ -1181,7 +1633,53 @@ namespace DevWinUIGallery.Services
         public DateTime Timestamp { get; set; }
     }
 
-    // Simple render element for direct rendering
+    /// <summary>
+    /// Motion types available for elements
+    /// </summary>
+    public enum MotionType
+    {
+        None,
+        Linear,
+        Circular,
+        Oscillate,
+        Bounce,
+        Spiral,
+        Random
+    }
+
+    /// <summary>
+    /// Configuration for element motion
+    /// </summary>
+    public class ElementMotionConfig
+    {
+        public MotionType MotionType { get; set; } = MotionType.Linear;
+        public float Speed { get; set; } = 100.0f; // pixels per second for linear, or angular speed for rotational
+        public Vector2 Direction { get; set; } = new Vector2(1, 0); // normalized direction vector
+        public Vector2? Center { get; set; } = null; // center point for circular/oscillating motion
+        public float Radius { get; set; } = 50.0f; // radius for circular motion or oscillation amplitude
+        public bool RespectBoundaries { get; set; } = true; // whether to keep element within canvas bounds
+        public bool ShowTrail { get; set; } = false; // whether to show motion trail
+    }
+
+    /// <summary>
+    /// Information about a render element
+    /// </summary>
+    public class ElementInfo
+    {
+        public int Id { get; set; }
+        public string Type { get; set; }
+        public Vector2 Position { get; set; }
+        public bool IsVisible { get; set; }
+        public bool HasMotion { get; set; }
+        public MotionType MotionType { get; set; }
+        public float MotionSpeed { get; set; }
+        public string Text { get; set; }
+        public Windows.UI.Color Color { get; set; }
+    }
+
+    /// <summary>
+    /// Enhanced SimpleRenderElement with motion properties
+    /// </summary>
     public class SimpleRenderElement
     {
         public int Id { get; set; }
@@ -1191,5 +1689,24 @@ namespace DevWinUIGallery.Services
         public CanvasBitmap Image { get; set; }
         public DateTime StartTime { get; set; }
         public bool IsVisible { get; set; } = true;
+        
+        // Visual properties
+        public Windows.UI.Color Color { get; set; } = Microsoft.UI.Colors.White;
+        public Vector2 Size { get; set; } = new Vector2(100, 50);
+        public float FontSize { get; set; } = 24;
+        public string FontFamily { get; set; } = "Segoe UI";
+        public bool IsFilled { get; set; } = true;
+        public float StrokeWidth { get; set; } = 2.0f;
+        
+        // Motion properties
+        public bool HasMotion { get; set; } = false;
+        public MotionType MotionType { get; set; } = MotionType.None;
+        public float MotionSpeed { get; set; } = 100.0f;
+        public Vector2 MotionDirection { get; set; } = new Vector2(1, 0);
+        public Vector2 MotionCenter { get; set; } = Vector2.Zero;
+        public float MotionRadius { get; set; } = 50.0f;
+        public bool RespectBoundaries { get; set; } = true;
+        public bool ShowMotionTrail { get; set; } = false;
+        public List<Vector2> MotionTrail { get; set; } = new List<Vector2>();
     }
 }
