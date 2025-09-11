@@ -11,7 +11,7 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
-            <ColumnDefinition Width="250"/>
+            <ColumnDefinition Width="300"/>
         </Grid.ColumnDefinitions>
 
         <!-- Main display area -->
@@ -57,49 +57,134 @@
             </Grid>
         </Grid>
 
-        <!-- Right panel for basic controls -->
+        <!-- Right panel with enhanced controls -->
         <Border Grid.Column="1" Background="#F0F0F0" Margin="5">
-            <StackPanel Margin="10">
-                <TextBlock Text="Interactive Elements" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="10">
+                    
+                    <!-- Static Elements Section -->
+                    <Expander Header="Static Elements" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <!-- Add Text -->
+                            <TextBlock Text="Add Text:" FontWeight="Bold" Margin="0,5,0,2"/>
+                            <TextBox Name="TextContentBox" Text="Sample Text" Margin="0,2"/>
+                            <Button Name="AddTextButton" Content="Add Text" Margin="0,5" Click="AddTextButton_Click"/>
 
-                <!-- Add Text -->
-                <TextBlock Text="Add Text:" FontWeight="Bold" Margin="0,5,0,2"/>
-                <TextBox Name="TextContentBox" Text="Sample Text" Margin="0,2"/>
-                <Button Name="AddTextButton" Content="Add Text" Margin="0,5" Click="AddTextButton_Click"/>
+                            <!-- Add Shapes -->
+                            <TextBlock Text="Add Shapes:" FontWeight="Bold" Margin="0,10,0,2"/>
+                            <Button Name="AddCircleButton" Content="Add Circle" Margin="0,2" Click="AddCircleButton_Click"/>
+                            <Button Name="AddRectangleButton" Content="Add Rectangle" Margin="0,2" Click="AddRectangleButton_Click"/>
 
-                <!-- Add Shapes -->
-                <TextBlock Text="Add Shapes:" FontWeight="Bold" Margin="0,10,0,2"/>
-                <Button Name="AddCircleButton" Content="Add Circle" Margin="0,2" Click="AddCircleButton_Click"/>
-                <Button Name="AddRectangleButton" Content="Add Rectangle" Margin="0,2" Click="AddRectangleButton_Click"/>
+                            <!-- Load Image -->
+                            <TextBlock Text="Add Image:" FontWeight="Bold" Margin="0,10,0,2"/>
+                            <Button Name="LoadImageButton" Content="Load Image" Margin="0,2" Click="LoadImageButton_Click"/>
+                        </StackPanel>
+                    </Expander>
 
-                <!-- Load Image -->
-                <TextBlock Text="Add Image:" FontWeight="Bold" Margin="0,10,0,2"/>
-                <Button Name="LoadImageButton" Content="Load Image" Margin="0,2" Click="LoadImageButton_Click"/>
+                    <!-- Motion Elements Section -->
+                    <Expander Header="Motion Elements" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Add Motion Elements:" FontWeight="Bold" Margin="0,5,0,5"/>
+                            
+                            <!-- Motion element buttons -->
+                            <Button Name="AddBouncingBallButton" Content="Add Bouncing Ball" Margin="0,2" 
+                                    Click="AddBouncingBallButton_Click" Background="LightCoral"/>
+                            <Button Name="AddRotatingTextButton" Content="Add Rotating Text" Margin="0,2" 
+                                    Click="AddRotatingTextButton_Click" Background="LightBlue"/>
+                            <Button Name="AddOscillatingShapeButton" Content="Add Oscillating Shape" Margin="0,2" 
+                                    Click="AddOscillatingShapeButton_Click" Background="LightGreen"/>
+                            <Button Name="AddSpiralTextButton" Content="Add Spiral Text" Margin="0,2" 
+                                    Click="AddSpiralTextButton_Click" Background="LightGoldenrodYellow"/>
+                            <Button Name="AddRandomWalkerButton" Content="Add Random Walker" Margin="0,2" 
+                                    Click="AddRandomWalkerButton_Click" Background="Plum"/>
+                            
+                            <!-- Motion showcase and conversion -->
+                            <Separator Margin="0,10"/>
+                            <Button Name="CreateMotionShowcaseButton" Content="Create Motion Showcase" Margin="0,2" 
+                                    Click="CreateMotionShowcaseButton_Click" Background="Orange" FontWeight="Bold"/>
+                            <Button Name="ConvertToMotionButton" Content="Convert Selected to Motion" Margin="0,2" 
+                                    Click="ConvertToMotionButton_Click" Background="LightSteelBlue"/>
+                        </StackPanel>
+                    </Expander>
 
-                <!-- Live Data -->
-                <TextBlock Text="Live Data:" FontWeight="Bold" Margin="0,10,0,2"/>
-                <CheckBox Name="ShowTimeCheckBox" Content="Show Time" IsChecked="True" Margin="0,2" 
-                      Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
-                <CheckBox Name="ShowDateCheckBox" Content="Show Date" IsChecked="True" Margin="0,2"
-                      Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
-                <CheckBox Name="ShowSystemInfoCheckBox" Content="Show System Info" IsChecked="True" Margin="0,2"
-                      Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
-                <CheckBox Name="ShowAnimationCheckBox" Content="Show Animation" IsChecked="True" Margin="0,2"
-                      Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
+                    <!-- Motion Control Section -->
+                    <Expander Header="Motion Control" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Motion Control:" FontWeight="Bold" Margin="0,5,0,5"/>
+                            
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <Button Name="PauseMotionButton" Grid.Column="0" Content="Pause All" 
+                                        Margin="0,2,2,2" Click="PauseMotionButton_Click" Background="Yellow"/>
+                                <Button Name="ResumeMotionButton" Grid.Column="1" Content="Resume All" 
+                                        Margin="2,2,0,2" Click="ResumeMotionButton_Click" Background="LightGreen"/>
+                            </Grid>
+                            
+                            <Button Name="RandomizeMotionButton" Content="Randomize Motion" Margin="0,2" 
+                                    Click="RandomizeMotionButton_Click" Background="Violet"/>
+                        </StackPanel>
+                    </Expander>
 
-                <!-- Element List -->
-                <TextBlock Text="Elements:" FontWeight="Bold" Margin="0,10,0,2"/>
-                <ListBox Name="ElementsListBox" Height="100" Margin="0,2" 
-                     SelectionChanged="ElementsListBox_SelectionChanged"/>
-                <Button Name="DeleteElementButton" Content="Delete Selected" Margin="0,2" 
-                    Click="DeleteElementButton_Click" IsEnabled="False"/>
+                    <!-- Live Data Section -->
+                    <Expander Header="Live Data" IsExpanded="False" Margin="0,0,0,10">
+                        <StackPanel>
+                            <CheckBox Name="ShowTimeCheckBox" Content="Show Time" IsChecked="True" Margin="0,2" 
+                                  Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
+                            <CheckBox Name="ShowDateCheckBox" Content="Show Date" IsChecked="True" Margin="0,2"
+                                  Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
+                            <CheckBox Name="ShowSystemInfoCheckBox" Content="Show System Info" IsChecked="True" Margin="0,2"
+                                  Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
+                            <CheckBox Name="ShowAnimationCheckBox" Content="Show Animation" IsChecked="True" Margin="0,2"
+                                  Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
+                        </StackPanel>
+                    </Expander>
 
-                <!-- Instructions -->
-                <TextBlock Text="Instructions:" FontWeight="Bold" Margin="0,10,0,2"/>
-                <TextBlock TextWrapping="Wrap" Margin="0,2" FontSize="10" Foreground="DarkGray">
-                Left-click and drag to move elements. Right-click to select. Add elements using buttons above.
-                </TextBlock>
-            </StackPanel>
+                    <!-- Element Management Section -->
+                    <Expander Header="Element Management" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Elements:" FontWeight="Bold" Margin="0,5,0,2"/>
+                            <ListBox Name="ElementsListBox" Height="120" Margin="0,2" 
+                                 SelectionChanged="ElementsListBox_SelectionChanged"/>
+                            <Button Name="DeleteElementButton" Content="Delete Selected" Margin="0,2" 
+                                Click="DeleteElementButton_Click" IsEnabled="False" Background="Salmon"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Instructions Section -->
+                    <Expander Header="Instructions" IsExpanded="False" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock TextWrapping="Wrap" Margin="0,2" FontSize="11" Foreground="DarkBlue">
+                                <Run Text="🖱️ Mouse Controls:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • Left-click and drag to move elements
+                                <LineBreak/>
+                                • Right-click to select elements
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="🎬 Motion Features:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • Add motion elements with different behaviors
+                                <LineBreak/>
+                                • Convert static elements to motion elements
+                                <LineBreak/>
+                                • Use Motion Showcase for a full demo
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="📡 HID Integration:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • All animations stream to HID devices in real-time
+                                <LineBreak/>
+                                • Start Rendering to enable HID streaming
+                            </TextBlock>
+                        </StackPanel>
+                    </Expander>
+
+                </StackPanel>
+            </ScrollViewer>
         </Border>
-        </Grid>
+    </Grid>
 </Page>
