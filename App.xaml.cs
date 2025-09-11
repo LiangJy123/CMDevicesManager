@@ -15,6 +15,7 @@ namespace CMDevicesManager
     {
         private HidDeviceService? _hidDeviceService;
         private OfflineMediaDataService? _offlineMediaDataService;
+        private InteractiveWin2DRenderingService? _interactiveRenderingService;
 
         public App()
         {
@@ -116,12 +117,36 @@ namespace CMDevicesManager
                     usagePage: 0xFFFF   // Your device's usage page
                 );
 
+                // Initialize Interactive Win2D Rendering Service
+                Logger.Info("Initializing Interactive Win2D Rendering Service");
+                _interactiveRenderingService = new InteractiveWin2DRenderingService();
+                
+                // Initialize with optimal settings for HID streaming
+                await _interactiveRenderingService.InitializeAsync(
+                    width: 480,   // Standard display width
+                    height: 480   // Standard display height
+                );
+
+                // Configure default settings for optimal performance
+                _interactiveRenderingService.TargetFPS = 25;        // Balanced performance
+                _interactiveRenderingService.JpegQuality = 85;      // Good quality/size ratio
+                _interactiveRenderingService.ShowTime = true;       // Enable live time display
+                _interactiveRenderingService.ShowDate = true;       // Enable live date display
+                _interactiveRenderingService.ShowSystemInfo = true; // Enable system info
+                _interactiveRenderingService.ShowAnimation = true;  // Enable animations
+
+                // Set up event handlers for service monitoring
+                _interactiveRenderingService.HidStatusChanged += OnInteractiveRenderingHidStatusChanged;
+                _interactiveRenderingService.RenderingError += OnInteractiveRenderingError;
+
+                Logger.Info("Interactive Win2D Rendering Service initialized successfully");
+
                 // Initialize System Sleep Monitor Service
                 Logger.Info("Initializing System Sleep Monitor Service");
                 var systemSleepMonitorService = new SystemSleepMonitorService(_hidDeviceService);
                 
                 // Initialize the service locator with all services
-                ServiceLocator.InitializeAll(_hidDeviceService, _offlineMediaDataService, systemSleepMonitorService);
+                ServiceLocator.InitializeAll(_hidDeviceService, _offlineMediaDataService, systemSleepMonitorService, _interactiveRenderingService);
                 
                 // Start monitoring system sleep events
                 systemSleepMonitorService.StartMonitoring();
@@ -136,6 +161,10 @@ namespace CMDevicesManager
                 systemSleepMonitorService.DeviceSleepModeChanged += OnDeviceSleepModeChanged;
                 
                 Logger.Info("All services initialized successfully");
+                Logger.Info($"Services status: HID={_hidDeviceService.IsInitialized}, " +
+                          $"InteractiveRendering=True, " +
+                          $"OfflineMedia={_offlineMediaDataService != null}, " +
+                          $"SleepMonitor={systemSleepMonitorService != null}");
             }
             catch (Exception ex)
             {
@@ -143,6 +172,42 @@ namespace CMDevicesManager
                 // Don't throw here - let the app continue with reduced functionality
             }
         }
+
+        #region Interactive Rendering Service Event Handlers
+
+        private void OnInteractiveRenderingHidStatusChanged(string status)
+        {
+            try
+            {
+                Logger.Info($"Interactive Rendering HID Status: {status}");
+                
+                // You can add application-level logic here based on HID status
+                // For example, show notifications or adjust UI based on device connectivity
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling interactive rendering HID status change: {ex.Message}", ex);
+            }
+        }
+
+        private void OnInteractiveRenderingError(Exception ex)
+        {
+            try
+            {
+                Logger.Error($"Interactive Rendering Error: {ex.Message}", ex);
+                
+                // Implement error recovery logic if needed
+                // For example, restart the service or show user notification
+            }
+            catch (Exception logEx)
+            {
+                Logger.Error($"Error handling interactive rendering error: {logEx.Message}", logEx);
+            }
+        }
+
+        #endregion
+
+        #region Device Event Handlers
 
         private async void OnDeviceConnected(object? sender, DeviceEventArgs e)
         {
@@ -165,6 +230,14 @@ namespace CMDevicesManager
                         _offlineMediaDataService.UpdateDeviceFirmwareInfo(e.Device.SerialNumber, controller.DeviceFWInfo);
                     }
                 }
+
+                // Notify Interactive Rendering Service about device connection
+                if (_interactiveRenderingService != null)
+                {
+                    // The service will automatically detect the new device through ServiceLocator.HidDeviceService
+                    // No additional action needed as the service polls for device status
+                    Logger.Info("Interactive Rendering Service will automatically detect the new device");
+                }
             }
             catch (Exception ex)
             {
@@ -183,6 +256,9 @@ namespace CMDevicesManager
                     // Update connection status in offline data
                     _offlineMediaDataService.SetDeviceConnectionStatus(e.Device.SerialNumber, isConnected: false);
                 }
+
+                // Interactive Rendering Service will automatically handle disconnection
+                // through its event handlers subscribed to HidDeviceService
             }
             catch (Exception ex)
             {
@@ -190,11 +266,22 @@ namespace CMDevicesManager
             }
         }
 
+        #endregion
+
+        #region System Sleep Event Handlers
+
         private void OnSystemEnteringSleep(object? sender, SystemSleepEventArgs e)
         {
             try
             {
                 Logger.Info($"System entering sleep mode at {e.Timestamp}");
+                
+                // Pause Interactive Rendering Service during sleep to save resources
+                if (_interactiveRenderingService?.IsAutoRenderingEnabled == true)
+                {
+                    _interactiveRenderingService.StopAutoRendering();
+                    Logger.Info("Interactive rendering paused for system sleep");
+                }
             }
             catch (Exception ex)
             {
@@ -207,6 +294,10 @@ namespace CMDevicesManager
             try
             {
                 Logger.Info($"System resuming from sleep mode at {e.Timestamp}");
+                
+                // Resume Interactive Rendering Service after sleep if it was running
+                // Note: This is optional - you might want to let individual pages control this
+                Logger.Info("Interactive rendering service available for resumption by individual pages");
             }
             catch (Exception ex)
             {
@@ -238,6 +329,8 @@ namespace CMDevicesManager
                 Logger.Error($"Error handling device sleep mode change: {ex.Message}", ex);
             }
         }
+
+        #endregion
 
         private async void InitializeHidDeviceService()
         {

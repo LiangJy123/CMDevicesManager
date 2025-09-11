@@ -238,7 +238,7 @@ namespace CMDevicesManager.Pages
                 if (_interactiveService != null)
                 {
                     // Enable HID transfer and start auto-rendering with built-in render tick
-                    _interactiveService.EnableHidTransfer(true, useSuspendMedia: false);
+                    await _interactiveService.EnableHidTransfer(true, useSuspendMedia: false);
                     
                     // Enable real-time display mode on HID devices
                     await _interactiveService.EnableHidRealTimeDisplayAsync(true);

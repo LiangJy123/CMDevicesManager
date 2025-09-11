@@ -100,8 +100,6 @@ namespace CMDevicesManager.Services
                 // Initialize render timer
                 InitializeRenderTimer();
 
-                // Initialize HID service connection
-                await InitializeHidServiceAsync();
             }
             catch (Exception ex)
             {
@@ -712,13 +710,15 @@ namespace CMDevicesManager.Services
         /// </summary>
         /// <param name="enable">Whether to enable HID transfer</param>
         /// <param name="useSuspendMedia">Whether to use suspend media mode</param>
-        public void EnableHidTransfer(bool enable, bool useSuspendMedia = false)
+        public async Task EnableHidTransfer(bool enable, bool useSuspendMedia = false)
         {
             SendToHidDevices = enable;
             UseSuspendMedia = useSuspendMedia;
 
             if (enable)
             {
+                // Initialize HID service connection
+                await InitializeHidServiceAsync();
                 HidStatusChanged?.Invoke($"HID transfer enabled ({(useSuspendMedia ? "suspend media" : "real-time")} mode)");
             }
             else
