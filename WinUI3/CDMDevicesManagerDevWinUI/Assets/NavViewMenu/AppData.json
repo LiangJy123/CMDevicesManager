@@ -10,6 +10,13 @@
       "IsExpanded": false,
       "Items": [
         {
+          "UniqueId": "CDMDevicesManagerDevWinUI.Views.HomePage",
+          "Title": "Home",
+          "Subtitle": "CDMDevicesManagerDevWinUI",
+          "ImagePath": "ms-appx:///Assets/AppIcon.png",
+          "HideItem": false
+        },
+        {
           "UniqueId": "CDMDevicesManagerDevWinUI.Views.HomeLandingPage",
           "Title": "Home",
           "Subtitle": "CDMDevicesManagerDevWinUI",

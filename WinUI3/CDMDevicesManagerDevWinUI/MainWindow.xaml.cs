@@ -13,7 +13,7 @@ namespace CDMDevicesManagerDevWinUI.Views
 
             App.Current.NavService
                 .Initialize(NavView, NavFrame, NavigationPageMappings.PageDictionary)
-                    .ConfigureDefaultPage(typeof(HomeLandingPage))
+                    .ConfigureDefaultPage(typeof(HomePage))
                     .ConfigureSettingsPage(typeof(SettingsPage))
                 .ConfigureJsonFile("Assets/NavViewMenu/AppData.json")
                 .ConfigureTitleBar(AppTitleBar)

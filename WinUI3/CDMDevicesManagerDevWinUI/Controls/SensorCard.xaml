@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="CDMDevicesManagerDevWinUI.Controls.SensorCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:CDMDevicesManagerDevWinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Border Background="#FF2D2D30" CornerRadius="8" Padding="16" Width="200" Height="120">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="{x:Bind SensorData.Name}" FontSize="14" FontWeight="Bold" Foreground="White"/>
+                <FontIcon Glyph="{x:Bind SensorData.IconGlyph}" FontSize="16" Foreground="#FFE91E63" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Text="{x:Bind SensorData.SubTitle}" FontSize="12" Foreground="#FF9E9E9E" Margin="0,4,0,0"/>
+            <TextBlock FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,8,0,0">
+                <Run Text="{x:Bind SensorData.Value, Mode=OneWay}"/>
+                <Run Text="{x:Bind SensorData.Unit}" FontSize="16"/>
+            </TextBlock>
+        </StackPanel>
+    </Border>
+</UserControl>

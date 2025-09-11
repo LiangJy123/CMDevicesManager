@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="CDMDevicesManagerDevWinUI.Views.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:CDMDevicesManagerDevWinUI.Views"
+    xmlns:controls="using:CDMDevicesManagerDevWinUI.Controls"
+    xmlns:dev="using:DevWinUI"
+    xmlns:app="using:CDMDevicesManagerDevWinUI"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <dev:MainLandingPage HeaderImage="{ThemeResource HeaderCover}"
+                        HeaderSubtitleText="MasterCooler"
+                        HeaderText=""
+                        JsonNavigationService="{x:Bind app:App.Current.NavService}">
+        <dev:MainLandingPage.HeaderContent>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="24" Spacing="32">
+
+                    <!-- 散热 (Temperature) Section -->
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="散热" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.CoolingCards}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="16"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <controls:SensorCard SensorData="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- 电源 (Power) Section -->
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="电源" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.PowerCards}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="16"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <controls:SensorCard SensorData="{Binding}"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <!-- 系统信息 (System Information) Section -->
+                    <StackPanel Spacing="16">
+                        <TextBlock Text="系统信息" FontSize="24" FontWeight="Bold" Foreground="White"/>
+
+                        <!-- Usage Circles Row using SensorRoundCard -->
+                        <ItemsControl ItemsSource="{x:Bind ViewModel.SystemCards}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="24"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <controls:SensorRoundCard SensorData="{Binding}">
+                                        <controls:SensorRoundCard.StrokeColor>
+                                            <!-- CPU and GPU use cyan, Memory uses pink -->
+                                            <SolidColorBrush Color="{Binding Name, Converter={StaticResource SystemCardStrokeColorConverter}, FallbackValue=#FF00BCD4}"/>
+                                        </controls:SensorRoundCard.StrokeColor>
+                                    </controls:SensorRoundCard>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- Network Statistics Row using SensorCard -->
+                        <StackPanel Spacing="16">
+                            <TextBlock Text="网络" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.NetworkCards}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="16"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <controls:SensorCard SensorData="{Binding}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+
+                        <!-- Storage Statistics Row using SensorCard -->
+                        <StackPanel Spacing="16">
+                            <TextBlock Text="存储" FontSize="24" FontWeight="Bold" Foreground="White"/>
+                            <ItemsControl ItemsSource="{x:Bind ViewModel.StorageCards}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" Spacing="16"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <controls:SensorCard SensorData="{Binding}"/>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+
+        </dev:MainLandingPage.HeaderContent>
+    </dev:MainLandingPage>
+</Page>

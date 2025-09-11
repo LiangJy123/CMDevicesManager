@@ -11,4 +11,11 @@
     <local:BoolToStringConverter x:Key="BoolToStatusTextConverter" 
                                  TrueValue="Connected" 
                                  FalseValue="Disconnected" />
+
+    <!-- Network Speed to Color Converter -->
+    <local:NetworkSpeedToColorConverter x:Key="NetworkSpeedToColorConverter" />
+
+    <!-- System Card Stroke Color Converter -->
+    <local:SystemCardStrokeColorConverter x:Key="SystemCardStrokeColorConverter" />
+
 </ResourceDictionary>

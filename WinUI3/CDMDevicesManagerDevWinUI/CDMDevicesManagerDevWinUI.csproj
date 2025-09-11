@@ -36,6 +36,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Page Update="Controls\SensorCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Update="Controls\SensorRoundCard.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <None Update="T4Templates\NavigationPageMappings.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>NavigationPageMappings.cs</LastGenOutput>
@@ -49,6 +55,9 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>BreadcrumbPageMappings.cs</LastGenOutput>
     </None>
+    <Page Update="Views\HomePage.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Update="Views\DesignLCD.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -75,9 +84,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="ViewModels\HomePageViewModel.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Controls\SensorCard.xaml" />
+    <None Remove="Controls\SensorRoundCard.xaml" />
     <None Remove="Views\DesignLCD.xaml" />
     <None Remove="Views\DeviceSettings.xaml" />
     <None Remove="Views\DeviceShow.xaml" />
+    <None Remove="Views\HomePage.xaml" />
   </ItemGroup>
 
   <ItemGroup>

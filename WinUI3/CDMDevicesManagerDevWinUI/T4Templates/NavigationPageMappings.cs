@@ -15,6 +15,7 @@ public partial class NavigationPageMappings
 {
     public static Dictionary<string, Type> PageDictionary { get; } = new Dictionary<string, Type>
     {
+        {"CDMDevicesManagerDevWinUI.Views.HomePage", typeof(CDMDevicesManagerDevWinUI.Views.HomePage)},
         {"CDMDevicesManagerDevWinUI.Views.HomeLandingPage", typeof(CDMDevicesManagerDevWinUI.Views.HomeLandingPage)},
         {"CDMDevicesManagerDevWinUI.Views.Devices", typeof(CDMDevicesManagerDevWinUI.Views.Devices)},
         {"CDMDevicesManagerDevWinUI.Views.DesignLCD", typeof(CDMDevicesManagerDevWinUI.Views.DesignLCD)},
