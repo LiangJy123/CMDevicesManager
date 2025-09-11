@@ -42,6 +42,9 @@
     <Page Update="Controls\SensorRoundCard.xaml">
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Update="Controls\ImageCrop.xaml">
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <None Update="T4Templates\NavigationPageMappings.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>NavigationPageMappings.cs</LastGenOutput>
@@ -84,10 +87,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Examples\EnhancedMotionPageExample.cs" />
+    <Compile Remove="Examples\MotionDemoExample.cs" />
     <Compile Remove="ViewModels\HomePageViewModel.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Controls\ImageCrop.xaml" />
     <None Remove="Controls\SensorCard.xaml" />
     <None Remove="Controls\SensorRoundCard.xaml" />
     <None Remove="Views\DesignLCD.xaml" />
@@ -110,6 +116,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.WinUI.Animations" Version="8.2.250402" />
+    <PackageReference Include="CommunityToolkit.WinUI.Controls.ImageCropper" Version="8.2.250402" />
     <PackageReference Include="DevWinUI" Version="8.9.2" />
     <PackageReference Include="DevWinUI.ContextMenu" Version="8.9.1" />
     <PackageReference Include="DevWinUI.Controls" Version="8.9.2" />
@@ -127,6 +134,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\HidProtocol\HidHelper\HidHelper.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Examples\" />
   </ItemGroup>
 
   <!-- 
