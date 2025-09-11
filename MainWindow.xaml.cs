@@ -31,6 +31,7 @@ namespace CMDevicesManager
         private DevicePageDemo? _devicePageDemo;
         private SettingsPage? _settingsPage;
         private DevicePlayModePage? _devicePlayModePage;
+        private RenderDemoPage? _renderDemoPage;
 
         public MainWindow()
         {
@@ -67,6 +68,7 @@ namespace CMDevicesManager
         private DevicePageDemo GetDevicePageDemo() => _devicePageDemo ??= new DevicePageDemo();
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
         private DevicePlayModePage GetDevicePlayModePage() => _devicePlayModePage ??= new DevicePlayModePage();
+        private RenderDemoPage GetRenderDemoPage() => _renderDemoPage ??= new RenderDemoPage();
 
         private void ValidateResources()
         {
@@ -113,6 +115,7 @@ namespace CMDevicesManager
                     if (pagePath.Equals("DevicePage") && MainFrame.Content is DevicePage) return;
                     if (pagePath.Equals("DevicePageDemo") && MainFrame.Content is DevicePageDemo) return;
                     if (pagePath.Equals("SettingsPage") && MainFrame.Content is SettingsPage) return;
+                    if (pagePath.Equals("RenderDemoPage") && MainFrame.Content is RenderDemoPage) return;
 
                     // Use cached instances to avoid re-initializing pages/services/timers
                     if (pagePath.Equals("HomePage"))
@@ -134,6 +137,10 @@ namespace CMDevicesManager
                     else if (pagePath.Equals("DevicePlayModePage"))
                     {
                         MainFrame.Navigate(GetDevicePlayModePage());
+                    }
+                    else if (pagePath.Equals("RenderDemoPage"))
+                    {
+                        MainFrame.Navigate(GetRenderDemoPage());
                     }
                     else
                     {
