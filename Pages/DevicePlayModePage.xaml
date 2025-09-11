@@ -6,8 +6,6 @@
       Unloaded="Page_Unloaded">
     <!-- (Styles / Resources kept exactly as your current file – trimmed here for brevity) -->          
     <Page.Resources>
-<<<<<<< HEAD
-=======
         <Style x:Key="VerticalSlimScrollBar" TargetType="ScrollBar">
             <Setter Property="Width" Value="8"/>
             <Setter Property="MinHeight" Value="30"/>
@@ -126,7 +124,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         <Style x:Key="ModeSelectToggleBaseStyle" TargetType="ToggleButton">
             <Setter Property="Height" Value="48"/>
             <Setter Property="FontSize" Value="13"/>
@@ -506,36 +503,14 @@
                                     <Button Content="Add" Style="{StaticResource MiniButton}" Click="AddConfigButton_Click"/>
                                     <Button Content="Clear" Style="{StaticResource MiniButton}" Margin="4,0,0,0"
                                 Click="ClearConfigsButton_Click"/>
-<<<<<<< HEAD
-                                    <Button Content="Start" x:Name="StartSequenceButton"
-                                Style="{StaticResource MiniButton}" Margin="12,0,0,0"
-                                Background="{StaticResource AccentBrush}" BorderBrush="#5C7FB8"
-                                Click="StartSequenceButton_Click"/>
-                                    <Button Content="Stop" x:Name="StopSequenceButton"
-                                Style="{StaticResource MiniButton}" Background="#6B1F1F"
-                                BorderBrush="#8B3F3F" Margin="4,0,0,0"
-                                IsEnabled="False" Click="StopSequenceButton_Click"/>
-=======
                                   
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                                 </StackPanel>
 
                                 <!-- 视频模式按钮组 -->
                                 <StackPanel x:Name="VideoActionButtons" Orientation="Horizontal" Visibility="Collapsed">
                                     <Button Content="Select Video" Style="{StaticResource MiniButton}"
                                 Click="SelectVideoButton_Click"/>
-<<<<<<< HEAD
-                                    <Button Content="Start" x:Name="StartVideoButton"
-                                Style="{StaticResource MiniButton}" Margin="12,0,0,0"
-                                Background="{StaticResource AccentBrush}" BorderBrush="#5C7FB8"
-                                Click="StartVideoButton_Click" IsEnabled="False"/>
-                                    <Button Content="Stop" x:Name="StopVideoButton"
-                                Style="{StaticResource MiniButton}" Background="#6B1F1F"
-                                BorderBrush="#8B3F3F" Margin="4,0,0,0"
-                                IsEnabled="False" Click="StopVideoButton_Click"/>
-=======
                                     
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                                     <Button Content="Clear" x:Name="ClearVideoButton"
                                 Style="{StaticResource MiniButton}" Margin="4,0,0,0"
                                 Click="ClearVideoButton_Click" IsEnabled="False"/>
@@ -556,11 +531,7 @@
                 CornerRadius="10"
                 Padding="6"
                 Visibility="Visible">
-<<<<<<< HEAD
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-=======
                         <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource ConfigListScrollViewerStyle}">
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                             <ItemsControl x:Name="ConfigSequenceListBox"
                               ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
                                 <ItemsControl.ItemTemplate>
@@ -578,11 +549,7 @@
                                                        VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                         <TextBox Width="56"
                                                      Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}"
-<<<<<<< HEAD
-                                                     IsEnabled="{Binding DataContext.IsMultiConfig, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-=======
                                                      IsEnabled="{Binding IsDurationEditable}"
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                                                      HorizontalContentAlignment="Center"
                                                      PreviewTextInput="DurationTextBox_PreviewTextInput"
                                                      MaxLength="4">

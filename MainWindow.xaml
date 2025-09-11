@@ -198,6 +198,12 @@
                                 <TextBlock Text="Demo" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
+                        <ListBoxItem Tag="Pages/RenderDemoPage.xaml">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Render" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </ListBoxItem>
                         <ListBoxItem Tag="Pages/DevicePlayModePage.xaml">
                             <StackPanel Orientation="Vertical">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>

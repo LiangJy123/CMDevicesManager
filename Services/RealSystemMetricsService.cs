@@ -37,13 +37,9 @@ namespace CMDevicesManager.Services
         public string CpuName { get; }
         public string PrimaryGpuName { get; }
         public string MemoryName { get; }
-<<<<<<< HEAD
-
-=======
         private readonly TimeSpan _hardwareRefreshInterval = TimeSpan.FromMilliseconds(500);
         private DateTime _lastHardwareRefresh = DateTime.MinValue;
         private bool _refreshRunning;
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         public RealSystemMetricsService()
         {
             // Log the purpose of hardware monitoring for transparency
@@ -90,8 +86,6 @@ namespace CMDevicesManager.Services
 
             }
         }
-<<<<<<< HEAD
-=======
         private void RefreshAllHardwareThrottled(bool force = false)
         {
             var now = DateTime.UtcNow;
@@ -131,7 +125,6 @@ namespace CMDevicesManager.Services
                 _refreshRunning = false;
             }
         }
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         public double GetCpuTemperature() => ReadOrZero(ref _cpuTemp, () =>
             FindCpuSensor(SensorType.Temperature, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)));
@@ -227,11 +220,7 @@ namespace CMDevicesManager.Services
             {
                 try
                 {
-<<<<<<< HEAD
-                    RefreshAllHardware();
-=======
                     RefreshAllHardwareThrottled();
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
                     // If cache is null or the sensor is no longer valid, try to resolve it again
                     if (cache == null || cache.Hardware == null)
@@ -243,15 +232,6 @@ namespace CMDevicesManager.Services
                         LogMissing(cache);
                         return 0;
                     }
-<<<<<<< HEAD
-                    try { cache.Hardware.Update(); }
-                    catch (Exception ex)
-                    {
-                        Logger.Error("cache.Hardware.Update() crash", ex);
-                        cache=null;
-                        return 0;
-                    }
-=======
                     //try { cache.Hardware.Update(); }
                     //catch (Exception ex)
                     //{
@@ -259,7 +239,6 @@ namespace CMDevicesManager.Services
                     //    cache=null;
                     //    return 0;
                     //}
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                     
 
                     var value = cache?.Value;
@@ -341,10 +320,7 @@ namespace CMDevicesManager.Services
         {
             foreach (var h in _computer.Hardware)
             {
-<<<<<<< HEAD
-=======
                 if (h == null) continue;
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                 try
                 {
                     h.Update();

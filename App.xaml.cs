@@ -14,10 +14,7 @@ namespace CMDevicesManager
     public partial class App : Application
     {
         private HidDeviceService? _hidDeviceService;
-<<<<<<< HEAD
-=======
         private OfflineMediaDataService? _offlineMediaDataService;
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         public App()
         {
@@ -53,13 +50,8 @@ namespace CMDevicesManager
                 Logger.Info("Initializing font settings");
                 CMDevicesManager.Language.FontSwitch.ChangeFont(UserConfigManager.Current.FontFamily);
 
-<<<<<<< HEAD
-                // Initialize HID Device Service
-                InitializeHidDeviceService();
-=======
                 // Initialize services
                 InitializeServices();
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
                 // 显示启动窗口
                 var splash = new SplashWindow();
@@ -102,8 +94,6 @@ namespace CMDevicesManager
             }
         }
 
-<<<<<<< HEAD
-=======
         private async void InitializeServices()
         {
             try
@@ -249,7 +239,6 @@ namespace CMDevicesManager
             }
         }
 
->>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         private async void InitializeHidDeviceService()
         {
             try
