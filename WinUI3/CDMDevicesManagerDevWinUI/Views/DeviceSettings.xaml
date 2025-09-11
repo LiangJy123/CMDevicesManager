@@ -242,94 +242,81 @@
                                               HorizontalContentAlignment="Stretch"
                                               Visibility="Collapsed">
                             <toolkit:SettingsCard.Content>
-                                <StackPanel Margin="0,8,0,0" Spacing="8">
-                                    <!-- Add Media Button -->
-                                    <Button x:Name="AddMediaButton"
-                                            Click="AddMediaButton_Click"
-                                            HorizontalAlignment="Left"
-                                            Style="{StaticResource AccentButtonStyle}">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon Glyph="&#xE710;" FontSize="16"/>
-                                            <TextBlock Text="Add Media Files"/>
-                                        </StackPanel>
-                                    </Button>
-                                    
-                                    <!-- Media Slots Display -->
-                                    <TextBlock Text="Media Slots:" FontWeight="SemiBold" Margin="0,8,0,4"/>
-                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" 
-                                                  VerticalScrollBarVisibility="Disabled"
-                                                  MaxHeight="300">
-                                        <ItemsRepeater x:Name="SuspendMediaSlotsRepeater">
-                                            <ItemsRepeater.Layout>
-                                                <UniformGridLayout Orientation="Horizontal" 
-                                                                 ItemsJustification="Start"
-                                                                 ItemsStretch="None"
-                                                                 MinColumnSpacing="8"
-                                                                 MinRowSpacing="8"/>
-                                            </ItemsRepeater.Layout>
-                                            <ItemsRepeater.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border Width="140" 
+                                <ScrollViewer MaxHeight="300" 
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsRepeater x:Name="SuspendMediaSlotsRepeater">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout Orientation="Horizontal" 
+                                                ItemsJustification="Start"
+                                                ItemsStretch="None"
+                                                MinColumnSpacing="8"
+                                                MinRowSpacing="8"
+                                                MaximumRowsOrColumns="3"/>
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Width="120" 
                                                             Height="120" 
                                                             CornerRadius="8"
                                                             BorderBrush="Gray"
                                                             BorderThickness="1"
                                                             Background="LightGray">
-                                                        <Grid>
-                                                            <!-- Media Content Container -->
-                                                            <StackPanel x:Name="MediaContentPanel" 
+                                                    <Grid>
+                                                        <!-- Media Content Container -->
+                                                        <StackPanel x:Name="MediaContentPanel" 
                                                                         Orientation="Vertical" 
                                                                         Spacing="4"
                                                                         Padding="8"
                                                                         Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                                <!-- Media Thumbnail/Icon -->
-                                                                <Border Height="60" 
+                                                            <!-- Media Thumbnail/Icon -->
+                                                            <Border Height="60" 
                                                                         CornerRadius="4"
                                                                         Background="White">
-                                                                    <Grid>
-                                                                        <Image Source="{Binding LocalPath, Converter={StaticResource FilePathToImageSourceConverter}}"
+                                                                <Grid>
+                                                                    <Image Source="{Binding LocalPath, Converter={StaticResource FilePathToImageSourceConverter}}"
                                                                                Stretch="UniformToFill"
                                                                                Visibility="{Binding IsImage, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                                                        <FontIcon Glyph="&#xE714;"
+                                                                    <FontIcon Glyph="&#xE714;"
                                                                                   FontSize="24"
                                                                                   HorizontalAlignment="Center"
                                                                                   VerticalAlignment="Center"
                                                                                   Visibility="{Binding IsVideo, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                                                    </Grid>
-                                                                </Border>
-                                                                
-                                                                <!-- File Name -->
-                                                                <TextBlock Text="{Binding FileName}" 
+                                                                </Grid>
+                                                            </Border>
+
+                                                            <!-- File Name -->
+                                                            <TextBlock Text="{Binding FileName}" 
                                                                            FontSize="10"
                                                                            TextAlignment="Center"
                                                                            TextWrapping="Wrap"
                                                                            MaxLines="2"/>
-                                                                
-                                                                <!-- Remove Button -->
-                                                                <Button Content="Remove"
+
+                                                            <!-- Remove Button -->
+                                                            <Button Content="Remove"
                                                                         FontSize="10"
                                                                         Padding="4,2"
                                                                         HorizontalAlignment="Center"
                                                                         Click="RemoveMediaButton_Click"
                                                                         Tag="{Binding SlotIndex}"/>
-                                                            </StackPanel>
-                                                            
-                                                            <!-- Add Media Container -->
-                                                            <StackPanel x:Name="AddMediaPanel"
+                                                        </StackPanel>
+
+                                                        <!-- Add Media Container -->
+                                                        <StackPanel x:Name="AddMediaPanel"
                                                                         Orientation="Vertical"
                                                                         HorizontalAlignment="Center"
                                                                         VerticalAlignment="Center"
                                                                         Spacing="8"
                                                                         Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}">
-                                                                <FontIcon Glyph="&#xE710;" 
+                                                            <FontIcon Glyph="&#xE710;" 
                                                                           FontSize="32"
                                                                           Foreground="Gray"
                                                                           HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Add Media" 
+                                                            <TextBlock Text="Add Media" 
                                                                            FontSize="12"
                                                                            Foreground="Gray"
                                                                            HorizontalAlignment="Center"/>
-                                                                <Button Content="+"
+                                                            <Button Content="+"
                                                                         FontSize="16"
                                                                         Width="32"
                                                                         Height="32"
@@ -337,30 +324,29 @@
                                                                         HorizontalAlignment="Center"
                                                                         Click="AddMediaToSlotButton_Click"
                                                                         Tag="{Binding SlotIndex}"/>
-                                                            </StackPanel>
-                                                            
-                                                            <!-- Slot Number Badge -->
-                                                            <Border Background="DodgerBlue"
+                                                        </StackPanel>
+
+                                                        <!-- Slot Number Badge -->
+                                                        <Border Background="DodgerBlue"
                                                                     CornerRadius="12"
                                                                     Width="24"
                                                                     Height="24"
                                                                     HorizontalAlignment="Right"
                                                                     VerticalAlignment="Top"
                                                                     Margin="4">
-                                                                <TextBlock Text="{Binding SlotNumber}"
+                                                            <TextBlock Text="{Binding SlotNumber}"
                                                                            FontSize="10"
                                                                            FontWeight="Bold"
                                                                            Foreground="White"
                                                                            HorizontalAlignment="Center"
                                                                            VerticalAlignment="Center"/>
-                                                            </Border>
-                                                        </Grid>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ItemsRepeater.ItemTemplate>
-                                        </ItemsRepeater>
-                                    </ScrollViewer>
-                                </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </ScrollViewer>
                             </toolkit:SettingsCard.Content>
                         </toolkit:SettingsCard>
                     </toolkit:SettingsExpander.Items>

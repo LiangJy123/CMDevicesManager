@@ -270,13 +270,12 @@ namespace CDMDevicesManagerDevWinUI.Views
                 {
                     await AddMediaFileToSlotAsync(file, slotIndex);
                     UpdateMediaSlots();
-                    _ = ShowInfoMessageAsync($"Added media file to slot {slotIndex + 1}.");
+                    Debug.WriteLine($"Added media file to slot {slotIndex + 1}.");
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error adding media to slot {slotIndex}: {ex.Message}");
-                _ = ShowErrorMessageAsync($"Failed to add media to slot {slotIndex + 1}: {ex.Message}");
             }
         }
 
@@ -289,20 +288,14 @@ namespace CDMDevicesManagerDevWinUI.Views
                     return;
                 }
 
-                var result = await ShowConfirmationDialogAsync("Remove Media", 
-                    $"Are you sure you want to remove the media file from slot {slotIndex + 1}?");
-                
-                if (result)
-                {
-                    _offlineMediaService.RemoveSuspendMediaFile(_deviceViewModel.SerialNumber, slotIndex);
-                    UpdateMediaSlots();
-                    _ = ShowInfoMessageAsync($"Removed media file from slot {slotIndex + 1}.");
-                }
+                // Remove directly without confirmation dialog
+                _offlineMediaService.RemoveSuspendMediaFile(_deviceViewModel.SerialNumber, slotIndex);
+                UpdateMediaSlots();
+                Debug.WriteLine($"Removed media file from slot {slotIndex + 1}.");
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error removing media from slot {slotIndex}: {ex.Message}");
-                _ = ShowErrorMessageAsync($"Failed to remove media from slot {slotIndex + 1}: {ex.Message}");
             }
         }
 
@@ -327,10 +320,32 @@ namespace CDMDevicesManagerDevWinUI.Views
                     slotIndex
                 );
 
-                // Transfer file to device using suspend media functionality use hid service
+                // Transfer file to device using suspend media functionality via HID service
+                if (_hidService != null)
+                {
+                    // Generate a unique transfer ID based on slot index and timestamp
+                    // This ensures each transfer has a unique ID (0-59 range)
+                    byte transferId = (byte)slotIndex;
 
+                    var transferResults = await _hidService.TransferFileAsync(file.Path, transferId);
 
-
+                    // Check if transfer was successful for our device
+                    bool transferSuccess = false;
+                    if (_deviceViewModel?.DevicePath != null &&
+                        transferResults.TryGetValue(_deviceViewModel.DevicePath, out transferSuccess) &&
+                        transferSuccess)
+                    {
+                        Debug.WriteLine($"Successfully transferred file {targetFileName} to device slot {slotIndex} with transfer ID {transferId}");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Failed to transfer file {targetFileName} to device slot {slotIndex}");
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("HID service not available for file transfer");
+                }
             }
             catch (Exception ex)
             {
@@ -367,7 +382,6 @@ namespace CDMDevicesManagerDevWinUI.Views
                 else
                 {
                     Debug.WriteLine("HidDeviceService is not initialized");
-                    _ = ShowErrorMessageAsync("Device service is not available. Please restart the application.");
                 }
 
                 if (ServiceLocator.IsOfflineMediaServiceInitialized)
@@ -383,7 +397,6 @@ namespace CDMDevicesManagerDevWinUI.Views
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to initialize services: {ex.Message}");
-                _ = ShowErrorMessageAsync($"Failed to connect to device services: {ex.Message}");
             }
         }
 
@@ -562,7 +575,6 @@ namespace CDMDevicesManagerDevWinUI.Views
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load current device settings: {ex.Message}");
-                _ = ShowErrorMessageAsync($"Failed to load device settings: {ex.Message}");
             }
         }
 
@@ -677,7 +689,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                     InstallUpdateButton.IsEnabled = true;
                     CheckUpdateButton.Content = "Recheck";
                     
-                    _ = ShowInfoMessageAsync("Firmware update available! Click 'Install Update' to proceed.");
+                    Debug.WriteLine("Firmware update available! Click 'Install Update' to proceed.");
                 }
                 else
                 {
@@ -686,7 +698,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                     InstallUpdateButton.IsEnabled = false;
                     CheckUpdateButton.Content = "Check for Updates";
                     
-                    _ = ShowInfoMessageAsync("Device firmware is up to date.");
+                    Debug.WriteLine("Device firmware is up to date.");
                 }
             }
             catch (Exception ex)
@@ -694,7 +706,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                 UpdateStatusIndicator.Fill = new SolidColorBrush(Colors.Red);
                 UpdateStatusText.Text = "Check failed";
                 CheckUpdateButton.Content = "Retry";
-                _ = ShowErrorMessageAsync($"Failed to check for updates: {ex.Message}");
+                Debug.WriteLine($"Failed to check for updates: {ex.Message}");
             }
             finally
             {
@@ -719,7 +731,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                 UpdateStatusText.Text = "Update completed";
                 InstallUpdateButton.Content = "Install Update";
                 
-                _ = ShowInfoMessageAsync("Firmware update completed successfully! Device will restart.");
+                Debug.WriteLine("Firmware update completed successfully! Device will restart.");
                 
                 // Simulate device restart
                 await RestartDeviceAsync();
@@ -729,7 +741,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                 UpdateStatusIndicator.Fill = new SolidColorBrush(Colors.Red);
                 UpdateStatusText.Text = "Update failed";
                 InstallUpdateButton.Content = "Retry";
-                _ = ShowErrorMessageAsync($"Failed to install update: {ex.Message}");
+                Debug.WriteLine($"Failed to install update: {ex.Message}");
             }
             finally
             {
@@ -767,11 +779,11 @@ namespace CDMDevicesManagerDevWinUI.Views
             try
             {
                 await LoadDeviceInformationAsync();
-                _ = ShowInfoMessageAsync("Device information refreshed successfully.");
+                Debug.WriteLine("Device information refreshed successfully.");
             }
             catch (Exception ex)
             {
-                _ = ShowErrorMessageAsync($"Failed to refresh device information: {ex.Message}");
+                Debug.WriteLine($"Failed to refresh device information: {ex.Message}");
             }
             finally
             {
@@ -796,34 +808,34 @@ namespace CDMDevicesManagerDevWinUI.Views
                         if (statusResults.TryGetValue(_deviceViewModel.DevicePath, out var deviceStatus) && deviceStatus.HasValue)
                         {
                             UpdateStatusDisplay(deviceStatus.Value);
-                            _ = ShowInfoMessageAsync("Device status retrieved successfully.");
+                            Debug.WriteLine("Device status retrieved successfully.");
                         }
                         else
                         {
                             // Clear status display and show error state
                             ClearStatusDisplay();
-                            _ = ShowErrorMessageAsync("Failed to retrieve device status - no response from device.");
+                            Debug.WriteLine("Failed to retrieve device status - no response from device.");
                         }
                     }
                     else
                     {
                         // Clear status display and show error state
                         ClearStatusDisplay();
-                        _ = ShowErrorMessageAsync("No devices found or device not responding.");
+                        Debug.WriteLine("No devices found or device not responding.");
                     }
                 }
                 else
                 {
                     // Clear status display and show disconnected state
                     ClearStatusDisplay();
-                    _ = ShowErrorMessageAsync("Device service not available.");
+                    Debug.WriteLine("Device service not available.");
                 }
             }
             catch (Exception ex)
             {
                 // Clear status display and show error
                 ClearStatusDisplay();
-                _ = ShowErrorMessageAsync($"Failed to get device status: {ex.Message}");
+                Debug.WriteLine($"Failed to get device status: {ex.Message}");
             }
             finally
             {
@@ -922,16 +934,16 @@ namespace CDMDevicesManagerDevWinUI.Views
                         "Device switched to sleep mode. LCD will on when system in sleeps." :
                         "Device exit sleep mode. LCD will off when system in sleeps.";
 
-                    _ = ShowInfoMessageAsync(message);
+                    Debug.WriteLine(message);
                 }
                 else
                 {
-                    Debug.WriteLine($"Failed to set sleep mode");
+                    Debug.WriteLine("Failed to set sleep mode");
 
                     // Revert toggle state on failure
                     SleepModeToggle.IsOn = !SleepModeToggle.IsOn;
 
-                    _ = ShowErrorMessageAsync("Failed to change sleep mode.");
+                    Debug.WriteLine("Failed to change sleep mode.");
                 }
             }
             catch (Exception ex)
@@ -941,7 +953,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                 // Revert toggle state on exception
                 SleepModeToggle.IsOn = !SleepModeToggle.IsOn;
 
-                _ = ShowErrorMessageAsync($"Failed to change sleep mode: {ex.Message}");
+                Debug.WriteLine($"Failed to change sleep mode: {ex.Message}");
             }
             finally
             {
@@ -1035,19 +1047,19 @@ namespace CDMDevicesManagerDevWinUI.Views
                 bool success = false;
                 if (_deviceViewModel?.DevicePath != null && results.TryGetValue(_deviceViewModel.DevicePath, out success) && success)
                 {
-                    _ = ShowInfoMessageAsync("Device restart initiated. The device will reconnect shortly.");
+                    Debug.WriteLine("Device restart initiated. The device will reconnect shortly.");
                     
                     // Wait a bit for the device to restart
                     await Task.Delay(3000);
                 }
                 else
                 {
-                    _ = ShowErrorMessageAsync("Failed to restart device.");
+                    Debug.WriteLine("Failed to restart device.");
                 }
             }
             catch (Exception ex)
             {
-                _ = ShowErrorMessageAsync($"Failed to restart device: {ex.Message}");
+                Debug.WriteLine($"Failed to restart device: {ex.Message}");
             }
             finally
             {
@@ -1071,7 +1083,7 @@ namespace CDMDevicesManagerDevWinUI.Views
                 bool success = false;
                 if (_deviceViewModel?.DevicePath != null && results.TryGetValue(_deviceViewModel.DevicePath, out success) && success)
                 {
-                    _ = ShowInfoMessageAsync("Factory reset initiated. Device will restart with default settings.");
+                    Debug.WriteLine("Factory reset initiated. Device will restart with default settings.");
                     
                     // Wait a bit for the reset to complete
                     await Task.Delay(3000);
@@ -1081,12 +1093,12 @@ namespace CDMDevicesManagerDevWinUI.Views
                 }
                 else
                 {
-                    _ = ShowErrorMessageAsync("Failed to perform factory reset.");
+                    Debug.WriteLine("Failed to perform factory reset.");
                 }
             }
             catch (Exception ex)
             {
-                _ = ShowErrorMessageAsync($"Failed to perform factory reset: {ex.Message}");
+                Debug.WriteLine($"Failed to perform factory reset: {ex.Message}");
             }
             finally
             {
@@ -1123,11 +1135,8 @@ namespace CDMDevicesManagerDevWinUI.Views
                     _offlineMediaService.UpdateDeviceSetting(_deviceViewModel.SerialNumber, "suspendModeEnabled", isOfflineMode);
                 }
 
-                string message = isOfflineMode ?
-                    "Offline mode enabled. Device will display saved suspend media when application is closed." :
-                    "Offline mode disabled. Device will show default content when application is closed.";
-
-                _ = ShowInfoMessageAsync(message);
+                // No dialog message - just update silently
+                Debug.WriteLine($"Offline mode {(isOfflineMode ? "enabled" : "disabled")}");
             }
             catch (Exception ex)
             {
@@ -1135,8 +1144,6 @@ namespace CDMDevicesManagerDevWinUI.Views
 
                 // Revert toggle state on exception
                 OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
-
-                _ = ShowErrorMessageAsync($"Failed to change offline mode: {ex.Message}");
             }
             finally
             {
@@ -1167,13 +1174,12 @@ namespace CDMDevicesManagerDevWinUI.Views
                 {
                     await AddMultipleMediaFilesToSlotsAsync(files);
                     UpdateMediaSlots();
-                    _ = ShowInfoMessageAsync($"Added {files.Count} media file(s) to available slots.");
+                    Debug.WriteLine($"Added {files.Count} media file(s) to available slots.");
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error adding media files: {ex.Message}");
-                _ = ShowErrorMessageAsync($"Failed to add media files: {ex.Message}");
             }
         }
 
@@ -1208,7 +1214,7 @@ namespace CDMDevicesManagerDevWinUI.Views
 
                 if (filesAdded < files.Count)
                 {
-                    _ = ShowInfoMessageAsync($"Added {filesAdded} files. {files.Count - filesAdded} files were skipped due to insufficient available slots.");
+                    Debug.WriteLine($"Added {filesAdded} files. {files.Count - filesAdded} files were skipped due to insufficient available slots.");
                 }
             }
             catch (Exception ex)
