@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Examples\BackgroundRenderingServiceImageExample.cs" />
+    <Compile Remove="Examples\HidRenderingServiceExample.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="exe\ffprobe.exe" />
     <None Remove="ffmpeg.exe" />
     <None Remove="Fonts\FangZheng.ttf" />

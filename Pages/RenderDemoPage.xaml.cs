@@ -25,11 +25,11 @@ namespace CMDevicesManager.Pages
     {
         private BackgroundRenderingService? _backgroundService;
         private InteractiveWin2DRenderingService? _interactiveService;
-        private System.Windows.Threading.DispatcherTimer? _renderTimer;
         private bool _isDragging;
         private RenderElement? _draggedElement;
         private WinFoundation.Point _lastMousePosition;
         private WinFoundation.Point _dragOffset;
+        private int _hidFramesSent = 0;
 
         public RenderDemoPage()
         {
@@ -48,17 +48,22 @@ namespace CMDevicesManager.Pages
             {
                 StatusLabel.Content = "Initializing services...";
 
-                // Initialize interactive service
+                // Initialize enhanced interactive service with HID integration and built-in render tick
                 _interactiveService = new InteractiveWin2DRenderingService();
-                await _interactiveService.InitializeAsync(800, 600);
+                await _interactiveService.InitializeAsync(480, 480);
 
+                // Subscribe to all events
                 _interactiveService.ImageRendered += OnFrameRendered;
                 _interactiveService.ElementSelected += OnElementSelected;
                 _interactiveService.ElementMoved += OnElementMoved;
+                _interactiveService.HidStatusChanged += OnHidStatusChanged;
+                _interactiveService.JpegDataSentToHid += OnJpegDataSentToHid;
+                _interactiveService.RenderingError += OnRenderingError;
+                _interactiveService.RawImageDataReady += OnRawImageDataReady;
 
                 // Initialize background service as fallback
                 _backgroundService = new BackgroundRenderingService();
-                await _backgroundService.InitializeAsync(800, 600);
+                await _backgroundService.InitializeAsync(480, 480);
 
                 _backgroundService.FrameRendered += OnFrameRendered;
                 _backgroundService.RawImageDataReady += OnRawImageDataReady;
@@ -67,12 +72,11 @@ namespace CMDevicesManager.Pages
                 UpdateElementsList();
                 UpdateLiveDataCheckboxes();
 
-                StatusLabel.Content = "Services initialized - Interactive features available";
+                StatusLabel.Content = $"Services initialized - HID Service: {(_interactiveService.IsHidServiceConnected ? "Connected" : "Not Available")}";
             }
             catch (Exception ex)
             {
                 StatusLabel.Content = $"Failed to initialize: {ex.Message}";
-                // MessageBox.Show($"Initialization failed: {ex.Message}", "Error", // MessageBoxButton.OK, // MessageBoxImage.Error);
             }
         }
 
@@ -81,23 +85,39 @@ namespace CMDevicesManager.Pages
             if (Dispatcher.CheckAccess())
             {
                 DisplayImage.Source = bitmap;
-                FpsLabel.Content = $"Rendering at {_backgroundService?.TargetFPS ?? 30} FPS";
+                FpsLabel.Content = $"Rendering at {_interactiveService?.TargetFPS ?? _backgroundService?.TargetFPS ?? 30} FPS";
             }
             else
             {
                 Dispatcher.Invoke(() =>
                 {
                     DisplayImage.Source = bitmap;
-                    FpsLabel.Content = $"Rendering at {_backgroundService?.TargetFPS ?? 30} FPS";
+                    FpsLabel.Content = $"Rendering at {_interactiveService?.TargetFPS ?? _backgroundService?.TargetFPS ?? 30} FPS";
                 });
             }
+        }
+
+        private void OnHidStatusChanged(string status)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                StatusLabel.Content = $"HID: {status}";
+            });
+        }
+
+        private void OnJpegDataSentToHid(byte[] jpegData)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                _hidFramesSent++;
+                StatusLabel.Content = $"HID Frames sent: {_hidFramesSent} (Last: {jpegData.Length:N0} bytes)";
+            });
         }
 
         private void OnElementSelected(RenderElement element)
         {
             Dispatcher.Invoke(() =>
             {
-                // Select the element in the list
                 var elements = _interactiveService?.GetElements();
                 if (elements != null)
                 {
@@ -112,7 +132,7 @@ namespace CMDevicesManager.Pages
 
         private void OnElementMoved(RenderElement element)
         {
-            // Element position updated
+            // Element position updated - could trigger additional actions here
         }
 
         private void OnRawImageDataReady(byte[] imageData)
@@ -128,7 +148,7 @@ namespace CMDevicesManager.Pages
             });
         }
 
-        // Mouse interaction handlers
+        // Mouse interaction handlers for interactive service
         private void DisplayImage_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (_interactiveService == null) return;
@@ -215,36 +235,33 @@ namespace CMDevicesManager.Pages
             {
                 if (_interactiveService != null)
                 {
-                    // Start interactive rendering with timer
-                    _renderTimer = new System.Windows.Threading.DispatcherTimer
-                    {
-                        Interval = TimeSpan.FromMilliseconds(1000.0 / 30) // 30 FPS
-                    };
-                    _renderTimer.Tick += async (s, args) =>
-                    {
-                        try
-                        {
-                            await _interactiveService.RenderFrameAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            StatusLabel.Content = $"Render error: {ex.Message}";
-                        }
-                    };
-                    _renderTimer.Start();
+                    // Enable HID transfer and start auto-rendering with built-in render tick
+                    _interactiveService.EnableHidTransfer(true, useSuspendMedia: false);
+                    
+                    // Enable real-time display mode on HID devices
+                    await _interactiveService.EnableHidRealTimeDisplayAsync(true);
+                    
+                    // Start auto-rendering with built-in render tick
+                    _interactiveService.StartAutoRendering(_interactiveService.TargetFPS);
 
                     StartButton.IsEnabled = false;
                     StopButton.IsEnabled = true;
-                    StatusLabel.Content = "Interactive rendering started";
+                    StatusLabel.Content = "Interactive rendering started with built-in render tick and HID streaming";
                 }
-                else
+                else if (_backgroundService != null)
                 {
-                    // MessageBox.Show("Services not initialized. Please wait and try again.", "Warning", // MessageBoxButton.OK, // MessageBoxImage.Warning);
+                    // Fallback to background service
+                    _backgroundService.EnableHidTransfer(true, useSuspendMedia: false);
+                    await _backgroundService.StartAsync();
+                    
+                    StartButton.IsEnabled = false;
+                    StopButton.IsEnabled = true;
+                    StatusLabel.Content = "Background rendering started with HID streaming";
                 }
             }
             catch (Exception ex)
             {
-                // MessageBox.Show($"Error starting rendering: {ex.Message}", "Error", // MessageBoxButton.OK, // MessageBoxImage.Error);
+                StatusLabel.Content = $"Error starting rendering: {ex.Message}";
             }
         }
 
@@ -252,10 +269,12 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                if (_renderTimer != null)
+                if (_interactiveService != null)
                 {
-                    _renderTimer.Stop();
-                    _renderTimer = null;
+                    // Stop auto-rendering and disable HID transfer
+                    _interactiveService.StopAutoRendering();
+                    _interactiveService.EnableHidTransfer(false);
+                    await _interactiveService.EnableHidRealTimeDisplayAsync(false);
                 }
 
                 if (_backgroundService != null)
@@ -269,7 +288,41 @@ namespace CMDevicesManager.Pages
             }
             catch (Exception ex)
             {
-                // MessageBox.Show($"Error stopping rendering: {ex.Message}", "Error", // MessageBoxButton.OK, // MessageBoxImage.Error);
+                StatusLabel.Content = $"Error stopping rendering: {ex.Message}";
+            }
+        }
+
+        // HID-specific methods for demonstration
+        public async Task EnableHidRealTimeAsync()
+        {
+            if (_interactiveService != null)
+            {
+                _interactiveService.EnableHidTransfer(true, useSuspendMedia: false);
+                var success = await _interactiveService.EnableHidRealTimeDisplayAsync(true);
+                
+                if (success)
+                {
+                    StatusLabel.Content = "HID real-time mode enabled";
+                    _hidFramesSent = 0; // Reset counter
+                }
+            }
+        }
+
+        public async Task SendSuspendMediaAsync()
+        {
+            if (_interactiveService != null)
+            {
+                var success = await _interactiveService.SendCurrentFrameAsSuspendMediaAsync();
+                StatusLabel.Content = success ? "Current frame sent as suspend media" : "Failed to send suspend media";
+            }
+        }
+
+        public async Task SetSuspendModeAsync()
+        {
+            if (_interactiveService != null)
+            {
+                var success = await _interactiveService.SetSuspendModeAsync();
+                StatusLabel.Content = success ? "Devices switched to suspend mode" : "Failed to set suspend mode";
             }
         }
 
@@ -277,17 +330,28 @@ namespace CMDevicesManager.Pages
         {
             try
             {
+                var newFps = (int)e.NewValue;
+
+                if (_interactiveService != null)
+                {
+                    if (_interactiveService.IsAutoRenderingEnabled)
+                    {
+                        // Update auto-rendering FPS dynamically
+                        _interactiveService.SetAutoRenderingFPS(newFps);
+                    }
+                    else
+                    {
+                        _interactiveService.TargetFPS = newFps;
+                    }
+                }
+
                 if (_backgroundService != null)
                 {
-                    _backgroundService.TargetFPS = (int)e.NewValue;
+                    _backgroundService.TargetFPS = newFps;
                 }
 
-                if (_renderTimer != null)
-                {
-                    _renderTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / e.NewValue);
-                }
-
-                FpsLabel.Content = $"Target FPS: {(int)e.NewValue}";
+                if(FpsLabel !=null) 
+                    FpsLabel.Content = $"Target FPS: {newFps}";
             }
             catch (Exception ex)
             {
@@ -303,26 +367,29 @@ namespace CMDevicesManager.Pages
                 {
                     Filter = "PNG Files (*.png)|*.png|JPEG Files (*.jpg)|*.jpg",
                     DefaultExt = "png",
-                    FileName = $"interactive_render_{DateTime.Now:yyyyMMdd_HHmmss}.png"
+                    FileName = $"render_{DateTime.Now:yyyyMMdd_HHmmss}.png"
                 };
 
                 if (saveDialog.ShowDialog() == true)
                 {
+                    bool saved = false;
+                    
                     if (_interactiveService != null)
                     {
                         await _interactiveService.SaveRenderedImageAsync(saveDialog.FileName);
-                        StatusLabel.Content = $"Frame saved: {Path.GetFileName(saveDialog.FileName)}";
+                        saved = true;
                     }
-                    else
+                    else if (_backgroundService != null)
                     {
-                        // MessageBox.Show("No rendering service available to save frame.", "Warning", // MessageBoxButton.OK, // MessageBoxImage.Warning);
+                        saved = await _backgroundService.SaveCurrentFrameAsync(saveDialog.FileName);
                     }
+
+                    StatusLabel.Content = saved ? $"Frame saved: {Path.GetFileName(saveDialog.FileName)}" : "Failed to save frame";
                 }
             }
             catch (Exception ex)
             {
                 StatusLabel.Content = $"Save failed: {ex.Message}";
-                // MessageBox.Show($"Failed to save frame: {ex.Message}", "Error", // MessageBoxButton.OK, // MessageBoxImage.Error);
             }
         }
 
@@ -340,7 +407,7 @@ namespace CMDevicesManager.Pages
         {
             if (_interactiveService == null) return;
 
-            var text = TextContentBox.Text;
+            var text = TextContentBox?.Text ?? "Sample Text";
             var color = WinUIColor.FromArgb(255, 255, 255, 255); // White
 
             var textElement = new TextElement($"Text {DateTime.Now:HHmmss}")
@@ -349,12 +416,13 @@ namespace CMDevicesManager.Pages
                 FontSize = 24,
                 TextColor = color,
                 Position = new WinFoundation.Point(100, 100),
-                Size = new WinFoundation.Size(200, 50)
+                Size = new WinFoundation.Size(200, 50),
+                IsDraggable = true // Make it interactive
             };
 
             _interactiveService.AddElement(textElement);
             UpdateElementsList();
-            StatusLabel.Content = "Text element added";
+            StatusLabel.Content = "Interactive text element added";
         }
 
         private async void LoadImageButton_Click(object sender, RoutedEventArgs e)
@@ -378,12 +446,13 @@ namespace CMDevicesManager.Pages
                         ImagePath = imageKey,
                         Position = new WinFoundation.Point(200, 200),
                         Size = new WinFoundation.Size(100, 100),
-                        Scale = 1.0f
+                        Scale = 1.0f,
+                        IsDraggable = true // Make it interactive
                     };
 
                     _interactiveService.AddElement(imageElement);
                     UpdateElementsList();
-                    StatusLabel.Content = "Image element added";
+                    StatusLabel.Content = "Interactive image element added";
                 }
                 catch (Exception ex)
                 {
@@ -403,12 +472,13 @@ namespace CMDevicesManager.Pages
                 Size = new WinFoundation.Size(80, 80),
                 FillColor = WinUIColor.FromArgb(150, 100, 150, 255),
                 StrokeColor = WinUIColor.FromArgb(255, 255, 255, 255),
-                StrokeWidth = 2
+                StrokeWidth = 2,
+                IsDraggable = true // Make it interactive
             };
 
             _interactiveService.AddElement(shapeElement);
             UpdateElementsList();
-            StatusLabel.Content = "Circle element added";
+            StatusLabel.Content = "Interactive circle element added";
         }
 
         private void AddRectangleButton_Click(object sender, RoutedEventArgs e)
@@ -422,22 +492,23 @@ namespace CMDevicesManager.Pages
                 Size = new WinFoundation.Size(100, 60),
                 FillColor = WinUIColor.FromArgb(150, 255, 100, 100),
                 StrokeColor = WinUIColor.FromArgb(255, 255, 255, 255),
-                StrokeWidth = 2
+                StrokeWidth = 2,
+                IsDraggable = true // Make it interactive
             };
 
             _interactiveService.AddElement(shapeElement);
             UpdateElementsList();
-            StatusLabel.Content = "Rectangle element added";
+            StatusLabel.Content = "Interactive rectangle element added";
         }
 
         private void LiveDataCheckBox_Changed(object sender, RoutedEventArgs e)
         {
             if (_interactiveService != null)
             {
-                _interactiveService.ShowTime = ShowTimeCheckBox.IsChecked ?? false;
-                _interactiveService.ShowDate = ShowDateCheckBox.IsChecked ?? false;
-                _interactiveService.ShowSystemInfo = ShowSystemInfoCheckBox.IsChecked ?? false;
-                _interactiveService.ShowAnimation = ShowAnimationCheckBox.IsChecked ?? false;
+                _interactiveService.ShowTime = ShowTimeCheckBox?.IsChecked ?? false;
+                _interactiveService.ShowDate = ShowDateCheckBox?.IsChecked ?? false;
+                _interactiveService.ShowSystemInfo = ShowSystemInfoCheckBox?.IsChecked ?? false;
+                _interactiveService.ShowAnimation = ShowAnimationCheckBox?.IsChecked ?? false;
             }
         }
 
@@ -450,12 +521,14 @@ namespace CMDevicesManager.Pages
                 {
                     var element = elements[ElementsListBox.SelectedIndex];
                     _interactiveService.SelectElement(element);
-                    DeleteElementButton.IsEnabled = true;
+                    if (DeleteElementButton != null)
+                        DeleteElementButton.IsEnabled = true;
                 }
             }
             else
             {
-                DeleteElementButton.IsEnabled = false;
+                if (DeleteElementButton != null)
+                    DeleteElementButton.IsEnabled = false;
             }
         }
 
@@ -477,29 +550,33 @@ namespace CMDevicesManager.Pages
         // Helper methods
         private void UpdateElementsList()
         {
-            if (_interactiveService == null) return;
+            if (_interactiveService == null || ElementsListBox == null) return;
 
             var elements = _interactiveService.GetElements();
-            ElementsListBox.ItemsSource = elements.Select(e => $"{e.Name} ({e.Type})").ToList();
+            ElementsListBox.ItemsSource = elements.Select(e => $"{e.Name} ({e.Type}) {(e.IsDraggable ? "[Interactive]" : "")}").ToList();
         }
 
         private void UpdateLiveDataCheckboxes()
         {
             if (_interactiveService != null)
             {
-                ShowTimeCheckBox.IsChecked = _interactiveService.ShowTime;
-                ShowDateCheckBox.IsChecked = _interactiveService.ShowDate;
-                ShowSystemInfoCheckBox.IsChecked = _interactiveService.ShowSystemInfo;
-                ShowAnimationCheckBox.IsChecked = _interactiveService.ShowAnimation;
+                if (ShowTimeCheckBox != null)
+                    ShowTimeCheckBox.IsChecked = _interactiveService.ShowTime;
+                if (ShowDateCheckBox != null)
+                    ShowDateCheckBox.IsChecked = _interactiveService.ShowDate;
+                if (ShowSystemInfoCheckBox != null)
+                    ShowSystemInfoCheckBox.IsChecked = _interactiveService.ShowSystemInfo;
+                if (ShowAnimationCheckBox != null)
+                    ShowAnimationCheckBox.IsChecked = _interactiveService.ShowAnimation;
             }
         }
-
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
             try
             {
-                _renderTimer?.Stop();
+                // Stop auto-rendering and cleanup
+                _interactiveService?.StopAutoRendering();
                 _backgroundService?.Dispose();
                 _interactiveService?.Dispose();
             }
@@ -507,7 +584,6 @@ namespace CMDevicesManager.Pages
             {
                 Console.WriteLine($"Error during cleanup: {ex.Message}");
             }
-
         }
     }
 }

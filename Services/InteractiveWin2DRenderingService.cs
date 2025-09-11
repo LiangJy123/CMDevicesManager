@@ -14,6 +14,7 @@ using System.Numerics;
 using WinUIColor = Windows.UI.Color;
 using Point = Windows.Foundation.Point;
 using Size = Windows.Foundation.Size;
+using System.Windows.Threading;
 
 namespace CMDevicesManager.Services
 {
@@ -26,10 +27,27 @@ namespace CMDevicesManager.Services
         private readonly List<RenderElement> _elements = new();
         private readonly Dictionary<string, CanvasBitmap> _loadedImages = new();
 
+        // Built-in render tick support
+        private DispatcherTimer? _renderTimer;
+        private bool _isAutoRenderingEnabled = false;
+        private DateTime _lastRenderTime = DateTime.MinValue;
+
+        // HID device integration
+        private HidDeviceService? _hidDeviceService;
+        private byte _transferId = 1;
+        private bool _hidRealTimeModeEnabled = false;
+        private int _hidFramesSent = 0;
+
+        // Events
         public event Action<WriteableBitmap>? ImageRendered;
         public event Action<RenderElement>? ElementSelected;
         public event Action<RenderElement>? ElementMoved;
+        public event Action<byte[]>? RawImageDataReady;
+        public event Action<byte[]>? JpegDataSentToHid;
+        public event Action<string>? HidStatusChanged;
+        public event Action<Exception>? RenderingError;
 
+        // Properties
         public int Width { get; private set; } = 800;
         public int Height { get; private set; } = 600;
         public RenderElement? SelectedElement { get; private set; }
@@ -39,6 +57,19 @@ namespace CMDevicesManager.Services
         public bool ShowDate { get; set; } = true;
         public bool ShowSystemInfo { get; set; } = true;
         public bool ShowAnimation { get; set; } = true;
+
+        // Render tick properties
+        public int TargetFPS { get; set; } = 30;
+        public bool IsAutoRenderingEnabled => _isAutoRenderingEnabled;
+        public TimeSpan RenderInterval => _renderTimer?.Interval ?? TimeSpan.FromMilliseconds(1000.0 / TargetFPS);
+
+        // HID properties
+        public bool SendToHidDevices { get; set; } = false;
+        public bool UseSuspendMedia { get; set; } = false;
+        public int JpegQuality { get; set; } = 85;
+        public bool IsHidServiceConnected => _hidDeviceService?.IsInitialized == true;
+        public bool IsHidRealTimeModeEnabled => _hidRealTimeModeEnabled;
+        public int HidFramesSent => _hidFramesSent;
 
         public async Task InitializeAsync(int width = 800, int height = 600)
         {
@@ -64,12 +95,387 @@ namespace CMDevicesManager.Services
 
                 // Initialize default elements
                 InitializeDefaultElements();
+
+                // Initialize render timer
+                InitializeRenderTimer();
+
+                // Initialize HID service connection
+                await InitializeHidServiceAsync();
             }
             catch (Exception ex)
             {
                 throw new InvalidOperationException($"Failed to initialize InteractiveWin2DRenderingService: {ex.Message}", ex);
             }
         }
+
+        private void InitializeRenderTimer()
+        {
+            _renderTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(1000.0 / TargetFPS)
+            };
+            _renderTimer.Tick += OnRenderTick;
+        }
+
+        private async Task InitializeHidServiceAsync()
+        {
+            try
+            {
+                _hidDeviceService = ServiceLocator.HidDeviceService;
+
+                if (_hidDeviceService.IsInitialized)
+                {
+                    HidStatusChanged?.Invoke($"Connected to HID service - {_hidDeviceService.ConnectedDeviceCount} devices available");
+
+                    // Subscribe to HID service events
+                    _hidDeviceService.DeviceConnected += OnHidDeviceConnected;
+                    _hidDeviceService.DeviceDisconnected += OnHidDeviceDisconnected;
+                    _hidDeviceService.DeviceError += OnHidDeviceError;
+                    _hidDeviceService.RealTimeDisplayModeChanged += OnHidRealTimeDisplayModeChanged;
+                }
+                else
+                {
+                    HidStatusChanged?.Invoke("HID service not initialized");
+                }
+            }
+            catch (Exception ex)
+            {
+                HidStatusChanged?.Invoke($"Failed to connect to HID service: {ex.Message}");
+            }
+        }
+
+        private async void OnRenderTick(object? sender, EventArgs e)
+        {
+            try
+            {
+                _lastRenderTime = DateTime.Now;
+
+                // Update live elements
+                UpdateLiveElements();
+
+                // Render frame
+                var bitmap = await RenderFrameAsync();
+                
+                // Send to HID devices if enabled
+                if (SendToHidDevices && _hidDeviceService?.IsInitialized == true && _hidRealTimeModeEnabled)
+                {
+                    var rawData = GetRenderedImageBytes();
+                    if (rawData != null)
+                    {
+                        RawImageDataReady?.Invoke(rawData);
+                        await SendFrameToHidDevicesAsync(rawData);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(ex);
+            }
+        }
+
+        private void UpdateLiveElements()
+        {
+            lock (_lockObject)
+            {
+                foreach (var element in _elements.OfType<LiveElement>())
+                {
+                    // Live elements will automatically update their content when rendered
+                    // This is handled in the RenderLiveElement method
+                }
+            }
+        }
+
+        #region Auto Rendering Control
+
+        /// <summary>
+        /// Start automatic rendering with built-in render tick
+        /// </summary>
+        /// <param name="fps">Target frames per second (1-120)</param>
+        public void StartAutoRendering(int fps = 30)
+        {
+            if (_renderTimer == null)
+            {
+                InitializeRenderTimer();
+            }
+
+            TargetFPS = Math.Clamp(fps, 1, 120);
+            _renderTimer!.Interval = TimeSpan.FromMilliseconds(1000.0 / TargetFPS);
+
+            if (!_isAutoRenderingEnabled)
+            {
+                _renderTimer.Start();
+                _isAutoRenderingEnabled = true;
+                HidStatusChanged?.Invoke($"Auto rendering started at {TargetFPS} FPS");
+            }
+        }
+
+        /// <summary>
+        /// Stop automatic rendering
+        /// </summary>
+        public void StopAutoRendering()
+        {
+            if (_isAutoRenderingEnabled && _renderTimer != null)
+            {
+                _renderTimer.Stop();
+                _isAutoRenderingEnabled = false;
+                HidStatusChanged?.Invoke("Auto rendering stopped");
+            }
+        }
+
+        /// <summary>
+        /// Update the FPS for auto rendering
+        /// </summary>
+        /// <param name="fps">New target FPS</param>
+        public void SetAutoRenderingFPS(int fps)
+        {
+            TargetFPS = Math.Clamp(fps, 1, 120);
+
+            if (_renderTimer != null)
+            {
+                _renderTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / TargetFPS);
+                HidStatusChanged?.Invoke($"Auto rendering FPS updated to {TargetFPS}");
+            }
+        }
+
+        #endregion
+
+        #region HID Device Integration
+
+        /// <summary>
+        /// Enable HID transfer functionality
+        /// </summary>
+        /// <param name="enable">Whether to enable HID transfer</param>
+        /// <param name="useSuspendMedia">Whether to use suspend media mode</param>
+        public void EnableHidTransfer(bool enable, bool useSuspendMedia = false)
+        {
+            SendToHidDevices = enable;
+            UseSuspendMedia = useSuspendMedia;
+
+            if (enable)
+            {
+                HidStatusChanged?.Invoke($"HID transfer enabled ({(useSuspendMedia ? "suspend media" : "real-time")} mode)");
+            }
+            else
+            {
+                HidStatusChanged?.Invoke("HID transfer disabled");
+            }
+        }
+
+        /// <summary>
+        /// Enable real-time display mode on HID devices
+        /// </summary>
+        public async Task<bool> EnableHidRealTimeDisplayAsync(bool enable)
+        {
+            if (_hidDeviceService == null || !_hidDeviceService.IsInitialized)
+            {
+                HidStatusChanged?.Invoke("HID service not available");
+                return false;
+            }
+
+            try
+            {
+                var results = await _hidDeviceService.SetRealTimeDisplayAsync(enable);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    _hidRealTimeModeEnabled = enable;
+                    HidStatusChanged?.Invoke($"Real-time display {(enable ? "enabled" : "disabled")} on {successCount}/{results.Count} devices");
+                    return true;
+                }
+                else
+                {
+                    HidStatusChanged?.Invoke("Failed to set real-time display mode on any device");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                HidStatusChanged?.Invoke($"Error setting real-time display mode: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Send current frame to HID devices using suspend media
+        /// </summary>
+        public async Task<bool> SendCurrentFrameAsSuspendMediaAsync()
+        {
+            if (_hidDeviceService == null || !_hidDeviceService.IsInitialized)
+            {
+                HidStatusChanged?.Invoke("HID service not available");
+                return false;
+            }
+
+            try
+            {
+                var tempPath = Path.Combine(Path.GetTempPath(), $"interactive_frame_{_transferId}_{DateTime.Now:yyyyMMddHHmmss}.jpg");
+                await SaveRenderedImageAsync(tempPath);
+
+                var results = await _hidDeviceService.SendMultipleSuspendFilesAsync(new[] { tempPath }.ToList(), _transferId);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    _hidFramesSent++;
+                    HidStatusChanged?.Invoke($"Frame sent as suspend media to {successCount}/{results.Count} devices");
+
+                    // Increment transfer ID
+                    _transferId++;
+                    if (_transferId > 59) _transferId = 1;
+
+                    // Cleanup temp file
+                    try
+                    {
+                        File.Delete(tempPath);
+                    }
+                    catch { /* Ignore cleanup errors */ }
+
+                    return true;
+                }
+                else
+                {
+                    HidStatusChanged?.Invoke("Failed to send suspend media to any device");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                HidStatusChanged?.Invoke($"Error sending suspend media: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Set HID devices to suspend mode
+        /// </summary>
+        public async Task<bool> SetSuspendModeAsync()
+        {
+            if (_hidDeviceService == null || !_hidDeviceService.IsInitialized)
+            {
+                HidStatusChanged?.Invoke("HID service not available");
+                return false;
+            }
+
+            try
+            {
+                var results = await _hidDeviceService.SetSuspendModeAsync();
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    HidStatusChanged?.Invoke($"Suspend mode enabled on {successCount}/{results.Count} devices");
+                    return true;
+                }
+                else
+                {
+                    HidStatusChanged?.Invoke("Failed to enable suspend mode on any device");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                HidStatusChanged?.Invoke($"Error setting suspend mode: {ex.Message}");
+                return false;
+            }
+        }
+
+        private async Task SendFrameToHidDevicesAsync(byte[] rawImageData)
+        {
+            try
+            {
+                // Convert raw BGRA pixel data to JPEG
+                var jpegData = await ConvertToJpegAsync(rawImageData, Width, Height);
+                if (jpegData != null && jpegData.Length > 0)
+                {
+                    // Increment transfer ID (1-59 range as per HID service requirement)
+                    _transferId++;
+                    if (_transferId > 59) _transferId = 1;
+
+                    // Send JPEG data to HID devices using TransferDataAsync
+                    var results = await _hidDeviceService!.TransferDataAsync(jpegData, _transferId);
+
+                    // Log results
+                    var successCount = results.Values.Count(r => r);
+                    if (successCount > 0)
+                    {
+                        _hidFramesSent++;
+                        JpegDataSentToHid?.Invoke(jpegData);
+                        HidStatusChanged?.Invoke($"Frame #{_hidFramesSent} sent to {successCount}/{results.Count} devices (ID: {_transferId}, Size: {jpegData.Length:N0} bytes)");
+                    }
+                    else
+                    {
+                        HidStatusChanged?.Invoke("Failed to send frame to any HID devices");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                HidStatusChanged?.Invoke($"Error sending frame to HID devices: {ex.Message}");
+                RenderingError?.Invoke(ex);
+            }
+        }
+
+        private async Task<byte[]?> ConvertToJpegAsync(byte[] bgraData, int width, int height)
+        {
+            try
+            {
+                return await Task.Run(() =>
+                {
+                    // Convert BGRA to JPEG using WPF's BitmapEncoder
+                    var stride = width * 4; // 4 bytes per pixel (BGRA)
+                    var bitmap = BitmapSource.Create(width, height, 96, 96,
+                        PixelFormats.Bgra32, null, bgraData, stride);
+
+                    using (var stream = new MemoryStream())
+                    {
+                        var encoder = new JpegBitmapEncoder();
+                        encoder.QualityLevel = JpegQuality;
+                        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                        encoder.Save(stream);
+                        return stream.ToArray();
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                HidStatusChanged?.Invoke($"Error converting to JPEG: {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Reset HID frame counter
+        /// </summary>
+        public void ResetHidFrameCounter()
+        {
+            _hidFramesSent = 0;
+            HidStatusChanged?.Invoke("HID frame counter reset");
+        }
+
+        // HID Event Handlers
+        private void OnHidDeviceConnected(object? sender, DeviceEventArgs e)
+        {
+            HidStatusChanged?.Invoke($"HID Device connected: {e.Device.ProductString}");
+        }
+
+        private void OnHidDeviceDisconnected(object? sender, DeviceEventArgs e)
+        {
+            HidStatusChanged?.Invoke($"HID Device disconnected: {e.Device.ProductString}");
+        }
+
+        private void OnHidDeviceError(object? sender, DeviceErrorEventArgs e)
+        {
+            HidStatusChanged?.Invoke($"HID Device error: {e.Exception.Message}");
+        }
+
+        private void OnHidRealTimeDisplayModeChanged(object? sender, RealTimeDisplayEventArgs e)
+        {
+            _hidRealTimeModeEnabled = e.IsEnabled;
+            HidStatusChanged?.Invoke($"Real-time display mode {(e.IsEnabled ? "enabled" : "disabled")}");
+        }
+
+        #endregion
 
         private async Task LoadBackgroundImageAsync()
         {
@@ -479,6 +885,20 @@ namespace CMDevicesManager.Services
 
         public void Dispose()
         {
+            // Stop auto rendering
+            StopAutoRendering();
+            _renderTimer?.Stop();
+
+            // Unsubscribe from HID service events
+            if (_hidDeviceService != null)
+            {
+                _hidDeviceService.DeviceConnected -= OnHidDeviceConnected;
+                _hidDeviceService.DeviceDisconnected -= OnHidDeviceDisconnected;
+                _hidDeviceService.DeviceError -= OnHidDeviceError;
+                _hidDeviceService.RealTimeDisplayModeChanged -= OnHidRealTimeDisplayModeChanged;
+            }
+
+            // Dispose resources
             foreach (var bitmap in _loadedImages.Values)
             {
                 bitmap?.Dispose();
@@ -488,6 +908,7 @@ namespace CMDevicesManager.Services
             _backgroundImage?.Dispose();
             _renderTarget?.Dispose();
             _canvasDevice?.Dispose();
+            _renderTimer = null;
         }
     }
 }

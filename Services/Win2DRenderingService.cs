@@ -19,10 +19,10 @@ namespace CMDevicesManager.Services
         
         public event Action<WriteableBitmap>? ImageRendered;
         
-        public int Width { get; private set; } = 800;
-        public int Height { get; private set; } = 600;
+        public int Width { get; private set; } = 480;
+        public int Height { get; private set; } = 480;
         
-        public async Task InitializeAsync(int width = 800, int height = 600)
+        public async Task InitializeAsync(int width = 480, int height = 480)
         {
             Width = width;
             Height = height;
