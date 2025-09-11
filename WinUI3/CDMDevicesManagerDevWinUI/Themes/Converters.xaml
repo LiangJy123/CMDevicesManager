@@ -2,6 +2,12 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:local="using:CDMDevicesManagerDevWinUI.Converters">
 
+    <!-- Boolean to Visibility Converter -->
+    <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+
+    <!-- File Path to Image Source Converter -->
+    <local:FilePathToImageSourceConverter x:Key="FilePathToImageSourceConverter" />
+
     <!-- Boolean to Status Color Converter -->
     <local:BoolToColorConverter x:Key="BoolToStatusColorConverter" 
                                 TrueColor="LimeGreen" 

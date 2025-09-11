@@ -430,7 +430,10 @@ namespace CMDevicesManager.Services
                 
                 // Calculate local path and other properties
                 var fileExtension = Path.GetExtension(originalPath);
-                var localFileName = $"suspend_{slotIndex}{fileExtension}";
+                
+                // Enforce the naming convention: suspend_{slotIndex}{fileExtension}
+                var standardFileName = $"suspend_{slotIndex}{fileExtension}";
+                var localFileName = standardFileName;
                 var localPath = Path.Combine(_mediasDirectoryPath, deviceSerial, localFileName);
                 
                 // Ensure device-specific medias directory exists
@@ -441,7 +444,7 @@ namespace CMDevicesManager.Services
                 var fileInfo = new FileInfo(originalPath);
                 var md5Hash = CalculateMD5Hash(originalPath);
                 
-                var mediaFile = new DeviceMediaFile(fileName, originalPath, localPath, fileInfo.Length, MediaType.Suspend, slotIndex)
+                var mediaFile = new DeviceMediaFile(standardFileName, originalPath, localPath, fileInfo.Length, MediaType.Suspend, slotIndex)
                 {
                     MD5Hash = md5Hash,
                     TransferId = transferId
@@ -831,6 +834,41 @@ namespace CMDevicesManager.Services
             {
                 Logger.Error($"Failed to import database: {ex.Message}", ex);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Updates device suspend media status from device status
+        /// </summary>
+        public void UpdateSuspendMediaStatus(string deviceSerial, int[] suspendMediaActive)
+        {
+            lock (_lockObject)
+            {
+                var device = GetDevice(deviceSerial);
+                if (device == null) return;
+
+                // Update the active status of suspend media files based on device status
+                for (int i = 0; i < suspendMediaActive.Length && i < device.SuspendMediaFiles.Count; i++)
+                {
+                    var mediaFile = device.SuspendMediaFiles.FirstOrDefault(f => f.SlotIndex == i);
+                    if (mediaFile != null)
+                    {
+                        bool shouldBeActive = suspendMediaActive[i] != 0;
+                        if (mediaFile.IsActive != shouldBeActive)
+                        {
+                            mediaFile.IsActive = shouldBeActive;
+                            mediaFile.Touch();
+                            _hasUnsavedChanges = true;
+                        }
+                    }
+                }
+
+                device.Touch();
+                
+                if (_hasUnsavedChanges)
+                {
+                    MediaFileChanged?.Invoke(this, new MediaFileChangedEventArgs(device, null, "SuspendMediaStatusUpdated"));
+                }
             }
         }
 

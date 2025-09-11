@@ -4,15 +4,97 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.UI.Xaml.Shapes;
+using Microsoft.UI.Xaml.Media.Imaging;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using HID.DisplayController;
 using System.Diagnostics;
 using CMDevicesManager.Services;
+using CMDevicesManager.Models;
+using Windows.Storage.Pickers;
+using Windows.Storage;
 
 namespace CDMDevicesManagerDevWinUI.Views
 {
+    /// <summary>
+    /// Represents a suspend media slot in the UI
+    /// </summary>
+    public class SuspendMediaSlotViewModel : INotifyPropertyChanged
+    {
+        private bool _hasMedia;
+        private string _fileName = string.Empty;
+        private string _localPath = string.Empty;
+        private bool _isImage;
+        private bool _isVideo;
+
+        public int SlotIndex { get; set; }
+        public int SlotNumber => SlotIndex + 1;
+
+        public bool HasMedia
+        {
+            get => _hasMedia;
+            set
+            {
+                _hasMedia = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string FileName
+        {
+            get => _fileName;
+            set
+            {
+                _fileName = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string LocalPath
+        {
+            get => _localPath;
+            set
+            {
+                _localPath = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsImage
+        {
+            get => _isImage;
+            set
+            {
+                _isImage = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsVideo
+        {
+            get => _isVideo;
+            set
+            {
+                _isVideo = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public DeviceMediaFile? MediaFile { get; set; }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
     /// <summary>
     /// Device Settings page for managing individual device configurations
     /// </summary>
@@ -20,9 +102,13 @@ namespace CDMDevicesManagerDevWinUI.Views
     {
         private DeviceInfoViewModel? _deviceViewModel;
         private HidDeviceService? _hidService;
-        private bool _isOfflineModeChanging = false;
+        private OfflineMediaDataService? _offlineMediaService;
+        private bool _isSleepModeChanging = false;
         private bool _isBrightnessChanging = false;
         private bool _isRotationChanging = false;
+        private bool _isOfflineModeChanging = false;
+        private int _maxSuspendMediaCount = 5; // Default value
+        private ObservableCollection<SuspendMediaSlotViewModel> _mediaSlots = new();
 
         public DeviceInfoViewModel? DeviceViewModel => _deviceViewModel;
 
@@ -31,6 +117,9 @@ namespace CDMDevicesManagerDevWinUI.Views
             this.InitializeComponent();
             // Initialize status display to default state
             ClearStatusDisplay();
+            
+            // Initialize media slots collection
+            InitializeMediaSlots();
         }
 
         // Constructor that accepts DeviceInfoViewModel for direct navigation
@@ -41,8 +130,9 @@ namespace CDMDevicesManagerDevWinUI.Views
             this.Loaded += (s, e) => 
             {
                 UpdateDeviceInfoDisplay();
-                InitializeHidService();
+                InitializeServices();
                 _ = LoadDeviceInformationAsync();
+                _ = LoadOfflineModeSettingsAsync();
             };
         }
 
@@ -54,15 +144,199 @@ namespace CDMDevicesManagerDevWinUI.Views
             {
                 _deviceViewModel = deviceViewModel;
                 UpdateDeviceInfoDisplay();
-                InitializeHidService();
+                InitializeServices();
                 _ = LoadDeviceInformationAsync();
+                _ = LoadOfflineModeSettingsAsync();
             }
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
         {
             base.OnNavigatedFrom(e);
-            CleanupHidService();
+            CleanupServices();
+        }
+
+        private void InitializeMediaSlots()
+        {
+            _mediaSlots.Clear();
+            for (int i = 0; i < _maxSuspendMediaCount; i++)
+            {
+                _mediaSlots.Add(new SuspendMediaSlotViewModel
+                {
+                    SlotIndex = i,
+                    HasMedia = false
+                });
+            }
+            
+            // Set the ItemsSource for the ItemsRepeater
+            SuspendMediaSlotsRepeater.ItemsSource = _mediaSlots;
+        }
+
+        private void UpdateMediaSlots()
+        {
+            try
+            {
+                if (_offlineMediaService == null || _deviceViewModel?.SerialNumber == null)
+                {
+                    // Clear all slots
+                    foreach (var slot in _mediaSlots)
+                    {
+                        slot.HasMedia = false;
+                        slot.MediaFile = null;
+                    }
+                    return;
+                }
+
+                var suspendMediaFiles = _offlineMediaService.GetSuspendMediaFiles(_deviceViewModel.SerialNumber);
+                
+                // Update each slot
+                for (int i = 0; i < _mediaSlots.Count; i++)
+                {
+                    var slot = _mediaSlots[i];
+                    var mediaFile = suspendMediaFiles.FirstOrDefault(f => f.SlotIndex == i && f.IsActive);
+                    
+                    if (mediaFile != null)
+                    {
+                        slot.HasMedia = true;
+                        slot.FileName = System.IO.Path.GetFileNameWithoutExtension(mediaFile.FileName);
+                        slot.LocalPath = mediaFile.LocalPath;
+                        slot.IsImage = mediaFile.IsImageFile;
+                        slot.IsVideo = mediaFile.IsVideoFile;
+                        slot.MediaFile = mediaFile;
+                        
+                        // Load image if it's an image file
+                        if (mediaFile.IsImageFile && File.Exists(mediaFile.LocalPath))
+                        {
+                            LoadImageForSlot(slot, mediaFile.LocalPath);
+                        }
+                    }
+                    else
+                    {
+                        slot.HasMedia = false;
+                        slot.FileName = string.Empty;
+                        slot.LocalPath = string.Empty;
+                        slot.IsImage = false;
+                        slot.IsVideo = false;
+                        slot.MediaFile = null;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating media slots: {ex.Message}");
+            }
+        }
+
+        private void LoadImageForSlot(SuspendMediaSlotViewModel slot, string imagePath)
+        {
+            // This will be handled by the Image control's Source binding in the template
+            // We can add custom logic here if needed
+        }
+
+        private async void AddMediaToSlotButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is int slotIndex)
+            {
+                await AddMediaToSpecificSlotAsync(slotIndex);
+            }
+        }
+
+        private async void RemoveMediaButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is int slotIndex)
+            {
+                await RemoveMediaFromSlotAsync(slotIndex);
+            }
+        }
+
+        private async Task AddMediaToSpecificSlotAsync(int slotIndex)
+        {
+            try
+            {
+                var picker = new FileOpenPicker();
+                picker.ViewMode = PickerViewMode.Thumbnail;
+                picker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+                picker.FileTypeFilter.Add(".jpg");
+                picker.FileTypeFilter.Add(".jpeg");
+                picker.FileTypeFilter.Add(".mp4");
+
+                // For WinUI 3, we need to set the window handle
+                var window = App.MainWindow;
+                var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hWnd);
+
+                var file = await picker.PickSingleFileAsync();
+                if (file != null)
+                {
+                    await AddMediaFileToSlotAsync(file, slotIndex);
+                    UpdateMediaSlots();
+                    _ = ShowInfoMessageAsync($"Added media file to slot {slotIndex + 1}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error adding media to slot {slotIndex}: {ex.Message}");
+                _ = ShowErrorMessageAsync($"Failed to add media to slot {slotIndex + 1}: {ex.Message}");
+            }
+        }
+
+        private async Task RemoveMediaFromSlotAsync(int slotIndex)
+        {
+            try
+            {
+                if (_offlineMediaService == null || _deviceViewModel?.SerialNumber == null)
+                {
+                    return;
+                }
+
+                var result = await ShowConfirmationDialogAsync("Remove Media", 
+                    $"Are you sure you want to remove the media file from slot {slotIndex + 1}?");
+                
+                if (result)
+                {
+                    _offlineMediaService.RemoveSuspendMediaFile(_deviceViewModel.SerialNumber, slotIndex);
+                    UpdateMediaSlots();
+                    _ = ShowInfoMessageAsync($"Removed media file from slot {slotIndex + 1}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error removing media from slot {slotIndex}: {ex.Message}");
+                _ = ShowErrorMessageAsync($"Failed to remove media from slot {slotIndex + 1}: {ex.Message}");
+            }
+        }
+
+        private async Task AddMediaFileToSlotAsync(StorageFile file, int slotIndex)
+        {
+            try
+            {
+                if (_offlineMediaService == null || _deviceViewModel?.SerialNumber == null)
+                {
+                    throw new InvalidOperationException("Offline media service or device serial not available");
+                }
+
+                // Create the proper filename with the required naming convention
+                var fileExtension = System.IO.Path.GetExtension(file.Name);
+                var targetFileName = $"suspend_{slotIndex}{fileExtension}";
+                
+                // Add the media file to offline service with the specific slot
+                _offlineMediaService.AddSuspendMediaFile(
+                    _deviceViewModel.SerialNumber,
+                    targetFileName, // Use the standardized filename
+                    file.Path,
+                    slotIndex
+                );
+
+                // Transfer file to device using suspend media functionality use hid service
+
+
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error adding media file to slot {slotIndex}: {ex.Message}");
+                throw;
+            }
         }
 
         private void UpdateDeviceInfoDisplay()
@@ -75,7 +349,7 @@ namespace CDMDevicesManagerDevWinUI.Views
             }
         }
 
-        private void InitializeHidService()
+        private void InitializeServices()
         {
             try
             {
@@ -95,25 +369,116 @@ namespace CDMDevicesManagerDevWinUI.Views
                     Debug.WriteLine("HidDeviceService is not initialized");
                     _ = ShowErrorMessageAsync("Device service is not available. Please restart the application.");
                 }
+
+                if (ServiceLocator.IsOfflineMediaServiceInitialized)
+                {
+                    _offlineMediaService = ServiceLocator.OfflineMediaDataService;
+                    Debug.WriteLine("Initialized OfflineMediaDataService");
+                }
+                else
+                {
+                    Debug.WriteLine("OfflineMediaDataService is not initialized");
+                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to initialize HidDeviceService: {ex.Message}");
-                _ = ShowErrorMessageAsync($"Failed to connect to device service: {ex.Message}");
+                Debug.WriteLine($"Failed to initialize services: {ex.Message}");
+                _ = ShowErrorMessageAsync($"Failed to connect to device services: {ex.Message}");
             }
         }
 
-        private void CleanupHidService()
+        private void CleanupServices()
         {
             try
             {
                 // Clear device path filter when leaving the page
                 _hidService?.ClearDevicePathFilter();
                 _hidService = null;
+                _offlineMediaService = null;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error during cleanup: {ex.Message}");
+            }
+        }
+
+        private async Task LoadOfflineModeSettingsAsync()
+        {
+            try
+            {
+                if (_offlineMediaService != null && _deviceViewModel?.SerialNumber != null)
+                {
+                    var deviceSettings = _offlineMediaService.GetDeviceSettings(_deviceViewModel.SerialNumber);
+                    
+                    _isOfflineModeChanging = true;
+                    OfflineModeToggle.IsOn = deviceSettings.SuspendModeEnabled;
+                    _isOfflineModeChanging = false;
+
+                    // If offline mode is enabled, show the suspend media
+                    if (deviceSettings.SuspendModeEnabled)
+                    {
+                        await ShowSuspendMediaSlotsAsync();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load offline mode settings: {ex.Message}");
+            }
+        }
+
+        private async Task ShowSuspendMediaSlotsAsync()
+        {
+            try
+            {
+                // Get current device status to determine max suspend media count
+                if (_hidService != null && _deviceViewModel?.DevicePath != null)
+                {
+                    var statusResults = await _hidService.GetDeviceStatusAsync();
+                    
+                    if (statusResults.TryGetValue(_deviceViewModel.DevicePath, out var deviceStatus) && deviceStatus.HasValue)
+                    {
+                        var status = deviceStatus.Value;
+                        _maxSuspendMediaCount = Math.Max(1, status.MaxSuspendMediaCount);
+                        
+                        // Update suspend media status in offline service
+                        if (_offlineMediaService != null)
+                        {
+                            _offlineMediaService.UpdateSuspendMediaStatus(_deviceViewModel.SerialNumber!, status.SuspendMediaActive);
+                        }
+                    }
+                }
+
+                // Recreate media slots with the correct count
+                InitializeMediaSlots();
+                UpdateMediaSlots();
+                
+                // Show the suspend media card
+                var suspendMediaCard = this.FindName("SuspendMediaCard") as CommunityToolkit.WinUI.Controls.SettingsCard;
+                if (suspendMediaCard != null)
+                {
+                    suspendMediaCard.Visibility = Visibility.Visible;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error showing suspend media slots: {ex.Message}");
+            }
+        }
+
+        private void HideSuspendMediaSlots()
+        {
+            try
+            {
+                var suspendMediaCard = this.FindName("SuspendMediaCard") as CommunityToolkit.WinUI.Controls.SettingsCard;
+                if (suspendMediaCard != null)
+                {
+                    suspendMediaCard.Visibility = Visibility.Collapsed;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error hiding suspend media slots: {ex.Message}");
             }
         }
 
@@ -535,74 +900,52 @@ namespace CDMDevicesManagerDevWinUI.Views
             await dialog.ShowAsync();
         }
 
-        private async void CheckUpdateButton_Checked(object sender, RoutedEventArgs e)
+        private async void SleepModeToggle_Toggled(object sender, RoutedEventArgs e)
         {
-            var pb = sender as ProgressButton;
-            if (pb.IsChecked.Value && !pb.IsIndeterminate)
-            {
-                pb.Progress = 0;
-                while (true)
-                {
-                    pb.Progress += 1;
-                    await Task.Delay(50);
-                    if (pb.Progress == 100)
-                    {
-                        pb.IsChecked = false;
-                        break;
-                    }
-                }
-            }
-        }
+            if (_isSleepModeChanging || _hidService == null) return;
 
-        private async void OfflineModeToggle_Toggled(object sender, RoutedEventArgs e)
-        {
-            if (_isOfflineModeChanging || _hidService == null) return;
-
-            _isOfflineModeChanging = true;
+            _isSleepModeChanging = true;
             try
             {
-                bool isOffline = OfflineModeToggle.IsOn;
-                
-                // Offline mode = Suspend mode (false for real-time display)
-                // Online mode = Real-time mode (true for real-time display)
-                bool enableRealTimeDisplay = !isOffline;
-                
-                var results = await _hidService.SetRealTimeDisplayAsync(enableRealTimeDisplay);
-                
+                bool isSleepMode = SleepModeToggle.IsOn;
+                bool enableRealTimeDisplay = !isSleepMode;
+
+                var results = await _hidService.SetDisplayInSleepAsync(enableRealTimeDisplay);
+
                 // Check if the operation was successful for our device
                 bool success = false;
                 if (_deviceViewModel?.DevicePath != null && results.TryGetValue(_deviceViewModel.DevicePath, out success) && success)
                 {
                     Debug.WriteLine($"Real-time display {(enableRealTimeDisplay ? "enabled" : "disabled")} successfully");
-                    
-                    string message = isOffline ? 
-                        "Device switched to suspend mode. Real-time display is disabled." :
-                        "Device switched to real-time mode. Live display is enabled.";
-                        
+
+                    string message = isSleepMode ?
+                        "Device switched to sleep mode. LCD will on when system in sleeps." :
+                        "Device exit sleep mode. LCD will off when system in sleeps.";
+
                     _ = ShowInfoMessageAsync(message);
                 }
                 else
                 {
-                    Debug.WriteLine($"Failed to set real-time display mode");
-                    
+                    Debug.WriteLine($"Failed to set sleep mode");
+
                     // Revert toggle state on failure
-                    OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
-                    
-                    _ = ShowErrorMessageAsync("Failed to change display mode.");
+                    SleepModeToggle.IsOn = !SleepModeToggle.IsOn;
+
+                    _ = ShowErrorMessageAsync("Failed to change sleep mode.");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error changing real-time display mode: {ex.Message}");
-                
+                Debug.WriteLine($"Error changing sleep mode: {ex.Message}");
+
                 // Revert toggle state on exception
-                OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
-                
-                _ = ShowErrorMessageAsync($"Failed to change display mode: {ex.Message}");
+                SleepModeToggle.IsOn = !SleepModeToggle.IsOn;
+
+                _ = ShowErrorMessageAsync($"Failed to change sleep mode: {ex.Message}");
             }
             finally
             {
-                _isOfflineModeChanging = false;
+                _isSleepModeChanging = false;
             }
         }
 
@@ -751,5 +1094,143 @@ namespace CDMDevicesManagerDevWinUI.Views
                 FactoryResetButton.Content = "Factory Reset";
             }
         }
+
+        #region Offline Mode Implementation
+
+        private async void OfflineModeToggle_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (_isOfflineModeChanging) return;
+
+            _isOfflineModeChanging = true;
+            try
+            {
+                bool isOfflineMode = OfflineModeToggle.IsOn;
+
+                if (isOfflineMode)
+                {
+                    // Enable offline mode and show suspend media slots
+                    await ShowSuspendMediaSlotsAsync();
+                }
+                else
+                {
+                    // Disable offline mode and hide suspend media slots
+                    HideSuspendMediaSlots();
+                }
+
+                // Update device setting using OfflineMediaDataService
+                if (_offlineMediaService != null && _deviceViewModel?.SerialNumber != null)
+                {
+                    _offlineMediaService.UpdateDeviceSetting(_deviceViewModel.SerialNumber, "suspendModeEnabled", isOfflineMode);
+                }
+
+                string message = isOfflineMode ?
+                    "Offline mode enabled. Device will display saved suspend media when application is closed." :
+                    "Offline mode disabled. Device will show default content when application is closed.";
+
+                _ = ShowInfoMessageAsync(message);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error changing offline mode: {ex.Message}");
+
+                // Revert toggle state on exception
+                OfflineModeToggle.IsOn = !OfflineModeToggle.IsOn;
+
+                _ = ShowErrorMessageAsync($"Failed to change offline mode: {ex.Message}");
+            }
+            finally
+            {
+                _isOfflineModeChanging = false;
+            }
+        }
+
+        private async void AddMediaButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var picker = new FileOpenPicker();
+                picker.ViewMode = PickerViewMode.Thumbnail;
+                picker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+                picker.FileTypeFilter.Add(".jpg");
+                picker.FileTypeFilter.Add(".jpeg");
+                picker.FileTypeFilter.Add(".png");
+                picker.FileTypeFilter.Add(".bmp");
+                picker.FileTypeFilter.Add(".mp4");
+
+                // For WinUI 3, we need to set the window handle
+                var window = App.MainWindow;
+                var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hWnd);
+
+                var files = await picker.PickMultipleFilesAsync();
+                if (files != null && files.Count > 0)
+                {
+                    await AddMultipleMediaFilesToSlotsAsync(files);
+                    UpdateMediaSlots();
+                    _ = ShowInfoMessageAsync($"Added {files.Count} media file(s) to available slots.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error adding media files: {ex.Message}");
+                _ = ShowErrorMessageAsync($"Failed to add media files: {ex.Message}");
+            }
+        }
+
+        private async Task AddMultipleMediaFilesToSlotsAsync(IReadOnlyList<StorageFile> files)
+        {
+            try
+            {
+                if (_offlineMediaService == null || _deviceViewModel?.SerialNumber == null)
+                {
+                    throw new InvalidOperationException("Offline media service or device serial not available");
+                }
+
+                // Get available slots (empty slots)
+                var availableSlots = new List<int>();
+                for (int i = 0; i < _mediaSlots.Count; i++)
+                {
+                    if (!_mediaSlots[i].HasMedia)
+                    {
+                        availableSlots.Add(i);
+                    }
+                }
+
+                int filesAdded = 0;
+                for (int i = 0; i < files.Count && i < availableSlots.Count; i++)
+                {
+                    var file = files[i];
+                    var slotIndex = availableSlots[i];
+                    
+                    await AddMediaFileToSlotAsync(file, slotIndex);
+                    filesAdded++;
+                }
+
+                if (filesAdded < files.Count)
+                {
+                    _ = ShowInfoMessageAsync($"Added {filesAdded} files. {files.Count - filesAdded} files were skipped due to insufficient available slots.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error adding multiple media files to slots: {ex.Message}");
+                throw;
+            }
+        }
+
+        private string FormatFileSize(long bytes)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB" };
+            double len = bytes;
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+            return $"{len:0.##} {sizes[order]}";
+        }
+
+        #endregion
     }
 }
