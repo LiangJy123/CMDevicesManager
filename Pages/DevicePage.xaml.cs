@@ -112,6 +112,14 @@ namespace CMDevicesManager.Pages
             {
                 if (sender is Button btn && btn.DataContext is DeviceViewModel deviceViewModel)
                 {
+<<<<<<< HEAD
+                    // For now, navigate to a general settings page or device-specific settings
+                    // You can modify this to navigate to a device-specific settings page if needed
+                    NavigationService?.Navigate(new SettingsPage());
+                    
+                    // Alternative: Create a device-specific settings page
+                    // NavigationService?.Navigate(new DeviceSettingsPage(deviceViewModel.DeviceInfo));
+=======
                     // Create device settings page
                     var deviceSettingsPage = new DeviceSettings(deviceViewModel.DeviceInfo);
                     
@@ -122,11 +130,16 @@ namespace CMDevicesManager.Pages
                     };
                     
                     popupWindow.ShowDialog(); // Modal popup
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                 }
             }
             catch (Exception ex)
             {
+<<<<<<< HEAD
+                Debug.WriteLine($"Navigation to SettingsPage failed: {ex}");
+=======
                 Debug.WriteLine($"Failed to open device settings popup: {ex}");
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                 ShowStatusMessage("Failed to open device settings.", true);
             }
         }

@@ -8,8 +8,11 @@ namespace CMDevicesManager.Services
     public static class ServiceLocator
     {
         private static HidDeviceService? _hidDeviceService;
+<<<<<<< HEAD
+=======
         private static OfflineMediaDataService? _offlineMediaDataService;
         private static SystemSleepMonitorService? _systemSleepMonitorService;
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         /// <summary>
         /// Gets the HID Device Service instance
@@ -27,6 +30,8 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+<<<<<<< HEAD
+=======
         /// Gets the Offline Media Data Service instance
         /// </summary>
         public static OfflineMediaDataService OfflineMediaDataService
@@ -57,6 +62,7 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// Initialize the service locator with the HID Device Service
         /// </summary>
         internal static void Initialize(HidDeviceService hidDeviceService)
@@ -65,6 +71,8 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+<<<<<<< HEAD
+=======
         /// Initialize the service locator with the Offline Media Data Service
         /// </summary>
         internal static void InitializeOfflineMediaService(OfflineMediaDataService offlineMediaDataService)
@@ -111,10 +119,15 @@ namespace CMDevicesManager.Services
         public static bool IsSystemSleepMonitorServiceInitialized => _systemSleepMonitorService != null;
 
         /// <summary>
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// Cleanup all services
         /// </summary>
         internal static void Cleanup()
         {
+<<<<<<< HEAD
+            _hidDeviceService?.Dispose();
+            _hidDeviceService = null;
+=======
             _systemSleepMonitorService?.Dispose();
             _systemSleepMonitorService = null;
 
@@ -123,6 +136,7 @@ namespace CMDevicesManager.Services
 
             _offlineMediaDataService?.Dispose();
             _offlineMediaDataService = null;
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         }
     }
 }

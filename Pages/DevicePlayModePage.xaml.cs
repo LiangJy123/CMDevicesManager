@@ -1,7 +1,11 @@
+<<<<<<< HEAD
+﻿using CMDevicesManager.Utilities;
+=======
 ﻿// NEW: bring in config models + enum alias
 using CMDevicesManager.Pages; // contains CanvasConfiguration / ElementConfiguration
 using CMDevicesManager.Services;
 using CMDevicesManager.Utilities;
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 using HID.DisplayController;
 using HidApi;
 using Microsoft.Win32;
@@ -11,8 +15,11 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+<<<<<<< HEAD
+=======
 using System.Text.Json;
 using System.Text.Json.Serialization;
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,6 +30,12 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
+<<<<<<< HEAD
+using Button = System.Windows.Controls.Button;
+using Color = System.Windows.Media.Color;
+using ColorConverter = System.Windows.Media.ColorConverter;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+=======
 using System.Windows.Shapes;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
@@ -36,12 +49,15 @@ using Path = System.IO.Path;
 using Point = System.Windows.Point;
 using Rectangle = System.Windows.Shapes.Rectangle;
 using Size = System.Windows.Size;
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 using Timer = System.Timers.Timer;
 
 namespace CMDevicesManager.Pages
 {
     public partial class DevicePlayModePage : Page
     {
+<<<<<<< HEAD
+=======
         private readonly string _globalSequencePath;
         private readonly object _globalSequenceLock = new();
         private sealed class GlobalConfigSequence
@@ -116,6 +132,7 @@ namespace CMDevicesManager.Pages
         }
 
         private readonly List<UsageVisualItem> _usageVisualItems = new(); // 若已存在旧列表，替换为此版本
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         // 在类字段区域新增
         private enum PlayMode
         {
@@ -125,6 +142,9 @@ namespace CMDevicesManager.Pages
         private PlayMode _currentPlayMode = PlayMode.RealtimeConfig;
         private string? _selectedVideoPath;
         private bool _isVideoStreaming;
+<<<<<<< HEAD
+
+=======
         private readonly System.Windows.Threading.DispatcherTimer _autoMoveTimer = new()
         {
             Interval = TimeSpan.FromMilliseconds(50)
@@ -133,14 +153,20 @@ namespace CMDevicesManager.Pages
         private DateTime _lastMoveTick = DateTime.Now;
         private double _moveSpeed = 100;          // 来自配置的 MoveSpeed
         private int _currentCanvasSize = 512;     // 来自配置的 CanvasSize
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         // Config 序列模型
         public class PlayConfigItem : INotifyPropertyChanged
         {
             private int _durationSeconds;
+<<<<<<< HEAD
+            public string DisplayName { get; set; } = "";
+            public string FilePath { get; set; } = "";
+=======
             private bool _isDurationEditable;
             public string DisplayName { get; set; } = "";
             public string FilePath { get; set; } = "";
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             public int DurationSeconds
             {
                 get => _durationSeconds;
@@ -153,6 +179,8 @@ namespace CMDevicesManager.Pages
                     }
                 }
             }
+<<<<<<< HEAD
+=======
 
             public bool IsDurationEditable
             {
@@ -167,6 +195,7 @@ namespace CMDevicesManager.Pages
                 }
             }
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             public event PropertyChangedEventHandler? PropertyChanged;
         }
 
@@ -193,6 +222,8 @@ namespace CMDevicesManager.Pages
         private int _currentBrightness = 80;
         private bool _isBrightnessSliderUpdating;
 
+<<<<<<< HEAD
+=======
         // NEW: metrics + timer for live elements
         private readonly ISystemMetricsService _metrics = new RealSystemMetricsService();
         private readonly System.Windows.Threading.DispatcherTimer _liveUpdateTimer;
@@ -201,6 +232,7 @@ namespace CMDevicesManager.Pages
         // Base folder (same logic as DeviceConfigPage)
         private readonly string _outputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager");
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         public DevicePlayModePage()
         {
             InitializeComponent();
@@ -208,6 +240,9 @@ namespace CMDevicesManager.Pages
             InitConfigSequence();
             _currentPlayMode = PlayMode.RealtimeConfig;
             UpdatePlayModeUI();
+<<<<<<< HEAD
+        }
+=======
 
             // NEW: live timer
             _liveUpdateTimer = new System.Windows.Threading.DispatcherTimer
@@ -385,6 +420,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         private void UpdatePlayModeUI()
         {
             bool isRealtime = _currentPlayMode == PlayMode.RealtimeConfig;
@@ -392,14 +428,35 @@ namespace CMDevicesManager.Pages
             ConfigsContainer.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
             VideoContainer.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
 
+<<<<<<< HEAD
+=======
             // 原来的 ConfigActionButtons / VideoActionButtons 如果只包含 Start/Stop，可在 XAML 中移除或设置 Visibility=Collapsed
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             ConfigActionButtons.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
             VideoActionButtons.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
 
             PlayContentTitleText.Text = isRealtime ? "Play Content" : "Video Playback";
             PlayContentHintText.Text = isRealtime
+<<<<<<< HEAD
+                ? "Single config → continuous. Multiple configs → loop with per-item duration."
+                : "Select an MP4 file and start playback (loop until stopped).";
+
+            // 还原按钮状态
+            if (isRealtime)
+            {
+                StartSequenceButton.IsEnabled = !_isConfigSequenceRunning && ConfigSequence.Count > 0;
+                StopSequenceButton.IsEnabled = _isConfigSequenceRunning;
+            }
+            else
+            {
+                StartVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
+                StopVideoButton.IsEnabled = _isVideoStreaming;
+                ClearVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
+            }
+=======
                 ? "Add configs to auto play (loop). Remove all to stop automatically."
                 : "Select an MP4 file to auto start playback. Clear to stop.";
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
             UpdateModeSelectionVisuals();
         }
@@ -411,14 +468,22 @@ namespace CMDevicesManager.Pages
 
             if (_isVideoStreaming)
             {
+<<<<<<< HEAD
+                //ShowStatusMessage("Stopping video playback...");
+=======
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                 _streamingCancellationSource?.Cancel();
                 _isVideoStreaming = false;
             }
             _currentPlayMode = PlayMode.RealtimeConfig;
             UpdatePlayModeUI();
+<<<<<<< HEAD
+            //ShowStatusMessage("Switched to real-time (config sequence) mode.");
+=======
 
             if (!_isConfigSequenceRunning && ConfigSequence.Count > 0)
                 StartConfigSequence();
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         }
         private void UpdateModeSelectionVisuals()
         {
@@ -434,11 +499,20 @@ namespace CMDevicesManager.Pages
 
             if (_isConfigSequenceRunning)
             {
+<<<<<<< HEAD
+                //ShowStatusMessage("Stopping config sequence...");
+=======
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                 _configSequenceCts?.Cancel();
                 _isConfigSequenceRunning = false;
             }
             _currentPlayMode = PlayMode.OfflineVideo;
             UpdatePlayModeUI();
+<<<<<<< HEAD
+            //ShowStatusMessage("Switched to video offline playback mode.");
+        }
+
+=======
 
             if (!_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath))
                 _ = StartVideoPlaybackInternalAsync();
@@ -498,6 +572,7 @@ namespace CMDevicesManager.Pages
         }
 
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         // 选择视频
         private void SelectVideoButton_Click(object sender, RoutedEventArgs e)
         {
@@ -510,22 +585,38 @@ namespace CMDevicesManager.Pages
             {
                 _selectedVideoPath = ofd.FileName;
                 SelectedVideoNameText.Text = System.IO.Path.GetFileName(_selectedVideoPath);
+<<<<<<< HEAD
+                VideoInfoText.Text = "Ready. Click Start to begin streaming frames.";
+                StartVideoButton.IsEnabled = true;
+                ClearVideoButton.IsEnabled = true;
+                //ShowStatusMessage($"Video selected: {SelectedVideoNameText.Text}");
+=======
                 VideoInfoText.Text = "Auto starting...";
                 if (_currentPlayMode == PlayMode.OfflineVideo)
                 {
                     _ = StartVideoPlaybackInternalAsync();
                 }
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             }
         }
 
         // 清除视频选择
         private void ClearVideoButton_Click(object sender, RoutedEventArgs e)
         {
+<<<<<<< HEAD
+            if (_isVideoStreaming) return;
+            _selectedVideoPath = null;
+            SelectedVideoNameText.Text = "(None)";
+            VideoInfoText.Text = "Please click 'Select Video' to choose an MP4 file.";
+            StartVideoButton.IsEnabled = false;
+            ClearVideoButton.IsEnabled = false;
+=======
             _streamingCancellationSource?.Cancel();
             _isVideoStreaming = false;
             _selectedVideoPath = null;
             SelectedVideoNameText.Text = "(None)";
             VideoInfoText.Text = "Select an MP4 file to auto start.";
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         }
 
         // 启动视频播放
@@ -617,7 +708,25 @@ namespace CMDevicesManager.Pages
         }
 
         // 在 UpdateButtonStates 内（如果保留）增加模式适配（可选）
+<<<<<<< HEAD
+        private void UpdateButtonStates()
+        {
+            // 原有配置（若之前为空可忽略）
+            if (_currentPlayMode == PlayMode.RealtimeConfig)
+            {
+                StartSequenceButton.IsEnabled = !_isConfigSequenceRunning && ConfigSequence.Count > 0;
+                StopSequenceButton.IsEnabled = _isConfigSequenceRunning;
+            }
+            else
+            {
+                StartVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
+                StopVideoButton.IsEnabled = _isVideoStreaming;
+                ClearVideoButton.IsEnabled = !_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath);
+            }
+        }
+=======
         
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         // 如果未调用 InitConfigSequence，请确保添加
         private void Page_Loaded(object sender, RoutedEventArgs e)
@@ -650,11 +759,19 @@ namespace CMDevicesManager.Pages
             ConfigSequence.CollectionChanged += (_, __) =>
             {
                 Raise(nameof(IsMultiConfig));
+<<<<<<< HEAD
+                // 自动给刚添加的单个配置设为 5 秒（UI 显示时可能禁用）
+=======
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                 if (ConfigSequence.Count == 1)
                 {
                     var item = ConfigSequence[0];
                     if (item.DurationSeconds <= 0) item.DurationSeconds = 5;
                 }
+<<<<<<< HEAD
+            };
+        }
+=======
                 UpdateDurationEditableStates();
             };
         }
@@ -686,6 +803,7 @@ namespace CMDevicesManager.Pages
             SaveGlobalSequence();
         }
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         // 在构造函数结尾处调用
         // public DevicePlayModePage() { ... InitConfigSequence(); }
@@ -699,12 +817,20 @@ namespace CMDevicesManager.Pages
             };
             if (ofd.ShowDialog() == true)
             {
+<<<<<<< HEAD
+                string name = System.IO.Path.GetFileNameWithoutExtension(ofd.FileName);
+                ConfigSequence.Add(new PlayConfigItem
+=======
                 string name = Path.GetFileNameWithoutExtension(ofd.FileName);
                 var newItem = new PlayConfigItem
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                 {
                     DisplayName = name,
                     FilePath = ofd.FileName,
                     DurationSeconds = 5
+<<<<<<< HEAD
+                });
+=======
                 };
                 AttachConfigItemEvents(newItem);
                 ConfigSequence.Add(newItem);
@@ -736,6 +862,7 @@ namespace CMDevicesManager.Pages
                 _isConfigSequenceRunning = false;
                 _configSequenceCts?.Dispose();
                 _configSequenceCts = null;
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             }
         }
 
@@ -744,6 +871,8 @@ namespace CMDevicesManager.Pages
             if (sender is Button btn && btn.Tag is PlayConfigItem item)
             {
                 ConfigSequence.Remove(item);
+<<<<<<< HEAD
+=======
 
                 if (ConfigSequence.Count == 0)
                 {
@@ -754,6 +883,7 @@ namespace CMDevicesManager.Pages
                 // 列表仍有元素，更新可编辑状态（避免第一项仍锁定）
                 UpdateDurationEditableStates();
                 SaveGlobalSequence();
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             }
         }
 
@@ -761,11 +891,18 @@ namespace CMDevicesManager.Pages
         {
             if (_isConfigSequenceRunning)
             {
+<<<<<<< HEAD
+                //ShowErrorMessage("Stop sequence first.");
+                return;
+            }
+            ConfigSequence.Clear();
+=======
                 _configSequenceCts?.Cancel();
             }
             ConfigSequence.Clear();
             ClearCanvasForNoConfigs();
             SaveGlobalSequence();
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         }
 
         private void MoveConfigUp_Click(object sender, RoutedEventArgs e)
@@ -773,9 +910,16 @@ namespace CMDevicesManager.Pages
             if (sender is Button btn && btn.Tag is PlayConfigItem item)
             {
                 int idx = ConfigSequence.IndexOf(item);
+<<<<<<< HEAD
+                if (idx > 0)
+                {
+                    ConfigSequence.Move(idx, idx - 1);
+                }
+=======
                 if (idx > 0) ConfigSequence.Move(idx, idx - 1);
                 UpdateDurationEditableStates();
                 SaveGlobalSequence();
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             }
         }
 
@@ -785,13 +929,59 @@ namespace CMDevicesManager.Pages
             {
                 int idx = ConfigSequence.IndexOf(item);
                 if (idx >= 0 && idx < ConfigSequence.Count - 1)
+<<<<<<< HEAD
+                {
                     ConfigSequence.Move(idx, idx + 1);
+                }
+=======
+                    ConfigSequence.Move(idx, idx + 1);
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             }
         }
 
         private async void StartSequenceButton_Click(object sender, RoutedEventArgs e)
         {
+<<<<<<< HEAD
+            if (_isConfigSequenceRunning)
+            {
+               // ShowErrorMessage("Sequence already running.");
+                return;
+            }
+            if (ConfigSequence.Count == 0)
+            {
+                //ShowErrorMessage("No config selected.");
+                return;
+            }
+
+            _isConfigSequenceRunning = true;
+            _configSequenceCts = new CancellationTokenSource();
+            StartSequenceButton.IsEnabled = false;
+            StopSequenceButton.IsEnabled = true;
+           // ShowStatusMessage("Sequence started (loop).");
+
+            try
+            {
+                await RunConfigSequenceAsync(_configSequenceCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                //ShowStatusMessage("Sequence stopped.");
+            }
+            catch (Exception ex)
+            {
+                //ShowErrorMessage($"Sequence error: {ex.Message}");
+            }
+            finally
+            {
+                _isConfigSequenceRunning = false;
+                _configSequenceCts?.Dispose();
+                _configSequenceCts = null;
+                StartSequenceButton.IsEnabled = true;
+                StopSequenceButton.IsEnabled = false;
+            }
+=======
             StartConfigSequence();
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         }
 
         private void StopSequenceButton_Click(object sender, RoutedEventArgs e)
@@ -853,6 +1043,25 @@ namespace CMDevicesManager.Pages
             e.Handled = !_digitsRegex.IsMatch(e.Text);
         }
 
+<<<<<<< HEAD
+        // 实际加载配置到 Canvas （TODO: 替换为你已有的配置反序列化逻辑）
+        private async Task LoadConfigToCanvasAsync(string filePath, CancellationToken token)
+        {
+            // 示例：读取 JSON 并模拟加载过程
+            await Dispatcher.InvokeAsync(() =>
+            {
+                // TODO: 调用你在 DeviceConfigPage 使用的反序列化 / 应用方法
+                // 例如: var cfg = JsonSerializer.Deserialize<DisplayLayout>(File.ReadAllText(filePath));
+                // ApplyLayoutToCanvas(cfg);
+                CurrentImageName.Text = System.IO.Path.GetFileName(filePath);
+                ImageDimensions.Text = "Config Applied";
+            });
+
+            // 如果需要延迟或资源加载可在此扩展
+            token.ThrowIfCancellationRequested();
+        }
+    
+=======
         // ============ NEW IMPLEMENTATION: Load & Render Config ============
         private async Task LoadConfigToCanvasAsync(string filePath, CancellationToken token)
         {
@@ -1467,6 +1676,7 @@ namespace CMDevicesManager.Pages
             }
         }
         // =================== (rest of original file unchanged below) ===================
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         private void UpdateRotationButtonAppearance(int selectedRotation)
         {
@@ -1487,16 +1697,28 @@ namespace CMDevicesManager.Pages
 
         private async void RotationButton_Click(object sender, RoutedEventArgs e)
         {
+<<<<<<< HEAD
+            
+            var actives = _multiDeviceManager.GetActiveControllers();
+           
+=======
 
             var actives = _multiDeviceManager.GetActiveControllers();
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             if (sender is Button b && b.Tag is string s && int.TryParse(s, out int deg))
             {
                 try
                 {
+<<<<<<< HEAD
+                   
+                    SetRotationButtonsEnabled(false);
+                   
+=======
 
                     SetRotationButtonsEnabled(false);
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                     var results = await _multiDeviceManager.SetRotationOnAllDevices(deg);
                     int ok = results.Values.Count(v => v);
                     if (ok == results.Count)
@@ -1504,6 +1726,15 @@ namespace CMDevicesManager.Pages
                         _currentRotation = deg;
                         CurrentRotationText.Text = $"Current: {deg}°";
                         UpdateRotationButtonAppearance(deg);
+<<<<<<< HEAD
+                       
+                    }
+                    
+                }
+                catch (Exception ex)
+                {
+                   
+=======
 
                     }
 
@@ -1511,6 +1742,7 @@ namespace CMDevicesManager.Pages
                 catch (Exception)
                 {
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                 }
                 finally
                 {
@@ -1534,7 +1766,11 @@ namespace CMDevicesManager.Pages
             BrightnessValueText.Text = $"{newVal}%";
             if (Math.Abs(newVal - _currentBrightness) < 1) return;
             var actives = _multiDeviceManager.GetActiveControllers();
+<<<<<<< HEAD
+            if (actives.Count == 0) {  return; }
+=======
             if (actives.Count == 0) { return; }
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
             try
             {
                 BrightnessSlider.IsEnabled = false;
@@ -1633,6 +1869,10 @@ namespace CMDevicesManager.Pages
             }
         }
 
+<<<<<<< HEAD
+      
+=======
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         private async void LoadCurrentDeviceSettings()
         {
             if (_multiDeviceManager == null) return;
@@ -1685,6 +1925,11 @@ namespace CMDevicesManager.Pages
             }
         }
 
+<<<<<<< HEAD
+      
+
+=======
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         private void ShowStreamingStatus(bool active)
         {
             Dispatcher.Invoke(() =>
@@ -1787,6 +2032,11 @@ namespace CMDevicesManager.Pages
         }
 
 
+<<<<<<< HEAD
+       
+
+=======
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         private bool PrepareStreaming(bool keepAlive = true)
         {
             
@@ -1819,12 +2069,18 @@ namespace CMDevicesManager.Pages
         {
             StopKeepAliveTimer();
             _streamingCancellationSource?.Cancel();
+<<<<<<< HEAD
+        }
+
+        // Reuse methods adapted from demo (trimmed where possible)
+=======
             _configSequenceCts?.Cancel();
 
             try { _liveUpdateTimer.Stop(); } catch { }
             try { _autoMoveTimer.Stop(); } catch { }
             try { _metrics.Dispose(); } catch { }
         }
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
         private async Task<bool> EnhancedRealTimeDisplayDemo(DisplayController controller, string imageDirectory, int cycleCount, CancellationToken token)
         {
@@ -1911,7 +2167,11 @@ namespace CMDevicesManager.Pages
                 return false;
             }
         }
+<<<<<<< HEAD
+    
+=======
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         // MP4 advanced streaming pieces (copied essential parts)
         public delegate void Mp4DeviceDisplayCallback(VideoFrameData frameData, int frameIndex, byte transferId);
 

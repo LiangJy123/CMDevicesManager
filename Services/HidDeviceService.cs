@@ -14,6 +14,9 @@ using Timer = System.Threading.Timer;
 namespace CMDevicesManager.Services
 {
     /// <summary>
+<<<<<<< HEAD
+    /// Service for managing HID device operations across the application
+=======
     /// Service for managing HID device operations across the application.
     /// 
     /// Device Path Filtering:
@@ -21,6 +24,7 @@ namespace CMDevicesManager.Services
     /// - Disconnected devices are NOT automatically removed from the filter
     /// - This allows filters to work seamlessly when devices reconnect
     /// - Use ClearDevicePathFilter() or RemoveDevicePathsFromFilter() to manually manage filters
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
     /// </summary>
     public class HidDeviceService : IDisposable
     {
@@ -265,9 +269,12 @@ namespace CMDevicesManager.Services
 
         /// <summary>
         /// Clear all device path filters
+<<<<<<< HEAD
+=======
         /// Note: This is the only way to remove device paths from the filter.
         /// Device paths are NOT automatically removed when devices disconnect,
         /// allowing filters to persist across device disconnections/reconnections.
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// </summary>
         public void ClearDevicePathFilter()
         {
@@ -403,6 +410,8 @@ namespace CMDevicesManager.Services
                     {
                         Logger.Warn($"Command failed for device {devicePath}: {ex.Message}");
                         results[devicePath] = false;
+<<<<<<< HEAD
+=======
                         
                         // Fire device error event
                         var deviceInfo = ConnectedDevices.FirstOrDefault(d => d.Path == devicePath);
@@ -410,6 +419,7 @@ namespace CMDevicesManager.Services
                         {
                             DeviceError?.Invoke(this, new DeviceErrorEventArgs(deviceInfo, ex));
                         }
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
                     }
                 }
                 else
@@ -425,6 +435,8 @@ namespace CMDevicesManager.Services
             return results;
         }
 
+<<<<<<< HEAD
+=======
         /// <summary>
         /// Execute command with response on devices (respects device path filter)
         /// </summary>
@@ -494,6 +506,7 @@ namespace CMDevicesManager.Services
             return results;
         }
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         #endregion
 
         /// <summary>
@@ -540,6 +553,8 @@ namespace CMDevicesManager.Services
             }
         }
 
+<<<<<<< HEAD
+=======
         #region Device Information APIs
 
         /// <summary>
@@ -616,6 +631,7 @@ namespace CMDevicesManager.Services
 
         #region Display Control APIs
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// <summary>
         /// Set real-time display mode on devices (respects device path filter)
         /// </summary>
@@ -652,6 +668,8 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+<<<<<<< HEAD
+=======
         /// Set display in sleep mode on devices (respects device path filter)
         /// </summary>
         /// <param name="enable">True to enable sleep mode</param>
@@ -666,6 +684,7 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// Set brightness on devices (respects device path filter)
         /// </summary>
         /// <param name="brightness">Brightness value (0-100)</param>
@@ -693,6 +712,8 @@ namespace CMDevicesManager.Services
             });
         }
 
+<<<<<<< HEAD
+=======
         #endregion
 
         #region Suspend Media APIs
@@ -781,6 +802,7 @@ namespace CMDevicesManager.Services
 
         #endregion
 
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
         /// <summary>
         /// Transfer file to devices (respects device path filter)
         /// </summary>
@@ -989,8 +1011,13 @@ namespace CMDevicesManager.Services
                         ConnectedDevices.Remove(deviceToRemove);
                     });
 
+<<<<<<< HEAD
+                    // Remove from filter if it exists
+                    _filteredDevicePaths.Remove(e.Device.Path);
+=======
                     // Keep _filteredDevicePaths intact - don't remove disconnected devices from filter
                     // This allows the filter to persist across device disconnections/reconnections
+>>>>>>> eddcd56aea4c1497b4c62232999fcd43228fbc3d
 
                     Logger.Info($"Device disconnected: {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
                     DeviceDisconnected?.Invoke(this, new DeviceEventArgs(e.Device));
