@@ -9,6 +9,36 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <toolkit:ImageCropper x:Name="ImageCropper" />
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ImageCropper Control -->
+        <toolkit:ImageCropper x:Name="ImageCropper" 
+                              Grid.Row="0"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch" />
+
+        <!-- Button Panel -->
+        <StackPanel Grid.Row="1" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Center" 
+                    Spacing="12" 
+                    Margin="0,12,0,0">
+            
+            <Button x:Name="SaveButton" 
+                    Content="Save" 
+                    Style="{ThemeResource AccentButtonStyle}"
+                    MinWidth="100"
+                    Click="SaveButton_Click" />
+            
+            <Button x:Name="ResetButton" 
+                    Content="Reset" 
+                    MinWidth="100"
+                    Click="ResetButton_Click" />
+        </StackPanel>
+    </Grid>
 
 </UserControl>

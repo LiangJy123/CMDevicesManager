@@ -1262,7 +1262,7 @@ namespace CDMDevicesManagerDevWinUI.Views
         }
 
         /// <summary>
-        /// Shows image crop dialog and returns cropped image file
+        /// Shows image crop dialog using the enhanced ImageCrop UserControl and returns cropped image file
         /// </summary>
         /// <param name="originalFile">Original image file to crop</param>
         /// <param name="slotIndex">Slot index for naming the temporary file</param>
@@ -1271,49 +1271,124 @@ namespace CDMDevicesManagerDevWinUI.Views
         {
             try
             {
+                // Create temporary cropped image file
+                var tempFolder = ApplicationData.Current.TemporaryFolder;
+                var croppedFileName = $"cropped_{slotIndex}_{System.IO.Path.GetFileNameWithoutExtension(originalFile.Name)}.png";
+                var croppedImageFile = await tempFolder.CreateFileAsync(croppedFileName, CreationCollisionOption.ReplaceExisting);
+
+                // Create the ContentDialog
                 var cropDialog = new ContentDialog
                 {
-                    Title = "Crop Image",
-                    PrimaryButtonText = "Yes",
-                    SecondaryButtonText = "Cancel", 
-                    DefaultButton = ContentDialogButton.Close,
+                    Title = "Crop Image for 480x480 Display",
+                    PrimaryButtonText = "Use Cropped Image",
+                    SecondaryButtonText = "Use Original", 
+                    CloseButtonText = "Cancel",
+                    DefaultButton = ContentDialogButton.Primary,
                     XamlRoot = this.XamlRoot
                 };
 
-                var imageCropper = new CommunityToolkit.WinUI.Controls.ImageCropper();
-                imageCropper.AspectRatio = 1.0; // Square aspect ratio for 480x480
-                imageCropper.CropShape = CommunityToolkit.WinUI.Controls.CropShape.Rectangular;
+                // Create the ImageCrop UserControl
+                var imageCropControl = new CDMDevicesManagerDevWinUI.Controls.ImageCrop();
                 
-                // Set target size
-                imageCropper.Width = 400;
-                imageCropper.Height = 400;
+                // Set target size for the cropper
+                imageCropControl.Width = 480;
+                imageCropControl.Height = 520; // Extra height for buttons
+                imageCropControl.AspectRatio = 1.0; // Square aspect ratio for 480x480
                 
-                // Create container for the cropper
-                var stackPanel = new StackPanel();
-                stackPanel.Children.Add(new TextBlock 
+                // Create container with instructions
+                var containerPanel = new StackPanel 
                 { 
-                    Text = "Adjust the crop area for your 480x480 image. Use 'Crop to 480x480' to apply cropping, or 'Use Original' to use the image as-is:", 
-                    Margin = new Thickness(0, 0, 0, 10),
-                    TextWrapping = TextWrapping.Wrap
-                });
-                stackPanel.Children.Add(imageCropper);
+                    Spacing = 12 
+                };
                 
-                cropDialog.Content = stackPanel;
+                // Add instruction text
+                containerPanel.Children.Add(new TextBlock 
+                { 
+                    Text = "Adjust the crop area for your 480x480 display. Use the Save button to apply changes or Reset to start over:", 
+                    FontSize = 14,
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 8)
+                });
 
-                // Load the image into the cropper
-                await imageCropper.LoadImageFromFile(originalFile);
+                // Add file info
+                containerPanel.Children.Add(new TextBlock 
+                { 
+                    Text = $"Original: {originalFile.Name}", 
+                    FontSize = 12,
+                    Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Gray),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 8)
+                });
+                
+                // Add the ImageCrop control
+                containerPanel.Children.Add(imageCropControl);
+                
+                // Add button descriptions
+                var buttonDescPanel = new StackPanel { Spacing = 4, Margin = new Thickness(0, 8, 0, 0) };
+                buttonDescPanel.Children.Add(new TextBlock 
+                { 
+                    Text = "• Use Cropped Image: Apply the current crop selection and resize to 480x480",
+                    FontSize = 11,
+                    Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Gray)
+                });
+                buttonDescPanel.Children.Add(new TextBlock 
+                { 
+                    Text = "• Use Original: Use the original image without cropping (resized to 480x480)",
+                    FontSize = 11,
+                    Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Gray)
+                });
+                buttonDescPanel.Children.Add(new TextBlock 
+                { 
+                    Text = "• Cancel: Don't add this image",
+                    FontSize = 11,
+                    Foreground = new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.Gray)
+                });
+                containerPanel.Children.Add(buttonDescPanel);
+                
+                // Set the content
+                cropDialog.Content = containerPanel;
 
+                // Initialize the ImageCrop control
+                await imageCropControl.InitializeAsync(originalFile, croppedImageFile);
+
+                bool imageSaved = false;
+
+                // Handle the ImageSaved event
+                imageCropControl.ImageSaved += (sender, args) =>
+                {
+                    imageSaved = true;
+                    Debug.WriteLine($"Image saved to: {args.CroppedImagePath}");
+                };
+
+                // Show the dialog
                 var result = await cropDialog.ShowAsync();
                 
                 if (result == ContentDialogResult.Primary)
                 {
-                    // User chose to use original image, just resize it
-                    return await ResizeImageToTargetSize(originalFile, slotIndex, 480, 480);
+                    // User chose "Use Cropped Image"
+                    if (imageSaved)
+                    {
+                        // The image was already saved, return the cropped file
+                        return croppedImageFile;
+                    }
+                    else
+                    {
+                        // Save the current crop selection
+                        bool saveSuccess = await imageCropControl.SaveCroppedImageAsync();
+                        if (saveSuccess)
+                        {
+                            return croppedImageFile;
+                        }
+                        else
+                        {
+                            // Fallback to resizing original
+                            return await ResizeImageToTargetSize(originalFile, slotIndex, 480, 480);
+                        }
+                    }
                 }
-                else if (result == ContentDialogResult.None) // Close button pressed - crop the image
+                else if (result == ContentDialogResult.Secondary)
                 {
-                    // For now, we'll use the original file and resize it since the exact cropper API is not clear
-                    // In a future version, this could be enhanced with proper cropping
+                    // User chose "Use Original" - just resize it
                     return await ResizeImageToTargetSize(originalFile, slotIndex, 480, 480);
                 }
                 
