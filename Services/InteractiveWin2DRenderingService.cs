@@ -188,7 +188,81 @@ namespace CMDevicesManager.Services
                 RenderingError?.Invoke(new InvalidOperationException($"Failed to set background gradient: {ex.Message}", ex));
             }
         }
+        /// <summary>
+        /// Set a background image with improved transparency handling
+        /// </summary>
+        /// <param name="imagePath">Path to the image file</param>
+        /// <param name="scaleMode">How to scale the image</param>
+        /// <param name="opacity">Background opacity (0.0 to 1.0)</param>
+        /// <param name="fillTransparentAreas">Whether to fill transparent areas with a solid color for better opacity blending</param>
+        /// <param name="fillColor">Color to use for transparent areas (default: black)</param>
+        public async Task SetBackgroundImageWithTransparencyAsync(string imagePath,
+            BackgroundScaleMode scaleMode = BackgroundScaleMode.Stretch,
+            float opacity = 1.0f,
+            bool fillTransparentAreas = false,
+            WinUIColor? fillColor = null)
+        {
+            if (string.IsNullOrWhiteSpace(imagePath))
+            {
+                throw new ArgumentException("Image path cannot be null or empty", nameof(imagePath));
+            }
 
+            if (!File.Exists(imagePath))
+            {
+                throw new FileNotFoundException($"Background image file not found: {imagePath}");
+            }
+
+            try
+            {
+                // Dispose existing background image
+                _backgroundImage?.Dispose();
+
+                // Load the image
+                var originalImage = await CanvasBitmap.LoadAsync(_canvasDevice!, imagePath);
+
+                if (fillTransparentAreas && opacity < 1.0f)
+                {
+                    // Create a new render target to pre-composite the image with a solid background
+                    using (var tempTarget = new CanvasRenderTarget(_canvasDevice!, (int)originalImage.Size.Width, (int)originalImage.Size.Height, 96))
+                    {
+                        using (var tempSession = tempTarget.CreateDrawingSession())
+                        {
+                            // Fill with the specified color or default black
+                            var bgColor = fillColor ?? WinUIColor.FromArgb(255, 0, 0, 0);
+                            tempSession.Clear(bgColor);
+
+                            // Draw the original image on top
+                            tempSession.DrawImage(originalImage);
+                        }
+
+                        // Use the composited image as the background
+                        _backgroundImage = CanvasBitmap.CreateFromBytes(_canvasDevice!, tempTarget.GetPixelBytes(),
+                            (int)tempTarget.Size.Width, (int)tempTarget.Size.Height, Windows.Graphics.DirectX.DirectXPixelFormat.B8G8R8A8UIntNormalized);
+                    }
+
+                    originalImage.Dispose();
+                }
+                else
+                {
+                    _backgroundImage = originalImage;
+                }
+
+                _backgroundType = BackgroundType.Image;
+                _backgroundScaleMode = scaleMode;
+                _backgroundOpacity = Math.Clamp(opacity, 0.0f, 1.0f);
+                _backgroundImagePath = imagePath;
+
+                BackgroundChanged?.Invoke($"Background image set with transparency handling: {Path.GetFileName(imagePath)} (Scale: {scaleMode}, Opacity: {opacity:F2})");
+            }
+            catch (Exception ex)
+            {
+                _backgroundImage?.Dispose();
+                _backgroundImage = null;
+                _backgroundImagePath = null;
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to load background image '{imagePath}': {ex.Message}", ex));
+                throw;
+            }
+        }
         /// <summary>
         /// Set a background image from file path
         /// </summary>
@@ -1957,6 +2031,410 @@ namespace CMDevicesManager.Services
             _canvasDevice?.Dispose();
             _renderTimer = null;
         }
+
+        #region Element Property Update Methods
+
+        /// <summary>
+        /// Update element properties from editor values
+        /// </summary>
+        /// <param name="element">Element to update</param>
+        /// <param name="properties">Dictionary of property name-value pairs</param>
+        public void UpdateElementProperties(RenderElement element, Dictionary<string, object> properties)
+        {
+            if (element == null || properties == null) return;
+
+            try
+            {
+                lock (_lockObject)
+                {
+                    // Update common properties
+                    if (properties.TryGetValue("Position", out var position) && position is Point newPosition)
+                    {
+                        element.Position = newPosition;
+                        if (element is IMotionElement motionElement)
+                        {
+                            motionElement.OriginalPosition = newPosition;
+                        }
+                    }
+
+                    if (properties.TryGetValue("IsVisible", out var visible) && visible is bool isVisible)
+                    {
+                        element.IsVisible = isVisible;
+                    }
+
+                    if (properties.TryGetValue("IsDraggable", out var draggable) && draggable is bool isDraggable)
+                    {
+                        element.IsDraggable = isDraggable;
+                    }
+
+                    if (properties.TryGetValue("ZIndex", out var zIndex) && zIndex is float zIndexValue)
+                    {
+                        element.ZIndex = zIndexValue;
+                        // Re-sort elements by Z-index
+                        _elements.Sort((a, b) => a.ZIndex.CompareTo(b.ZIndex));
+                    }
+
+                    // Update element-specific properties
+                    UpdateElementSpecificProperties(element, properties);
+                }
+
+                // Notify that element was updated
+                ElementMoved?.Invoke(element);
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to update element properties: {ex.Message}", ex));
+            }
+        }
+
+        /// <summary>
+        /// Update properties specific to element type
+        /// </summary>
+        private void UpdateElementSpecificProperties(RenderElement element, Dictionary<string, object> properties)
+        {
+            switch (element)
+            {
+                case TextElement textElement:
+                    UpdateTextElementProperties(textElement, properties);
+                    break;
+                case ShapeElement shapeElement:
+                    UpdateShapeElementProperties(shapeElement, properties);
+                    break;
+                case ImageElement imageElement:
+                    UpdateImageElementProperties(imageElement, properties);
+                    break;
+                case LiveElement liveElement:
+                    UpdateLiveElementProperties(liveElement, properties);
+                    break;
+            }
+
+            // Update motion properties if element has motion
+            if (element is IMotionElement motionElement)
+            {
+                UpdateMotionElementProperties(motionElement, properties);
+            }
+        }
+
+        /// <summary>
+        /// Update text element specific properties
+        /// </summary>
+        private void UpdateTextElementProperties(TextElement element, Dictionary<string, object> properties)
+        {
+            if (properties.TryGetValue("Text", out var text) && text is string textValue)
+            {
+                element.Text = textValue;
+            }
+
+            if (properties.TryGetValue("FontSize", out var fontSize) && fontSize is float fontSizeValue)
+            {
+                element.FontSize = fontSizeValue;
+            }
+
+            if (properties.TryGetValue("FontFamily", out var fontFamily) && fontFamily is string fontFamilyValue)
+            {
+                element.FontFamily = fontFamilyValue;
+            }
+
+            if (properties.TryGetValue("TextColor", out var textColor) && textColor is WinUIColor textColorValue)
+            {
+                element.TextColor = textColorValue;
+            }
+
+            if (properties.TryGetValue("Size", out var size) && size is Size sizeValue)
+            {
+                element.Size = sizeValue;
+            }
+        }
+
+        /// <summary>
+        /// Update shape element specific properties
+        /// </summary>
+        private void UpdateShapeElementProperties(ShapeElement element, Dictionary<string, object> properties)
+        {
+            if (properties.TryGetValue("ShapeType", out var shapeType) && shapeType is ShapeType shapeTypeValue)
+            {
+                element.ShapeType = shapeTypeValue;
+            }
+
+            if (properties.TryGetValue("Size", out var size) && size is Size sizeValue)
+            {
+                element.Size = sizeValue;
+            }
+
+            if (properties.TryGetValue("FillColor", out var fillColor) && fillColor is WinUIColor fillColorValue)
+            {
+                element.FillColor = fillColorValue;
+            }
+
+            if (properties.TryGetValue("StrokeColor", out var strokeColor) && strokeColor is WinUIColor strokeColorValue)
+            {
+                element.StrokeColor = strokeColorValue;
+            }
+
+            if (properties.TryGetValue("StrokeWidth", out var strokeWidth) && strokeWidth is float strokeWidthValue)
+            {
+                element.StrokeWidth = strokeWidthValue;
+            }
+        }
+
+        /// <summary>
+        /// Update image element specific properties
+        /// </summary>
+        private void UpdateImageElementProperties(ImageElement element, Dictionary<string, object> properties)
+        {
+            if (properties.TryGetValue("Scale", out var scale) && scale is float scaleValue)
+            {
+                element.Scale = scaleValue;
+            }
+
+            if (properties.TryGetValue("Rotation", out var rotation) && rotation is float rotationValue)
+            {
+                element.Rotation = rotationValue;
+            }
+
+            if (properties.TryGetValue("Size", out var size) && size is Size sizeValue)
+            {
+                element.Size = sizeValue;
+            }
+        }
+
+        /// <summary>
+        /// Update live element specific properties
+        /// </summary>
+        private void UpdateLiveElementProperties(LiveElement element, Dictionary<string, object> properties)
+        {
+            if (properties.TryGetValue("Format", out var format) && format is string formatValue)
+            {
+                element.Format = formatValue;
+            }
+
+            if (properties.TryGetValue("FontSize", out var fontSize) && fontSize is float fontSizeValue)
+            {
+                element.FontSize = fontSizeValue;
+            }
+
+            if (properties.TryGetValue("FontFamily", out var fontFamily) && fontFamily is string fontFamilyValue)
+            {
+                element.FontFamily = fontFamilyValue;
+            }
+
+            if (properties.TryGetValue("TextColor", out var textColor) && textColor is WinUIColor textColorValue)
+            {
+                element.TextColor = textColorValue;
+            }
+
+            if (properties.TryGetValue("Size", out var size) && size is Size sizeValue)
+            {
+                element.Size = sizeValue;
+            }
+        }
+
+        /// <summary>
+        /// Update motion element specific properties
+        /// </summary>
+        private void UpdateMotionElementProperties(IMotionElement element, Dictionary<string, object> properties)
+        {
+            var config = element.MotionConfig;
+            var configChanged = false;
+
+            if (properties.TryGetValue("MotionType", out var motionType) && motionType is MotionType motionTypeValue)
+            {
+                config.MotionType = motionTypeValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("Speed", out var speed) && speed is float speedValue)
+            {
+                config.Speed = speedValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("Direction", out var direction) && direction is Vector2 directionValue)
+            {
+                config.Direction = directionValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("Center", out var center) && center is Vector2 centerValue)
+            {
+                config.Center = centerValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("Radius", out var radius) && radius is float radiusValue)
+            {
+                config.Radius = radiusValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("RespectBoundaries", out var respectBoundaries) && respectBoundaries is bool respectBoundariesValue)
+            {
+                config.RespectBoundaries = respectBoundariesValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("ShowTrail", out var showTrail) && showTrail is bool showTrailValue)
+            {
+                config.ShowTrail = showTrailValue;
+                if (showTrailValue && element.TrailPositions == null)
+                {
+                    element.TrailPositions = new Queue<Vector2>();
+                }
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("TrailLength", out var trailLength) && trailLength is int trailLengthValue)
+            {
+                config.TrailLength = trailLengthValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("IsPaused", out var isPaused) && isPaused is bool isPausedValue)
+            {
+                config.IsPaused = isPausedValue;
+                configChanged = true;
+            }
+
+            // Re-initialize motion element if configuration changed
+            if (configChanged)
+            {
+                InitializeMotionElement(element, config);
+            }
+        }
+
+        /// <summary>
+        /// Get element properties for editor display
+        /// </summary>
+        /// <param name="element">Element to get properties from</param>
+        /// <returns>Dictionary of property name-value pairs</returns>
+        public Dictionary<string, object> GetElementProperties(RenderElement element)
+        {
+            if (element == null) return new Dictionary<string, object>();
+
+            var properties = new Dictionary<string, object>();
+
+            try
+            {
+                // Common properties
+                properties["Id"] = element.Id;
+                properties["Name"] = element.Name;
+                properties["Type"] = element.Type.ToString();
+                properties["Position"] = element.Position;
+                properties["IsVisible"] = element.IsVisible;
+                properties["IsDraggable"] = element.IsDraggable;
+                properties["IsSelected"] = element.IsSelected;
+                properties["ZIndex"] = element.ZIndex;
+
+                // Element-specific properties
+                switch (element)
+                {
+                    case TextElement textElement:
+                        properties["Text"] = textElement.Text;
+                        properties["FontSize"] = textElement.FontSize;
+                        properties["FontFamily"] = textElement.FontFamily;
+                        properties["TextColor"] = textElement.TextColor;
+                        properties["Size"] = textElement.Size;
+                        break;
+
+                    case ShapeElement shapeElement:
+                        properties["ShapeType"] = shapeElement.ShapeType;
+                        properties["Size"] = shapeElement.Size;
+                        properties["FillColor"] = shapeElement.FillColor;
+                        properties["StrokeColor"] = shapeElement.StrokeColor;
+                        properties["StrokeWidth"] = shapeElement.StrokeWidth;
+                        break;
+
+                    case ImageElement imageElement:
+                        properties["ImagePath"] = imageElement.ImagePath;
+                        properties["Size"] = imageElement.Size;
+                        properties["Scale"] = imageElement.Scale;
+                        properties["Rotation"] = imageElement.Rotation;
+                        break;
+
+                    case LiveElement liveElement:
+                        properties["Format"] = liveElement.Format;
+                        properties["FontSize"] = liveElement.FontSize;
+                        properties["FontFamily"] = liveElement.FontFamily;
+                        properties["TextColor"] = liveElement.TextColor;
+                        properties["Size"] = liveElement.Size;
+                        properties["CurrentText"] = liveElement.GetCurrentText();
+                        break;
+                }
+
+                // Motion properties
+                if (element is IMotionElement motionElement)
+                {
+                    properties["HasMotion"] = true;
+                    properties["OriginalPosition"] = motionElement.OriginalPosition;
+                    properties["MotionType"] = motionElement.MotionConfig.MotionType;
+                    properties["Speed"] = motionElement.MotionConfig.Speed;
+                    properties["Direction"] = motionElement.MotionConfig.Direction;
+                    properties["Center"] = motionElement.MotionConfig.Center;
+                    properties["Radius"] = motionElement.MotionConfig.Radius;
+                    properties["RespectBoundaries"] = motionElement.MotionConfig.RespectBoundaries;
+                    properties["ShowTrail"] = motionElement.MotionConfig.ShowTrail;
+                    properties["TrailLength"] = motionElement.MotionConfig.TrailLength;
+                    properties["IsPaused"] = motionElement.MotionConfig.IsPaused;
+                    properties["StartTime"] = motionElement.StartTime;
+                    properties["CurrentAngle"] = motionElement.CurrentAngle;
+                }
+                else
+                {
+                    properties["HasMotion"] = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to get element properties: {ex.Message}", ex));
+            }
+
+            return properties;
+        }
+
+        /// <summary>
+        /// Find element by ID
+        /// </summary>
+        /// <param name="elementId">Element ID</param>
+        /// <returns>Element if found, null otherwise</returns>
+        public RenderElement? FindElementById(Guid elementId)
+        {
+            lock (_lockObject)
+            {
+                return _elements.FirstOrDefault(e => e.Id == elementId);
+            }
+        }
+
+        /// <summary>
+        /// Find element by name
+        /// </summary>
+        /// <param name="elementName">Element name</param>
+        /// <returns>Element if found, null otherwise</returns>
+        public RenderElement? FindElementByName(string elementName)
+        {
+            if (string.IsNullOrWhiteSpace(elementName)) return null;
+
+            lock (_lockObject)
+            {
+                return _elements.FirstOrDefault(e => string.Equals(e.Name, elementName, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        /// <summary>
+        /// Update element by ID
+        /// </summary>
+        /// <param name="elementId">Element ID</param>
+        /// <param name="properties">Properties to update</param>
+        /// <returns>True if element was found and updated</returns>
+        public bool UpdateElementById(Guid elementId, Dictionary<string, object> properties)
+        {
+            var element = FindElementById(elementId);
+            if (element == null) return false;
+
+            UpdateElementProperties(element, properties);
+            return true;
+        }
+
+        #endregion
 
         #region JSON Scene Export/Import
 

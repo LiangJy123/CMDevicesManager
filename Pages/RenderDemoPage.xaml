@@ -11,7 +11,7 @@
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
-            <ColumnDefinition Width="300"/>
+            <ColumnDefinition Width="320"/>
         </Grid.ColumnDefinitions>
 
         <!-- Main display area -->
@@ -62,6 +62,198 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="10">
                     
+                    <!-- Element Status and Editor Section -->
+                    <Expander Name="ElementEditorExpander" Header="Element Status &amp; Editor" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel Name="ElementEditorPanel">
+                            <TextBlock Name="NoSelectionText" Text="No element selected" FontStyle="Italic" Foreground="Gray" Margin="0,5"/>
+                            
+                            <!-- Element Info Display -->
+                            <StackPanel Name="ElementInfoPanel" Visibility="Collapsed">
+                                <TextBlock Name="ElementNameText" FontWeight="Bold" FontSize="12" Margin="0,5,0,2"/>
+                                <TextBlock Name="ElementTypeText" FontSize="10" Foreground="Gray" Margin="0,0,0,5"/>
+                                
+                                <!-- Common Properties -->
+                                <Border BorderBrush="LightGray" BorderThickness="1" Padding="5" Margin="0,5" Background="White">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Position X:" FontSize="10" Margin="0,2" VerticalAlignment="Center"/>
+                                        <TextBox Name="PositionXTextBox" Grid.Row="0" Grid.Column="1" Margin="5,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                        
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Position Y:" FontSize="10" Margin="0,2" VerticalAlignment="Center"/>
+                                        <TextBox Name="PositionYTextBox" Grid.Row="1" Grid.Column="1" Margin="5,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                        
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Z-Index:" FontSize="10" Margin="0,2" VerticalAlignment="Center"/>
+                                        <TextBox Name="ZIndexTextBox" Grid.Row="2" Grid.Column="1" Margin="5,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                        
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Visible:" FontSize="10" Margin="0,2" VerticalAlignment="Center"/>
+                                        <CheckBox Name="VisibleCheckBox" Grid.Row="3" Grid.Column="1" Margin="5,2" Checked="ElementProperty_Changed" Unchecked="ElementProperty_Changed"/>
+                                        
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Draggable:" FontSize="10" Margin="0,2" VerticalAlignment="Center"/>
+                                        <CheckBox Name="DraggableCheckBox" Grid.Row="4" Grid.Column="1" Margin="5,2" Checked="ElementProperty_Changed" Unchecked="ElementProperty_Changed"/>
+                                    </Grid>
+                                </Border>
+                                
+                                <!-- Text Element Properties -->
+                                <StackPanel Name="TextElementProperties" Visibility="Collapsed" Margin="0,5">
+                                    <TextBlock Text="Text Properties" FontWeight="Bold" FontSize="11" Background="LightBlue" Padding="3" Margin="0,0,0,5"/>
+                                    
+                                    <TextBlock Text="Text:" FontSize="10" Margin="0,2,0,0"/>
+                                    <TextBox Name="TextContentTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Font Size:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="FontSizeTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Font Family:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="FontFamilyTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Text Color (ARGB):" FontSize="10" Margin="0,5,0,0"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="A:" FontSize="9" VerticalAlignment="Center"/>
+                                        <TextBox Name="ColorATextBox" Grid.Column="1" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                        <TextBox Name="ColorRTextBox" Grid.Column="2" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                        <TextBox Name="ColorGTextBox" Grid.Column="3" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                        <TextBox Name="ColorBTextBox" Grid.Column="4" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                    </Grid>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text=" " FontSize="9"/>
+                                        <TextBlock Grid.Column="1" Text="R:" FontSize="8" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="G:" FontSize="8" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="3" Text="B:" FontSize="8" HorizontalAlignment="Center"/>
+                                        <TextBlock Grid.Column="4" Text=" " FontSize="8"/>
+                                    </Grid>
+                                </StackPanel>
+                                
+                                <!-- Shape Element Properties -->
+                                <StackPanel Name="ShapeElementProperties" Visibility="Collapsed" Margin="0,5">
+                                    <TextBlock Text="Shape Properties" FontWeight="Bold" FontSize="11" Background="LightGreen" Padding="3" Margin="0,0,0,5"/>
+                                    
+                                    <TextBlock Text="Shape Type:" FontSize="10" Margin="0,2,0,0"/>
+                                    <ComboBox Name="ShapeTypeComboBox" Margin="0,2" FontSize="10" Height="22" SelectionChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Width:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="ShapeWidthTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Height:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="ShapeHeightTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Fill Color (ARGB):" FontSize="10" Margin="0,5,0,0"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="A:" FontSize="9" VerticalAlignment="Center"/>
+                                        <TextBox Name="FillColorATextBox" Grid.Column="1" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                        <TextBox Name="FillColorRTextBox" Grid.Column="2" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                        <TextBox Name="FillColorGTextBox" Grid.Column="3" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                        <TextBox Name="FillColorBTextBox" Grid.Column="4" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                    </Grid>
+                                    
+                                    <TextBlock Text="Stroke Width:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="StrokeWidthTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Stroke Color (ARGB):" FontSize="10" Margin="0,5,0,0"/>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="A:" FontSize="9" VerticalAlignment="Center"/>
+                                        <TextBox Name="StrokeColorATextBox" Grid.Column="1" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                        <TextBox Name="StrokeColorRTextBox" Grid.Column="2" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                        <TextBox Name="StrokeColorGTextBox" Grid.Column="3" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                        <TextBox Name="StrokeColorBTextBox" Grid.Column="4" Margin="1" FontSize="9" Height="18" TextChanged="ElementProperty_Changed"/>
+                                    </Grid>
+                                </StackPanel>
+                                
+                                <!-- Image Element Properties -->
+                                <StackPanel Name="ImageElementProperties" Visibility="Collapsed" Margin="0,5">
+                                    <TextBlock Text="Image Properties" FontWeight="Bold" FontSize="11" Background="LightCoral" Padding="3" Margin="0,0,0,5"/>
+                                    
+                                    <TextBlock Text="Image Path:" FontSize="10" Margin="0,2,0,0"/>
+                                    <TextBox Name="ImagePathTextBox" Margin="0,2" FontSize="10" Height="20" IsReadOnly="True"/>
+                                    
+                                    <TextBlock Text="Scale:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="ImageScaleTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Rotation:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="ImageRotationTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                </StackPanel>
+                                
+                                <!-- Motion Element Properties -->
+                                <StackPanel Name="MotionElementProperties" Visibility="Collapsed" Margin="0,5">
+                                    <TextBlock Text="Motion Properties" FontWeight="Bold" FontSize="11" Background="LightGoldenrodYellow" Padding="3" Margin="0,0,0,5"/>
+                                    
+                                    <TextBlock Text="Motion Type:" FontSize="10" Margin="0,2,0,0"/>
+                                    <ComboBox Name="MotionTypeComboBox" Margin="0,2" FontSize="10" Height="22" SelectionChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Speed:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="MotionSpeedTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Radius:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="MotionRadiusTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <CheckBox Name="RespectBoundariesCheckBox" Content="Respect Boundaries" FontSize="10" Margin="0,5" Checked="ElementProperty_Changed" Unchecked="ElementProperty_Changed"/>
+                                    <CheckBox Name="ShowTrailCheckBox" Content="Show Trail" FontSize="10" Margin="0,2" Checked="ElementProperty_Changed" Unchecked="ElementProperty_Changed"/>
+                                    <CheckBox Name="IsPausedCheckBox" Content="Paused" FontSize="10" Margin="0,2" Checked="ElementProperty_Changed" Unchecked="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Trail Length:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="TrailLengthTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                </StackPanel>
+                                
+                                <!-- Live Element Properties -->
+                                <StackPanel Name="LiveElementProperties" Visibility="Collapsed" Margin="0,5">
+                                    <TextBlock Text="Live Properties" FontWeight="Bold" FontSize="11" Background="LightSalmon" Padding="3" Margin="0,0,0,5"/>
+                                    
+                                    <TextBlock Text="Format:" FontSize="10" Margin="0,2,0,0"/>
+                                    <TextBox Name="LiveFormatTextBox" Margin="0,2" FontSize="10" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    
+                                    <TextBlock Text="Current Value:" FontSize="10" Margin="0,5,0,0"/>
+                                    <TextBox Name="LiveCurrentValueTextBox" Margin="0,2" FontSize="10" Height="20" IsReadOnly="True"/>
+                                </StackPanel>
+                                
+                                <!-- Action Buttons -->
+                                <StackPanel Orientation="Horizontal" Margin="0,10">
+                                    <Button Name="ApplyChangesButton" Content="Apply Changes" Width="100" Height="25" Margin="0,0,5,0" 
+                                            Click="ApplyChangesButton_Click" Background="LightGreen" FontSize="10"/>
+                                    <Button Name="ResetChangesButton" Content="Reset" Width="60" Height="25" 
+                                            Click="ResetChangesButton_Click" Background="LightCoral" FontSize="10"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+                    
                     <!-- Static Elements Section -->
                     <Expander Header="Static Elements" IsExpanded="True" Margin="0,0,0,10">
                         <StackPanel>
@@ -82,7 +274,7 @@
                     </Expander>
 
                     <!-- Motion Elements Section -->
-                    <Expander Header="Motion Elements" IsExpanded="True" Margin="0,0,0,10">
+                    <Expander Header="Motion Elements" IsExpanded="False" Margin="0,0,0,10">
                         <StackPanel>
                             <TextBlock Text="Add Motion Elements:" FontWeight="Bold" Margin="0,5,0,5"/>
                             
@@ -108,7 +300,7 @@
                     </Expander>
 
                     <!-- Motion Control Section -->
-                    <Expander Header="Motion Control" IsExpanded="True" Margin="0,0,0,10">
+                    <Expander Header="Motion Control" IsExpanded="False" Margin="0,0,0,10">
                         <StackPanel>
                             <TextBlock Text="Motion Control:" FontWeight="Bold" Margin="0,5,0,5"/>
                             
@@ -144,7 +336,7 @@
                     </Expander>
 
                     <!-- JSON Scene Export/Import Section -->
-                    <Expander Header="Scene Management" IsExpanded="True" Margin="0,0,0,10">
+                    <Expander Header="Scene Management" IsExpanded="False" Margin="0,0,0,10">
                         <StackPanel>
                             <TextBlock Text="Scene Export/Import:" FontWeight="Bold" Margin="0,5,0,5"/>
                             
@@ -179,7 +371,50 @@
                                 Click="DeleteElementButton_Click" IsEnabled="False" Background="Salmon"/>
                         </StackPanel>
                     </Expander>
+                    <!-- Background Controls Section -->
+                    <Expander Header="Background Controls" IsExpanded="False" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Background Options:" FontWeight="Bold" Margin="0,5,0,5"/>
+                            
+                            <!-- Background type buttons -->
+                            <Button Name="SetSolidColorBackgroundButton" Content="Set Solid Color" Margin="0,2" 
+                                    Click="SetSolidColorBackgroundButton_Click" Background="LightCoral"/>
+                            <Button Name="SetGradientBackgroundButton" Content="Set Gradient" Margin="0,2" 
+                                    Click="SetGradientBackgroundButton_Click" Background="LightBlue"/>
+                            <Button Name="LoadBackgroundImageButton" Content="Load Background Image" Margin="0,2" 
+                                    Click="LoadBackgroundImageButton_Click" Background="LightGreen"/>
+                            
+                            <!-- Background utilities -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="ClearBackgroundButton" Content="Clear Background" Margin="0,2" 
+                                    Click="ClearBackgroundButton_Click" Background="LightGray"/>
+                            <Button Name="ResetDefaultBackgroundButton" Content="Reset to Default" Margin="0,2" 
+                                    Click="ResetDefaultBackgroundButton_Click" Background="LightSteelBlue"/>
+                            
+                            <!-- Background image controls -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="ChangeScaleModeButton" Content="Change Scale Mode" Margin="0,2" 
+                                    Click="ChangeScaleModeButton_Click" Background="LightGoldenrodYellow"/>
+                            
+                            <!-- Background opacity control -->
+                            <TextBlock Text="Background Opacity:" FontWeight="Bold" Margin="0,10,0,2"/>
+                            <Slider Name="BackgroundOpacitySlider" Minimum="0" Maximum="1" Value="1" 
+                                    Margin="0,2" ValueChanged="BackgroundOpacitySlider_ValueChanged"/>
+                            <Label Name="BackgroundOpacityLabel" Content="Background Opacity: 1.00" 
+                                   FontSize="10" Margin="0,0,0,5"/>
+                            
+                            <!-- Background info and demos -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="GetBackgroundInfoButton" Content="Get Background Info" Margin="0,2" 
+                                    Click="GetBackgroundInfoButton_Click" Background="Plum"/>
+                            <Button Name="AnimatedBackgroundDemoButton" Content="Animated Demo" Margin="0,2" 
+                                    Click="AnimatedBackgroundDemoButton_Click" Background="Orange" FontWeight="Bold"/>
+                            <Button Name="CreateSampleSceneButton" Content="Create Sample Scene" Margin="0,2" 
+                                    Click="CreateSampleSceneButton_Click" Background="MediumSeaGreen" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Expander>
 
+                    <!-- Motion Elements Section -->
                     <!-- Instructions Section -->
                     <Expander Header="Instructions" IsExpanded="False" Margin="0,0,0,10">
                         <StackPanel>
@@ -189,6 +424,17 @@
                                 • Left-click and drag to move elements
                                 <LineBreak/>
                                 • Right-click to select elements
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="✏️ Element Editing:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • Select an element to view/edit its properties
+                                <LineBreak/>
+                                • Change properties in the Element Editor panel
+                                <LineBreak/>
+                                • Click Apply Changes to save modifications
+                                <LineBreak/>
+                                • Click Reset to revert to original values
                                 <LineBreak/>
                                 <LineBreak/>
                                 <Run Text="💾 Scene Management:" FontWeight="Bold"/>
@@ -234,51 +480,6 @@
                             </TextBlock>
                         </StackPanel>
                     </Expander>
-
-                    <!-- Background Controls Section -->
-                    <Expander Header="Background Controls" IsExpanded="True" Margin="0,0,0,10">
-                        <StackPanel>
-                            <TextBlock Text="Background Options:" FontWeight="Bold" Margin="0,5,0,5"/>
-                            
-                            <!-- Background type buttons -->
-                            <Button Name="SetSolidColorBackgroundButton" Content="Set Solid Color" Margin="0,2" 
-                                    Click="SetSolidColorBackgroundButton_Click" Background="LightCoral"/>
-                            <Button Name="SetGradientBackgroundButton" Content="Set Gradient" Margin="0,2" 
-                                    Click="SetGradientBackgroundButton_Click" Background="LightBlue"/>
-                            <Button Name="LoadBackgroundImageButton" Content="Load Background Image" Margin="0,2" 
-                                    Click="LoadBackgroundImageButton_Click" Background="LightGreen"/>
-                            
-                            <!-- Background utilities -->
-                            <Separator Margin="0,5"/>
-                            <Button Name="ClearBackgroundButton" Content="Clear Background" Margin="0,2" 
-                                    Click="ClearBackgroundButton_Click" Background="LightGray"/>
-                            <Button Name="ResetDefaultBackgroundButton" Content="Reset to Default" Margin="0,2" 
-                                    Click="ResetDefaultBackgroundButton_Click" Background="LightSteelBlue"/>
-                            
-                            <!-- Background image controls -->
-                            <Separator Margin="0,5"/>
-                            <Button Name="ChangeScaleModeButton" Content="Change Scale Mode" Margin="0,2" 
-                                    Click="ChangeScaleModeButton_Click" Background="LightGoldenrodYellow"/>
-                            
-                            <!-- Background opacity control -->
-                            <TextBlock Text="Background Opacity:" FontWeight="Bold" Margin="0,10,0,2"/>
-                            <Slider Name="BackgroundOpacitySlider" Minimum="0" Maximum="1" Value="1" 
-                                    Margin="0,2" ValueChanged="BackgroundOpacitySlider_ValueChanged"/>
-                            <Label Name="BackgroundOpacityLabel" Content="Background Opacity: 1.00" 
-                                   FontSize="10" Margin="0,0,0,5"/>
-                            
-                            <!-- Background info and demos -->
-                            <Separator Margin="0,5"/>
-                            <Button Name="GetBackgroundInfoButton" Content="Get Background Info" Margin="0,2" 
-                                    Click="GetBackgroundInfoButton_Click" Background="Plum"/>
-                            <Button Name="AnimatedBackgroundDemoButton" Content="Animated Demo" Margin="0,2" 
-                                    Click="AnimatedBackgroundDemoButton_Click" Background="Orange" FontWeight="Bold"/>
-                            <Button Name="CreateSampleSceneButton" Content="Create Sample Scene" Margin="0,2" 
-                                    Click="CreateSampleSceneButton_Click" Background="MediumSeaGreen" FontWeight="Bold"/>
-                        </StackPanel>
-                    </Expander>
-
-                    <!-- Motion Elements Section -->
                 </StackPanel>
             </ScrollViewer>
         </Border>

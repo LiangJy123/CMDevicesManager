@@ -32,10 +32,15 @@ namespace CMDevicesManager.Pages
         private readonly List<RenderElement> _motionElements = new();
         private readonly Random _random = new Random();
 
+        // Element editing state
+        private RenderElement? _currentEditingElement;
+        private bool _isUpdatingElementEditor = false;
+
         public RenderDemoPage()
         {
             InitializeComponent();
             Loaded += OnWindowLoaded;
+            InitializeElementEditor();
         }
 
         private async void OnWindowLoaded(object sender, RoutedEventArgs e)
@@ -121,12 +126,479 @@ namespace CMDevicesManager.Pages
                         ElementsListBox.SelectedIndex = index;
                     }
                 }
+                
+                // Update element editor
+                UpdateElementEditor(element);
             });
         }
 
         private void OnElementMoved(RenderElement element)
         {
-            // Element position updated - could trigger additional actions here
+            // Update editor if this is the currently selected element
+            if (_currentEditingElement == element)
+            {
+                UpdateElementEditorPosition(element);
+            }
+        }
+
+        #region Element Editor Methods
+
+        /// <summary>
+        /// Update the element editor UI with the selected element's properties
+        /// </summary>
+        private void UpdateElementEditor(RenderElement? element)
+        {
+            _isUpdatingElementEditor = true;
+            _currentEditingElement = element;
+
+            try
+            {
+                if (element == null)
+                {
+                    // No element selected
+                    NoSelectionText.Visibility = Visibility.Visible;
+                    ElementInfoPanel.Visibility = Visibility.Collapsed;
+                    return;
+                }
+
+                // Show element info panel
+                NoSelectionText.Visibility = Visibility.Collapsed;
+                ElementInfoPanel.Visibility = Visibility.Visible;
+
+                // Update element name and type
+                ElementNameText.Text = element.Name;
+                ElementTypeText.Text = $"Type: {element.Type} | ID: {element.Id.ToString()[..8]}...";
+
+                // Update common properties
+                PositionXTextBox.Text = element.Position.X.ToString("F1");
+                PositionYTextBox.Text = element.Position.Y.ToString("F1");
+                ZIndexTextBox.Text = element.ZIndex.ToString("F1");
+                VisibleCheckBox.IsChecked = element.IsVisible;
+                DraggableCheckBox.IsChecked = element.IsDraggable;
+
+                // Hide all specific property panels first
+                TextElementProperties.Visibility = Visibility.Collapsed;
+                ShapeElementProperties.Visibility = Visibility.Collapsed;
+                ImageElementProperties.Visibility = Visibility.Collapsed;
+                MotionElementProperties.Visibility = Visibility.Collapsed;
+                LiveElementProperties.Visibility = Visibility.Collapsed;
+
+                // Show and populate element-specific properties
+                switch (element)
+                {
+                    case TextElement textElement:
+                        UpdateTextElementEditor(textElement);
+                        break;
+                    case ShapeElement shapeElement:
+                        UpdateShapeElementEditor(shapeElement);
+                        break;
+                    case ImageElement imageElement:
+                        UpdateImageElementEditor(imageElement);
+                        break;
+                    case LiveElement liveElement:
+                        UpdateLiveElementEditor(liveElement);
+                        break;
+                }
+
+                // Update motion properties if element has motion
+                if (element is IMotionElement motionElement)
+                {
+                    UpdateMotionElementEditor(motionElement);
+                }
+            }
+            finally
+            {
+                _isUpdatingElementEditor = false;
+            }
+        }
+
+        /// <summary>
+        /// Update text element specific properties in the editor
+        /// </summary>
+        private void UpdateTextElementEditor(TextElement textElement)
+        {
+            TextElementProperties.Visibility = Visibility.Visible;
+            
+            TextContentTextBox.Text = textElement.Text;
+            FontSizeTextBox.Text = textElement.FontSize.ToString();
+            FontFamilyTextBox.Text = textElement.FontFamily;
+            
+            var color = textElement.TextColor;
+            ColorATextBox.Text = color.A.ToString();
+            ColorRTextBox.Text = color.R.ToString();
+            ColorGTextBox.Text = color.G.ToString();
+            ColorBTextBox.Text = color.B.ToString();
+        }
+
+        /// <summary>
+        /// Update shape element specific properties in the editor
+        /// </summary>
+        private void UpdateShapeElementEditor(ShapeElement shapeElement)
+        {
+            ShapeElementProperties.Visibility = Visibility.Visible;
+            
+            ShapeTypeComboBox.SelectedItem = shapeElement.ShapeType;
+            ShapeWidthTextBox.Text = shapeElement.Size.Width.ToString("F1");
+            ShapeHeightTextBox.Text = shapeElement.Size.Height.ToString("F1");
+            StrokeWidthTextBox.Text = shapeElement.StrokeWidth.ToString("F1");
+            
+            var fillColor = shapeElement.FillColor;
+            FillColorATextBox.Text = fillColor.A.ToString();
+            FillColorRTextBox.Text = fillColor.R.ToString();
+            FillColorGTextBox.Text = fillColor.G.ToString();
+            FillColorBTextBox.Text = fillColor.B.ToString();
+            
+            var strokeColor = shapeElement.StrokeColor;
+            StrokeColorATextBox.Text = strokeColor.A.ToString();
+            StrokeColorRTextBox.Text = strokeColor.R.ToString();
+            StrokeColorGTextBox.Text = strokeColor.G.ToString();
+            StrokeColorBTextBox.Text = strokeColor.B.ToString();
+        }
+
+        /// <summary>
+        /// Update image element specific properties in the editor
+        /// </summary>
+        private void UpdateImageElementEditor(ImageElement imageElement)
+        {
+            ImageElementProperties.Visibility = Visibility.Visible;
+            
+            ImagePathTextBox.Text = imageElement.ImagePath;
+            ImageScaleTextBox.Text = imageElement.Scale.ToString("F2");
+            ImageRotationTextBox.Text = imageElement.Rotation.ToString("F1");
+        }
+
+        /// <summary>
+        /// Update live element specific properties in the editor
+        /// </summary>
+        private void UpdateLiveElementEditor(LiveElement liveElement)
+        {
+            LiveElementProperties.Visibility = Visibility.Visible;
+            
+            LiveFormatTextBox.Text = liveElement.Format;
+            LiveCurrentValueTextBox.Text = liveElement.GetCurrentText();
+        }
+
+        /// <summary>
+        /// Update motion element specific properties in the editor
+        /// </summary>
+        private void UpdateMotionElementEditor(IMotionElement motionElement)
+        {
+            MotionElementProperties.Visibility = Visibility.Visible;
+            
+            MotionTypeComboBox.SelectedItem = motionElement.MotionConfig.MotionType;
+            MotionSpeedTextBox.Text = motionElement.MotionConfig.Speed.ToString("F1");
+            MotionRadiusTextBox.Text = motionElement.MotionConfig.Radius.ToString("F1");
+            TrailLengthTextBox.Text = motionElement.MotionConfig.TrailLength.ToString();
+            RespectBoundariesCheckBox.IsChecked = motionElement.MotionConfig.RespectBoundaries;
+            ShowTrailCheckBox.IsChecked = motionElement.MotionConfig.ShowTrail;
+            IsPausedCheckBox.IsChecked = motionElement.MotionConfig.IsPaused;
+        }
+
+        /// <summary>
+        /// Update position fields when element is moved by dragging
+        /// </summary>
+        private void UpdateElementEditorPosition(RenderElement element)
+        {
+            if (_isUpdatingElementEditor || _currentEditingElement != element) return;
+
+            _isUpdatingElementEditor = true;
+            try
+            {
+                PositionXTextBox.Text = element.Position.X.ToString("F1");
+                PositionYTextBox.Text = element.Position.Y.ToString("F1");
+            }
+            finally
+            {
+                _isUpdatingElementEditor = false;
+            }
+        }
+
+        /// <summary>
+        /// Handle element property changes from UI controls
+        /// </summary>
+        private void ElementProperty_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingElementEditor || _currentEditingElement == null || _interactiveService == null) 
+                return;
+
+            // Changes are staged but not applied until Apply Changes is clicked
+            // This provides better user control and prevents constant updates during editing
+        }
+
+        /// <summary>
+        /// Apply changes made in the element editor to the actual element
+        /// </summary>
+        private void ApplyChangesButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentEditingElement == null || _interactiveService == null) 
+            {
+                StatusLabel.Content = "No element selected for editing";
+                return;
+            }
+
+            try
+            {
+                var properties = GatherElementPropertiesFromEditor();
+                _interactiveService.UpdateElementProperties(_currentEditingElement, properties);
+                
+                StatusLabel.Content = "Element changes applied successfully";
+                UpdateElementsList();
+                
+                // Refresh the editor with updated values
+                UpdateElementEditor(_currentEditingElement);
+            }
+            catch (Exception ex)
+            {
+                StatusLabel.Content = $"Error applying changes: {ex.Message}";
+            }
+        }
+
+        /// <summary>
+        /// Reset element editor to current element values
+        /// </summary>
+        private void ResetChangesButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentEditingElement == null)
+            {
+                StatusLabel.Content = "No element selected for reset";
+                return;
+            }
+
+            UpdateElementEditor(_currentEditingElement);
+            StatusLabel.Content = "Element editor reset to current values";
+        }
+
+        /// <summary>
+        /// Gather all properties from the editor UI controls
+        /// </summary>
+        private Dictionary<string, object> GatherElementPropertiesFromEditor()
+        {
+            var properties = new Dictionary<string, object>();
+
+            try
+            {
+                // Common properties
+                if (double.TryParse(PositionXTextBox.Text, out var posX) && 
+                    double.TryParse(PositionYTextBox.Text, out var posY))
+                {
+                    properties["Position"] = new WinFoundation.Point(posX, posY);
+                }
+
+                if (float.TryParse(ZIndexTextBox.Text, out var zIndex))
+                {
+                    properties["ZIndex"] = zIndex;
+                }
+
+                properties["IsVisible"] = VisibleCheckBox.IsChecked ?? true;
+                properties["IsDraggable"] = DraggableCheckBox.IsChecked ?? true;
+
+                // Element-specific properties based on current element type
+                if (_currentEditingElement != null)
+                {
+                    switch (_currentEditingElement)
+                    {
+                        case TextElement:
+                            GatherTextElementProperties(properties);
+                            break;
+                        case ShapeElement:
+                            GatherShapeElementProperties(properties);
+                            break;
+                        case ImageElement:
+                            GatherImageElementProperties(properties);
+                            break;
+                        case LiveElement:
+                            GatherLiveElementProperties(properties);
+                            break;
+                    }
+
+                    // Motion properties if element has motion
+                    if (_currentEditingElement is IMotionElement)
+                    {
+                        GatherMotionElementProperties(properties);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusLabel.Content = $"Error gathering properties: {ex.Message}";
+            }
+
+            return properties;
+        }
+
+        /// <summary>
+        /// Gather text element properties from editor
+        /// </summary>
+        private void GatherTextElementProperties(Dictionary<string, object> properties)
+        {
+            properties["Text"] = TextContentTextBox.Text ?? "";
+
+            if (float.TryParse(FontSizeTextBox.Text, out var fontSize))
+                properties["FontSize"] = fontSize;
+
+            properties["FontFamily"] = FontFamilyTextBox.Text ?? "Segoe UI";
+
+            if (byte.TryParse(ColorATextBox.Text, out var a) &&
+                byte.TryParse(ColorRTextBox.Text, out var r) &&
+                byte.TryParse(ColorGTextBox.Text, out var g) &&
+                byte.TryParse(ColorBTextBox.Text, out var b))
+            {
+                properties["TextColor"] = WinUIColor.FromArgb(a, r, g, b);
+            }
+        }
+
+        /// <summary>
+        /// Gather shape element properties from editor
+        /// </summary>
+        private void GatherShapeElementProperties(Dictionary<string, object> properties)
+        {
+            if (ShapeTypeComboBox.SelectedItem is ShapeType shapeType)
+                properties["ShapeType"] = shapeType;
+
+            if (double.TryParse(ShapeWidthTextBox.Text, out var width) &&
+                double.TryParse(ShapeHeightTextBox.Text, out var height))
+            {
+                properties["Size"] = new WinFoundation.Size(width, height);
+            }
+
+            if (float.TryParse(StrokeWidthTextBox.Text, out var strokeWidth))
+                properties["StrokeWidth"] = strokeWidth;
+
+            // Fill color
+            if (byte.TryParse(FillColorATextBox.Text, out var fa) &&
+                byte.TryParse(FillColorRTextBox.Text, out var fr) &&
+                byte.TryParse(FillColorGTextBox.Text, out var fg) &&
+                byte.TryParse(FillColorBTextBox.Text, out var fb))
+            {
+                properties["FillColor"] = WinUIColor.FromArgb(fa, fr, fg, fb);
+            }
+
+            // Stroke color
+            if (byte.TryParse(StrokeColorATextBox.Text, out var sa) &&
+                byte.TryParse(StrokeColorRTextBox.Text, out var sr) &&
+                byte.TryParse(StrokeColorGTextBox.Text, out var sg) &&
+                byte.TryParse(StrokeColorBTextBox.Text, out var sb))
+            {
+                properties["StrokeColor"] = WinUIColor.FromArgb(sa, sr, sg, sb);
+            }
+        }
+
+        /// <summary>
+        /// Gather image element properties from editor
+        /// </summary>
+        private void GatherImageElementProperties(Dictionary<string, object> properties)
+        {
+            if (float.TryParse(ImageScaleTextBox.Text, out var scale))
+                properties["Scale"] = scale;
+
+            if (float.TryParse(ImageRotationTextBox.Text, out var rotation))
+                properties["Rotation"] = rotation;
+        }
+
+        /// <summary>
+        /// Gather live element properties from editor
+        /// </summary>
+        private void GatherLiveElementProperties(Dictionary<string, object> properties)
+        {
+            properties["Format"] = LiveFormatTextBox.Text ?? "";
+        }
+
+        /// <summary>
+        /// Gather motion element properties from editor
+        /// </summary>
+        private void GatherMotionElementProperties(Dictionary<string, object> properties)
+        {
+            if (MotionTypeComboBox.SelectedItem is MotionType motionType)
+                properties["MotionType"] = motionType;
+
+            if (float.TryParse(MotionSpeedTextBox.Text, out var speed))
+                properties["Speed"] = speed;
+
+            if (float.TryParse(MotionRadiusTextBox.Text, out var radius))
+                properties["Radius"] = radius;
+
+            if (int.TryParse(TrailLengthTextBox.Text, out var trailLength))
+                properties["TrailLength"] = trailLength;
+
+            properties["RespectBoundaries"] = RespectBoundariesCheckBox.IsChecked ?? false;
+            properties["ShowTrail"] = ShowTrailCheckBox.IsChecked ?? false;
+            properties["IsPaused"] = IsPausedCheckBox.IsChecked ?? false;
+        }
+
+        #endregion
+
+        private void ElementsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ElementsListBox.SelectedIndex >= 0 && _interactiveService != null)
+            {
+                var elements = _interactiveService.GetElements();
+                if (ElementsListBox.SelectedIndex < elements.Count)
+                {
+                    var element = elements[ElementsListBox.SelectedIndex];
+                    _interactiveService.SelectElement(element);
+                    if (DeleteElementButton != null)
+                        DeleteElementButton.IsEnabled = true;
+                }
+            }
+            else
+            {
+                _interactiveService?.SelectElement(null);
+                UpdateElementEditor(null);
+                if (DeleteElementButton != null)
+                    DeleteElementButton.IsEnabled = false;
+            }
+        }
+
+        private void DeleteElementButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ElementsListBox.SelectedIndex >= 0 && _interactiveService != null)
+            {
+                var elements = _interactiveService.GetElements();
+                if (ElementsListBox.SelectedIndex < elements.Count)
+                {
+                    var element = elements[ElementsListBox.SelectedIndex];
+                    _interactiveService.RemoveElement(element);
+                    _motionElements.Remove(element);
+                    
+                    // Clear element editor if this was the selected element
+                    if (_currentEditingElement == element)
+                    {
+                        UpdateElementEditor(null);
+                    }
+                    
+                    UpdateElementsList();
+                    StatusLabel.Content = "Element deleted";
+                }
+            }
+        }
+
+        private void ClearAllButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_interactiveService != null)
+            {
+                _interactiveService.ClearElements();
+                _motionElements.Clear();
+                UpdateElementsList();
+                
+                // Clear element editor
+                UpdateElementEditor(null);
+                
+                StatusLabel.Content = "All elements cleared";
+            }
+        }
+
+        private void InitializeElementEditor()
+        {
+            // Initialize combo boxes with enum values
+            if (MotionTypeComboBox != null)
+            {
+                MotionTypeComboBox.ItemsSource = Enum.GetValues(typeof(MotionType));
+            }
+            
+            if (ShapeTypeComboBox != null)
+            {
+                ShapeTypeComboBox.ItemsSource = Enum.GetValues(typeof(ShapeType));
+            }
         }
 
         private void OnRawImageDataReady(byte[] imageData)
@@ -360,17 +832,6 @@ namespace CMDevicesManager.Pages
             catch (Exception ex)
             {
                 StatusLabel.Content = $"Save failed: {ex.Message}";
-            }
-        }
-
-        private void ClearAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_interactiveService != null)
-            {
-                _interactiveService.ClearElements();
-                _motionElements.Clear();
-                UpdateElementsList();
-                StatusLabel.Content = "All elements cleared";
             }
         }
 
@@ -1235,42 +1696,6 @@ namespace CMDevicesManager.Pages
                 _interactiveService.ShowDate = ShowDateCheckBox?.IsChecked ?? false;
                 _interactiveService.ShowSystemInfo = ShowSystemInfoCheckBox?.IsChecked ?? false;
                 _interactiveService.ShowAnimation = ShowAnimationCheckBox?.IsChecked ?? false;
-            }
-        }
-
-        private void ElementsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (ElementsListBox.SelectedIndex >= 0 && _interactiveService != null)
-            {
-                var elements = _interactiveService.GetElements();
-                if (ElementsListBox.SelectedIndex < elements.Count)
-                {
-                    var element = elements[ElementsListBox.SelectedIndex];
-                    _interactiveService.SelectElement(element);
-                    if (DeleteElementButton != null)
-                        DeleteElementButton.IsEnabled = true;
-                }
-            }
-            else
-            {
-                if (DeleteElementButton != null)
-                    DeleteElementButton.IsEnabled = false;
-            }
-        }
-
-        private void DeleteElementButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (ElementsListBox.SelectedIndex >= 0 && _interactiveService != null)
-            {
-                var elements = _interactiveService.GetElements();
-                if (ElementsListBox.SelectedIndex < elements.Count)
-                {
-                    var element = elements[ElementsListBox.SelectedIndex];
-                    _interactiveService.RemoveElement(element);
-                    _motionElements.Remove(element);
-                    UpdateElementsList();
-                    StatusLabel.Content = "Element deleted";
-                }
             }
         }
 
