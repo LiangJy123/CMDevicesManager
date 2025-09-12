@@ -38,7 +38,7 @@ namespace CMDevicesManager
         private SettingsPage? _settingsPage;
         private DevicePlayModePage? _devicePlayModePage;
         private ListBoxItem? _lastNavContentItem; // 记录最后一次真正的页面项
-
+        private DeviceConfigPage? _deviceConfigPage;
         // ADDED: prevent concurrent sequence capture
         private bool _isSequenceCaptureInProgress;
 
@@ -85,6 +85,7 @@ namespace CMDevicesManager
         private DevicePageDemo GetDevicePageDemo() => _devicePageDemo ??= new DevicePageDemo();
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
         private DevicePlayModePage GetDevicePlayModePage() => _devicePlayModePage ??= new DevicePlayModePage();
+        private DeviceConfigPage GetDeviceConfigPage() => _deviceConfigPage ??= new DeviceConfigPage();
 
         private void ValidateResources()
         {
@@ -145,14 +146,11 @@ namespace CMDevicesManager
                 if (Equals(item.Tag, "__MirrorSaveImage"))
                 {
                     // Only when not in config/play pages
-                    if (!IsConfigOrPlayModePage(MainFrame.Content))
-                    {
-                        var path = GlobalMirrorCanvasService.Instance.MyCampture(MirrorRoot);
-                        if (path != null)
-                            MessageBox.Show($"截图已保存:\n{path}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-                        else
-                            MessageBox.Show("截图失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
+                    //if (!IsConfigOrPlayModePage(MainFrame.Content))
+                    //{
+
+                    //}
+                    savecanvasglobal();
                     RestorePreviousSelection();
                     return;
                 }
@@ -169,12 +167,14 @@ namespace CMDevicesManager
                         if (pagePath.Equals("DevicePageDemo") && MainFrame.Content is DevicePageDemo) { _lastNavContentItem = item; return; }
                         if (pagePath.Equals("SettingsPage") && MainFrame.Content is SettingsPage) { _lastNavContentItem = item; return; }
                         if (pagePath.Equals("DevicePlayModePage") && MainFrame.Content is DevicePlayModePage) { _lastNavContentItem = item; return; }
+                        if (pagePath.Equals("DeviceConfigPage") && MainFrame.Content is DeviceConfigPage) { _lastNavContentItem = item; return; }
 
                         if (pagePath.Equals("HomePage")) MainFrame.Navigate(GetHomePage());
                         else if (pagePath.Equals("DevicePage")) MainFrame.Navigate(GetDevicePage());
                         else if (pagePath.Equals("DevicePageDemo")) MainFrame.Navigate(GetDevicePageDemo());
                         else if (pagePath.Equals("SettingsPage")) MainFrame.Navigate(GetSettingsPage());
                         else if (pagePath.Equals("DevicePlayModePage")) MainFrame.Navigate(GetDevicePlayModePage());
+                        else if (pagePath.Equals("DeviceConfigPage")) MainFrame.Navigate(GetDeviceConfigPage());
                         else MainFrame.Source = new Uri(pagePath, UriKind.Relative);
 
                         _lastNavContentItem = item;
@@ -189,67 +189,50 @@ namespace CMDevicesManager
             }
         }
 
-        // ADDED: sequence capture logic
-        private void StartMirrorSequenceCapture()
+        private void savecanvasglobal() 
         {
-            if (_isSequenceCaptureInProgress)
-                return;
-
-            _isSequenceCaptureInProgress = true;
-
+                var DesignRoot = MirrorRoot; // Assuming DesignRoot is the root element of your canvas
             try
             {
-                // Keep logical 1:1 size
-                GlobalMirrorCanvasService.Instance.SetSnapshotScaleMode(
-                    GlobalMirrorCanvasService.SnapshotScaleMode.LogicalCanvas);
+                if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
+                {
+                    MessageBox.Show("画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
 
-                // Ensure movement advances between frames
-                GlobalMirrorCanvasService.Instance.SetSnapshotMovementMode(
-                    GlobalMirrorCanvasService.MovementCaptureMode.RealDelta);
+                DesignRoot.UpdateLayout();
 
-                string root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "AutoSequence");
-                Directory.CreateDirectory(root);
-                string dir = Path.Combine(root, DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+                int w = (int)Math.Ceiling(DesignRoot.ActualWidth);
+                int h = (int)Math.Ceiling(DesignRoot.ActualHeight);
+
+                var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(DesignRoot);
+
+                string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "captureimage");
                 Directory.CreateDirectory(dir);
 
-                int frameCount = 60;
-                int intervalMs = 50; // 50ms
+                string baseName = "GlobalCanvas";
 
-                Task.Run(async () =>
-                {
-                    for (int i = 0; i < frameCount; i++)
-                    {
-                        string file = Path.Combine(dir, $"frame_{i:D3}.png");
-                        try
-                        {
-                            await Dispatcher.InvokeAsync(() =>
-                            {
-                                // Canvas-only capture:
-                                // includeBackground=true -> background color/image + design elements
-                                // set to false if you want only design layer
-                                GlobalMirrorCanvasService.Instance
-                                    .SaveCanvasSnapshot(file, includeBackground: true, freezeMovement: false);
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error("Frame capture failed", ex);
-                        }
+                foreach (var c in Path.GetInvalidFileNameChars())
+                    baseName = baseName.Replace(c, '_');
 
-                        if (i < frameCount - 1)
-                            await Task.Delay(intervalMs);
-                    }
+                string file = Path.Combine(dir, $"{baseName}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
 
-                    _isSequenceCaptureInProgress = false;
-                });
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(rtb));
+                using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
+                    encoder.Save(fs);
+
+                MessageBox.Show($"已保存:\n{file}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                _isSequenceCaptureInProgress = false;
-                Logger.Error("Failed to start sequence capture", ex);
+                MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        
         }
-
+        // ADDED: sequence capture logic
+      
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ClickCount == 2)
@@ -262,32 +245,10 @@ namespace CMDevicesManager
             }
         }
 
-        // Mirror 浮层内的保存按钮
-        private void SaveMirrorInline_Click(object sender, RoutedEventArgs e)
-        {
-            DoSaveMirrorSnapshot();
-        }
+      
 
         // 单张保存（仍保留）
-        private void DoSaveMirrorSnapshot()
-        {
-            var dlg = new Microsoft.Win32.SaveFileDialog
-            {
-                Title = "Save Mirror Snapshot",
-                Filter = "PNG (*.png)|*.png|JPEG (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp",
-                FileName = "MirrorCanvas.png"
-            };
-            if (dlg.ShowDialog() == true)
-            {
-                bool ok = GlobalMirrorCanvasService.Instance
-                    .SaveCanvasSnapshot(dlg.FileName, includeBackground: true, freezeMovement: true);
-                if (!ok)
-                {
-                    MessageBox.Show("Save failed.", "Mirror Snapshot",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
+      
 
         private void Minimize_Click(object sender, RoutedEventArgs e)
         {
@@ -309,22 +270,7 @@ namespace CMDevicesManager
             WindowState = (WindowState == WindowState.Maximized) ? WindowState.Normal : WindowState.Maximized;
         }
 
-        private void SaveHiddenCanvasButton_Click(object sender, RoutedEventArgs e)
-        {
-            var dlg = new SaveFileDialog
-            {
-                Title = "Save Hidden Canvas Snapshot",
-                Filter = "PNG (*.png)|*.png|JPEG (*.jpg)|*.jpg|Bitmap (*.bmp)|*.bmp",
-                FileName = "HiddenCanvas.png"
-            };
-            if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                if (!GlobalMirrorCanvasService.Instance.SaveSnapshot(dlg.FileName))
-                {
-                    MessageBox.Show("Save failed.", "Snapshot", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-        }
+      
 
         private void ToggleMirrorPreviewButton_Checked(object sender, RoutedEventArgs e)
         {
@@ -347,14 +293,5 @@ namespace CMDevicesManager
             GlobalMirrorHost.Visibility = Visibility.Hidden;
         }
 
-        // NEW: auto save mirror canvas (no dialog)
-        private void SaveMirrorAuto_Click(object sender, RoutedEventArgs e)
-        {
-            var path = GlobalMirrorCanvasService.Instance.SaveStandardCaptureToFolder();
-            if (path != null)
-                MessageBox.Show($"截图已保存:\n{path}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
-            else
-                MessageBox.Show("截图失败", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-        }
     }
 }
