@@ -31,6 +31,7 @@ using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
 using Image = System.Windows.Controls.Image;
 using LiveInfoKindAlias = CMDevicesManager.Pages.DeviceConfigPage.LiveInfoKind;
+using MessageBox = System.Windows.MessageBox;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using Path = System.IO.Path;
 using Point = System.Windows.Point;
@@ -42,6 +43,8 @@ namespace CMDevicesManager.Pages
 {
     public partial class DevicePlayModePage : Page
     {
+        public static event Action<CanvasConfiguration>? GlobalConfigRendered;
+        private CanvasConfiguration? _lastAppliedConfig;
         private readonly string _globalSequencePath;
         private readonly object _globalSequenceLock = new();
         private sealed class GlobalConfigSequence
@@ -668,19 +671,20 @@ namespace CMDevicesManager.Pages
         }
         private void ClearCanvasForNoConfigs()
         {
-            // 停止序列
             _configSequenceCts?.Cancel();
 
-            // 清空渲染与状态
             DesignCanvas.Children.Clear();
             _liveDynamicItems.Clear();
             _usageVisualItems.Clear();
             _movingDirections.Clear();
-
-            // 停止自动移动
             UpdateAutoMoveTimer();
 
-            // 重置显示信息
+            // 广播一个空白配置（供隐藏全局 Canvas 清空显示）
+            var blank = new CanvasConfiguration { CanvasSize = 512 };
+            GlobalConfigRendered?.Invoke(blank);
+            _lastAppliedConfig = blank;
+           
+
             CurrentImageName.Text = "No config";
             ImageDimensions.Text = "";
             SaveGlobalSequence();
@@ -919,7 +923,7 @@ namespace CMDevicesManager.Pages
                     BgColorRect.Fill = brush;
                 }
             }
-            catch { BgColorRect.Fill = Brushes.Black; }
+            catch { BgColorRect.Fill = Brushes.White; }
 
             // 背景图
             if (!string.IsNullOrWhiteSpace(cfg.BackgroundImagePath))
@@ -1103,6 +1107,8 @@ namespace CMDevicesManager.Pages
             }
 
             UpdateAutoMoveTimer();
+            _lastAppliedConfig = cfg;
+            GlobalConfigRendered?.Invoke(cfg);
         }
         private UsageVisualItem BuildUsageVisual(
     LiveInfoKindAlias kind,
@@ -2004,6 +2010,49 @@ namespace CMDevicesManager.Pages
             catch (Exception ex)
             {
                 Console.WriteLine($"Frame UI update failed: {ex.Message}");
+            }
+        }
+
+        private void SaveCanvasButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
+                {
+                    MessageBox.Show("画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                DesignRoot.UpdateLayout();
+
+                int w = (int)Math.Ceiling(DesignRoot.ActualWidth);
+                int h = (int)Math.Ceiling(DesignRoot.ActualHeight);
+
+                var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(DesignRoot);
+
+                string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "captureimage");
+                Directory.CreateDirectory(dir);
+
+                string baseName = string.IsNullOrWhiteSpace(_lastAppliedConfig?.ConfigName)
+                    ? "PlayModeCanvas"
+                    : _lastAppliedConfig!.ConfigName;
+
+                foreach (var c in Path.GetInvalidFileNameChars())
+                    baseName = baseName.Replace(c, '_');
+
+                string file = Path.Combine(dir, $"{baseName}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
+
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(rtb));
+                using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
+                    encoder.Save(fs);
+
+                MessageBox.Show($"已保存:\n{file}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }
