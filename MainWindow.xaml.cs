@@ -37,6 +37,7 @@ namespace CMDevicesManager
         private DevicePageDemo? _devicePageDemo;
         private SettingsPage? _settingsPage;
         private DevicePlayModePage? _devicePlayModePage;
+        private DesignerPage? _designerPage;
 
         private ListBoxItem? _lastNavContentItem; // 记录最后一次真正的页面项
         private DeviceConfigPage? _deviceConfigPage;
@@ -90,6 +91,7 @@ namespace CMDevicesManager
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
         private DevicePlayModePage GetDevicePlayModePage() => _devicePlayModePage ??= new DevicePlayModePage();
 
+        private DesignerPage GetDesignerPage() => _designerPage ??= new DesignerPage();
         private DeviceConfigPage GetDeviceConfigPage() => _deviceConfigPage ??= new DeviceConfigPage();
         private RenderDemoPage GetRenderDemoPage() => _renderDemoPage ??= new RenderDemoPage();
 
@@ -178,6 +180,7 @@ namespace CMDevicesManager
                         if (pagePath.Equals("DevicePlayModePage") && MainFrame.Content is DevicePlayModePage) { _lastNavContentItem = item; return; }
                         if (pagePath.Equals("DeviceConfigPage") && MainFrame.Content is DeviceConfigPage) { _lastNavContentItem = item; return; }
                         if (pagePath.Equals("RenderDemoPage") && MainFrame.Content is RenderDemoPage) { _lastNavContentItem = item; return; }
+                        if (pagePath.Equals("DesignerPage") && MainFrame.Content is DesignerPage) { _lastNavContentItem = item; return; }
 
                         if (pagePath.Equals("HomePage")) MainFrame.Navigate(GetHomePage());
                         else if (pagePath.Equals("DevicePage")) MainFrame.Navigate(GetDevicePage());
@@ -186,6 +189,7 @@ namespace CMDevicesManager
                         else if (pagePath.Equals("DevicePlayModePage")) MainFrame.Navigate(GetDevicePlayModePage());
                         else if (pagePath.Equals("DeviceConfigPage")) MainFrame.Navigate(GetDeviceConfigPage());
                         else if (pagePath.Equals("RenderDemoPage"))MainFrame.Navigate(GetRenderDemoPage());
+                        else if (pagePath.Equals("DesignerPage")) MainFrame.Navigate(GetDesignerPage());
                         else MainFrame.Source = new Uri(pagePath, UriKind.Relative);
 
                         _lastNavContentItem = item;

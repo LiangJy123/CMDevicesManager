@@ -238,8 +238,10 @@ namespace CMDevicesManager.Services
         private void UpdateMetricsOnce()
         {
             if (_lastResult == null) return;
-            double cpu = _metrics.GetCpuUsagePercent();
-            double gpu = _metrics.GetGpuUsagePercent();
+            //double cpu = _metrics.GetCpuUsagePercent();
+            //double gpu = _metrics.GetGpuUsagePercent();
+            double cpu = 0.4f;
+            double gpu = 0.4f;
             DateTime now = DateTime.Now;
 
             foreach (var item in _lastResult.UsageItems)
