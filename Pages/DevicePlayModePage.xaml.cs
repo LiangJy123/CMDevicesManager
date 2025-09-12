@@ -1917,7 +1917,6 @@ namespace CMDevicesManager.Pages
                 return false;
             }
         }
-
         // MP4 advanced streaming pieces (copied essential parts)
         public delegate void Mp4DeviceDisplayCallback(VideoFrameData frameData, int frameIndex, byte transferId);
 

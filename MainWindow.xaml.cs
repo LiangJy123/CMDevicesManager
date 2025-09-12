@@ -37,10 +37,14 @@ namespace CMDevicesManager
         private DevicePageDemo? _devicePageDemo;
         private SettingsPage? _settingsPage;
         private DevicePlayModePage? _devicePlayModePage;
+
         private ListBoxItem? _lastNavContentItem; // 记录最后一次真正的页面项
         private DeviceConfigPage? _deviceConfigPage;
         // ADDED: prevent concurrent sequence capture
         private bool _isSequenceCaptureInProgress;
+
+        private RenderDemoPage? _renderDemoPage;
+
 
         public MainWindow()
         {
@@ -85,7 +89,10 @@ namespace CMDevicesManager
         private DevicePageDemo GetDevicePageDemo() => _devicePageDemo ??= new DevicePageDemo();
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
         private DevicePlayModePage GetDevicePlayModePage() => _devicePlayModePage ??= new DevicePlayModePage();
+
         private DeviceConfigPage GetDeviceConfigPage() => _deviceConfigPage ??= new DeviceConfigPage();
+        private RenderDemoPage GetRenderDemoPage() => _renderDemoPage ??= new RenderDemoPage();
+
 
         private void ValidateResources()
         {
@@ -143,6 +150,14 @@ namespace CMDevicesManager
                     return;
                 }
 
+                    // Short-circuit if already on the requested page
+                    if (pagePath.Equals("HomePage") && MainFrame.Content is HomePage) return;
+                    if (pagePath.Equals("DevicePage") && MainFrame.Content is DevicePage) return;
+                    if (pagePath.Equals("DevicePageDemo") && MainFrame.Content is DevicePageDemo) return;
+                    if (pagePath.Equals("SettingsPage") && MainFrame.Content is SettingsPage) return;
+                    if (pagePath.Equals("RenderDemoPage") && MainFrame.Content is RenderDemoPage) return;
+
+
                 if (Equals(item.Tag, "__MirrorSaveImage"))
                 {
                     // Only when not in config/play pages
@@ -168,6 +183,7 @@ namespace CMDevicesManager
                         if (pagePath.Equals("SettingsPage") && MainFrame.Content is SettingsPage) { _lastNavContentItem = item; return; }
                         if (pagePath.Equals("DevicePlayModePage") && MainFrame.Content is DevicePlayModePage) { _lastNavContentItem = item; return; }
                         if (pagePath.Equals("DeviceConfigPage") && MainFrame.Content is DeviceConfigPage) { _lastNavContentItem = item; return; }
+                        if (pagePath.Equals("RenderDemoPage") && MainFrame.Content is RenderDemoPage) { _lastNavContentItem = item; return; }
 
                         if (pagePath.Equals("HomePage")) MainFrame.Navigate(GetHomePage());
                         else if (pagePath.Equals("DevicePage")) MainFrame.Navigate(GetDevicePage());
@@ -175,16 +191,22 @@ namespace CMDevicesManager
                         else if (pagePath.Equals("SettingsPage")) MainFrame.Navigate(GetSettingsPage());
                         else if (pagePath.Equals("DevicePlayModePage")) MainFrame.Navigate(GetDevicePlayModePage());
                         else if (pagePath.Equals("DeviceConfigPage")) MainFrame.Navigate(GetDeviceConfigPage());
+                        else if (pagePath.Equals("RenderDemoPage"))MainFrame.Navigate(GetRenderDemoPage());
                         else MainFrame.Source = new Uri(pagePath, UriKind.Relative);
 
                         _lastNavContentItem = item;
                     }
-                    catch (Exception ex)
-                    {
+
+                    catch (Exception ex){
                         Logger.Error($"Navigation failed to {pagePath}", ex);
                         MainFrame.Navigate(GetHomePage());
                         _lastNavContentItem = null;
+                   
                     }
+
+                 
+                 
+                    
                 }
             }
         }

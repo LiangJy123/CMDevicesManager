@@ -1,0 +1,286 @@
+﻿<Page x:Class="CMDevicesManager.Pages.RenderDemoPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:CMDevicesManager.Pages"
+      mc:Ignorable="d" 
+      d:DesignHeight="450" d:DesignWidth="800"
+      Title="RenderDemoPage" Unloaded="Page_Unloaded">
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="300"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Main display area -->
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Display area with mouse interaction -->
+            <Border Grid.Row="0" Background="Black" Margin="10">
+                <Image Name="DisplayImage" Stretch="Uniform" 
+                   MouseLeftButtonDown="DisplayImage_MouseLeftButtonDown"
+                   MouseMove="DisplayImage_MouseMove"
+                   MouseLeftButtonUp="DisplayImage_MouseLeftButtonUp"
+                   MouseRightButtonDown="DisplayImage_MouseRightButtonDown"/>
+            </Border>
+
+            <!-- Controls -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                <Button Name="StartButton" Content="Start Rendering" Width="120" Height="30" Margin="5" Click="StartButton_Click"/>
+                <Button Name="StopButton" Content="Stop Rendering" Width="120" Height="30" Margin="5" Click="StopButton_Click" IsEnabled="False"/>
+                <Button Name="SaveCurrentFrameButton" Content="Save Frame" Width="100" Height="30" Margin="5" Click="SaveCurrentFrameButton_Click"/>
+                <Button Name="ClearAllButton" Content="Clear All" Width="80" Height="30" Margin="5" Click="ClearAllButton_Click"/>
+            </StackPanel>
+
+            <!-- FPS Control and Status -->
+            <Grid Grid.Row="2" Margin="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Label Grid.Column="0" Content="Target FPS:" VerticalAlignment="Center"/>
+                <Slider Name="FpsSlider" Grid.Column="1" Minimum="1" Maximum="60" Value="30" 
+                    VerticalAlignment="Center" Margin="5" ValueChanged="FpsSlider_ValueChanged"/>
+                <Label Name="FpsLabel" Grid.Column="2" Content="Target FPS: 30" VerticalAlignment="Center" Margin="10,0"/>
+                <Label Name="StatusLabel" Grid.Column="3" Content="Ready" VerticalAlignment="Center" 
+                   HorizontalAlignment="Right" Foreground="Green"/>
+            </Grid>
+        </Grid>
+
+        <!-- Right panel with enhanced controls -->
+        <Border Grid.Column="1" Background="#F0F0F0" Margin="5">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="10">
+                    
+                    <!-- Static Elements Section -->
+                    <Expander Header="Static Elements" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <!-- Add Text -->
+                            <TextBlock Text="Add Text:" FontWeight="Bold" Margin="0,5,0,2"/>
+                            <TextBox Name="TextContentBox" Text="Sample Text" Margin="0,2"/>
+                            <Button Name="AddTextButton" Content="Add Text" Margin="0,5" Click="AddTextButton_Click"/>
+
+                            <!-- Add Shapes -->
+                            <TextBlock Text="Add Shapes:" FontWeight="Bold" Margin="0,10,0,2"/>
+                            <Button Name="AddCircleButton" Content="Add Circle" Margin="0,2" Click="AddCircleButton_Click"/>
+                            <Button Name="AddRectangleButton" Content="Add Rectangle" Margin="0,2" Click="AddRectangleButton_Click"/>
+
+                            <!-- Load Image -->
+                            <TextBlock Text="Add Image:" FontWeight="Bold" Margin="0,10,0,2"/>
+                            <Button Name="LoadImageButton" Content="Load Image" Margin="0,2" Click="LoadImageButton_Click"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Motion Elements Section -->
+                    <Expander Header="Motion Elements" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Add Motion Elements:" FontWeight="Bold" Margin="0,5,0,5"/>
+                            
+                            <!-- Motion element buttons -->
+                            <Button Name="AddBouncingBallButton" Content="Add Bouncing Ball" Margin="0,2" 
+                                    Click="AddBouncingBallButton_Click" Background="LightCoral"/>
+                            <Button Name="AddRotatingTextButton" Content="Add Rotating Text" Margin="0,2" 
+                                    Click="AddRotatingTextButton_Click" Background="LightBlue"/>
+                            <Button Name="AddOscillatingShapeButton" Content="Add Oscillating Shape" Margin="0,2" 
+                                    Click="AddOscillatingShapeButton_Click" Background="LightGreen"/>
+                            <Button Name="AddSpiralTextButton" Content="Add Spiral Text" Margin="0,2" 
+                                    Click="AddSpiralTextButton_Click" Background="LightGoldenrodYellow"/>
+                            <Button Name="AddRandomWalkerButton" Content="Add Random Walker" Margin="0,2" 
+                                    Click="AddRandomWalkerButton_Click" Background="Plum"/>
+                            
+                            <!-- Motion showcase and conversion -->
+                            <Separator Margin="0,10"/>
+                            <Button Name="CreateMotionShowcaseButton" Content="Create Motion Showcase" Margin="0,2" 
+                                    Click="CreateMotionShowcaseButton_Click" Background="Orange" FontWeight="Bold"/>
+                            <Button Name="ConvertToMotionButton" Content="Convert Selected to Motion" Margin="0,2" 
+                                    Click="ConvertToMotionButton_Click" Background="LightSteelBlue"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Motion Control Section -->
+                    <Expander Header="Motion Control" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Motion Control:" FontWeight="Bold" Margin="0,5,0,5"/>
+                            
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <Button Name="PauseMotionButton" Grid.Column="0" Content="Pause All" 
+                                        Margin="0,2,2,2" Click="PauseMotionButton_Click" Background="Yellow"/>
+                                <Button Name="ResumeMotionButton" Grid.Column="1" Content="Resume All" 
+                                        Margin="2,2,0,2" Click="ResumeMotionButton_Click" Background="LightGreen"/>
+                            </Grid>
+                            
+                            <Button Name="RandomizeMotionButton" Content="Randomize Motion" Margin="0,2" 
+                                    Click="RandomizeMotionButton_Click" Background="Violet"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Live Data Section -->
+                    <Expander Header="Live Data" IsExpanded="False" Margin="0,0,0,10">
+                        <StackPanel>
+                            <CheckBox Name="ShowTimeCheckBox" Content="Show Time" IsChecked="True" Margin="0,2" 
+                                  Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
+                            <CheckBox Name="ShowDateCheckBox" Content="Show Date" IsChecked="True" Margin="0,2"
+                                  Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
+                            <CheckBox Name="ShowSystemInfoCheckBox" Content="Show System Info" IsChecked="True" Margin="0,2"
+                                  Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
+                            <CheckBox Name="ShowAnimationCheckBox" Content="Show Animation" IsChecked="True" Margin="0,2"
+                                  Checked="LiveDataCheckBox_Changed" Unchecked="LiveDataCheckBox_Changed"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- JSON Scene Export/Import Section -->
+                    <Expander Header="Scene Management" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Scene Export/Import:" FontWeight="Bold" Margin="0,5,0,5"/>
+                            
+                            <!-- Export/Import buttons -->
+                            <Button Name="ExportSceneToJsonButton" Content="Export Scene to JSON" Margin="0,2" 
+                                    Click="ExportSceneToJsonButton_Click" Background="LightCyan" FontWeight="Bold"/>
+                            <Button Name="ImportSceneFromJsonButton" Content="Import Scene from JSON" Margin="0,2" 
+                                    Click="ImportSceneFromJsonButton_Click" Background="LightGreen" FontWeight="Bold"/>
+                            
+                            <!-- Preset management -->
+                            <Separator Margin="0,5"/>
+                            <TextBlock Text="Scene Presets:" FontWeight="Bold" Margin="0,5,0,2"/>
+                            <Button Name="SaveScenePresetButton" Content="Save as Preset" Margin="0,2" 
+                                    Click="SaveScenePresetButton_Click" Background="Gold"/>
+                            <Button Name="LoadScenePresetButton" Content="Load Preset" Margin="0,2" 
+                                    Click="LoadScenePresetButton_Click" Background="LightSalmon"/>
+                            
+                            <!-- Scene information -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="GetSceneInfoButton" Content="View Scene Info" Margin="0,2" 
+                                    Click="GetSceneInfoButton_Click" Background="Lavender"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Element Management Section -->
+                    <Expander Header="Element Management" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Elements:" FontWeight="Bold" Margin="0,5,0,2"/>
+                            <ListBox Name="ElementsListBox" Height="120" Margin="0,2" 
+                                 SelectionChanged="ElementsListBox_SelectionChanged"/>
+                            <Button Name="DeleteElementButton" Content="Delete Selected" Margin="0,2" 
+                                Click="DeleteElementButton_Click" IsEnabled="False" Background="Salmon"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Instructions Section -->
+                    <Expander Header="Instructions" IsExpanded="False" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock TextWrapping="Wrap" Margin="0,2" FontSize="11" Foreground="DarkBlue">
+                                <Run Text="🖱️ Mouse Controls:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • Left-click and drag to move elements
+                                <LineBreak/>
+                                • Right-click to select elements
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="💾 Scene Management:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • Export scenes to JSON for backup or sharing
+                                <LineBreak/>
+                                • Import scenes to restore complete configurations
+                                <LineBreak/>
+                                • Save/load presets for quick scene switching
+                                <LineBreak/>
+                                • View scene info shows current state details
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="🎨 Background Features:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • Set solid colors, gradients, or images as backgrounds
+                                <LineBreak/>
+                                • Adjust opacity and scale modes for images
+                                <LineBreak/>
+                                • Try the animated background demo
+                                <LineBreak/>
+                                • Use Sample Scene for a complete demo
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="🎬 Motion Features:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • Add motion elements with different behaviors
+                                <LineBreak/>
+                                • Convert static elements to motion elements
+                                <LineBreak/>
+                                • Use Motion Showcase for a full demo
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="📡 HID Integration:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • All backgrounds and animations stream to HID devices
+                                <LineBreak/>
+                                • Start Rendering to enable HID streaming
+                                <LineBreak/>
+                                • Real-time background changes are sent instantly
+                                <LineBreak/>
+                                • Scene imports/exports work with HID streaming
+                            </TextBlock>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Background Controls Section -->
+                    <Expander Header="Background Controls" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Background Options:" FontWeight="Bold" Margin="0,5,0,5"/>
+                            
+                            <!-- Background type buttons -->
+                            <Button Name="SetSolidColorBackgroundButton" Content="Set Solid Color" Margin="0,2" 
+                                    Click="SetSolidColorBackgroundButton_Click" Background="LightCoral"/>
+                            <Button Name="SetGradientBackgroundButton" Content="Set Gradient" Margin="0,2" 
+                                    Click="SetGradientBackgroundButton_Click" Background="LightBlue"/>
+                            <Button Name="LoadBackgroundImageButton" Content="Load Background Image" Margin="0,2" 
+                                    Click="LoadBackgroundImageButton_Click" Background="LightGreen"/>
+                            
+                            <!-- Background utilities -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="ClearBackgroundButton" Content="Clear Background" Margin="0,2" 
+                                    Click="ClearBackgroundButton_Click" Background="LightGray"/>
+                            <Button Name="ResetDefaultBackgroundButton" Content="Reset to Default" Margin="0,2" 
+                                    Click="ResetDefaultBackgroundButton_Click" Background="LightSteelBlue"/>
+                            
+                            <!-- Background image controls -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="ChangeScaleModeButton" Content="Change Scale Mode" Margin="0,2" 
+                                    Click="ChangeScaleModeButton_Click" Background="LightGoldenrodYellow"/>
+                            
+                            <!-- Background opacity control -->
+                            <TextBlock Text="Background Opacity:" FontWeight="Bold" Margin="0,10,0,2"/>
+                            <Slider Name="BackgroundOpacitySlider" Minimum="0" Maximum="1" Value="1" 
+                                    Margin="0,2" ValueChanged="BackgroundOpacitySlider_ValueChanged"/>
+                            <Label Name="BackgroundOpacityLabel" Content="Background Opacity: 1.00" 
+                                   FontSize="10" Margin="0,0,0,5"/>
+                            
+                            <!-- Background info and demos -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="GetBackgroundInfoButton" Content="Get Background Info" Margin="0,2" 
+                                    Click="GetBackgroundInfoButton_Click" Background="Plum"/>
+                            <Button Name="AnimatedBackgroundDemoButton" Content="Animated Demo" Margin="0,2" 
+                                    Click="AnimatedBackgroundDemoButton_Click" Background="Orange" FontWeight="Bold"/>
+                            <Button Name="CreateSampleSceneButton" Content="Create Sample Scene" Margin="0,2" 
+                                    Click="CreateSampleSceneButton_Click" Background="MediumSeaGreen" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Motion Elements Section -->
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</Page>

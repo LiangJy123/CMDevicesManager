@@ -919,8 +919,11 @@ namespace CMDevicesManager.Pages
 
                 try
                 {
-                    // Transfer file to device
-                    var results = await _hidDeviceService.TransferFileAsync(tempFile);
+                    // Transfer file to device, use transferId as unique identifier if needed
+                    byte transferId = 0x01; // Example transfer ID, transferId in(0,59).
+                    // try transferId to unique.
+                    transferId = (byte)(new Random().Next(1, 60));
+                    var results = await _hidDeviceService.TransferFileAsync(tempFile, transferId);
 
                     var successCount = results.Values.Count(r => r);
                     var totalCount = results.Count;
