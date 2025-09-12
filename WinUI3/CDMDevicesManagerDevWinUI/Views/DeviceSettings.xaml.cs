@@ -2045,48 +2045,289 @@ namespace CDMDevicesManagerDevWinUI.Views
                 // Create the ImageCrop UserControl
                 var imageCropControl = new CDMDevicesManagerDevWinUI.Controls.ImageCrop();
 
-                // Set target size and aspect ratio for the cropper (480x480 = 1:1 aspect ratio)
-                imageCropControl.Width = 480;
-                imageCropControl.Height = 480; // Extra height for buttons
+                // Set up the control properties
+                imageCropControl.Width = 520;
+                imageCropControl.Height = 560; // Extra height for buttons
                 imageCropControl.AspectRatio = 1.0; // Square aspect ratio for 480x480
                 imageCropControl.CropShape = CommunityToolkit.WinUI.Controls.CropShape.Rectangular;
-                // Initialize the ImageCrop control
+
+                // Initialize the ImageCrop control with the files
                 await imageCropControl.InitializeAsync(originalFile, croppedImageFile);
-                // Create the ContentDialog
-                var imageCrop = new ImageCropper
+
+                // Create result tracking variables
+                bool? dialogResult = null;
+                StorageFile? resultFile = null;
+
+                // Subscribe to the ImageSaved event to capture the result
+                EventHandler<CDMDevicesManagerDevWinUI.Controls.ImageCropSavedEventArgs>? savedHandler = null;
+                savedHandler = (sender, args) =>
                 {
-                    AspectRatio = 1.0, // Square aspect ratio for 480x480
-                    CropShape = CommunityToolkit.WinUI.Controls.CropShape.Rectangular,
-                    Width = 480,
-                    Height = 480
+                    dialogResult = true;
+                    resultFile = args.CroppedImageFile;
+                    Debug.WriteLine($"Image cropped and saved: {args.CroppedImagePath}");
                 };
-                await imageCrop.LoadImageFromFile(originalFile);
+                imageCropControl.ImageSaved += savedHandler;
+
+                // Create the ContentDialog with ScrollViewer for better layout
+                var scrollViewer = new ScrollViewer
+                {
+                    Content = imageCropControl,
+                    ZoomMode = ZoomMode.Disabled,
+                    HorizontalScrollMode = ScrollMode.Disabled,
+                    VerticalScrollMode = ScrollMode.Auto,
+                    HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    MaxHeight = 600 // Limit dialog height
+                };
+
                 var cropDialog = new ContentDialog
                 {
                     Title = "Crop Image for 480x480 Display",
-                    PrimaryButtonText = "Save",
+                    PrimaryButtonText = "Use Cropped Image",
+                    SecondaryButtonText = "Use Original",
                     CloseButtonText = "Cancel",
                     DefaultButton = ContentDialogButton.Primary,
                     XamlRoot = this.XamlRoot,
-                    Content = imageCrop
-
+                    Content = scrollViewer
                 };
 
-                // Show the dialog and wait for user choice
-                var result = await cropDialog.ShowAsync();
-                
-                if (result == ContentDialogResult.Primary)
+                // Handle dialog closing to save the image if primary button is clicked
+                cropDialog.PrimaryButtonClick += async (s, args) =>
                 {
-                    // User clicked Save, get the cropped image
-                    //var croppedFile = await imageCrop.SaveAsync(croppedImageFile, BitmapFileFormat.Jpeg);
+                    // Defer the dialog closing to allow save operation
+                    args.Cancel = true;
+                    
+                    try
+                    {
+                        // Trigger save operation
+                        var saveResult = await imageCropControl.SaveCroppedImageAsync();
+                        if (saveResult)
+                        {
+                            dialogResult = true;
+                            resultFile = croppedImageFile;
+                            Debug.WriteLine("Successfully saved cropped image");
+                        }
+                        else
+                        {
+                            dialogResult = false;
+                            Debug.WriteLine("Failed to save cropped image");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error saving cropped image: {ex.Message}");
+                        dialogResult = false;
+                    }
+                    
+                    // Close the dialog after save operation
+                    cropDialog.Hide();
+                };
+
+                cropDialog.SecondaryButtonClick += (s, args) =>
+                {
+                    // User wants to use original image - create a copy
+                    dialogResult = null; // Special case: use original
+                };
+
+                cropDialog.CloseButtonClick += (s, args) =>
+                {
+                    dialogResult = false; // User cancelled
+                };
+
+                // Show the dialog
+                var contentDialogResult = await cropDialog.ShowAsync();
+
+                // Clean up event subscription
+                if (savedHandler != null)
+                {
+                    imageCropControl.ImageSaved -= savedHandler;
                 }
-                // User cancelled
-                Debug.WriteLine("User cancelled image cropping");
-                return null;
+
+                // Handle the different outcomes
+                if (dialogResult == true)
+                {
+                    // User saved cropped image
+                    if (resultFile != null && await resultFile.GetBasicPropertiesAsync() != null)
+                    {
+                        Debug.WriteLine($"Returning cropped image: {resultFile.Name}");
+                        return resultFile;
+                    }
+                    else
+                    {
+                        Debug.WriteLine("Cropped file is invalid, falling back to original");
+                        return await CreateResizedCopyOfOriginal(originalFile, slotIndex);
+                    }
+                }
+                else if (dialogResult == null && contentDialogResult == ContentDialogResult.Secondary)
+                {
+                    // User chose to use original image - create a resized copy
+                    Debug.WriteLine("User chose to use original image, creating resized copy");
+                    return await CreateResizedCopyOfOriginal(originalFile, slotIndex);
+                }
+                else
+                {
+                    // User cancelled
+                    Debug.WriteLine("User cancelled image cropping");
+                    
+                    // Clean up the temporary file if it was created
+                    try
+                    {
+                        if (await tempFolder.TryGetItemAsync(croppedFileName) != null)
+                        {
+                            await croppedImageFile.DeleteAsync();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to clean up temporary file: {ex.Message}");
+                    }
+                    
+                    return null;
+                }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error in image crop dialog: {ex.Message}");
+                
+                // Fallback: try to create a resized copy of the original
+                try
+                {
+                    Debug.WriteLine("Attempting fallback: creating resized copy of original image");
+                    return await CreateResizedCopyOfOriginal(originalFile, slotIndex);
+                }
+                catch (Exception fallbackEx)
+                {
+                    Debug.WriteLine($"Fallback also failed: {fallbackEx.Message}");
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Creates a resized copy of the original image for use when cropping is skipped
+        /// </summary>
+        /// <param name="originalFile">Original image file</param>
+        /// <param name="slotIndex">Slot index for naming</param>
+        /// <returns>Resized copy of the original image</returns>
+        private async Task<StorageFile> CreateResizedCopyOfOriginal(StorageFile originalFile, int slotIndex)
+        {
+            var tempFolder = ApplicationData.Current.TemporaryFolder;
+            var resizedFileName = $"resized_original_{slotIndex}_{Path.GetFileNameWithoutExtension(originalFile.Name)}.jpg";
+            var resizedFile = await tempFolder.CreateFileAsync(resizedFileName, CreationCollisionOption.ReplaceExisting);
+
+            uint finalWidth = 480;
+            uint finalHeight = 480;
+
+            using (var originalStream = await originalFile.OpenReadAsync())
+            using (var outputStream = await resizedFile.OpenAsync(FileAccessMode.ReadWrite))
+            {
+                // Decode original image
+                var decoder = await BitmapDecoder.CreateAsync(originalStream);
+                
+                // Create encoder for JPEG output
+                var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, outputStream);
+                
+                // Calculate the best fit scaling to 480x480 while maintaining aspect ratio
+                var originalWidth = decoder.PixelWidth;
+                var originalHeight = decoder.PixelHeight;
+                
+                uint targetWidth = 480;
+                uint targetHeight = 480;
+                
+                // Calculate scale factor to fit within 480x480
+                double scaleX = (double)targetWidth / originalWidth;
+                double scaleY = (double)targetHeight / originalHeight;
+                double scale = Math.Min(scaleX, scaleY);
+                
+                finalWidth = (uint)(originalWidth * scale);
+                finalHeight = (uint)(originalHeight * scale);
+                
+                // Set pixel data from original
+                var pixelData = await decoder.GetPixelDataAsync();
+                encoder.SetPixelData(
+                    decoder.BitmapPixelFormat,
+                    decoder.BitmapAlphaMode,
+                    finalWidth,
+                    finalHeight,
+                    decoder.DpiX,
+                    decoder.DpiY,
+                    pixelData.DetachPixelData()
+                );
+                
+                // Apply scaling transform
+                encoder.BitmapTransform.ScaledWidth = finalWidth;
+                encoder.BitmapTransform.ScaledHeight = finalHeight;
+                encoder.BitmapTransform.InterpolationMode = BitmapInterpolationMode.Fant;
+                
+                // Save the resized image
+                await encoder.FlushAsync();
+            }
+
+            Debug.WriteLine($"Created resized copy of original: {resizedFile.Name} ({finalWidth}x{finalHeight})");
+            return resizedFile;
+        }
+       
+
+        /// <summary>
+        /// Test function to generate a dummy video file
+        /// </summary>
+        private async void TestGenerateVideoFile_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Just for testing: generate a dummy video file
+                var file = await GenerateDummyVideoFile("suspend_1.mp4", durationSeconds: 10);
+                
+                if (file != null && File.Exists(file))
+                {
+                    Debug.WriteLine($"Dummy video file created: {file}");
+                    
+                    // Optionally, add this file to a suspend slot
+                    // await AddMediaFileToSlot(file, slotIndex: 0);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error generating video file: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Generates a dummy video file with audio for testing purposes
+        /// </summary>
+        /// <param name="fileName">Base file name (without path)</param>
+        /// <param name="durationSeconds">Duration in seconds</param>
+        /// <returns>Task that represents the asynchronous operation</returns>
+        private async Task<string?> GenerateDummyVideoFile(string fileName, int durationSeconds = 5)
+        {
+            try
+            {
+                // Path to saved media files
+                var mediaFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias");
+                if (!Directory.Exists(mediaFolder))
+                {
+                    Directory.CreateDirectory(mediaFolder);
+                }
+
+                var filePath = Path.Combine(mediaFolder, fileName);
+
+                // Simulate video generation - create a blank file for now
+                using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                {
+                    // Write some dummy data - just for testing, not a real video
+                    byte[] dummyHeader = new byte[256];
+                    fileStream.Write(dummyHeader, 0, dummyHeader.Length);
+                    
+                    Debug.WriteLine($"Created dummy video file (header only): {filePath}");
+                }
+
+                // TODO: Replace with actual video creation logic using MediaComposition or similar
+
+                return filePath;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error generating dummy video file: {ex.Message}");
                 return null;
             }
         }

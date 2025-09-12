@@ -1,0 +1,360 @@
+{
+  "sceneName": "Exported Scene",
+  "exportDate": "2025-09-12T16:19:11.5224394+08:00",
+  "version": "1.0",
+  "canvasWidth": 480,
+  "canvasHeight": 480,
+  "showTime": true,
+  "showDate": true,
+  "showSystemInfo": true,
+  "showAnimation": true,
+  "backgroundType": "Gradient",
+  "backgroundOpacity": 1,
+  "backgroundColor": {
+    "a": 255,
+    "r": 128,
+    "g": 0,
+    "b": 128
+  },
+  "backgroundGradientEndColor": {
+    "a": 255,
+    "r": 255,
+    "g": 0,
+    "b": 0
+  },
+  "backgroundScaleMode": "Stretch",
+  "gradientDirection": "LeftToRight",
+  "backgroundImagePath": null,
+  "targetFPS": 30,
+  "jpegQuality": 85,
+  "elements": [
+    {
+      "id": "d6fe47ff-0318-412b-977e-8ba65a260f90",
+      "name": "Sample Scene Title",
+      "type": "Text",
+      "position": {
+        "x": 50,
+        "y": 50
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": {
+        "text": "Background Demo Scene",
+        "fontSize": 28,
+        "fontFamily": "Segoe UI",
+        "textColor": {
+          "a": 255,
+          "r": 255,
+          "g": 255,
+          "b": 255
+        },
+        "size": {
+          "width": 400,
+          "height": 60
+        }
+      },
+      "imageData": null,
+      "shapeData": null,
+      "liveData": null,
+      "motionData": null
+    },
+    {
+      "id": "5730cf91-9a86-41c4-a742-5ec6410af03b",
+      "name": "Scene Info",
+      "type": "Text",
+      "position": {
+        "x": 50,
+        "y": 120
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": {
+        "text": "This scene demonstrates background support",
+        "fontSize": 16,
+        "fontFamily": "Segoe UI",
+        "textColor": {
+          "a": 255,
+          "r": 200,
+          "g": 200,
+          "b": 255
+        },
+        "size": {
+          "width": 400,
+          "height": 30
+        }
+      },
+      "imageData": null,
+      "shapeData": null,
+      "liveData": null,
+      "motionData": null
+    },
+    {
+      "id": "4172568b-8eda-48c6-a312-a3edb7f69743",
+      "name": "Background Info",
+      "type": "Text",
+      "position": {
+        "x": 50,
+        "y": 160
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": {
+        "text": "Current background: Gradient",
+        "fontSize": 12,
+        "fontFamily": "Segoe UI",
+        "textColor": {
+          "a": 255,
+          "r": 180,
+          "g": 180,
+          "b": 220
+        },
+        "size": {
+          "width": 400,
+          "height": 20
+        }
+      },
+      "imageData": null,
+      "shapeData": null,
+      "liveData": null,
+      "motionData": null
+    },
+    {
+      "id": "cb547902-5d9f-47a2-830b-f8a7782a67eb",
+      "name": "MotionCircle_1fe105dd-6519-4c0d-9e70-4177b2fa8c1b",
+      "type": "Shape",
+      "position": {
+        "x": 63.68804168701172,
+        "y": 453.2614440917969
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": null,
+      "shapeData": {
+        "shapeType": "Circle",
+        "size": {
+          "width": 30,
+          "height": 30
+        },
+        "fillColor": {
+          "a": 255,
+          "r": 255,
+          "g": 255,
+          "b": 0
+        },
+        "strokeColor": {
+          "a": 255,
+          "r": 255,
+          "g": 255,
+          "b": 255
+        },
+        "strokeWidth": 1
+      },
+      "liveData": null,
+      "motionData": {
+        "originalPosition": {
+          "x": 100,
+          "y": 250
+        },
+        "motionConfig": {
+          "motionType": "Bounce",
+          "speed": 100,
+          "direction": {
+            "x": -0.65041465,
+            "y": 0.7595793
+          },
+          "center": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 50,
+          "respectBoundaries": true,
+          "showTrail": true,
+          "trailLength": 15,
+          "isPaused": false
+        },
+        "startTime": "2025-09-12T16:18:55.9533919+08:00",
+        "currentAngle": 0
+      }
+    },
+    {
+      "id": "76e86ef8-7a6c-46f4-9c6a-52db7f7be2f8",
+      "name": "MotionCircle_11bfe36c-2d5c-441c-8075-35d27a7ad9cf",
+      "type": "Shape",
+      "position": {
+        "x": 354.16015625,
+        "y": 402.69818115234375
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": null,
+      "shapeData": {
+        "shapeType": "Circle",
+        "size": {
+          "width": 40,
+          "height": 40
+        },
+        "fillColor": {
+          "a": 255,
+          "r": 255,
+          "g": 0,
+          "b": 255
+        },
+        "strokeColor": {
+          "a": 255,
+          "r": 255,
+          "g": 255,
+          "b": 255
+        },
+        "strokeWidth": 1
+      },
+      "liveData": null,
+      "motionData": {
+        "originalPosition": {
+          "x": 150,
+          "y": 280
+        },
+        "motionConfig": {
+          "motionType": "Bounce",
+          "speed": 120,
+          "direction": {
+            "x": 0.8226996,
+            "y": 0.5684764
+          },
+          "center": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 50,
+          "respectBoundaries": true,
+          "showTrail": true,
+          "trailLength": 15,
+          "isPaused": false
+        },
+        "startTime": "2025-09-12T16:18:55.9534022+08:00",
+        "currentAngle": 0
+      }
+    },
+    {
+      "id": "77e7e073-bda0-4220-8f9f-782a1a4e9eef",
+      "name": "MotionCircle_af6a5801-93cd-4c8c-921c-00a9a6ba811c",
+      "type": "Shape",
+      "position": {
+        "x": 221.81271362304688,
+        "y": 274.9964294433594
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": null,
+      "shapeData": {
+        "shapeType": "Circle",
+        "size": {
+          "width": 50,
+          "height": 50
+        },
+        "fillColor": {
+          "a": 255,
+          "r": 0,
+          "g": 255,
+          "b": 255
+        },
+        "strokeColor": {
+          "a": 255,
+          "r": 255,
+          "g": 255,
+          "b": 255
+        },
+        "strokeWidth": 1
+      },
+      "liveData": null,
+      "motionData": {
+        "originalPosition": {
+          "x": 200,
+          "y": 310
+        },
+        "motionConfig": {
+          "motionType": "Bounce",
+          "speed": 140,
+          "direction": {
+            "x": -0.90125656,
+            "y": -0.43328592
+          },
+          "center": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 50,
+          "respectBoundaries": true,
+          "showTrail": true,
+          "trailLength": 15,
+          "isPaused": false
+        },
+        "startTime": "2025-09-12T16:18:55.9534044+08:00",
+        "currentAngle": 0
+      }
+    },
+    {
+      "id": "42a5aa04-6dd7-4258-ae0d-9cd869e872f2",
+      "name": "MotionText_d420cd14-94b2-4457-a7c2-5e6899613f31",
+      "type": "Text",
+      "position": {
+        "x": 164.7213134765625,
+        "y": 267.076171875
+      },
+      "isVisible": true,
+      "isDraggable": false,
+      "zIndex": 0,
+      "textData": {
+        "text": "Rotating Text",
+        "fontSize": 16,
+        "fontFamily": "Segoe UI",
+        "textColor": {
+          "a": 255,
+          "r": 255,
+          "g": 255,
+          "b": 255
+        },
+        "size": {
+          "width": 200,
+          "height": 50
+        }
+      },
+      "imageData": null,
+      "shapeData": null,
+      "liveData": null,
+      "motionData": {
+        "originalPosition": {
+          "x": 240,
+          "y": 240
+        },
+        "motionConfig": {
+          "motionType": "Circular",
+          "speed": 1,
+          "direction": {
+            "x": 0,
+            "y": 0
+          },
+          "center": {
+            "x": 240,
+            "y": 240
+          },
+          "radius": 80,
+          "respectBoundaries": false,
+          "showTrail": false,
+          "trailLength": 20,
+          "isPaused": false
+        },
+        "startTime": "2025-09-12T16:18:55.953418+08:00",
+        "currentAngle": 15.362692
+      }
+    }
+  ]
+}

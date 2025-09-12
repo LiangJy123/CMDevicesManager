@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System;
 using System.Diagnostics;
 using Windows.Graphics.Imaging;
+using Windows.Storage.Streams;
 
 namespace CDMDevicesManagerDevWinUI.Controls
 {
@@ -151,30 +152,117 @@ namespace CDMDevicesManagerDevWinUI.Controls
                     return false;
                 }
 
-                if (SaveButton != null)
+                // Check if ImageCropper has an image loaded
+                if (ImageCropper.Source == null)
                 {
-                    SaveButton.IsEnabled = false;
-                    SaveButton.Content = "Saving...";
+                    Debug.WriteLine("No image loaded in ImageCropper");
+                    return false;
                 }
 
-                // Use the ImageCropper's SaveAsync method as requested
-                using (var fileStream = await _croppedImageFile.OpenAsync(FileAccessMode.ReadWrite, StorageOpenOptions.None))
+                // Update UI on UI thread
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (SaveButton != null)
+                    {
+                        SaveButton.IsEnabled = false;
+                        SaveButton.Content = "Saving...";
+                    }
+                });
+
+                // Use the ImageCropper's SaveAsync method with the correct API
+                using (var fileStream = await _croppedImageFile.OpenAsync(FileAccessMode.ReadWrite))
                 {
                     // Clear the stream first
                     fileStream.Size = 0;
                     
-                    // Save the cropped image as PNG - using CommunityToolkit's BitmapFileFormat
-                    await ImageCropper.SaveAsync(fileStream, CommunityToolkit.WinUI.Controls.BitmapFileFormat.Jpeg);
+                    try
+                    {
+                        // Try to save using the correct CommunityToolkit API
+                        await ImageCropper.SaveAsync(fileStream, CommunityToolkit.WinUI.Controls.BitmapFileFormat.Jpeg);
+                    }
+                    catch (Exception saveEx)
+                    {
+                        Debug.WriteLine($"CommunityToolkit SaveAsync failed: {saveEx.Message}");
+                        
+                        // Fallback: try alternative method using Windows.Graphics.Imaging
+                        fileStream.Seek(0);
+                        fileStream.Size = 0;
+                        
+                        // Get the current cropped area manually
+                        var croppedBounds = ImageCropper.CroppedRegion;
+                        if (croppedBounds.IsEmpty)
+                        {
+                            throw new InvalidOperationException("No valid crop region selected");
+                        }
+
+                        // Load the original image and crop it manually
+                        if (_originalImageFile != null)
+                        {
+                            using (var originalStream = await _originalImageFile.OpenReadAsync())
+                            {
+                                var decoder = await BitmapDecoder.CreateAsync(originalStream);
+                                
+                                // Calculate crop bounds
+                                var cropX = (uint)Math.Max(0, croppedBounds.X);
+                                var cropY = (uint)Math.Max(0, croppedBounds.Y);
+                                var cropWidth = (uint)Math.Min(croppedBounds.Width, decoder.PixelWidth - cropX);
+                                var cropHeight = (uint)Math.Min(croppedBounds.Height, decoder.PixelHeight - cropY);
+                                
+                                // Create bounds for cropping
+                                var bounds = new BitmapBounds()
+                                {
+                                    X = cropX,
+                                    Y = cropY,
+                                    Width = cropWidth,
+                                    Height = cropHeight
+                                };
+                                
+                                // Create transform for cropping
+                                var transform = new BitmapTransform()
+                                {
+                                    Bounds = bounds
+                                };
+                                
+                                // Get pixel data for the cropped area
+                                var pixelData = await decoder.GetPixelDataAsync(
+                                    BitmapPixelFormat.Bgra8,
+                                    BitmapAlphaMode.Straight,
+                                    transform,
+                                    ExifOrientationMode.RespectExifOrientation,
+                                    ColorManagementMode.DoNotColorManage);
+                                
+                                // Create encoder and save as JPEG
+                                var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, fileStream);
+                                encoder.SetPixelData(
+                                    BitmapPixelFormat.Bgra8,
+                                    BitmapAlphaMode.Straight,
+                                    cropWidth,
+                                    cropHeight,
+                                    decoder.DpiX,
+                                    decoder.DpiY,
+                                    pixelData.DetachPixelData());
+                                
+                                await encoder.FlushAsync();
+                            }
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("Original image file not available for manual cropping");
+                        }
+                    }
                 }
 
                 Debug.WriteLine($"Successfully saved cropped image to: {_croppedImageFile.Path}");
 
-                // Fire the ImageSaved event
-                ImageSaved?.Invoke(this, new ImageCropSavedEventArgs
+                // Fire the ImageSaved event on UI thread
+                DispatcherQueue.TryEnqueue(() =>
                 {
-                    OriginalImagePath = _originalImagePath,
-                    CroppedImagePath = _croppedImagePath,
-                    CroppedImageFile = _croppedImageFile
+                    ImageSaved?.Invoke(this, new ImageCropSavedEventArgs
+                    {
+                        OriginalImagePath = _originalImagePath,
+                        CroppedImagePath = _croppedImagePath,
+                        CroppedImageFile = _croppedImageFile
+                    });
                 });
 
                 return true;
@@ -182,15 +270,20 @@ namespace CDMDevicesManagerDevWinUI.Controls
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error saving cropped image: {ex.Message}");
+                Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 return false;
             }
             finally
             {
-                if (SaveButton != null)
+                // Restore UI state on UI thread
+                DispatcherQueue.TryEnqueue(() =>
                 {
-                    SaveButton.IsEnabled = true;
-                    SaveButton.Content = "Save";
-                }
+                    if (SaveButton != null)
+                    {
+                        SaveButton.IsEnabled = true;
+                        SaveButton.Content = "Save";
+                    }
+                });
             }
         }
 

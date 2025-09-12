@@ -1,0 +1,87 @@
+{
+  "sceneName": "Exported Scene",
+  "exportDate": "2025-09-12T16:16:04.440078+08:00",
+  "version": "1.0",
+  "canvasWidth": 480,
+  "canvasHeight": 480,
+  "showTime": true,
+  "showDate": true,
+  "showSystemInfo": true,
+  "showAnimation": true,
+  "backgroundType": "Gradient",
+  "backgroundOpacity": 1,
+  "backgroundColor": {
+    "a": 255,
+    "r": 128,
+    "g": 0,
+    "b": 128
+  },
+  "backgroundGradientEndColor": {
+    "a": 255,
+    "r": 255,
+    "g": 0,
+    "b": 0
+  },
+  "backgroundScaleMode": "UniformToFill",
+  "gradientDirection": "LeftToRight",
+  "backgroundImagePath": null,
+  "targetFPS": 30,
+  "jpegQuality": 85,
+  "elements": [
+    {
+      "id": "6bdde30a-7f7b-49db-abef-50e2581edcc6",
+      "name": "MotionText_52277ef6-31c5-4bb7-9494-f43c3cc9fd97",
+      "type": "Text",
+      "position": {
+        "x": 212.4208221435547,
+        "y": 186.71408081054688
+      },
+      "isVisible": true,
+      "isDraggable": false,
+      "zIndex": 0,
+      "textData": {
+        "text": "Sample Text",
+        "fontSize": 18,
+        "fontFamily": "Segoe UI",
+        "textColor": {
+          "a": 255,
+          "r": 0,
+          "g": 255,
+          "b": 255
+        },
+        "size": {
+          "width": 200,
+          "height": 50
+        }
+      },
+      "imageData": null,
+      "shapeData": null,
+      "liveData": null,
+      "motionData": {
+        "originalPosition": {
+          "x": 240,
+          "y": 240
+        },
+        "motionConfig": {
+          "motionType": "Circular",
+          "speed": 1.5,
+          "direction": {
+            "x": 0,
+            "y": 0
+          },
+          "center": {
+            "x": 240,
+            "y": 240
+          },
+          "radius": 60,
+          "respectBoundaries": false,
+          "showTrail": false,
+          "trailLength": 20,
+          "isPaused": false
+        },
+        "startTime": "2025-09-12T16:15:53.0123052+08:00",
+        "currentAngle": 16.801155
+      }
+    }
+  ]
+}
