@@ -150,13 +150,7 @@ namespace CMDevicesManager
                     return;
                 }
 
-                    // Short-circuit if already on the requested page
-                    if (pagePath.Equals("HomePage") && MainFrame.Content is HomePage) return;
-                    if (pagePath.Equals("DevicePage") && MainFrame.Content is DevicePage) return;
-                    if (pagePath.Equals("DevicePageDemo") && MainFrame.Content is DevicePageDemo) return;
-                    if (pagePath.Equals("SettingsPage") && MainFrame.Content is SettingsPage) return;
-                    if (pagePath.Equals("RenderDemoPage") && MainFrame.Content is RenderDemoPage) return;
-
+                  
 
                 if (Equals(item.Tag, "__MirrorSaveImage"))
                 {
