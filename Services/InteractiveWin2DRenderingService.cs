@@ -15,6 +15,9 @@ using WinUIColor = Windows.UI.Color;
 using Point = Windows.Foundation.Point;
 using Size = Windows.Foundation.Size;
 using System.Windows.Threading;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text;
 
 namespace CMDevicesManager.Services
 {
@@ -39,6 +42,15 @@ namespace CMDevicesManager.Services
         private bool _hidRealTimeModeEnabled = false;
         private int _hidFramesSent = 0;
 
+        // Background configuration
+        private BackgroundType _backgroundType = BackgroundType.Gradient;
+        private WinUIColor _backgroundColor = WinUIColor.FromArgb(255, 30, 30, 60);
+        private WinUIColor _backgroundGradientEndColor = WinUIColor.FromArgb(255, 10, 10, 30);
+        private BackgroundScaleMode _backgroundScaleMode = BackgroundScaleMode.Stretch;
+        private float _backgroundOpacity = 1.0f;
+        private BackgroundGradientDirection _gradientDirection = BackgroundGradientDirection.TopToBottom;
+        private string? _backgroundImagePath = null;
+
         // Events
         public event Action<WriteableBitmap>? ImageRendered;
         public event Action<RenderElement>? ElementSelected;
@@ -47,6 +59,7 @@ namespace CMDevicesManager.Services
         public event Action<byte[]>? JpegDataSentToHid;
         public event Action<string>? HidStatusChanged;
         public event Action<Exception>? RenderingError;
+        public event Action<string>? BackgroundChanged;
 
         // Properties
         public int Width { get; private set; } = 800;
@@ -71,6 +84,16 @@ namespace CMDevicesManager.Services
         public bool IsHidServiceConnected => _hidDeviceService?.IsInitialized == true;
         public bool IsHidRealTimeModeEnabled => _hidRealTimeModeEnabled;
         public int HidFramesSent => _hidFramesSent;
+
+        // Background properties
+        public BackgroundType BackgroundType => _backgroundType;
+        public WinUIColor BackgroundColor => _backgroundColor;
+        public WinUIColor BackgroundGradientEndColor => _backgroundGradientEndColor;
+        public BackgroundScaleMode BackgroundScaleMode => _backgroundScaleMode;
+        public float BackgroundOpacity => _backgroundOpacity;
+        public BackgroundGradientDirection GradientDirection => _gradientDirection;
+        public string? BackgroundImagePath => _backgroundImagePath;
+        public bool HasBackgroundImage => _backgroundImage != null;
 
         public async Task InitializeAsync(int width = 800, int height = 600)
         {
@@ -106,6 +129,232 @@ namespace CMDevicesManager.Services
                 throw new InvalidOperationException($"Failed to initialize InteractiveWin2DRenderingService: {ex.Message}", ex);
             }
         }
+
+        #region Background Management
+
+        /// <summary>
+        /// Set a solid color background
+        /// </summary>
+        /// <param name="color">Background color</param>
+        /// <param name="opacity">Background opacity (0.0 to 1.0)</param>
+        public async Task SetBackgroundColorAsync(WinUIColor color, float opacity = 1.0f)
+        {
+            try
+            {
+                _backgroundType = BackgroundType.SolidColor;
+                _backgroundColor = color;
+                _backgroundOpacity = Math.Clamp(opacity, 0.0f, 1.0f);
+                
+                // Clear any existing background image
+                _backgroundImage?.Dispose();
+                _backgroundImage = null;
+                _backgroundImagePath = null;
+
+                BackgroundChanged?.Invoke($"Background set to solid color: {color}");
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to set background color: {ex.Message}", ex));
+            }
+        }
+
+        /// <summary>
+        /// Set a gradient background
+        /// </summary>
+        /// <param name="startColor">Gradient start color</param>
+        /// <param name="endColor">Gradient end color</param>
+        /// <param name="direction">Gradient direction</param>
+        /// <param name="opacity">Background opacity (0.0 to 1.0)</param>
+        public async Task SetBackgroundGradientAsync(WinUIColor startColor, WinUIColor endColor, 
+            BackgroundGradientDirection direction = BackgroundGradientDirection.TopToBottom, float opacity = 1.0f)
+        {
+            try
+            {
+                _backgroundType = BackgroundType.Gradient;
+                _backgroundColor = startColor;
+                _backgroundGradientEndColor = endColor;
+                _gradientDirection = direction;
+                _backgroundOpacity = Math.Clamp(opacity, 0.0f, 1.0f);
+                
+                // Clear any existing background image
+                _backgroundImage?.Dispose();
+                _backgroundImage = null;
+                _backgroundImagePath = null;
+
+                BackgroundChanged?.Invoke($"Background set to gradient: {startColor} to {endColor} ({direction})");
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to set background gradient: {ex.Message}", ex));
+            }
+        }
+
+        /// <summary>
+        /// Set a background image from file path
+        /// </summary>
+        /// <param name="imagePath">Path to the image file</param>
+        /// <param name="scaleMode">How to scale the image</param>
+        /// <param name="opacity">Background opacity (0.0 to 1.0)</param>
+        public async Task SetBackgroundImageAsync(string imagePath, BackgroundScaleMode scaleMode = BackgroundScaleMode.Stretch, float opacity = 1.0f)
+        {
+            if (string.IsNullOrWhiteSpace(imagePath))
+            {
+                throw new ArgumentException("Image path cannot be null or empty", nameof(imagePath));
+            }
+
+            if (!File.Exists(imagePath))
+            {
+                throw new FileNotFoundException($"Background image file not found: {imagePath}");
+            }
+
+            try
+            {
+                // Dispose existing background image
+                _backgroundImage?.Dispose();
+
+                // Load new background image
+                _backgroundImage = await CanvasBitmap.LoadAsync(_canvasDevice!, imagePath);
+                _backgroundType = BackgroundType.Image;
+                _backgroundScaleMode = scaleMode;
+                _backgroundOpacity = Math.Clamp(opacity, 0.0f, 1.0f);
+                _backgroundImagePath = imagePath;
+
+                BackgroundChanged?.Invoke($"Background image set: {Path.GetFileName(imagePath)} (Scale: {scaleMode})");
+            }
+            catch (Exception ex)
+            {
+                _backgroundImage?.Dispose();
+                _backgroundImage = null;
+                _backgroundImagePath = null;
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to load background image '{imagePath}': {ex.Message}", ex));
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Set a background image from byte array
+        /// </summary>
+        /// <param name="imageData">Image data as byte array</param>
+        /// <param name="scaleMode">How to scale the image</param>
+        /// <param name="opacity">Background opacity (0.0 to 1.0)</param>
+        public async Task SetBackgroundImageAsync(byte[] imageData, BackgroundScaleMode scaleMode = BackgroundScaleMode.Stretch, float opacity = 1.0f)
+        {
+            if (imageData == null || imageData.Length == 0)
+            {
+                throw new ArgumentException("Image data cannot be null or empty", nameof(imageData));
+            }
+
+            try
+            {
+                // Dispose existing background image
+                _backgroundImage?.Dispose();
+
+                // Create a temporary file to load the image
+                var tempPath = Path.Combine(Path.GetTempPath(), $"bg_temp_{Guid.NewGuid():N}.tmp");
+                await File.WriteAllBytesAsync(tempPath, imageData);
+
+                try
+                {
+                    // Load background image from temporary file
+                    _backgroundImage = await CanvasBitmap.LoadAsync(_canvasDevice!, tempPath);
+                    _backgroundType = BackgroundType.Image;
+                    _backgroundScaleMode = scaleMode;
+                    _backgroundOpacity = Math.Clamp(opacity, 0.0f, 1.0f);
+                    _backgroundImagePath = "<from byte array>";
+
+                    BackgroundChanged?.Invoke($"Background image set from byte array ({imageData.Length:N0} bytes, Scale: {scaleMode})");
+                }
+                finally
+                {
+                    // Clean up temporary file
+                    try
+                    {
+                        File.Delete(tempPath);
+                    }
+                    catch { /* Ignore cleanup errors */ }
+                }
+            }
+            catch (Exception ex)
+            {
+                _backgroundImage?.Dispose();
+                _backgroundImage = null;
+                _backgroundImagePath = null;
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to load background image from byte array: {ex.Message}", ex));
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Clear background (transparent)
+        /// </summary>
+        public async Task ClearBackgroundAsync()
+        {
+            try
+            {
+                _backgroundType = BackgroundType.Transparent;
+                _backgroundImage?.Dispose();
+                _backgroundImage = null;
+                _backgroundImagePath = null;
+
+                BackgroundChanged?.Invoke("Background cleared (transparent)");
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to clear background: {ex.Message}", ex));
+            }
+        }
+
+        /// <summary>
+        /// Reset background to default gradient
+        /// </summary>
+        public async Task ResetBackgroundToDefaultAsync()
+        {
+            await SetBackgroundGradientAsync(
+                WinUIColor.FromArgb(255, 30, 30, 60),
+                WinUIColor.FromArgb(255, 10, 10, 30),
+                BackgroundGradientDirection.TopToBottom);
+        }
+
+        /// <summary>
+        /// Update background image scale mode
+        /// </summary>
+        /// <param name="scaleMode">New scale mode</param>
+        public void SetBackgroundScaleMode(BackgroundScaleMode scaleMode)
+        {
+            if (_backgroundType == BackgroundType.Image)
+            {
+                _backgroundScaleMode = scaleMode;
+                BackgroundChanged?.Invoke($"Background scale mode changed to: {scaleMode}");
+            }
+        }
+
+        /// <summary>
+        /// Update background opacity
+        /// </summary>
+        /// <param name="opacity">New opacity (0.0 to 1.0)</param>
+        public void SetBackgroundOpacity(float opacity)
+        {
+            _backgroundOpacity = Math.Clamp(opacity, 0.0f, 1.0f);
+            BackgroundChanged?.Invoke($"Background opacity changed to: {_backgroundOpacity:F2}");
+        }
+
+        /// <summary>
+        /// Get background information
+        /// </summary>
+        /// <returns>Background information string</returns>
+        public string GetBackgroundInfo()
+        {
+            return _backgroundType switch
+            {
+                BackgroundType.SolidColor => $"Solid Color: {_backgroundColor} (Opacity: {_backgroundOpacity:F2})",
+                BackgroundType.Gradient => $"Gradient: {_backgroundColor} to {_backgroundGradientEndColor} ({_gradientDirection}, Opacity: {_backgroundOpacity:F2})",
+                BackgroundType.Image => $"Image: {_backgroundImagePath ?? "Unknown"} (Scale: {_backgroundScaleMode}, Opacity: {_backgroundOpacity:F2})",
+                BackgroundType.Transparent => "Transparent",
+                _ => "Unknown"
+            };
+        }
+
+        #endregion
 
         private void InitializeRenderTimer()
         {
@@ -473,6 +722,8 @@ namespace CMDevicesManager.Services
             }
         }
 
+        #endregion
+
         #region Motion Update Methods
 
         private void UpdateLinearMotion(IMotionElement element, float deltaTime, ElementMotionConfig config)
@@ -615,7 +866,7 @@ namespace CMDevicesManager.Services
             var angle = elapsedTime * config.Speed;
             element.CurrentAngle = angle;
             
-            var radiusVariation = (float)Math.Sin(elapsedTime * 2f) * 10f; // ±10 radius variation
+            var radiusVariation = (float)Math.Sin(elapsedTime * 2f) * 10f; // ï¿½10 radius variation
             var currentRadius = config.Radius + radiusVariation;
 
             var x = config.Center.X + (float)Math.Cos(angle) * currentRadius;
@@ -644,8 +895,6 @@ namespace CMDevicesManager.Services
             var angle = _random.NextDouble() * Math.PI * 2;
             return new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
         }
-
-        #endregion
 
         #endregion
 
@@ -950,12 +1199,18 @@ namespace CMDevicesManager.Services
                 var imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "background.jpg");
                 if (File.Exists(imagePath))
                 {
-                    _backgroundImage = await CanvasBitmap.LoadAsync(_canvasDevice!, imagePath);
+                    await SetBackgroundImageAsync(imagePath);
+                }
+                else
+                {
+                    // Set default gradient background
+                    await ResetBackgroundToDefaultAsync();
                 }
             }
             catch
             {
-                _backgroundImage = null;
+                // Fall back to default gradient
+                await ResetBackgroundToDefaultAsync();
             }
         }
 
@@ -1136,27 +1391,239 @@ namespace CMDevicesManager.Services
 
         private void RenderBackground(CanvasDrawingSession session)
         {
-            if (_backgroundImage == null)
+            switch (_backgroundType)
             {
-                // Create gradient background
-                using (var brush1 = new CanvasSolidColorBrush(_canvasDevice, WinUIColor.FromArgb(255, 30, 30, 60)))
+                case BackgroundType.Transparent:
+                    // Clear with transparent
+                    session.Clear(WinUIColor.FromArgb(0, 0, 0, 0));
+                    break;
+
+                case BackgroundType.SolidColor:
+                    var solidColor = WinUIColor.FromArgb(
+                        (byte)(_backgroundColor.A * _backgroundOpacity),
+                        _backgroundColor.R,
+                        _backgroundColor.G,
+                        _backgroundColor.B);
+                    session.Clear(solidColor);
+                    break;
+
+                case BackgroundType.Gradient:
+                    RenderGradientBackground(session);
+                    break;
+
+                case BackgroundType.Image:
+                    RenderImageBackground(session);
+                    break;
+
+                default:
+                    // Fallback to default gradient
+                    RenderDefaultGradientBackground(session);
+                    break;
+            }
+        }
+
+        private void RenderGradientBackground(CanvasDrawingSession session)
+        {
+            try
+            {
+                Vector2 startPoint, endPoint;
+                
+                switch (_gradientDirection)
                 {
-                    session.FillRectangle(0, 0, Width, Height, brush1);
-                    
-                    // Add gradient effect
-                    for (int i = 0; i < Height; i += 10)
-                    {
-                        var alpha = (byte)(255 * i / Height);
-                        using (var gradientBrush = new CanvasSolidColorBrush(_canvasDevice, WinUIColor.FromArgb(alpha, 10, 10, 30)))
-                        {
-                            session.FillRectangle(0, i, Width, 10, gradientBrush);
-                        }
-                    }
+                    case BackgroundGradientDirection.LeftToRight:
+                        startPoint = new Vector2(0, Height / 2);
+                        endPoint = new Vector2(Width, Height / 2);
+                        break;
+                    case BackgroundGradientDirection.TopToBottom:
+                        startPoint = new Vector2(Width / 2, 0);
+                        endPoint = new Vector2(Width / 2, Height);
+                        break;
+                    case BackgroundGradientDirection.DiagonalTopLeftToBottomRight:
+                        startPoint = new Vector2(0, 0);
+                        endPoint = new Vector2(Width, Height);
+                        break;
+                    case BackgroundGradientDirection.DiagonalTopRightToBottomLeft:
+                        startPoint = new Vector2(Width, 0);
+                        endPoint = new Vector2(0, Height);
+                        break;
+                    case BackgroundGradientDirection.RadialFromCenter:
+                        RenderRadialGradientBackground(session);
+                        return;
+                    default:
+                        startPoint = new Vector2(Width / 2, 0);
+                        endPoint = new Vector2(Width / 2, Height);
+                        break;
+                }
+
+                var startColor = WinUIColor.FromArgb(
+                    (byte)(_backgroundColor.A * _backgroundOpacity),
+                    _backgroundColor.R,
+                    _backgroundColor.G,
+                    _backgroundColor.B);
+
+                var endColor = WinUIColor.FromArgb(
+                    (byte)(_backgroundGradientEndColor.A * _backgroundOpacity),
+                    _backgroundGradientEndColor.R,
+                    _backgroundGradientEndColor.G,
+                    _backgroundGradientEndColor.B);
+
+                using (var gradientBrush = new CanvasLinearGradientBrush(_canvasDevice, startColor, endColor))
+                {
+                    gradientBrush.StartPoint = startPoint;
+                    gradientBrush.EndPoint = endPoint;
+                    session.FillRectangle(0, 0, Width, Height, gradientBrush);
                 }
             }
-            else
+            catch (Exception ex)
             {
-                session.DrawImage(_backgroundImage, new Rect(0, 0, Width, Height));
+                // Fallback to solid color
+                var fallbackColor = WinUIColor.FromArgb(
+                    (byte)(_backgroundColor.A * _backgroundOpacity),
+                    _backgroundColor.R,
+                    _backgroundColor.G,
+                    _backgroundColor.B);
+                session.Clear(fallbackColor);
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to render gradient background: {ex.Message}", ex));
+            }
+        }
+
+        private void RenderRadialGradientBackground(CanvasDrawingSession session)
+        {
+            try
+            {
+                var center = new Vector2(Width / 2, Height / 2);
+                var radius = Math.Max(Width, Height) / 2.0f;
+
+                var startColor = WinUIColor.FromArgb(
+                    (byte)(_backgroundColor.A * _backgroundOpacity),
+                    _backgroundColor.R,
+                    _backgroundColor.G,
+                    _backgroundColor.B);
+
+                var endColor = WinUIColor.FromArgb(
+                    (byte)(_backgroundGradientEndColor.A * _backgroundOpacity),
+                    _backgroundGradientEndColor.R,
+                    _backgroundGradientEndColor.G,
+                    _backgroundGradientEndColor.B);
+
+                using (var gradientBrush = new CanvasRadialGradientBrush(_canvasDevice, startColor, endColor))
+                {
+                    gradientBrush.Center = center;
+                    gradientBrush.RadiusX = radius;
+                    gradientBrush.RadiusY = radius;
+                    session.FillRectangle(0, 0, Width, Height, gradientBrush);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Fallback to linear gradient
+                RenderGradientBackground(session);
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to render radial gradient background: {ex.Message}", ex));
+            }
+        }
+
+        private void RenderImageBackground(CanvasDrawingSession session)
+        {
+            if (_backgroundImage == null)
+            {
+                RenderDefaultGradientBackground(session);
+                return;
+            }
+
+            try
+            {
+                var destRect = CalculateImageDestinationRect();
+                
+                if (_backgroundOpacity < 1.0f)
+                {
+                    session.DrawImage(_backgroundImage, destRect, new Rect(0, 0, _backgroundImage.Size.Width, _backgroundImage.Size.Height), _backgroundOpacity);
+                }
+                else
+                {
+                    session.DrawImage(_backgroundImage, destRect);
+                }
+            }
+            catch (Exception ex)
+            {
+                RenderDefaultGradientBackground(session);
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to render image background: {ex.Message}", ex));
+            }
+        }
+
+        private Rect CalculateImageDestinationRect()
+        {
+            if (_backgroundImage == null)
+                return new Rect(0, 0, Width, Height);
+
+            var imageSize = _backgroundImage.Size;
+            var canvasAspect = (double)Width / Height;
+            var imageAspect = imageSize.Width / imageSize.Height;
+
+            switch (_backgroundScaleMode)
+            {
+                case BackgroundScaleMode.None:
+                    // Center the image at original size
+                    var x = (Width - imageSize.Width) / 2;
+                    var y = (Height - imageSize.Height) / 2;
+                    return new Rect(x, y, imageSize.Width, imageSize.Height);
+
+                case BackgroundScaleMode.Uniform:
+                    // Scale to fit while maintaining aspect ratio
+                    if (imageAspect > canvasAspect)
+                    {
+                        // Image is wider than canvas
+                        var newHeight = Width / imageAspect;
+                        var offsetY = (Height - newHeight) / 2;
+                        return new Rect(0, offsetY, Width, newHeight);
+                    }
+                    else
+                    {
+                        // Image is taller than canvas
+                        var newWidth = Height * imageAspect;
+                        var offsetX = (Width - newWidth) / 2;
+                        return new Rect(offsetX, 0, newWidth, Height);
+                    }
+
+                case BackgroundScaleMode.UniformToFill:
+                    // Scale to fill while maintaining aspect ratio (may crop)
+                    if (imageAspect > canvasAspect)
+                    {
+                        // Image is wider than canvas
+                        var newWidth = Height * imageAspect;
+                        var offsetX = (Width - newWidth) / 2;
+                        return new Rect(offsetX, 0, newWidth, Height);
+                    }
+                    else
+                    {
+                        // Image is taller than canvas
+                        var newHeight = Width / imageAspect;
+                        var offsetY = (Height - newHeight) / 2;
+                        return new Rect(0, offsetY, Width, newHeight);
+                    }
+
+                case BackgroundScaleMode.Stretch:
+                default:
+                    // Stretch to fill entire canvas
+                    return new Rect(0, 0, Width, Height);
+            }
+        }
+
+        private void RenderDefaultGradientBackground(CanvasDrawingSession session)
+        {
+            // Create default gradient background
+            using (var brush1 = new CanvasSolidColorBrush(_canvasDevice, WinUIColor.FromArgb(255, 30, 30, 60)))
+            {
+                session.FillRectangle(0, 0, Width, Height, brush1);
+                
+                // Add gradient effect
+                for (int i = 0; i < Height; i += 10)
+                {
+                    var alpha = (byte)(255 * i / Height);
+                    using (var gradientBrush = new CanvasSolidColorBrush(_canvasDevice, WinUIColor.FromArgb(alpha, 10, 10, 30)))
+                    {
+                        session.FillRectangle(0, i, Width, 10, gradientBrush);
+                    }
+                }
             }
         }
 
@@ -1490,7 +1957,637 @@ namespace CMDevicesManager.Services
             _canvasDevice?.Dispose();
             _renderTimer = null;
         }
+
+        #region JSON Scene Export/Import
+
+        /// <summary>
+        /// Export current scene state to JSON
+        /// </summary>
+        /// <returns>JSON string containing complete scene data</returns>
+        public async Task<string> ExportSceneToJsonAsync()
+        {
+            try
+            {
+                var sceneData = new SceneExportData
+                {
+                    SceneName = "Exported Scene",
+                    ExportDate = DateTime.Now,
+                    Version = "1.0",
+                    CanvasWidth = Width,
+                    CanvasHeight = Height,
+                    
+                    // Display options
+                    ShowTime = ShowTime,
+                    ShowDate = ShowDate,
+                    ShowSystemInfo = ShowSystemInfo,
+                    ShowAnimation = ShowAnimation,
+                    
+                    // Background configuration
+                    BackgroundType = _backgroundType,
+                    BackgroundOpacity = _backgroundOpacity,
+                    BackgroundColor = SerializeColor(_backgroundColor),
+                    BackgroundGradientEndColor = SerializeColor(_backgroundGradientEndColor),
+                    BackgroundScaleMode = _backgroundScaleMode,
+                    GradientDirection = _gradientDirection,
+                    BackgroundImagePath = _backgroundImagePath,
+                    
+                    // Render settings
+                    TargetFPS = TargetFPS,
+                    JpegQuality = JpegQuality,
+                    
+                    // Elements
+                    Elements = await SerializeElementsAsync()
+                };
+
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    Converters = { new JsonStringEnumConverter() }
+                };
+
+                return JsonSerializer.Serialize(sceneData, options);
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to export scene to JSON: {ex.Message}", ex));
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Import scene state from JSON
+        /// </summary>
+        /// <param name="jsonData">JSON string containing scene data</param>
+        /// <returns>True if import was successful, false otherwise</returns>
+        public async Task<bool> ImportSceneFromJsonAsync(string jsonData)
+        {
+            try
+            {
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    Converters = { new JsonStringEnumConverter() }
+                };
+
+                var sceneData = JsonSerializer.Deserialize<SceneExportData>(jsonData, options);
+                if (sceneData == null)
+                {
+                    HidStatusChanged?.Invoke("Failed to deserialize scene data");
+                    return false;
+                }
+
+                // Clear existing elements
+                ClearElements();
+
+                // Apply scene configuration
+                await ApplySceneConfigurationAsync(sceneData);
+
+                // Import elements
+                await ImportElementsAsync(sceneData.Elements);
+
+                HidStatusChanged?.Invoke($"Scene imported: {sceneData.SceneName} ({sceneData.Elements.Count} elements)");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to import scene from JSON: {ex.Message}", ex));
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Get scene information as formatted string
+        /// </summary>
+        /// <returns>Formatted scene information</returns>
+        public async Task<string> GetSceneInfoAsync()
+        {
+            try
+            {
+                var elements = GetElements();
+                var motionElementCount = elements.Count(e => e is IMotionElement);
+                
+                var info = new StringBuilder();
+                info.AppendLine("=== SCENE INFORMATION ===");
+                info.AppendLine($"Scene Export Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                info.AppendLine($"Canvas Size: {Width} x {Height}");
+                info.AppendLine();
+                
+                info.AppendLine("=== DISPLAY SETTINGS ===");
+                info.AppendLine($"Show Time: {ShowTime}");
+                info.AppendLine($"Show Date: {ShowDate}");
+                info.AppendLine($"Show System Info: {ShowSystemInfo}");
+                info.AppendLine($"Show Animation: {ShowAnimation}");
+                info.AppendLine();
+                
+                info.AppendLine("=== BACKGROUND CONFIGURATION ===");
+                info.AppendLine($"Background Type: {_backgroundType}");
+                info.AppendLine($"Background Opacity: {_backgroundOpacity:F2}");
+                
+                switch (_backgroundType)
+                {
+                    case BackgroundType.SolidColor:
+                        info.AppendLine($"Background Color: {_backgroundColor}");
+                        break;
+                    case BackgroundType.Gradient:
+                        info.AppendLine($"Gradient Start: {_backgroundColor}");
+                        info.AppendLine($"Gradient End: {_backgroundGradientEndColor}");
+                        info.AppendLine($"Gradient Direction: {_gradientDirection}");
+                        break;
+                    case BackgroundType.Image:
+                        info.AppendLine($"Image Path: {_backgroundImagePath ?? "Unknown"}");
+                        info.AppendLine($"Scale Mode: {_backgroundScaleMode}");
+                        break;
+                }
+                info.AppendLine();
+                
+                info.AppendLine("=== RENDER SETTINGS ===");
+                info.AppendLine($"Target FPS: {TargetFPS}");
+                info.AppendLine($"Auto Rendering: {IsAutoRenderingEnabled}");
+                info.AppendLine($"JPEG Quality: {JpegQuality}%");
+                info.AppendLine($"HID Service Connected: {IsHidServiceConnected}");
+                info.AppendLine($"HID Real-time Mode: {IsHidRealTimeModeEnabled}");
+                info.AppendLine($"HID Frames Sent: {HidFramesSent}");
+                info.AppendLine();
+                
+                info.AppendLine("=== ELEMENTS ===");
+                info.AppendLine($"Total Elements: {elements.Count}");
+                info.AppendLine($"Motion Elements: {motionElementCount}");
+                info.AppendLine($"Static Elements: {elements.Count - motionElementCount}");
+                info.AppendLine();
+                
+                if (elements.Any())
+                {
+                    info.AppendLine("Element Details:");
+                    foreach (var element in elements.OrderBy(e => e.ZIndex))
+                    {
+                        var motionInfo = element is IMotionElement me ? $" [Motion: {me.MotionConfig.MotionType}]" : "";
+                        info.AppendLine($"  ï¿½ {element.Name} ({element.Type}){motionInfo}");
+                        info.AppendLine($"    Position: ({element.Position.X:F0}, {element.Position.Y:F0})");
+                        info.AppendLine($"    Visible: {element.IsVisible}, Draggable: {element.IsDraggable}");
+                        
+                        if (element is TextElement te)
+                        {
+                            var textPreview = te.Text.Length > 30 ? te.Text.Substring(0, 30) + "..." : te.Text;
+                            info.AppendLine($"    Text: \"{textPreview}\" (Size: {te.FontSize})");
+                        }
+                        else if (element is ImageElement ie)
+                        {
+                            info.AppendLine($"    Image: {Path.GetFileName(ie.ImagePath)} (Scale: {ie.Scale})");
+                        }
+                        else if (element is ShapeElement se)
+                        {
+                            info.AppendLine($"    Shape: {se.ShapeType} (Size: {se.Size.Width:F0}x{se.Size.Height:F0})");
+                        }
+                        
+                        info.AppendLine();
+                    }
+                }
+                
+                return info.ToString();
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to generate scene info: {ex.Message}", ex));
+                return $"Error generating scene info: {ex.Message}";
+            }
+        }
+
+        #endregion
+
+        #region JSON Serialization Helper Methods
+
+        private async Task<List<ElementExportData>> SerializeElementsAsync()
+        {
+            var elements = GetElements();
+            var exportElements = new List<ElementExportData>();
+
+            foreach (var element in elements)
+            {
+                var exportElement = new ElementExportData
+                {
+                    Id = element.Id.ToString(),
+                    Name = element.Name,
+                    Type = element.Type.ToString(),
+                    Position = SerializePoint(element.Position),
+                    IsVisible = element.IsVisible,
+                    IsDraggable = element.IsDraggable,
+                    ZIndex = element.ZIndex
+                };
+
+                // Serialize element-specific properties
+                switch (element)
+                {
+                    case TextElement textElement:
+                        exportElement.TextData = new TextElementData
+                        {
+                            Text = textElement.Text,
+                            FontSize = textElement.FontSize,
+                            FontFamily = textElement.FontFamily,
+                            TextColor = SerializeColor(textElement.TextColor),
+                            Size = SerializeSize(textElement.Size)
+                        };
+                        break;
+
+                    case ImageElement imageElement:
+                        exportElement.ImageData = new ImageElementData
+                        {
+                            ImagePath = imageElement.ImagePath,
+                            Size = SerializeSize(imageElement.Size),
+                            Scale = imageElement.Scale,
+                            Rotation = imageElement.Rotation
+                        };
+                        break;
+
+                    case ShapeElement shapeElement:
+                        exportElement.ShapeData = new ShapeElementData
+                        {
+                            ShapeType = shapeElement.ShapeType.ToString(),
+                            Size = SerializeSize(shapeElement.Size),
+                            FillColor = SerializeColor(shapeElement.FillColor),
+                            StrokeColor = SerializeColor(shapeElement.StrokeColor),
+                            StrokeWidth = shapeElement.StrokeWidth
+                        };
+                        break;
+
+                    case LiveElement liveElement:
+                        exportElement.LiveData = new LiveElementData
+                        {
+                            Format = liveElement.Format,
+                            FontSize = liveElement.FontSize,
+                            FontFamily = liveElement.FontFamily,
+                            TextColor = SerializeColor(liveElement.TextColor),
+                            Size = SerializeSize(liveElement.Size)
+                        };
+                        break;
+                }
+
+                // Serialize motion data if element has motion
+                if (element is IMotionElement motionElement)
+                {
+                    exportElement.MotionData = new MotionElementData
+                    {
+                        OriginalPosition = SerializePoint(motionElement.OriginalPosition),
+                        MotionConfig = SerializeMotionConfig(motionElement.MotionConfig),
+                        StartTime = motionElement.StartTime,
+                        CurrentAngle = motionElement.CurrentAngle
+                    };
+                }
+
+                exportElements.Add(exportElement);
+            }
+
+            return exportElements;
+        }
+
+        private async Task ApplySceneConfigurationAsync(SceneExportData sceneData)
+        {
+            try
+            {
+                // Apply display settings
+                ShowTime = sceneData.ShowTime;
+                ShowDate = sceneData.ShowDate;
+                ShowSystemInfo = sceneData.ShowSystemInfo;
+                ShowAnimation = sceneData.ShowAnimation;
+
+                // Apply render settings
+                TargetFPS = sceneData.TargetFPS;
+                JpegQuality = sceneData.JpegQuality;
+
+                // Apply background settings
+                switch (sceneData.BackgroundType)
+                {
+                    case BackgroundType.SolidColor:
+                        var solidColor = DeserializeColor(sceneData.BackgroundColor);
+                        await SetBackgroundColorAsync(solidColor, sceneData.BackgroundOpacity);
+                        break;
+
+                    case BackgroundType.Gradient:
+                        var startColor = DeserializeColor(sceneData.BackgroundColor);
+                        var endColor = DeserializeColor(sceneData.BackgroundGradientEndColor);
+                        await SetBackgroundGradientAsync(startColor, endColor, sceneData.GradientDirection, sceneData.BackgroundOpacity);
+                        break;
+
+                    case BackgroundType.Image:
+                        if (!string.IsNullOrEmpty(sceneData.BackgroundImagePath) && File.Exists(sceneData.BackgroundImagePath))
+                        {
+                            await SetBackgroundImageAsync(sceneData.BackgroundImagePath, sceneData.BackgroundScaleMode, sceneData.BackgroundOpacity);
+                        }
+                        else
+                        {
+                            HidStatusChanged?.Invoke($"Background image not found: {sceneData.BackgroundImagePath}");
+                        }
+                        break;
+
+                    case BackgroundType.Transparent:
+                        await ClearBackgroundAsync();
+                        break;
+                }
+
+                BackgroundChanged?.Invoke($"Scene configuration applied: {sceneData.SceneName}");
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to apply scene configuration: {ex.Message}", ex));
+            }
+        }
+
+        private async Task ImportElementsAsync(List<ElementExportData> elements)
+        {
+            foreach (var exportElement in elements.OrderBy(e => e.ZIndex))
+            {
+                try
+                {
+                    RenderElement? element = null;
+
+                    // Create element based on type
+                    switch (exportElement.Type)
+                    {
+                        case "Text":
+                            if (exportElement.TextData != null)
+                            {
+                                element = new TextElement(exportElement.Name)
+                                {
+                                    Text = exportElement.TextData.Text,
+                                    FontSize = exportElement.TextData.FontSize,
+                                    FontFamily = exportElement.TextData.FontFamily,
+                                    TextColor = DeserializeColor(exportElement.TextData.TextColor),
+                                    Size = DeserializeSize(exportElement.TextData.Size)
+                                };
+                            }
+                            break;
+
+                        case "Image":
+                            if (exportElement.ImageData != null)
+                            {
+                                element = new ImageElement(exportElement.Name)
+                                {
+                                    ImagePath = exportElement.ImageData.ImagePath,
+                                    Size = DeserializeSize(exportElement.ImageData.Size),
+                                    Scale = exportElement.ImageData.Scale,
+                                    Rotation = exportElement.ImageData.Rotation
+                                };
+
+                                // Load image if it exists
+                                if (File.Exists(exportElement.ImageData.ImagePath))
+                                {
+                                    await LoadImageAsync(exportElement.ImageData.ImagePath);
+                                }
+                            }
+                            break;
+
+                        case "Shape":
+                            if (exportElement.ShapeData != null)
+                            {
+                                if (Enum.TryParse<ShapeType>(exportElement.ShapeData.ShapeType, out var shapeType))
+                                {
+                                    element = new ShapeElement(exportElement.Name)
+                                    {
+                                        ShapeType = shapeType,
+                                        Size = DeserializeSize(exportElement.ShapeData.Size),
+                                        FillColor = DeserializeColor(exportElement.ShapeData.FillColor),
+                                        StrokeColor = DeserializeColor(exportElement.ShapeData.StrokeColor),
+                                        StrokeWidth = exportElement.ShapeData.StrokeWidth
+                                    };
+                                }
+                            }
+                            break;
+
+                        case "LiveTime":
+                        case "LiveDate":
+                        case "SystemInfo":
+                            if (exportElement.LiveData != null && Enum.TryParse<ElementType>(exportElement.Type, out var liveType))
+                            {
+                                element = new LiveElement(liveType, exportElement.Name)
+                                {
+                                    Format = exportElement.LiveData.Format,
+                                    FontSize = exportElement.LiveData.FontSize,
+                                    FontFamily = exportElement.LiveData.FontFamily,
+                                    TextColor = DeserializeColor(exportElement.LiveData.TextColor),
+                                    Size = DeserializeSize(exportElement.LiveData.Size)
+                                };
+                            }
+                            break;
+                    }
+
+                    if (element != null)
+                    {
+                        // Apply common properties
+                        element.Position = DeserializePoint(exportElement.Position);
+                        element.IsVisible = exportElement.IsVisible;
+                        element.IsDraggable = exportElement.IsDraggable;
+                        element.ZIndex = exportElement.ZIndex;
+
+                        // Convert to motion element if motion data exists
+                        if (exportElement.MotionData != null)
+                        {
+                            element = await ConvertToMotionElementAsync(element, exportElement.MotionData);
+                        }
+
+                        AddElement(element);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    HidStatusChanged?.Invoke($"Failed to import element '{exportElement.Name}': {ex.Message}");
+                }
+            }
+        }
+
+        private async Task<RenderElement> ConvertToMotionElementAsync(RenderElement element, MotionElementData motionData)
+        {
+            var motionConfig = DeserializeMotionConfig(motionData.MotionConfig);
+
+            switch (element)
+            {
+                case TextElement textElement:
+                    var motionText = new MotionTextElement(textElement.Name)
+                    {
+                        Text = textElement.Text,
+                        FontSize = textElement.FontSize,
+                        FontFamily = textElement.FontFamily,
+                        TextColor = textElement.TextColor,
+                        Size = textElement.Size,
+                        Position = textElement.Position,
+                        OriginalPosition = DeserializePoint(motionData.OriginalPosition),
+                        MotionConfig = motionConfig,
+                        StartTime = motionData.StartTime,
+                        CurrentAngle = motionData.CurrentAngle,
+                        IsVisible = textElement.IsVisible,
+                        IsDraggable = textElement.IsDraggable,
+                        ZIndex = textElement.ZIndex
+                    };
+                    InitializeMotionElement(motionText, motionConfig);
+                    return motionText;
+
+                case ShapeElement shapeElement:
+                    var motionShape = new MotionShapeElement(shapeElement.Name)
+                    {
+                        ShapeType = shapeElement.ShapeType,
+                        Size = shapeElement.Size,
+                        FillColor = shapeElement.FillColor,
+                        StrokeColor = shapeElement.StrokeColor,
+                        StrokeWidth = shapeElement.StrokeWidth,
+                        Position = shapeElement.Position,
+                        OriginalPosition = DeserializePoint(motionData.OriginalPosition),
+                        MotionConfig = motionConfig,
+                        StartTime = motionData.StartTime,
+                        CurrentAngle = motionData.CurrentAngle,
+                        IsVisible = shapeElement.IsVisible,
+                        IsDraggable = shapeElement.IsDraggable,
+                        ZIndex = shapeElement.ZIndex
+                    };
+                    InitializeMotionElement(motionShape, motionConfig);
+                    return motionShape;
+
+                case ImageElement imageElement:
+                    var motionImage = new MotionImageElement(imageElement.Name)
+                    {
+                        ImagePath = imageElement.ImagePath,
+                        Size = imageElement.Size,
+                        Scale = imageElement.Scale,
+                        Rotation = imageElement.Rotation,
+                        Position = imageElement.Position,
+                        OriginalPosition = DeserializePoint(motionData.OriginalPosition),
+                        MotionConfig = motionConfig,
+                        StartTime = motionData.StartTime,
+                        CurrentAngle = motionData.CurrentAngle,
+                        IsVisible = imageElement.IsVisible,
+                        IsDraggable = imageElement.IsDraggable,
+                        ZIndex = imageElement.ZIndex
+                    };
+                    InitializeMotionElement(motionImage, motionConfig);
+                    return motionImage;
+
+                default:
+                    return element;
+            }
+        }
+        #endregion
+
+        #region Serialization Utility Methods
+
+        private SerializedColor SerializeColor(WinUIColor color)
+        {
+            return new SerializedColor
+            {
+                A = color.A,
+                R = color.R,
+                G = color.G,
+                B = color.B
+            };
+        }
+
+        private WinUIColor DeserializeColor(SerializedColor color)
+        {
+            return WinUIColor.FromArgb(color.A, color.R, color.G, color.B);
+        }
+
+        private SerializedPoint SerializePoint(Point point)
+        {
+            return new SerializedPoint { X = point.X, Y = point.Y };
+        }
+
+        private Point DeserializePoint(SerializedPoint point)
+        {
+            return new Point(point.X, point.Y);
+        }
+
+        private SerializedSize SerializeSize(Size size)
+        {
+            return new SerializedSize { Width = size.Width, Height = size.Height };
+        }
+
+        private Size DeserializeSize(SerializedSize size)
+        {
+            return new Size(size.Width, size.Height);
+        }
+
+        private SerializedVector2 SerializeVector2(Vector2 vector)
+        {
+            return new SerializedVector2 { X = vector.X, Y = vector.Y };
+        }
+
+        private Vector2 DeserializeVector2(SerializedVector2 vector)
+        {
+            return new Vector2(vector.X, vector.Y);
+        }
+
+        private SerializedMotionConfig SerializeMotionConfig(ElementMotionConfig config)
+        {
+            return new SerializedMotionConfig
+            {
+                MotionType = config.MotionType.ToString(),
+                Speed = config.Speed,
+                Direction = SerializeVector2(config.Direction),
+                Center = SerializeVector2(config.Center),
+                Radius = config.Radius,
+                RespectBoundaries = config.RespectBoundaries,
+                ShowTrail = config.ShowTrail,
+                TrailLength = config.TrailLength,
+                IsPaused = config.IsPaused
+            };
+        }
+
+        private ElementMotionConfig DeserializeMotionConfig(SerializedMotionConfig config)
+        {
+            Enum.TryParse<MotionType>(config.MotionType, out var motionType);
+            
+            return new ElementMotionConfig
+            {
+                MotionType = motionType,
+                Speed = config.Speed,
+                Direction = DeserializeVector2(config.Direction),
+                Center = DeserializeVector2(config.Center),
+                Radius = config.Radius,
+                RespectBoundaries = config.RespectBoundaries,
+                ShowTrail = config.ShowTrail,
+                TrailLength = config.TrailLength,
+                IsPaused = config.IsPaused
+            };
+        }
+
+
+        #endregion // End of JSON Serialization Data Models
     }
+
+    #region Background Configuration Enums
+
+    /// <summary>
+    /// Background types supported by the rendering service
+    /// </summary>
+    public enum BackgroundType
+    {
+        Transparent,
+        SolidColor,
+        Gradient,
+        Image
+    }
+
+    /// <summary>
+    /// Background image scale modes
+    /// </summary>
+    public enum BackgroundScaleMode
+    {
+        None,           // Original size, centered
+        Stretch,        // Stretch to fill canvas (may distort)
+        Uniform,        // Scale to fit while maintaining aspect ratio
+        UniformToFill   // Scale to fill while maintaining aspect ratio (may crop)
+    }
+
+    /// <summary>
+    /// Gradient directions for background gradients
+    /// </summary>
+    public enum BackgroundGradientDirection
+    {
+        TopToBottom,
+        LeftToRight,
+        DiagonalTopLeftToBottomRight,
+        DiagonalTopRightToBottomLeft,
+        RadialFromCenter
+    }
+
+    #endregion
 
     #region Motion Configuration and Element Classes
 
@@ -1613,4 +2710,177 @@ namespace CMDevicesManager.Services
     }
 
     #endregion
+
+    #region JSON Serialization Data Models
+
+    /// <summary>
+    /// Complete scene export data structure
+    /// </summary>
+    public class SceneExportData
+    {
+        public string SceneName { get; set; } = "";
+        public DateTime ExportDate { get; set; }
+        public string Version { get; set; } = "1.0";
+        public int CanvasWidth { get; set; }
+        public int CanvasHeight { get; set; }
+        
+        // Display options
+        public bool ShowTime { get; set; }
+        public bool ShowDate { get; set; }
+        public bool ShowSystemInfo { get; set; }
+        public bool ShowAnimation { get; set; }
+        
+        // Background configuration
+        public BackgroundType BackgroundType { get; set; }
+        public float BackgroundOpacity { get; set; }
+        public SerializedColor BackgroundColor { get; set; } = new SerializedColor();
+        public SerializedColor BackgroundGradientEndColor { get; set; } = new SerializedColor();
+        public BackgroundScaleMode BackgroundScaleMode { get; set; }
+        public BackgroundGradientDirection GradientDirection { get; set; }
+        public string? BackgroundImagePath { get; set; }
+        
+        // Render settings
+        public int TargetFPS { get; set; }
+        public int JpegQuality { get; set; }
+        
+        // Elements
+        public List<ElementExportData> Elements { get; set; } = new List<ElementExportData>();
+    }
+
+    /// <summary>
+    /// Element export data structure
+    /// </summary>
+    public class ElementExportData
+    {
+        public string Id { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Type { get; set; } = "";
+        public SerializedPoint Position { get; set; } = new SerializedPoint();
+        public bool IsVisible { get; set; } = true;
+        public bool IsDraggable { get; set; } = true;
+        public float ZIndex { get; set; } = 0;
+        
+        // Element-specific data (only one will be populated per element)
+        public TextElementData? TextData { get; set; }
+        public ImageElementData? ImageData { get; set; }
+        public ShapeElementData? ShapeData { get; set; }
+        public LiveElementData? LiveData { get; set; }
+        
+        // Motion data (optional)
+        public MotionElementData? MotionData { get; set; }
+    }
+
+    /// <summary>
+    /// Text element specific data
+    /// </summary>
+    public class TextElementData
+    {
+        public string Text { get; set; } = "";
+        public float FontSize { get; set; } = 16;
+        public string FontFamily { get; set; } = "Segoe UI";
+        public SerializedColor TextColor { get; set; } = new SerializedColor();
+        public SerializedSize Size { get; set; } = new SerializedSize();
+    }
+
+    /// <summary>
+    /// Image element specific data
+    /// </summary>
+    public class ImageElementData
+    {
+        public string ImagePath { get; set; } = "";
+        public SerializedSize Size { get; set; } = new SerializedSize();
+        public float Scale { get; set; } = 1.0f;
+        public float Rotation { get; set; } = 0.0f;
+    }
+
+    /// <summary>
+    /// Shape element specific data
+    /// </summary>
+    public class ShapeElementData
+    {
+        public string ShapeType { get; set; } = "Rectangle";
+        public SerializedSize Size { get; set; } = new SerializedSize();
+        public SerializedColor FillColor { get; set; } = new SerializedColor();
+        public SerializedColor StrokeColor { get; set; } = new SerializedColor();
+        public float StrokeWidth { get; set; } = 1.0f;
+    }
+
+    /// <summary>
+    /// Live element specific data
+    /// </summary>
+    public class LiveElementData
+    {
+        public string Format { get; set; } = "";
+        public float FontSize { get; set; } = 16;
+        public string FontFamily { get; set; } = "Segoe UI";
+        public SerializedColor TextColor { get; set; } = new SerializedColor();
+        public SerializedSize Size { get; set; } = new SerializedSize();
+    }
+
+    /// <summary>
+    /// Motion element data
+    /// </summary>
+    public class MotionElementData
+    {
+        public SerializedPoint OriginalPosition { get; set; } = new SerializedPoint();
+        public SerializedMotionConfig MotionConfig { get; set; } = new SerializedMotionConfig();
+        public DateTime StartTime { get; set; }
+        public float CurrentAngle { get; set; }
+    }
+
+    /// <summary>
+    /// Serialized motion configuration
+    /// </summary>
+    public class SerializedMotionConfig
+    {
+        public string MotionType { get; set; } = "None";
+        public float Speed { get; set; } = 100.0f;
+        public SerializedVector2 Direction { get; set; } = new SerializedVector2();
+        public SerializedVector2 Center { get; set; } = new SerializedVector2();
+        public float Radius { get; set; } = 50.0f;
+        public bool RespectBoundaries { get; set; } = false;
+        public bool ShowTrail { get; set; } = false;
+        public int TrailLength { get; set; } = 20;
+        public bool IsPaused { get; set; } = false;
+    }
+
+    /// <summary>
+    /// Serializable color structure
+    /// </summary>
+    public class SerializedColor
+    {
+        public byte A { get; set; } = 255;
+        public byte R { get; set; } = 0;
+        public byte G { get; set; } = 0;
+        public byte B { get; set; } = 0;
+    }
+
+    /// <summary>
+    /// Serializable point structure
+    /// </summary>
+    public class SerializedPoint
+    {
+        public double X { get; set; } = 0;
+        public double Y { get; set; } = 0;
+    }
+
+    /// <summary>
+    /// Serializable size structure
+    /// </summary>
+    public class SerializedSize
+    {
+        public double Width { get; set; } = 0;
+        public double Height { get; set; } = 0;
+    }
+
+    /// <summary>
+    /// Serializable Vector2 structure
+    /// </summary>
+    public class SerializedVector2
+    {
+        public float X { get; set; } = 0;
+        public float Y { get; set; } = 0;
+    }
+
+    #endregion // End of JSON Serialization Data Models
 }

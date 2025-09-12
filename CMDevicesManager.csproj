@@ -13,12 +13,14 @@
   <ItemGroup>
     <Compile Remove="HidProtocol\**" />
     <Compile Remove="WinUI3\**" />
+    <Content Remove="WinUI3\**" />
     <EmbeddedResource Remove="HidProtocol\**" />
     <EmbeddedResource Remove="WinUI3\**" />
     <None Remove="HidProtocol\**" />
     <None Remove="WinUI3\**" />
     <Page Remove="HidProtocol\**" />
     <Page Remove="WinUI3\**" />
+    <PRIResource Remove="WinUI3\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -50,6 +52,11 @@
     <None Remove="Resources\icon\icon.svg" />
     <None Remove="Resources\icon\icon2.ico" />
     <None Remove="Resources\SplashGIF.gif" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Services\BackgroundRenderingService.cs_bak" />
+    <Compile Include="Services\Win2DRenderingService.cs_bak" />
   </ItemGroup>
 
   <ItemGroup>

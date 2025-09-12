@@ -143,6 +143,32 @@
                         </StackPanel>
                     </Expander>
 
+                    <!-- JSON Scene Export/Import Section -->
+                    <Expander Header="Scene Management" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Scene Export/Import:" FontWeight="Bold" Margin="0,5,0,5"/>
+                            
+                            <!-- Export/Import buttons -->
+                            <Button Name="ExportSceneToJsonButton" Content="Export Scene to JSON" Margin="0,2" 
+                                    Click="ExportSceneToJsonButton_Click" Background="LightCyan" FontWeight="Bold"/>
+                            <Button Name="ImportSceneFromJsonButton" Content="Import Scene from JSON" Margin="0,2" 
+                                    Click="ImportSceneFromJsonButton_Click" Background="LightGreen" FontWeight="Bold"/>
+                            
+                            <!-- Preset management -->
+                            <Separator Margin="0,5"/>
+                            <TextBlock Text="Scene Presets:" FontWeight="Bold" Margin="0,5,0,2"/>
+                            <Button Name="SaveScenePresetButton" Content="Save as Preset" Margin="0,2" 
+                                    Click="SaveScenePresetButton_Click" Background="Gold"/>
+                            <Button Name="LoadScenePresetButton" Content="Load Preset" Margin="0,2" 
+                                    Click="LoadScenePresetButton_Click" Background="LightSalmon"/>
+                            
+                            <!-- Scene information -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="GetSceneInfoButton" Content="View Scene Info" Margin="0,2" 
+                                    Click="GetSceneInfoButton_Click" Background="Lavender"/>
+                        </StackPanel>
+                    </Expander>
+
                     <!-- Element Management Section -->
                     <Expander Header="Element Management" IsExpanded="True" Margin="0,0,0,10">
                         <StackPanel>
@@ -165,6 +191,28 @@
                                 • Right-click to select elements
                                 <LineBreak/>
                                 <LineBreak/>
+                                <Run Text="💾 Scene Management:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • Export scenes to JSON for backup or sharing
+                                <LineBreak/>
+                                • Import scenes to restore complete configurations
+                                <LineBreak/>
+                                • Save/load presets for quick scene switching
+                                <LineBreak/>
+                                • View scene info shows current state details
+                                <LineBreak/>
+                                <LineBreak/>
+                                <Run Text="🎨 Background Features:" FontWeight="Bold"/>
+                                <LineBreak/>
+                                • Set solid colors, gradients, or images as backgrounds
+                                <LineBreak/>
+                                • Adjust opacity and scale modes for images
+                                <LineBreak/>
+                                • Try the animated background demo
+                                <LineBreak/>
+                                • Use Sample Scene for a complete demo
+                                <LineBreak/>
+                                <LineBreak/>
                                 <Run Text="🎬 Motion Features:" FontWeight="Bold"/>
                                 <LineBreak/>
                                 • Add motion elements with different behaviors
@@ -176,13 +224,61 @@
                                 <LineBreak/>
                                 <Run Text="📡 HID Integration:" FontWeight="Bold"/>
                                 <LineBreak/>
-                                • All animations stream to HID devices in real-time
+                                • All backgrounds and animations stream to HID devices
                                 <LineBreak/>
                                 • Start Rendering to enable HID streaming
+                                <LineBreak/>
+                                • Real-time background changes are sent instantly
+                                <LineBreak/>
+                                • Scene imports/exports work with HID streaming
                             </TextBlock>
                         </StackPanel>
                     </Expander>
 
+                    <!-- Background Controls Section -->
+                    <Expander Header="Background Controls" IsExpanded="True" Margin="0,0,0,10">
+                        <StackPanel>
+                            <TextBlock Text="Background Options:" FontWeight="Bold" Margin="0,5,0,5"/>
+                            
+                            <!-- Background type buttons -->
+                            <Button Name="SetSolidColorBackgroundButton" Content="Set Solid Color" Margin="0,2" 
+                                    Click="SetSolidColorBackgroundButton_Click" Background="LightCoral"/>
+                            <Button Name="SetGradientBackgroundButton" Content="Set Gradient" Margin="0,2" 
+                                    Click="SetGradientBackgroundButton_Click" Background="LightBlue"/>
+                            <Button Name="LoadBackgroundImageButton" Content="Load Background Image" Margin="0,2" 
+                                    Click="LoadBackgroundImageButton_Click" Background="LightGreen"/>
+                            
+                            <!-- Background utilities -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="ClearBackgroundButton" Content="Clear Background" Margin="0,2" 
+                                    Click="ClearBackgroundButton_Click" Background="LightGray"/>
+                            <Button Name="ResetDefaultBackgroundButton" Content="Reset to Default" Margin="0,2" 
+                                    Click="ResetDefaultBackgroundButton_Click" Background="LightSteelBlue"/>
+                            
+                            <!-- Background image controls -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="ChangeScaleModeButton" Content="Change Scale Mode" Margin="0,2" 
+                                    Click="ChangeScaleModeButton_Click" Background="LightGoldenrodYellow"/>
+                            
+                            <!-- Background opacity control -->
+                            <TextBlock Text="Background Opacity:" FontWeight="Bold" Margin="0,10,0,2"/>
+                            <Slider Name="BackgroundOpacitySlider" Minimum="0" Maximum="1" Value="1" 
+                                    Margin="0,2" ValueChanged="BackgroundOpacitySlider_ValueChanged"/>
+                            <Label Name="BackgroundOpacityLabel" Content="Background Opacity: 1.00" 
+                                   FontSize="10" Margin="0,0,0,5"/>
+                            
+                            <!-- Background info and demos -->
+                            <Separator Margin="0,5"/>
+                            <Button Name="GetBackgroundInfoButton" Content="Get Background Info" Margin="0,2" 
+                                    Click="GetBackgroundInfoButton_Click" Background="Plum"/>
+                            <Button Name="AnimatedBackgroundDemoButton" Content="Animated Demo" Margin="0,2" 
+                                    Click="AnimatedBackgroundDemoButton_Click" Background="Orange" FontWeight="Bold"/>
+                            <Button Name="CreateSampleSceneButton" Content="Create Sample Scene" Margin="0,2" 
+                                    Click="CreateSampleSceneButton_Click" Background="MediumSeaGreen" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Motion Elements Section -->
                 </StackPanel>
             </ScrollViewer>
         </Border>
