@@ -24,6 +24,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Application = System.Windows.Application;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Button = System.Windows.Controls.Button;
@@ -694,7 +695,7 @@ namespace CMDevicesManager.Pages
         // 在构造函数结尾处调用
         // public DevicePlayModePage() { ... InitConfigSequence(); }
 
-        private void AddConfigButton_Click(object sender, RoutedEventArgs e)
+        private void AddConfigButton_Click_old(object sender, RoutedEventArgs e)
         {
             var ofd = new OpenFileDialog
             {
@@ -720,6 +721,83 @@ namespace CMDevicesManager.Pages
                 {
                     StartConfigSequence();
                 }
+            }
+        }
+
+        private void AddConfigButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Reuse same folder structure as DeviceConfigPage
+                var configFolder = Path.Combine(_outputFolder, "Configs");
+                if (!Directory.Exists(configFolder))
+                {
+                    MessageBox.Show("No configuration folder found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var files = Directory.GetFiles(configFolder, "*.json");
+                if (files.Length == 0)
+                {
+                    MessageBox.Show("No configuration files found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var list = new List<(string path, CanvasConfiguration config)>();
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(file);
+                        var cfg = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
+                        {
+                            Converters = { new JsonStringEnumConverter() }
+                        });
+                        if (cfg != null)
+                            list.Add((file, cfg));
+                    }
+                    catch
+                    {
+                        // Skip invalid file
+                    }
+                }
+
+                if (list.Count == 0)
+                {
+                    MessageBox.Show("No valid configuration files could be loaded.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var dialog = new ConfigSelectionDialog(list);
+                if (Application.Current.MainWindow != null)
+                    dialog.Owner = Application.Current.MainWindow;
+
+                if (dialog.ShowDialog() == true && dialog.SelectedConfigPath != null)
+                {
+                    var cfg = dialog.SelectedConfig;
+                    string displayName = !string.IsNullOrWhiteSpace(cfg?.ConfigName)
+                        ? cfg!.ConfigName
+                        : Path.GetFileNameWithoutExtension(dialog.SelectedConfigPath);
+
+                    var newItem = new PlayConfigItem
+                    {
+                        DisplayName = displayName,
+                        FilePath = dialog.SelectedConfigPath,
+                        DurationSeconds = 5
+                    };
+                    AttachConfigItemEvents(newItem);
+                    ConfigSequence.Add(newItem);
+
+                    UpdateDurationEditableStates();
+                    SaveGlobalSequence();
+
+                    if (_currentPlayMode == PlayMode.RealtimeConfig && !_isConfigSequenceRunning)
+                        StartConfigSequence();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to add configuration: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         // 提取原 StartSequenceButton_Click 逻辑，供按钮和自动触发共同使用
