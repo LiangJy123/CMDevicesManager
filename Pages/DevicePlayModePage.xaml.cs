@@ -24,6 +24,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Application = System.Windows.Application;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Button = System.Windows.Controls.Button;
@@ -31,6 +32,7 @@ using Color = System.Windows.Media.Color;
 using ColorConverter = System.Windows.Media.ColorConverter;
 using Image = System.Windows.Controls.Image;
 using LiveInfoKindAlias = CMDevicesManager.Pages.DeviceConfigPage.LiveInfoKind;
+using MessageBox = System.Windows.MessageBox;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using Path = System.IO.Path;
 using Point = System.Windows.Point;
@@ -42,6 +44,8 @@ namespace CMDevicesManager.Pages
 {
     public partial class DevicePlayModePage : Page
     {
+        public static event Action<CanvasConfiguration>? GlobalConfigRendered;
+        private CanvasConfiguration? _lastAppliedConfig;
         private readonly string _globalSequencePath;
         private readonly object _globalSequenceLock = new();
         private sealed class GlobalConfigSequence
@@ -668,19 +672,20 @@ namespace CMDevicesManager.Pages
         }
         private void ClearCanvasForNoConfigs()
         {
-            // 停止序列
             _configSequenceCts?.Cancel();
 
-            // 清空渲染与状态
             DesignCanvas.Children.Clear();
             _liveDynamicItems.Clear();
             _usageVisualItems.Clear();
             _movingDirections.Clear();
-
-            // 停止自动移动
             UpdateAutoMoveTimer();
 
-            // 重置显示信息
+            // 广播一个空白配置（供隐藏全局 Canvas 清空显示）
+            var blank = new CanvasConfiguration { CanvasSize = 512 };
+            GlobalConfigRendered?.Invoke(blank);
+            _lastAppliedConfig = blank;
+           
+
             CurrentImageName.Text = "No config";
             ImageDimensions.Text = "";
             SaveGlobalSequence();
@@ -690,7 +695,7 @@ namespace CMDevicesManager.Pages
         // 在构造函数结尾处调用
         // public DevicePlayModePage() { ... InitConfigSequence(); }
 
-        private void AddConfigButton_Click(object sender, RoutedEventArgs e)
+        private void AddConfigButton_Click_old(object sender, RoutedEventArgs e)
         {
             var ofd = new OpenFileDialog
             {
@@ -716,6 +721,83 @@ namespace CMDevicesManager.Pages
                 {
                     StartConfigSequence();
                 }
+            }
+        }
+
+        private void AddConfigButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Reuse same folder structure as DeviceConfigPage
+                var configFolder = Path.Combine(_outputFolder, "Configs");
+                if (!Directory.Exists(configFolder))
+                {
+                    MessageBox.Show("No configuration folder found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var files = Directory.GetFiles(configFolder, "*.json");
+                if (files.Length == 0)
+                {
+                    MessageBox.Show("No configuration files found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var list = new List<(string path, CanvasConfiguration config)>();
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(file);
+                        var cfg = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
+                        {
+                            Converters = { new JsonStringEnumConverter() }
+                        });
+                        if (cfg != null)
+                            list.Add((file, cfg));
+                    }
+                    catch
+                    {
+                        // Skip invalid file
+                    }
+                }
+
+                if (list.Count == 0)
+                {
+                    MessageBox.Show("No valid configuration files could be loaded.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var dialog = new ConfigSelectionDialog(list);
+                if (Application.Current.MainWindow != null)
+                    dialog.Owner = Application.Current.MainWindow;
+
+                if (dialog.ShowDialog() == true && dialog.SelectedConfigPath != null)
+                {
+                    var cfg = dialog.SelectedConfig;
+                    string displayName = !string.IsNullOrWhiteSpace(cfg?.ConfigName)
+                        ? cfg!.ConfigName
+                        : Path.GetFileNameWithoutExtension(dialog.SelectedConfigPath);
+
+                    var newItem = new PlayConfigItem
+                    {
+                        DisplayName = displayName,
+                        FilePath = dialog.SelectedConfigPath,
+                        DurationSeconds = 5
+                    };
+                    AttachConfigItemEvents(newItem);
+                    ConfigSequence.Add(newItem);
+
+                    UpdateDurationEditableStates();
+                    SaveGlobalSequence();
+
+                    if (_currentPlayMode == PlayMode.RealtimeConfig && !_isConfigSequenceRunning)
+                        StartConfigSequence();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to add configuration: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         // 提取原 StartSequenceButton_Click 逻辑，供按钮和自动触发共同使用
@@ -919,7 +1001,7 @@ namespace CMDevicesManager.Pages
                     BgColorRect.Fill = brush;
                 }
             }
-            catch { BgColorRect.Fill = Brushes.Black; }
+            catch { BgColorRect.Fill = Brushes.White; }
 
             // 背景图
             if (!string.IsNullOrWhiteSpace(cfg.BackgroundImagePath))
@@ -1103,6 +1185,8 @@ namespace CMDevicesManager.Pages
             }
 
             UpdateAutoMoveTimer();
+            _lastAppliedConfig = cfg;
+            GlobalConfigRendered?.Invoke(cfg);
         }
         private UsageVisualItem BuildUsageVisual(
     LiveInfoKindAlias kind,
@@ -2004,6 +2088,49 @@ namespace CMDevicesManager.Pages
             catch (Exception ex)
             {
                 Console.WriteLine($"Frame UI update failed: {ex.Message}");
+            }
+        }
+
+        private void SaveCanvasButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
+                {
+                    MessageBox.Show("画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                DesignRoot.UpdateLayout();
+
+                int w = (int)Math.Ceiling(DesignRoot.ActualWidth);
+                int h = (int)Math.Ceiling(DesignRoot.ActualHeight);
+
+                var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(DesignRoot);
+
+                string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "captureimage");
+                Directory.CreateDirectory(dir);
+
+                string baseName = string.IsNullOrWhiteSpace(_lastAppliedConfig?.ConfigName)
+                    ? "PlayModeCanvas"
+                    : _lastAppliedConfig!.ConfigName;
+
+                foreach (var c in Path.GetInvalidFileNameChars())
+                    baseName = baseName.Replace(c, '_');
+
+                string file = Path.Combine(dir, $"{baseName}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
+
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(rtb));
+                using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
+                    encoder.Save(fs);
+
+                MessageBox.Show($"已保存:\n{file}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

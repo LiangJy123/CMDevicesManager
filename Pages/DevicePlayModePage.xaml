@@ -677,6 +677,11 @@
                         <TextBlock Text="LIVE" FontSize="10" FontWeight="Bold" Foreground="White"/>
                     </Border>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                        <Button x:Name="SaveCanvasButton"
+        Content="Save"
+        Style="{StaticResource MiniButton}"
+        Margin="0,0,8,0"
+        Click="SaveCanvasButton_Click"/>
                         <TextBlock Text="{Binding ConfigurationDisplayName}"
                                    FontSize="12"
                                    Foreground="{StaticResource SubtitleBrush}"
