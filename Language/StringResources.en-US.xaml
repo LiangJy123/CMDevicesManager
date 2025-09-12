@@ -1,4 +1,4 @@
-﻿    <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- Navigation Menu -->
     <sys:String x:Key="HomeText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Home</sys:String>
@@ -32,4 +32,49 @@
     <!-- Common -->
     <sys:String x:Key="HelloText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Hello</sys:String>
     <sys:String x:Key="WelcomeText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Welcome to Cooler Master Device Manager</sys:String>
+    
+    <!-- Dialog Buttons -->
+    <sys:String x:Key="OkButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">OK</sys:String>
+    <sys:String x:Key="CancelButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cancel</sys:String>
+    <sys:String x:Key="LoadButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Load</sys:String>
+    
+    <!-- DeviceConfig Page -->
+    <sys:String x:Key="ConfigNameTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Configuration Name</sys:String>
+    <sys:String x:Key="ConfigNamePrompt" xmlns:sys="clr-namespace:System;assembly=mscorlib">Please enter configuration name:</sys:String>
+    <sys:String x:Key="SelectConfigTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Select Configuration</sys:String>
+    <sys:String x:Key="ConfigSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">Configuration saved</sys:String>
+    <sys:String x:Key="SaveSuccessful" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save Successful</sys:String>
+    <sys:String x:Key="ConfigLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">Configuration loaded</sys:String>
+    <sys:String x:Key="LoadSuccessful" xmlns:sys="clr-namespace:System;assembly=mscorlib">Load Successful</sys:String>
+    <sys:String x:Key="LoadConfigFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to load configuration</sys:String>
+    <sys:String x:Key="Error" xmlns:sys="clr-namespace:System;assembly=mscorlib">Error</sys:String>
+    <sys:String x:Key="UnsavedConfig" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unsaved Configuration</sys:String>
+    <sys:String x:Key="SampleText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Sample Text</sys:String>
+    
+    <!-- Status Information -->
+    <sys:String x:Key="None" xmlns:sys="clr-namespace:System;assembly=mscorlib">None</sys:String>
+    <sys:String x:Key="CpuUsage" xmlns:sys="clr-namespace:System;assembly=mscorlib">CPU Usage</sys:String>
+    <sys:String x:Key="GpuUsage" xmlns:sys="clr-namespace:System;assembly=mscorlib">GPU Usage</sys:String>
+    <sys:String x:Key="DateTime" xmlns:sys="clr-namespace:System;assembly=mscorlib">Date/Time</sys:String>
+    <sys:String x:Key="LiveText" xmlns:sys="clr-namespace:System;assembly=mscorlib">Live Text</sys:String>
+    
+    <!-- System Tray -->
+    <sys:String x:Key="TrayTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">CMDevicesManager - Hardware Monitoring Tool</sys:String>
+    <sys:String x:Key="ShowMainWindow" xmlns:sys="clr-namespace:System;assembly=mscorlib">Show Main Window</sys:String>
+    <sys:String x:Key="ExitApplication" xmlns:sys="clr-namespace:System;assembly=mscorlib">Exit Application</sys:String>
+    <sys:String x:Key="AppRunningInTray" xmlns:sys="clr-namespace:System;assembly=mscorlib">Application is running in system tray. Double-click to open or right-click for options.</sys:String>
+    <sys:String x:Key="AppMinimizedToTray" xmlns:sys="clr-namespace:System;assembly=mscorlib">Application minimized to system tray. Double-click the tray icon to restore.</sys:String>
+    <sys:String x:Key="CloseConfirmation" xmlns:sys="clr-namespace:System;assembly=mscorlib">Close Confirmation</sys:String>
+    <sys:String x:Key="CloseConfirmationMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Do you want to minimize to system tray or exit the application?
+
+Click 'Yes' to minimize to tray (app keeps running)
+Click 'No' to exit completely
+Click 'Cancel' to return to the application</sys:String>
+    
+    <!-- Additional Messages -->
+    <sys:String x:Key="NoConfigFilesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">No configuration files found</sys:String>
+    <sys:String x:Key="NoValidConfigFilesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">No valid configuration files found</sys:String>
+    <sys:String x:Key="Notice" xmlns:sys="clr-namespace:System;assembly=mscorlib">Notice</sys:String>
+    <sys:String x:Key="OpenSettingsPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">Open settings window here</sys:String>
+    <sys:String x:Key="SaveAsButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save As</sys:String>
 </ResourceDictionary>

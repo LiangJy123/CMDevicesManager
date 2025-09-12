@@ -18,7 +18,7 @@
         Loaded="Window_Loaded" >
     
     <controls:MicaWindow.Resources>
-        <!-- 定义带有浅色阴影的按钮样式 -->
+        <!-- 标题栏按钮样式 -->
         <Style x:Key="TitleBarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="White"/>
@@ -41,15 +41,100 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <!-- 导航项容器样式（加宽间距 + 悬浮/选中反馈 + 轻微缩放） -->
+        <Style x:Key="NavItemContainerStyle" TargetType="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,10,0,10"/>
+            <Setter Property="Padding" Value="14,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Grid>
+                            <!-- 左侧指示条 -->
+                            <Border x:Name="SelectionBar"
+                                    Width="4"
+                                    CornerRadius="2"
+                                    HorizontalAlignment="Left"
+                                    Margin="0"
+                                    Opacity="0"
+                                    Background="#FFBC41E9"/>
+                            <!-- 主容器 -->
+                            <Border x:Name="Bd"
+                                    Background="Transparent"
+                                    CornerRadius="8"
+                                    Padding="0"
+                                    RenderTransformOrigin="0.5,0.5">
+                                <Border.RenderTransform>
+                                    <ScaleTransform x:Name="Scale" ScaleX="1" ScaleY="1"/>
+                                </Border.RenderTransform>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                        </Grid>
+
+                        <ControlTemplate.Resources>
+                            <!-- Hover 放大 -->
+                            <Storyboard x:Key="HoverInStoryboard">
+                                <DoubleAnimation Storyboard.TargetName="Scale"
+                                                 Storyboard.TargetProperty="ScaleX"
+                                                 To="1.08" Duration="0:0:0.12" FillBehavior="HoldEnd"/>
+                                <DoubleAnimation Storyboard.TargetName="Scale"
+                                                 Storyboard.TargetProperty="ScaleY"
+                                                 To="1.08" Duration="0:0:0.12" FillBehavior="HoldEnd"/>
+                            </Storyboard>
+                            <Storyboard x:Key="HoverOutStoryboard">
+                                <DoubleAnimation Storyboard.TargetName="Scale"
+                                                 Storyboard.TargetProperty="ScaleX"
+                                                 To="1" Duration="0:0:0.15"/>
+                                <DoubleAnimation Storyboard.TargetName="Scale"
+                                                 Storyboard.TargetProperty="ScaleY"
+                                                 To="1" Duration="0:0:0.15"/>
+                            </Storyboard>
+                        </ControlTemplate.Resources>
+
+                        <ControlTemplate.Triggers>
+                            <!-- 悬浮 -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1AFFFFFF"/>
+                                <Setter TargetName="SelectionBar" Property="Opacity" Value="0.45"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+
+                            <!-- 选中 -->
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#33222222"/>
+                                <Setter TargetName="SelectionBar" Property="Opacity" Value="1"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+
+                            <!-- 禁用 -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+
+                            <!-- Hover 动画事件 -->
+                            <EventTrigger RoutedEvent="MouseEnter">
+                                <BeginStoryboard Storyboard="{StaticResource HoverInStoryboard}"/>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="MouseLeave">
+                                <BeginStoryboard Storyboard="{StaticResource HoverOutStoryboard}"/>
+                            </EventTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </controls:MicaWindow.Resources>
     
     <Grid>
-        <Border Background="#FF111114" BorderBrush="#FF111114" BorderThickness="5" CornerRadius="8,8,8,8" >
+        <Border Background="#FF111114" BorderBrush="#FF111114" BorderThickness="5" CornerRadius="8">
             <Grid>
                 <Grid.RowDefinitions>
-                    <!-- 自定义标题栏 -->
                     <RowDefinition Height="35"/>
-                    <!-- 内容区 -->
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
@@ -59,10 +144,7 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-
-                    <!-- 左边：图标 + APP 名称 -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="10,0,0,0">
-                        <!--<Image Source="/Resources/SplashGIF.gif" Width="35" Height="25"/>-->
                         <TextBlock Text="{DynamicResource AppTitle}"
                                    FontWeight="Bold"
                                    FontSize="20"
@@ -77,8 +159,6 @@
                             </TextBlock.Foreground>
                         </TextBlock>
                     </StackPanel>
-
-                    <!-- 右边：控制按钮 -->
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <Button Content="—" Style="{StaticResource TitleBarButtonStyle}" Click="Minimize_Click"/>
                         <Button Content="▢" Style="{StaticResource TitleBarButtonStyle}" Click="Maximize_Click"/>
@@ -86,58 +166,60 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- 内容区 -->
+                <!-- 主体 -->
                 <Grid Grid.Row="1">
                     <Grid.ColumnDefinitions>
-                        <!-- 左侧导航栏 -->
-                        <ColumnDefinition Width="120"/>
-                        <!-- 主内容 -->
+                        <ColumnDefinition Width="90"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- 左侧导航 -->
-                    <ListBox x:Name="NavList" SelectionChanged="NavList_SelectionChanged"
-                     Background="#FF1E1E1E" Foreground="White" BorderThickness="0">
-                        <ListBoxItem Tag="Pages/HomePage.xaml" Padding="10">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE80F;" FontSize="20" VerticalAlignment="Center"/>
-                                <TextBlock Text="{DynamicResource HomeText}" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
+                    <!-- 导航 -->
+                    <ListBox x:Name="NavList"
+                             SelectionChanged="NavList_SelectionChanged"
+                             Background="#FF1E1E1E"
+                             Foreground="White"
+                             BorderThickness="0"
+                             ItemContainerStyle="{StaticResource NavItemContainerStyle}">
+                        <ListBoxItem Tag="Pages/HomePage.xaml">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE80F;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource HomeText}" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
-                        <ListBoxItem Tag="Pages/DevicePage.xaml" Padding="10">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="20" VerticalAlignment="Center"/>
-                                <TextBlock Text="{DynamicResource DeviceText}" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
+                        <ListBoxItem Tag="Pages/DevicePage.xaml">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource DeviceText}" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
-                        <ListBoxItem Tag="Pages/DeviceLive.xaml" Padding="10">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="20" VerticalAlignment="Center"/>
-
-                                <TextBlock Text="Show" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
-
+                        <ListBoxItem Tag="Pages/DevicePageDemo.xaml">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Demo" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
-                        <ListBoxItem Tag="Pages/DevicePageDemo.xaml" Padding="10">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="20" VerticalAlignment="Center"/>
-
-                                <TextBlock Text="Demo" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
-
+                        <ListBoxItem Tag="Pages/RenderDemoPage.xaml">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Render" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
-                        <!-- Settings 按钮固定在底部 -->
-                        <ListBoxItem Tag="Pages/SettingsPage.xaml" Padding="10" VerticalAlignment="Bottom">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="20" VerticalAlignment="Center"/>
-                                <TextBlock Text="{DynamicResource SettingsText}" Margin="15,0,0,0" VerticalAlignment="Center" FontSize="20"/>
+                        <ListBoxItem Tag="Pages/DevicePlayModePage.xaml">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Playmode" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </ListBoxItem>
+                        <ListBoxItem Tag="Pages/SettingsPage.xaml" VerticalAlignment="Bottom">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE713;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource SettingsText}" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
                     </ListBox>
 
-                    <!-- 内容区 Grid -->
-                    <Grid Grid.Column="1" >
-                        <!-- 主内容 Frame -->
+                    <!-- 内容 -->
+                    <Grid Grid.Column="1">
                         <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" Background="Transparent"/>
                     </Grid>
                 </Grid>
@@ -150,23 +232,12 @@
         <EventTrigger RoutedEvent="Window.Loaded">
             <BeginStoryboard>
                 <Storyboard RepeatBehavior="Forever">
-                    <!-- 动画第1个光点 -->
-                    <DoubleAnimation 
-                     Storyboard.TargetName="ShinyBrush"
-                     Storyboard.TargetProperty="GradientStops[1].Offset"
-                     From="0" To="1"
-                     Duration="0:0:2"
-                     AutoReverse="False"
-                     RepeatBehavior="Forever"/>
-
-                    <!-- 动画第2个光点（同步移动） -->
-                    <DoubleAnimation 
-                     Storyboard.TargetName="ShinyBrush"
-                     Storyboard.TargetProperty="GradientStops[2].Offset"
-                     From="0.3" To="1.3"
-                     Duration="0:0:2"
-                     AutoReverse="False"
-                     RepeatBehavior="Forever"/>
+                    <DoubleAnimation Storyboard.TargetName="ShinyBrush"
+                                     Storyboard.TargetProperty="GradientStops[1].Offset"
+                                     From="0" To="1" Duration="0:0:2" />
+                    <DoubleAnimation Storyboard.TargetName="ShinyBrush"
+                                     Storyboard.TargetProperty="GradientStops[2].Offset"
+                                     From="0.3" To="1.3" Duration="0:0:2" />
                 </Storyboard>
             </BeginStoryboard>
         </EventTrigger>

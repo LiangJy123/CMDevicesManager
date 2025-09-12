@@ -14,20 +14,19 @@
                 <!-- DO NOT include: <mica:ControlsDictionary /> -->
                 <!-- Material Design in XAML -->
                 <materialDesign:BundledTheme BaseTheme="Dark" PrimaryColor="Blue" SecondaryColor="Lime" />
-
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Button.xaml" />
+                <!--<ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.Button.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TextBox.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ToggleButton.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.CheckBox.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.RadioButton.xaml" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.ListBox.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TextBlock.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesignTheme.TextBlock.xaml" />-->
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Global palette (light/dark + colors) -->
+            <!-- Global palette (light/dark + colors) --><!--
             <materialDesign:BundledTheme x:Key="MainTheme" BaseTheme="Dark"
                                    PrimaryColor="Indigo"
-                                   SecondaryColor="Lime" />
+                                   SecondaryColor="Lime" />-->
 
             <FontFamily x:Key="AppFontFamily">Cascadia Mono</FontFamily>
         </ResourceDictionary>

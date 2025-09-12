@@ -359,7 +359,7 @@ await example.InitializeAsync();
 example.StatusChanged += (sender, status) => Console.WriteLine($"Status: {status}");
 
 // Set canvas size and FPS
-example.SetCanvasSize(800, 600);
+example.SetCanvasSize(480, 480);
 example.SetTargetFps(30);
 
 // Create sample layout

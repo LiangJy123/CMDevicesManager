@@ -29,8 +29,9 @@ namespace CMDevicesManager
         private HomePage? _homePage;
         private DevicePage? _devicePage;
         private DevicePageDemo? _devicePageDemo;
-        private DeviceLive? _deviceLive;
         private SettingsPage? _settingsPage;
+        private DevicePlayModePage? _devicePlayModePage;
+        private RenderDemoPage? _renderDemoPage;
 
         public MainWindow()
         {
@@ -65,8 +66,9 @@ namespace CMDevicesManager
         private HomePage GetHomePage() => _homePage ??= new HomePage();
         private DevicePage GetDevicePage() => _devicePage ??= new DevicePage();
         private DevicePageDemo GetDevicePageDemo() => _devicePageDemo ??= new DevicePageDemo();
-        private DeviceLive GetDeviceLive() => _deviceLive ??= new DeviceLive();
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
+        private DevicePlayModePage GetDevicePlayModePage() => _devicePlayModePage ??= new DevicePlayModePage();
+        private RenderDemoPage GetRenderDemoPage() => _renderDemoPage ??= new RenderDemoPage();
 
         private void ValidateResources()
         {
@@ -112,8 +114,8 @@ namespace CMDevicesManager
                     if (pagePath.Equals("HomePage") && MainFrame.Content is HomePage) return;
                     if (pagePath.Equals("DevicePage") && MainFrame.Content is DevicePage) return;
                     if (pagePath.Equals("DevicePageDemo") && MainFrame.Content is DevicePageDemo) return;
-                    if (pagePath.Equals("DeviceLive") && MainFrame.Content is DeviceLive) return;
                     if (pagePath.Equals("SettingsPage") && MainFrame.Content is SettingsPage) return;
+                    if (pagePath.Equals("RenderDemoPage") && MainFrame.Content is RenderDemoPage) return;
 
                     // Use cached instances to avoid re-initializing pages/services/timers
                     if (pagePath.Equals("HomePage"))
@@ -128,13 +130,17 @@ namespace CMDevicesManager
                     {
                         MainFrame.Navigate(GetDevicePageDemo());
                     }
-                    else if (pagePath.Equals("DeviceLive"))
-                    {
-                        MainFrame.Navigate(GetDeviceLive());
-                    }
                     else if (pagePath.Equals("SettingsPage"))
                     {
                         MainFrame.Navigate(GetSettingsPage());
+                    }
+                    else if (pagePath.Equals("DevicePlayModePage"))
+                    {
+                        MainFrame.Navigate(GetDevicePlayModePage());
+                    }
+                    else if (pagePath.Equals("RenderDemoPage"))
+                    {
+                        MainFrame.Navigate(GetRenderDemoPage());
                     }
                     else
                     {

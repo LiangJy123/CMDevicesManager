@@ -1,74 +1,22 @@
-﻿<Page x:Class="CMDevicesManager.Pages.DeviceSettings"
+<Page x:Class="CMDevicesManager.Pages.DeviceSettings"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
       xmlns:local="clr-namespace:CMDevicesManager.Pages"
       mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
-      Background="Transparent"
-      Title="DeviceSettings">
+      d:DesignHeight="800" d:DesignWidth="1000"
+      FontFamily="{DynamicResource AppFontFamily}"
+      Title="Device Settings"
+      Background="Transparent">
 
     <Page.Resources>
-        <!-- Colors -->
-        <SolidColorBrush x:Key="CardBg" Color="#232834"/>
-        <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
-        <SolidColorBrush x:Key="CardBorder" Color="#2E3747"/>
-        <SolidColorBrush x:Key="TitleBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C0CC"/>
-        <SolidColorBrush x:Key="ValueBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#38D6BD"/>
-        <SolidColorBrush x:Key="WarningBrush" Color="#F45B89"/>
-        <SolidColorBrush x:Key="SuccessBrush" Color="#4CAF50"/>
-
-        <!-- Shadow effect for cards -->
-        <DropShadowEffect x:Key="CardShadow" 
-                          Color="Black" 
-                          Direction="270" 
-                          ShadowDepth="8" 
-                          Opacity="0.4" 
-                          BlurRadius="20"/>
-
-        <!-- Card style -->
-        <Style x:Key="SettingsCardStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="15"/>
-            <Setter Property="Background" Value="{StaticResource CardBg}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Margin" Value="0,0,0,20"/>
-            <Setter Property="Padding" Value="24"/>
-            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
-        </Style>
-
-        <!-- Section header style -->
-        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="20"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
-            <Setter Property="Margin" Value="0,0,0,12"/>
-        </Style>
-
-        <!-- Label style -->
-        <Style x:Key="LabelStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Foreground" Value="{StaticResource SubtitleBrush}"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-
-        <!-- Value style -->
-        <Style x:Key="ValueStyle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="16"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Foreground" Value="{StaticResource ValueBrush}"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-
-        <!-- Toggle button style -->
-        <Style x:Key="ToggleButtonStyle" TargetType="ToggleButton">
-            <Setter Property="Width" Value="50"/>
-            <Setter Property="Height" Value="28"/>
+        <!-- Toggle Switch Base Style -->
+        <Style x:Key="BaseToggleSwitchStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="60"/>
+            <Setter Property="Height" Value="30"/>
             <Setter Property="Background" Value="#444444"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -76,39 +24,74 @@
                     <ControlTemplate TargetType="ToggleButton">
                         <Grid>
                             <!-- Track -->
-                            <Border x:Name="Track"
+                            <Border x:Name="TrackBorder"
+                                    Width="60"
+                                    Height="30"
+                                    CornerRadius="15"
                                     Background="{TemplateBinding Background}"
-                                    CornerRadius="14"
-                                    Width="50"
-                                    Height="28"/>
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000" BlurRadius="4" ShadowDepth="1" Opacity="0.3"/>
+                                </Border.Effect>
+                            </Border>
+                            
                             <!-- Thumb -->
-                            <Border x:Name="Thumb"
+                            <Border x:Name="ThumbBorder"
+                                    Width="26"
+                                    Height="26"
+                                    CornerRadius="13"
                                     Background="White"
-                                    CornerRadius="12"
-                                    Width="24"
-                                    Height="24"
                                     HorizontalAlignment="Left"
+                                    VerticalAlignment="Center"
                                     Margin="2,0,0,0">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="2" Opacity="0.4"/>
+                                </Border.Effect>
                                 <Border.RenderTransform>
-                                    <TranslateTransform X="0"/>
+                                    <TranslateTransform x:Name="ThumbTransform" X="0"/>
                                 </Border.RenderTransform>
                             </Border>
                         </Grid>
+                        
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Track" Property="Background" Value="{StaticResource AccentBrush}"/>
-                                <Setter TargetName="Thumb" Property="RenderTransform">
-                                    <Setter.Value>
-                                        <TranslateTransform X="22"/>
-                                    </Setter.Value>
-                                </Setter>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ThumbTransform"
+                                                           Storyboard.TargetProperty="X"
+                                                           To="30"
+                                                           Duration="0:0:0.2">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <QuadraticEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ThumbTransform"
+                                                           Storyboard.TargetProperty="X"
+                                                           To="0"
+                                                           Duration="0:0:0.2">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <QuadraticEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
+                            
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Thumb" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect Color="Black" BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
-                                    </Setter.Value>
-                                </Setter>
+                                <Setter TargetName="TrackBorder" Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -116,230 +99,1405 @@
             </Setter>
         </Style>
 
-        <!-- Button style -->
-        <Style x:Key="ActionButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border x:Name="ButtonBorder"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="8"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#2AC4AA"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="ButtonBorder" Property="Background" Value="#1FA088"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+        <!-- Sleep Mode Toggle Style -->
+        <Style x:Key="SleepModeToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource BaseToggleSwitchStyle}">
+            <Setter Property="Background" Value="#666666"/>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#FF5722"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Suspend Mode Toggle Style -->
+        <Style x:Key="SuspendModeToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource BaseToggleSwitchStyle}">
+            <Setter Property="Background" Value="#666666"/>
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Background" Value="#673AB7"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </Page.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                  HorizontalScrollBarVisibility="Disabled"
-                  PanningMode="VerticalOnly">
-        <StackPanel Margin="24">
-            <!-- Page Title -->
-            <TextBlock Text="Device Settings"
-                       FontSize="32"
-                       FontWeight="Bold"
-                       Foreground="{StaticResource TitleBrush}"
-                       Margin="0,0,0,32"/>
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <!-- Firmware Information Card -->
-            <Border Style="{StaticResource SettingsCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="Firmware Information" Style="{StaticResource SectionHeaderStyle}"/>
+        <!-- Header -->
+        <Border Grid.Row="0" 
+                Background="#1A1A1A" 
+                CornerRadius="12" 
+                Padding="24,16" 
+                Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="&#xE115;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="24"
+                           Foreground="#2196F3"
+                           VerticalAlignment="Center"
+                           Margin="0,0,16,0"/>
 
-                        <!-- Current Version -->
-                        <TextBlock Grid.Row="0" Grid.Column="0"
-                                   Text="Current Version:"
-                                   Style="{StaticResource LabelStyle}"/>
-                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                   x:Name="FirmwareVersionText"
-                                   Text="v1.2.3"
-                                   Style="{StaticResource ValueStyle}"/>
-
-                        <!-- Status -->
-                        <TextBlock Grid.Row="1" Grid.Column="0"
-                                   Text="Status:"
-                                   Style="{StaticResource LabelStyle}"
-                                   Margin="0,12,0,0"/>
-                        <StackPanel Grid.Row="1" Grid.Column="1"
-                                    Orientation="Horizontal"
-                                    Margin="0,12,0,0">
-                            <Ellipse x:Name="StatusIndicator"
-                                     Width="8" Height="8"
-                                     Fill="{StaticResource SuccessBrush}"
-                                     VerticalAlignment="Center"
-                                     Margin="0,0,8,0"/>
-                            <TextBlock x:Name="StatusText"
-                                       Text="Up to date"
-                                       Style="{StaticResource ValueStyle}"/>
-                        </StackPanel>
-
-                        <!-- Check for Updates Button -->
-                        <Button Grid.Row="0" Grid.Column="2" Grid.RowSpan="2"
-                                x:Name="CheckUpdateButton"
-                                Content="Check for Updates"
-                                Style="{StaticResource ActionButtonStyle}"
-                                VerticalAlignment="Center"
-                                Click="CheckUpdateButton_Click"/>
-
-                        <!-- Update Progress (Hidden by default) -->
-                        <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3"
-                                    x:Name="UpdateProgressPanel"
-                                    Margin="0,16,0,0"
-                                    Visibility="Collapsed">
-                            <TextBlock Text="Updating firmware..."
-                                       Style="{StaticResource LabelStyle}"
-                                       Margin="0,0,0,8"/>
-                            <ProgressBar x:Name="UpdateProgressBar"
-                                         Height="6"
-                                         Background="{StaticResource CardBorder}"
-                                         Foreground="{StaticResource AccentBrush}"
-                                         Value="0"/>
-                        </StackPanel>
-                    </Grid>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock x:Name="DeviceNameText"
+                               Text="Device Settings"
+                               FontSize="20"
+                               FontWeight="Bold"
+                               Foreground="White"/>
+                    <TextBlock x:Name="DevicePathText"
+                           Text="No device selected"
+                           FontSize="12"
+                           Foreground="#AAFFFFFF"
+                           Margin="0,2,0,0"
+							   Visibility="Collapsed"/>
                 </StackPanel>
-            </Border>
 
-            <!-- Power Management Card -->
-            <Border Style="{StaticResource SettingsCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="Power Management" Style="{StaticResource SectionHeaderStyle}"/>
+                <Border Grid.Column="2"
+                        x:Name="ConnectionStatusBorder"
+                        Width="12" Height="12"
+                        CornerRadius="6"
+                        Background="#4CAF50"
+                        VerticalAlignment="Center">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#4CAF50" BlurRadius="8" ShadowDepth="0" Opacity="0.6"/>
+                    </Border.Effect>
+                </Border>
+            </Grid>
+        </Border>
 
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+        <!-- Main Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-                        <!-- Sleep Mode -->
-                        <StackPanel Grid.Row="0" Grid.Column="0">
-                            <TextBlock Text="Device Sleep Mode"
-                                       Style="{StaticResource ValueStyle}"/>
-                            <TextBlock Text="Automatically put device to sleep when inactive"
-                                       Style="{StaticResource LabelStyle}"
-                                       Margin="0,4,0,0"/>
+                <!-- Device Information Panel -->
+                <Border Grid.Column="0" Grid.Row="0"
+                        Background="#121212" 
+                        CornerRadius="16" 
+                        Padding="20" 
+                        Margin="0,0,12,16">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.3"/>
+                    </Border.Effect>
+                    
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <TextBlock Text="&#xE7F4;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18"
+                                       Foreground="#2196F3"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Text="Device Information"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#2196F3"/>
                         </StackPanel>
-                        <ToggleButton Grid.Row="0" Grid.Column="1"
-                                      x:Name="SleepModeToggle"
-                                      Style="{StaticResource ToggleButtonStyle}"
-                                      VerticalAlignment="Center"
-                                      Checked="SleepModeToggle_Checked"
-                                      Unchecked="SleepModeToggle_Unchecked"/>
 
-                        <!-- Sleep Timer Settings (shown when sleep mode is enabled) -->
-                        <StackPanel Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
-                                    x:Name="SleepTimerPanel"
-                                    Margin="0,16,0,0"
-                                    Visibility="Collapsed">
+                        <!-- Hardware Version -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="60"/>
                                 </Grid.ColumnDefinitions>
-
                                 <TextBlock Grid.Column="0"
-                                           Text="Sleep after:"
-                                           Style="{StaticResource LabelStyle}"/>
-                                <Slider Grid.Column="1"
-                                        x:Name="SleepTimerSlider"
-                                        Minimum="1" Maximum="60"
-                                        Value="15"
-                                        TickFrequency="5"
-                                        IsSnapToTickEnabled="True"
-                                        VerticalAlignment="Center"
-                                        Margin="8,0"/>
+                                           Text="&#xE950;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#FF9800"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Hardware Version:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
                                 <TextBlock Grid.Column="2"
-                                           Text="{Binding Value, ElementName=SleepTimerSlider, StringFormat={}{0:F0} min}"
-                                           Style="{StaticResource ValueStyle}"
-                                           HorizontalAlignment="Right"/>
+                                           x:Name="HardwareVersionText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
                             </Grid>
+                        </Border>
+
+                        <!-- Firmware Version -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE8AD;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#4CAF50"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Firmware Version:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="FirmwareVersionText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Serial Number -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE8D7;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#9C27B0"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Serial Number:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="SerialNumberText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Manufacturer -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE7EE;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#2196F3"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Manufacturer:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="ManufacturerText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Product Name -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE7C3;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#FF5722"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Product:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="120"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="ProductNameText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Device Status Panel -->
+                <Border Grid.Column="1" Grid.Row="0"
+                        Background="#121212" 
+                        CornerRadius="16" 
+                        Padding="20" 
+                        Margin="12,0,0,16">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.3"/>
+                    </Border.Effect>
+                    
+                    <StackPanel>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Text="&#xE7C4;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18"
+                                       Foreground="#2196F3"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="Device Status"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#2196F3"
+                                       VerticalAlignment="Center"/>
+                            <Button Grid.Column="2"
+                                    x:Name="RefreshStatusButton"
+                                    Click="RefreshStatusButton_Click"
+                                    Background="Transparent"
+                                    BorderBrush="Transparent"
+                                    Padding="8"
+                                    Cursor="Hand"
+                                    ToolTip="Refresh Status">
+                                <TextBlock Text="&#xE72C;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#2196F3"/>
+                            </Button>
+                        </Grid>
+
+                        <!-- Brightness -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE706;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#FFC107"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Brightness:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="BrightnessText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Rotation -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE7AD;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#00BCD4"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Rotation:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="RotationText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- OSD State -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE7F8;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#9C27B0"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="OSD State:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="OsdStateText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Keep Alive Timeout -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE916;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#4CAF50"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Keep Alive:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="KeepAliveText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Display In Sleep -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE708;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#FF5722"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Display Sleep:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="DisplaySleepText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Suspend Mode Status -->
+                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Visibility="Collapsed">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="&#xE769;"
+                                           FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14"
+                                           Foreground="#673AB7"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1"
+                                           Text="Suspend Mode:"
+                                           FontSize="12"
+                                           Foreground="#CCCCCC"
+                                           VerticalAlignment="Center"
+                                           Width="100"/>
+                                <TextBlock Grid.Column="2"
+                                           x:Name="SuspendModeText"
+                                           Text="N/A"
+                                           FontSize="12"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Device Management Panel -->
+                <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1"
+                        Background="#121212" 
+                        CornerRadius="16" 
+                        Padding="20" 
+                        Margin="0,0,0,16">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.3"/>
+                    </Border.Effect>
+                    
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <TextBlock Text="&#xE8B7;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18"
+                                       Foreground="#FF9800"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Text="Device Management"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#FF9800"/>
                         </StackPanel>
-                    </Grid>
-                </StackPanel>
-            </Border>
 
-            <!-- Connection Settings Card -->
-            <Border Style="{StaticResource SettingsCardStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Reboot Button -->
+                            <Border Grid.Column="0" 
+                                    Background="#FF9800" 
+                                    CornerRadius="8"
+                                    Margin="0,0,8,0">
+                                <Button x:Name="RebootButton"
+                                        Click="RebootButton_Click"
+                                        Background="Transparent"
+                                        Foreground="White"
+                                        BorderBrush="Transparent"
+                                        Padding="12,10"
+                                        Cursor="Hand">
+                                    <Button.ToolTip>
+                                        <ToolTip MaxWidth="300">
+                                            <StackPanel>
+                                                <TextBlock Text="Reboot Device" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                <TextBlock TextWrapping="Wrap" FontSize="12">
+                                                    Restart the device immediately. The device will disconnect temporarily and reconnect automatically after rebooting.
+                                                </TextBlock>
+                                                <TextBlock Text="⚠ Device will become temporarily unavailable" 
+                                                           FontSize="11" Foreground="Orange" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE7E8;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="16"
+                                                   Margin="0,0,8,0"/>
+                                        <TextBlock Text="Reboot Device"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                            </Border>
+
+                            <!-- Factory Reset Button -->
+                            <Border Grid.Column="1" 
+                                    Background="#F44336" 
+                                    CornerRadius="8"
+                                    Margin="4,0,4,0">
+                                <Button x:Name="FactoryResetButton"
+                                        Click="FactoryResetButton_Click"
+                                        Background="Transparent"
+                                        Foreground="White"
+                                        BorderBrush="Transparent"
+                                        Padding="12,10"
+                                        Cursor="Hand">
+                                    <Button.ToolTip>
+                                        <ToolTip MaxWidth="350">
+                                            <StackPanel>
+                                                <TextBlock Text="Factory Reset" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                                    Reset the device to factory defaults. This will permanently erase all settings, configurations, and stored data.
+                                                </TextBlock>
+                                                <TextBlock Text="⚠ WARNING: This action cannot be undone!" 
+                                                           FontSize="11" FontWeight="Bold" Foreground="Red" Margin="0,4,0,0"/>
+                                                <TextBlock Text="• All device settings will be lost" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
+                                                <TextBlock Text="• All media files will be deleted" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                                <TextBlock Text="• Device will restart automatically" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE7AD;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="16"
+                                                   Margin="0,0,8,0"/>
+                                        <TextBlock Text="Factory Reset"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                            </Border>
+
+                            <!-- Update Firmware Button -->
+                            <Border Grid.Column="2" 
+                                    Background="#9C27B0" 
+                                    CornerRadius="8"
+                                    Margin="8,0,0,0">
+                                <Button x:Name="UpdateFirmwareButton"
+                                        Click="UpdateFirmwareButton_Click"
+                                        Background="Transparent"
+                                        Foreground="White"
+                                        BorderBrush="Transparent"
+                                        Padding="12,10"
+                                        Cursor="Hand">
+                                    <Button.ToolTip>
+                                        <ToolTip MaxWidth="350">
+                                            <StackPanel>
+                                                <TextBlock Text="Update Firmware" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                                    Update the device firmware with a new firmware file. Select a .bin, .hex, or .fw file to upload.
+                                                </TextBlock>
+                                                <TextBlock Text="⚠ CRITICAL: Do not disconnect during update!" 
+                                                           FontSize="11" FontWeight="Bold" Foreground="Red" Margin="0,4,0,0"/>
+                                                <TextBlock Text="• Interrupting may permanently damage device" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
+                                                <TextBlock Text="• Process may take several minutes" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                                <TextBlock Text="• Device will restart after completion" 
+                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                        </ToolTip>
+                                    </Button.ToolTip>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="&#xE896;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="16"
+                                                   Margin="0,0,8,0"/>
+                                        <TextBlock Text="Update Firmware"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"/>
+                                    </StackPanel>
+                                </Button>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Display Control Settings Panel -->
+                <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2"
+                        Background="#121212" 
+                        CornerRadius="16" 
+                        Padding="20" 
+                        Margin="0,0,0,16">
+                    <Border.Effect>
+                        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.3"/>
+                    </Border.Effect>
+                    
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                            <TextBlock Text="&#xE770;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18"
+                                       Foreground="#607D8B"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <TextBlock Text="Display Control Settings"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Foreground="#607D8B"/>
+                        </StackPanel>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Sleep Mode Controls -->
+                            <Border Grid.Row="0" 
+                                    Background="#1A1A1A" 
+                                    CornerRadius="8" 
+                                    Padding="16" 
+                                    Margin="0,0,0,12">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <TextBlock Text="&#xE708;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="16"
+                                                   Foreground="#FF5722"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"/>
+                                        <TextBlock Text="Sleep Mode"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <TextBlock Text="Configure the LCD ON/OFF when system enter to sleep state."
+                                               FontSize="11"
+                                               Foreground="#AAAAAA"
+                                               Margin="0,0,0,12"
+                                               TextWrapping="Wrap"/>
+                                    
+                                    <!-- Sleep Mode Toggle Switch -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>                                       
+                                        
+                                        <ToggleButton x:Name="SleepModeToggle"
+                                                      Grid.Column="1"
+                                                      HorizontalAlignment="Left"
+                                                      Click="SleepModeToggle_Click"
+                                                      Style="{StaticResource SleepModeToggleStyle}">
+                                            <ToggleButton.ToolTip>
+                                                <ToolTip MaxWidth="280">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Sleep Mode Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                                            Toggle sleep mode on or off. When enabled, the device LCD keeps on when system sleeps.
+                                                        </TextBlock>
+                                                        <TextBlock Text="ON: LCD off when system in sleep state." 
+                                                                   FontSize="11" Foreground="LightGreen" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="OFF: LCD on when system in sleep state." 
+                                                                   FontSize="11" Foreground="LightCoral" Margin="0,1,0,0"/>
+                                                    </StackPanel>
+                                                </ToolTip>
+                                            </ToggleButton.ToolTip>
+                                        </ToggleButton>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Suspend Mode Controls -->
+                            <Border Grid.Row="1" 
+                                    Background="#1A1A1A" 
+                                    CornerRadius="8" 
+                                    Padding="16">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <TextBlock Text="&#xE7C4;"
+                                                   FontFamily="Segoe MDL2 Assets"
+                                                   FontSize="16"
+                                                   Foreground="#3F51B5"
+                                                   VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"/>
+                                        <TextBlock Text="Suspend Mode"
+                                                   FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="White"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    
+                                    <TextBlock Text="Setting customized style when MasterCTRL exit."
+                                               FontSize="11"
+                                               Foreground="#AAAAAA"
+                                               Margin="0,0,0,12"
+                                               TextWrapping="Wrap"/>
+                                    
+                                    <!-- Suspend Mode Toggle Switch -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <ToggleButton x:Name="SuspendModeToggle"
+                                                      Grid.Column="1"
+                                                      HorizontalAlignment="Left"
+                                                      Click="SuspendModeToggle_Click"
+                                                      Style="{StaticResource SuspendModeToggleStyle}"
+													  ToolTipService.ToolTip="OFF: Play the device build-in animation.  ON: Play the below imported image or animation."
+													  ToolTipService.Placement="MousePoint"
+													  ToolTipService.InitialShowDelay="100">
+                                            <ToggleButton.ToolTip>
+                                                <ToolTip MaxWidth="320">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Suspend Mode Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                                            Toggle suspend mode for offline media playback. When activated, the device enters suspend mode to play stored media files.
+                                                        </TextBlock>
+                                                        <TextBlock Text="ON: Device plays suspend media offline" 
+                                                                   FontSize="11" Foreground="LightBlue" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="OFF: Real-Time mode" 
+                                                                   FontSize="11" Foreground="Orange" Margin="0,1,0,0"/>
+                                                    </StackPanel>
+                                                </ToolTip>
+                                            </ToggleButton.ToolTip>
+                                        </ToggleButton>
+                                        
+                                        
+                                    </Grid>
+                                    
+                                    <!-- Dynamic Content Area - Shows either suspend media files or add button -->
+                                    <Border x:Name="SuspendModeContentArea"
+                                            Background="#242424"
+                                            CornerRadius="6"
+                                            Padding="12"
+                                            Margin="0,12,0,0">
+                                        
+                                        <Grid>
+                                            <!-- Suspend Media Grid Display -->
+                                            <StackPanel x:Name="SuspendMediaPanel">
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock Text="&#xE8FD;"
+                                                               FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="14"
+                                                               Foreground="#4CAF50"
+                                                               VerticalAlignment="Center"
+                                                               Margin="0,0,6,0"/>
+                                                    <TextBlock Text="Suspend Media Files"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#CCCCCC"/>
+                                                    <TextBlock Text="(Click empty slot to add media)"
+                                                               FontSize="10"
+                                                               Foreground="#888888"
+                                                               Margin="8,0,0,0"
+                                                               VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                
+                                                <!-- Media Grid - 5 slots in a horizontal layout -->
+                                                <UniformGrid x:Name="SuspendMediaGrid" 
+                                                           Rows="1" 
+                                                           Columns="5"
+                                                           Margin="0,8,0,0">
+                                                    
+                                                    <!-- Media Slot 1 -->
+                                                    <Border x:Name="MediaSlot1"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Width="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="0">
+                                                        <Grid>
+                                                            <!-- Thumbnail Image -->
+                                                            <Image x:Name="MediaThumbnail1"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            
+                                                            <!-- Add Media Placeholder -->
+                                                            <StackPanel x:Name="AddMediaPlaceholder1"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            
+                                                            <!-- Media Info Overlay -->
+                                                            <Border x:Name="MediaInfoOverlay1"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName1"
+                                                                              Text="media1.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            
+                                                            <!-- Remove Button -->
+                                                            <Button x:Name="RemoveMediaButton1"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="0">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                    <!-- Media Slot 2 -->
+                                                    <Border x:Name="MediaSlot2"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Width="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="1">
+                                                        <Grid>
+                                                            <Image x:Name="MediaThumbnail2"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder2"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <Border x:Name="MediaInfoOverlay2"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName2"
+                                                                              Text="media2.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <Button x:Name="RemoveMediaButton2"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="1">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                    <!-- Media Slot 3 -->
+                                                    <Border x:Name="MediaSlot3"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Width="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="2">
+                                                        <Grid>
+                                                            <Image x:Name="MediaThumbnail3"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder3"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <Border x:Name="MediaInfoOverlay3"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName3"
+                                                                              Text="media3.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <Button x:Name="RemoveMediaButton3"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="2">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                    <!-- Media Slot 4 -->
+                                                    <Border x:Name="MediaSlot4"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Width="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="3">
+                                                        <Grid>
+                                                            <Image x:Name="MediaThumbnail4"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder4"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <Border x:Name="MediaInfoOverlay4"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName4"
+                                                                              Text="media4.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <Button x:Name="RemoveMediaButton4"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="3">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                    <!-- Media Slot 5 -->
+                                                    <Border x:Name="MediaSlot5"
+                                                            Background="#1A1A1A"
+                                                            BorderBrush="#444444"
+                                                            BorderThickness="2"
+                                                            CornerRadius="8"
+                                                            Margin="2"
+                                                            Height="80"
+                                                            Width="80"
+                                                            Cursor="Hand"
+                                                            MouseLeftButtonUp="MediaSlot_Click"
+                                                            Tag="4">
+                                                        <Grid>
+                                                            <Image x:Name="MediaThumbnail5"
+                                                                   Stretch="UniformToFill"
+                                                                   Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder5"
+                                                                       HorizontalAlignment="Center"
+                                                                       VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="20"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Add Media"
+                                                                          FontSize="9"
+                                                                          Foreground="#666666"
+                                                                          HorizontalAlignment="Center"
+                                                                          Margin="0,2,0,0"/>
+                                                            </StackPanel>
+                                                            <Border x:Name="MediaInfoOverlay5"
+                                                                   Background="#80000000"
+                                                                   VerticalAlignment="Bottom"
+                                                                   CornerRadius="0,0,6,6"
+                                                                   Visibility="Collapsed">
+                                                                <StackPanel Margin="4,2">
+                                                                    <TextBlock x:Name="MediaFileName5"
+                                                                              Text="media5.mp4"
+                                                                              FontSize="8"
+                                                                              Foreground="White"
+                                                                              TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="Active"
+                                                                              FontSize="7"
+                                                                              Foreground="#4CAF50"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                            <Button x:Name="RemoveMediaButton5"
+                                                                   Width="16" Height="16"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Top"
+                                                                   Margin="2"
+                                                                   Background="#F44336"
+                                                                   BorderBrush="Transparent"
+                                                                   Padding="0"
+                                                                   Visibility="Collapsed"
+                                                                   Click="RemoveMedia_Click"
+                                                                   Tag="4">
+                                                                <TextBlock Text="&#xE711;"
+                                                                          FontFamily="Segoe MDL2 Assets"
+                                                                          FontSize="8"
+                                                                          Foreground="White"/>
+                                                            </Button>
+                                                        </Grid>
+                                                    </Border>
+                                                    
+                                                </UniformGrid>
+                                                
+                                                <!-- Bulk Actions -->
+                                                <StackPanel Orientation="Horizontal" 
+                                                           HorizontalAlignment="Right" 
+                                                           Margin="0,8,0,0">
+                                                    <Button x:Name="AddAllMediaButton"
+                                                           Background="#4CAF50"
+                                                           Foreground="White"
+                                                           BorderBrush="Transparent"
+                                                           Visibility="Collapsed"
+                                                           Padding="8,4"
+                                                           Margin="0,0,4,0"
+                                                           Click="AddAllMedia_Click">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="&#xE710;"
+                                                                      FontFamily="Segoe MDL2 Assets"
+                                                                      FontSize="12"
+                                                                      Margin="0,0,4,0"/>
+                                                            <TextBlock Text="Add Multiple"
+                                                                      FontSize="10"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    
+                                                    <Button x:Name="ClearAllMediaButton"
+                                                           Background="#F44336"
+                                                           Foreground="White"
+                                                           BorderBrush="Transparent"
+                                                           Padding="8,4"
+                                                           Click="ClearAllMedia_Click">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="&#xE74D;"
+                                                                      FontFamily="Segoe MDL2 Assets"
+                                                                      FontSize="12"
+                                                                      Margin="0,0,4,0"/>
+                                                            <TextBlock Text="Clear All"
+                                                                      FontSize="10"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </StackPanel>
+                                                
+                                            </StackPanel>
+                                            
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- Loading Overlay -->
+        <Border x:Name="LoadingOverlay"
+                Grid.Row="0" Grid.RowSpan="2"
+                Background="#80000000"
+                CornerRadius="16"
+                Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <ProgressBar IsIndeterminate="True"
+                             Width="100"
+                             Height="4"
+                             Foreground="#2196F3"
+                             Background="Transparent"
+                             BorderBrush="Transparent"/>
+                <TextBlock x:Name="LoadingText"
+                           Text="Loading device information..."
+                           FontSize="14"
+                           Foreground="White"
+                           HorizontalAlignment="Center"
+                           Margin="0,16,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Notification Panel -->
+        <Border x:Name="NotificationPanel"
+                Grid.Row="0" Grid.RowSpan="2"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Center"
+                Margin="24"
+                Background="#1A1A1A"
+                BorderBrush="#444444"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="16,12"
+                Visibility="Collapsed"
+                Panel.ZIndex="1000">
+            <Border.Effect>
+                <DropShadowEffect Color="#000000" BlurRadius="20" ShadowDepth="5" Opacity="0.5"/>
+            </Border.Effect>
+            
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Icon -->
+                <TextBlock x:Name="NotificationIcon"
+                           Grid.Column="0"
+                           Text="&#xE7BA;"
+                           FontFamily="Segoe MDL2 Assets"
+                           FontSize="16"
+                           Foreground="#4CAF50"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,0"/>
+                
+                <!-- Message -->
+                <TextBlock x:Name="NotificationMessage"
+                           Grid.Column="1"
+                           Text="Operation completed successfully"
+                           FontSize="14"
+                           Foreground="White"
+                           VerticalAlignment="Center"
+                           TextWrapping="Wrap"
+                           MaxWidth="400"/>
+                
+                <!-- Close Button -->
+                <Button x:Name="NotificationCloseButton"
+                        Grid.Column="2"
+                        Click="NotificationCloseButton_Click"
+                        Background="Transparent"
+                        BorderBrush="Transparent"
+                        Padding="4"
+                        Cursor="Hand"
+                        Margin="8,0,0,0">
+                    <TextBlock Text="&#xE8BB;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="12"
+                               Foreground="#AAAAAA"/>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Confirmation Dialog -->
+        <Border x:Name="ConfirmationDialog"
+                Grid.Row="0" Grid.RowSpan="2"
+                Background="#80000000"
+                Visibility="Collapsed"
+                Panel.ZIndex="999">
+            <Border Background="#1A1A1A"
+                    BorderBrush="#444444"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="24"
+                    MaxWidth="500"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <Border.Effect>
+                    <DropShadowEffect Color="#000000" BlurRadius="25" ShadowDepth="8" Opacity="0.6"/>
+                </Border.Effect>
+                
                 <StackPanel>
-                    <TextBlock Text="Connection Settings" Style="{StaticResource SectionHeaderStyle}"/>
-
+                    <!-- Dialog Icon and Title -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
+                        <TextBlock x:Name="ConfirmationIcon"
+                                   Text="&#xE7BA;"
+                                   FontFamily="Segoe MDL2 Assets"
+                                   FontSize="20"
+                                   Foreground="#FF9800"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,0"/>
+                        <TextBlock x:Name="ConfirmationTitle"
+                                   Text="Confirm Action"
+                                   FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <!-- Dialog Message -->
+                    <TextBlock x:Name="ConfirmationMessage"
+                               Text="Are you sure you want to proceed?"
+                               FontSize="14"
+                               Foreground="#CCCCCC"
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,20"/>
+                    
+                    <!-- Dialog Buttons -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-
-                        <!-- Offline Mode -->
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="Offline Mode"
-                                       Style="{StaticResource ValueStyle}"/>
-                            <TextBlock Text="Disconnect device from network and run in standalone mode"
-                                       Style="{StaticResource LabelStyle}"
-                                       Margin="0,4,0,0"/>
-                        </StackPanel>
-                        <ToggleButton Grid.Column="1"
-                                      x:Name="OfflineModeToggle"
-                                      Style="{StaticResource ToggleButtonStyle}"
-                                      VerticalAlignment="Center"
-                                      Checked="OfflineModeToggle_Checked"
-                                      Unchecked="OfflineModeToggle_Unchecked"/>
+                        
+                        <!-- Cancel Button -->
+                        <Border Grid.Column="0"
+                                Background="#555555"
+                                CornerRadius="6">
+                            <Button x:Name="ConfirmationCancelButton"
+                                    Click="ConfirmationCancelButton_Click"
+                                    Background="Transparent"
+                                    Foreground="White"
+                                    BorderBrush="Transparent"
+                                    Padding="12,8"
+                                    Cursor="Hand">
+                                <TextBlock Text="Cancel"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"/>
+                            </Button>
+                        </Border>
+                        
+                        <!-- Confirm Button -->
+                        <Border Grid.Column="2"
+                                x:Name="ConfirmationButtonBorder"
+                                Background="#2196F3"
+                                CornerRadius="6">
+                            <Button x:Name="ConfirmationConfirmButton"
+                                    Click="ConfirmationConfirmButton_Click"
+                                    Background="Transparent"
+                                    Foreground="White"
+                                    BorderBrush="Transparent"
+                                    Padding="12,8"
+                                    Cursor="Hand">
+                                <TextBlock x:Name="ConfirmationConfirmText"
+                                           Text="Confirm"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"/>
+                            </Button>
+                        </Border>
                     </Grid>
                 </StackPanel>
             </Border>
-
-            <!-- Device Actions Card -->
-            <Border Style="{StaticResource SettingsCardStyle}">
-                <StackPanel>
-                    <TextBlock Text="Device Actions" Style="{StaticResource SectionHeaderStyle}"/>
-
-                    <StackPanel Orientation="Horizontal">
-                        <Button x:Name="RestartDeviceButton"
-                                Content="Restart Device"
-                                Style="{StaticResource ActionButtonStyle}"
-                                Background="{StaticResource WarningBrush}"
-                                Click="RestartDeviceButton_Click"
-                                Margin="0,0,12,0"/>
-                        <Button x:Name="ResetSettingsButton"
-                                Content="Reset to Factory Defaults"
-                                Style="{StaticResource ActionButtonStyle}"
-                                Background="#666666"
-                                Click="ResetSettingsButton_Click"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-        </StackPanel>
-    </ScrollViewer>
+        </Border>
+    </Grid>
 </Page>

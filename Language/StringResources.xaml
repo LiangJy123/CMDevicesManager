@@ -32,4 +32,49 @@
     <!-- Common -->
     <sys:String x:Key="HelloText" xmlns:sys="clr-namespace:System;assembly=mscorlib">你好</sys:String>
     <sys:String x:Key="WelcomeText" xmlns:sys="clr-namespace:System;assembly=mscorlib">欢迎使用 Cooler Master 设备管理器</sys:String>
+    
+    <!-- Dialog Buttons -->
+    <sys:String x:Key="OkButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">确定</sys:String>
+    <sys:String x:Key="CancelButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">取消</sys:String>
+    <sys:String x:Key="LoadButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">加载</sys:String>
+    
+    <!-- DeviceConfig Page -->
+    <sys:String x:Key="ConfigNameTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置名称</sys:String>
+    <sys:String x:Key="ConfigNamePrompt" xmlns:sys="clr-namespace:System;assembly=mscorlib">请输入配置名称：</sys:String>
+    <sys:String x:Key="SelectConfigTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">选择配置</sys:String>
+    <sys:String x:Key="ConfigSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置已保存</sys:String>
+    <sys:String x:Key="SaveSuccessful" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存成功</sys:String>
+    <sys:String x:Key="ConfigLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置已加载</sys:String>
+    <sys:String x:Key="LoadSuccessful" xmlns:sys="clr-namespace:System;assembly=mscorlib">加载成功</sys:String>
+    <sys:String x:Key="LoadConfigFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">加载配置失败</sys:String>
+    <sys:String x:Key="Error" xmlns:sys="clr-namespace:System;assembly=mscorlib">错误</sys:String>
+    <sys:String x:Key="UnsavedConfig" xmlns:sys="clr-namespace:System;assembly=mscorlib">未保存的配置</sys:String>
+    <sys:String x:Key="SampleText" xmlns:sys="clr-namespace:System;assembly=mscorlib">示例文本</sys:String>
+    
+    <!-- Status Information -->
+    <sys:String x:Key="None" xmlns:sys="clr-namespace:System;assembly=mscorlib">无</sys:String>
+    <sys:String x:Key="CpuUsage" xmlns:sys="clr-namespace:System;assembly=mscorlib">CPU 使用率</sys:String>
+    <sys:String x:Key="GpuUsage" xmlns:sys="clr-namespace:System;assembly=mscorlib">GPU 使用率</sys:String>
+    <sys:String x:Key="DateTime" xmlns:sys="clr-namespace:System;assembly=mscorlib">日期时间</sys:String>
+    <sys:String x:Key="LiveText" xmlns:sys="clr-namespace:System;assembly=mscorlib">实时文本</sys:String>
+    
+    <!-- System Tray -->
+    <sys:String x:Key="TrayTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">CMDevicesManager - 硬件监控工具</sys:String>
+    <sys:String x:Key="ShowMainWindow" xmlns:sys="clr-namespace:System;assembly=mscorlib">显示主窗口</sys:String>
+    <sys:String x:Key="ExitApplication" xmlns:sys="clr-namespace:System;assembly=mscorlib">退出应用程序</sys:String>
+    <sys:String x:Key="AppRunningInTray" xmlns:sys="clr-namespace:System;assembly=mscorlib">应用程序正在系统托盘中运行。双击打开或右键查看选项。</sys:String>
+    <sys:String x:Key="AppMinimizedToTray" xmlns:sys="clr-namespace:System;assembly=mscorlib">应用程序已最小化到系统托盘。双击托盘图标以恢复。</sys:String>
+    <sys:String x:Key="CloseConfirmation" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭确认</sys:String>
+    <sys:String x:Key="CloseConfirmationMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">您是否要最小化到系统托盘或退出应用程序？
+
+点击"是"最小化到托盘（应用程序继续运行）
+点击"否"完全退出
+点击"取消"返回应用程序</sys:String>
+    
+    <!-- Additional Messages -->
+    <sys:String x:Key="NoConfigFilesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">没有找到任何配置文件</sys:String>
+    <sys:String x:Key="NoValidConfigFilesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">没有找到有效的配置文件</sys:String>
+    <sys:String x:Key="Notice" xmlns:sys="clr-namespace:System;assembly=mscorlib">提示</sys:String>
+    <sys:String x:Key="OpenSettingsPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">这里打开设置窗口</sys:String>
+    <sys:String x:Key="SaveAsButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">另存为</sys:String>
 </ResourceDictionary>

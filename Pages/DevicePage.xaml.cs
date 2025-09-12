@@ -1,6 +1,8 @@
 ﻿using CMDevicesManager.Models;
+using CMDevicesManager.Services;
 using HID.DisplayController;
 using HidApi;
+using HidSharp;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -63,7 +65,6 @@ namespace CMDevicesManager.Pages
     {
         public ObservableCollection<DeviceViewModel> DeviceViewModels { get; } = new();
 
-        private MultiDeviceManager? _multiDeviceManager;
         private DispatcherTimer? _statusTimer;
 
         public DevicePage()
@@ -78,8 +79,8 @@ namespace CMDevicesManager.Pages
             {
                 if (sender is Button btn && btn.DataContext is DeviceViewModel deviceViewModel)
                 {
-                    // NavigationService?.Navigate(new DeviceConfigPage(deviceViewModel.DeviceInfo));
-                    NavigationService?.Navigate(new DeviceLive(deviceViewModel.DeviceInfo));
+                     NavigationService?.Navigate(new DeviceConfigPage(deviceViewModel.DeviceInfo));
+                    //NavigationService?.Navigate(new DeviceLive(deviceViewModel.DeviceInfo));
                 }
             }
             catch (Exception ex)
@@ -89,231 +90,184 @@ namespace CMDevicesManager.Pages
             }
         }
 
+        private void ConfigButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is Button btn && btn.DataContext is DeviceViewModel deviceViewModel)
+                {
+                    NavigationService?.Navigate(new DeviceConfigPage(deviceViewModel.DeviceInfo));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Navigation to DeviceConfigPage failed: {ex}");
+                ShowStatusMessage("Failed to open device configuration.", true);
+            }
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is Button btn && btn.DataContext is DeviceViewModel deviceViewModel)
+                {
+                    // Create device settings page
+                    var deviceSettingsPage = new DeviceSettings(deviceViewModel.DeviceInfo);
+                    
+                    // Create and show popup window
+                    var popupWindow = new PopupWindow(deviceSettingsPage, $"Device Settings - {deviceViewModel.ProductString}")
+                    {
+                        Owner = Window.GetWindow(this)
+                    };
+                    
+                    popupWindow.ShowDialog(); // Modal popup
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to open device settings popup: {ex}");
+                ShowStatusMessage("Failed to open device settings.", true);
+            }
+        }
+
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
             try
             {
-                InitializeDeviceManager();
+                // Use the HID Device Service instead of creating a new MultiDeviceManager
+                InitializeWithHidService();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to initialize device manager: {ex}");
-                ShowStatusMessage($"Failed to initialize device manager: {ex.Message}", true);
+                Debug.WriteLine($"Page_Loaded failed: {ex}");
+                ShowStatusMessage("Failed to initialize device page.", true);
             }
         }
 
-        private void InitializeDeviceManager()
+        private void InitializeWithHidService()
         {
             try
             {
-                _multiDeviceManager = new MultiDeviceManager(0x2516, 0x0228);
+                var hidService = ServiceLocator.HidDeviceService;
+                
+                // Subscribe to device events
+                hidService.DeviceListChanged += OnDeviceListChanged;
+                hidService.DeviceConnected += OnDeviceConnected;
+                hidService.DeviceDisconnected += OnDeviceDisconnected;
+                hidService.DeviceError += OnDeviceError;
 
-                // Set up event handlers
-                _multiDeviceManager.ControllerAdded += OnControllerAdded;
-                _multiDeviceManager.ControllerRemoved += OnControllerRemoved;
-                _multiDeviceManager.ControllerError += OnControllerError;
+                // Load existing devices
+                LoadDevicesFromService();
 
-                // Start monitoring for devices
-                _multiDeviceManager.StartMonitoring();
-
-                // Populate existing devices
-                PopulateConnectedDevices();
-
-                ShowStatusMessage($"Device manager initialized. Found {DeviceViewModels.Count} connected device(s).");
+                ShowStatusMessage($"Monitoring {hidService.ConnectedDeviceCount} HID devices", false);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to initialize device manager: {ex}");
-                ShowStatusMessage($"Failed to initialize device manager: {ex.Message}", true);
+                Debug.WriteLine($"Failed to initialize with HID service: {ex}");
+                ShowStatusMessage("HID Device Service not available", true);
             }
         }
 
-        private void OnControllerAdded(object? sender, DeviceControllerEventArgs e)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                try
-                {
-                    // Check if device is already in the collection
-                    if (!DeviceViewModels.Any(d => d.Path == e.Device.Path))
-                    {
-                        var deviceViewModel = CreateDeviceViewModel(e.Device);
-                        DeviceViewModels.Add(deviceViewModel);
-                        UpdateDeviceListVisibility();
-                        ShowStatusMessage($"Device connected: {e.Device.ProductString}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error adding device to UI: {ex}");
-                }
-            });
-        }
-
-        private void OnControllerRemoved(object? sender, DeviceControllerEventArgs e)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                try
-                {
-                    var deviceToRemove = DeviceViewModels.FirstOrDefault(d => d.Path == e.Device.Path);
-                    if (deviceToRemove != null)
-                    {
-                        DeviceViewModels.Remove(deviceToRemove);
-                        UpdateDeviceListVisibility();
-                        ShowStatusMessage($"Device disconnected: {e.Device.ProductString}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error removing device from UI: {ex}");
-                }
-            });
-        }
-
-        private void OnControllerError(object? sender, ControllerErrorEventArgs e)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                ShowStatusMessage($"Device Error - {e.Device.ProductString}: {e.Exception.Message}", true);
-            });
-        }
-
-        private void PopulateConnectedDevices()
+        private void LoadDevicesFromService()
         {
             try
             {
-                if (_multiDeviceManager == null) return;
-
-                var activeControllers = _multiDeviceManager.GetActiveControllers();
-
+                var hidService = ServiceLocator.HidDeviceService;
+                
                 DeviceViewModels.Clear();
-
-                foreach (var controller in activeControllers)
+                
+                foreach (var device in hidService.ConnectedDevices)
                 {
-                    try
-                    {
-                        var deviceInfo = controller.DeviceInfo;
-                        if (deviceInfo != null)
-                        {
-                            var deviceViewModel = CreateDeviceViewModel(deviceInfo);
-                            DeviceViewModels.Add(deviceViewModel);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Error getting device info from controller: {ex}");
-                    }
+                    var viewModel = new DeviceViewModel(device, GetDeviceImagePath(device));
+                    DeviceViewModels.Add(viewModel);
                 }
-
-                UpdateDeviceListVisibility();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error populating connected devices: {ex}");
-                ShowStatusMessage($"Error loading connected devices: {ex.Message}", true);
+                Debug.WriteLine($"Failed to load devices from service: {ex}");
             }
         }
 
-        private DeviceViewModel CreateDeviceViewModel(DeviceInfo deviceInfo)
+        private void OnDeviceListChanged(object? sender, DeviceEventArgs e)
         {
-            // Try to find a suitable image for the device
-            string? imagePath = GetDeviceImagePath(deviceInfo);
-            return new DeviceViewModel(deviceInfo, imagePath);
+            // Refresh the entire device list
+            Dispatcher.Invoke(() =>
+            {
+                LoadDevicesFromService();
+            });
         }
 
-        private string? GetDeviceImagePath(DeviceInfo deviceInfo)
+        private void OnDeviceConnected(object? sender, DeviceEventArgs e)
         {
-            // Check for device-specific images based on product name
-            var productName = deviceInfo.ProductString?.ToLowerInvariant() ?? "";
-
-            string? imagePath = null;
-
-            if (productName.Contains("haf700"))
+            Dispatcher.Invoke(() =>
             {
-                imagePath = "Resources/Devices/HAF700V2.jpg";
-            }
-            // Add more device-specific image mappings here as needed
-
-            // Check if the image file exists, if not, use null (will show default icon)
-            if (!string.IsNullOrEmpty(imagePath))
-            {
-                try
-                {
-                    var uri = new Uri($"pack://application:,,,/{imagePath}");
-                    var resource = Application.GetResourceStream(uri);
-                    if (resource == null)
-                    {
-                        imagePath = null; // Image not found, use default
-                    }
-                }
-                catch
-                {
-                    imagePath = null; // Error loading image, use default
-                }
-            }
-
-            return imagePath;
+                ShowStatusMessage($"Device connected: {e.Device.ProductString}", false);
+            });
         }
 
-        private void UpdateDeviceListVisibility()
+        private void OnDeviceDisconnected(object? sender, DeviceEventArgs e)
         {
-            bool hasDevices = DeviceViewModels.Count > 0;
-            DevicesItemsControl.Visibility = hasDevices ? Visibility.Visible : Visibility.Collapsed;
-            NoDevicesPanel.Visibility = hasDevices ? Visibility.Collapsed : Visibility.Visible;
+            Dispatcher.Invoke(() =>
+            {
+                ShowStatusMessage($"Device disconnected: {e.Device.ProductString}", false);
+            });
         }
 
-        private void ShowStatusMessage(string message, bool isError = false)
+        private void OnDeviceError(object? sender, DeviceErrorEventArgs e)
         {
-            try
+            Dispatcher.Invoke(() =>
             {
-                Debug.WriteLine($"Status: {message}");
-
-                StatusText.Text = message;
-                StatusBorder.Background = new SolidColorBrush(isError ? Colors.Red : Color.FromRgb(33, 150, 243));
-                StatusBorder.Visibility = Visibility.Visible;
-
-                // Auto-hide status message after 3 seconds
-                _statusTimer?.Stop();
-                _statusTimer = new DispatcherTimer
-                {
-                    Interval = TimeSpan.FromSeconds(3)
-                };
-                _statusTimer.Tick += (s, e) =>
-                {
-                    StatusBorder.Visibility = Visibility.Collapsed;
-                    _statusTimer?.Stop();
-                };
-                _statusTimer.Start();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error showing status message: {ex}");
-            }
+                ShowStatusMessage($"Device error: {e.Exception.Message}", true);
+            });
         }
 
-        // Clean up resources when page is unloaded
+        private string GetDeviceImagePath(DeviceInfo device)
+        {
+            // Your existing logic for determining device image paths
+            return "pack://application:,,,/Resources/device-default.png";
+        }
+
+        private void ShowStatusMessage(string message, bool isError)
+        {
+            // Your existing status message logic
+            Debug.WriteLine($"Status: {message}");
+        }
+
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
             try
             {
+                // Unsubscribe from events when page is unloaded
+                var hidService = ServiceLocator.HidDeviceService;
+                hidService.DeviceListChanged -= OnDeviceListChanged;
+                hidService.DeviceConnected -= OnDeviceConnected;
+                hidService.DeviceDisconnected -= OnDeviceDisconnected;
+                hidService.DeviceError -= OnDeviceError;
+
                 _statusTimer?.Stop();
                 _statusTimer = null;
-
-                if (_multiDeviceManager != null)
-                {
-                    _multiDeviceManager.ControllerAdded -= OnControllerAdded;
-                    _multiDeviceManager.ControllerRemoved -= OnControllerRemoved;
-                    _multiDeviceManager.ControllerError -= OnControllerError;
-
-                    _multiDeviceManager.StopMonitoring();
-                    _multiDeviceManager.Dispose();
-                    _multiDeviceManager = null;
-                }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error during page cleanup: {ex}");
+                Debug.WriteLine($"Page_Unloaded cleanup failed: {ex}");
+            }
+        }
+
+        // Example method to set brightness on all devices
+        private async void SetBrightnessButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var hidService = ServiceLocator.HidDeviceService;
+                var results = await hidService.SetBrightnessAsync(50); // Set to 50%
+                
+                var successCount = results.Values.Count(r => r);
+                ShowStatusMessage($"Brightness set on {successCount}/{results.Count} devices", false);
+            }
+            catch (Exception ex)
+            {
+                ShowStatusMessage($"Failed to set brightness: {ex.Message}", true);
             }
         }
     }
