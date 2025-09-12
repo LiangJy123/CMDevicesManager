@@ -164,7 +164,7 @@ namespace CDMDevicesManagerDevWinUI.Controls
                     fileStream.Size = 0;
                     
                     // Save the cropped image as PNG - using CommunityToolkit's BitmapFileFormat
-                    await ImageCropper.SaveAsync(fileStream, CommunityToolkit.WinUI.Controls.BitmapFileFormat.Png);
+                    await ImageCropper.SaveAsync(fileStream, CommunityToolkit.WinUI.Controls.BitmapFileFormat.Jpeg);
                 }
 
                 Debug.WriteLine($"Successfully saved cropped image to: {_croppedImageFile.Path}");

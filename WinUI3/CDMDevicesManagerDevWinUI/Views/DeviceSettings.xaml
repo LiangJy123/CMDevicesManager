@@ -8,7 +8,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     xmlns:dev="using:DevWinUI"
-    mc:Ignorable="d">
+    mc:Ignorable="d"
+    Unloaded="Page_Unloaded">
 
     <Grid>
         <ScrollViewer VerticalScrollBarVisibility="Auto" 
@@ -237,116 +238,290 @@
 
                         <!-- Suspend Media Display Panel (shown when Offline Mode is enabled) -->
                         <toolkit:SettingsCard x:Name="SuspendMediaCard"
-                                              Header="Active Suspend Media" 
+                                              Header="Suspend Media Files" 
                                               Description="Images and videos that will be displayed in offline mode"
                                               HorizontalContentAlignment="Stretch"
                                               Visibility="Collapsed">
                             <toolkit:SettingsCard.Content>
-                                <ScrollViewer MaxHeight="300" 
-                                      VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
-                                    <ItemsRepeater x:Name="SuspendMediaSlotsRepeater">
-                                        <ItemsRepeater.Layout>
-                                            <UniformGridLayout Orientation="Horizontal" 
-                                                ItemsJustification="Start"
-                                                ItemsStretch="None"
-                                                MinColumnSpacing="8"
-                                                MinRowSpacing="8"
-                                                MaximumRowsOrColumns="3"/>
-                                        </ItemsRepeater.Layout>
-                                        <ItemsRepeater.ItemTemplate>
-                                            <DataTemplate>
-                                                <Border Width="120" 
-                                                            Height="120" 
-                                                            CornerRadius="8"
-                                                            BorderBrush="Gray"
-                                                            BorderThickness="1"
-                                                            Background="LightGray">
-                                                    <Grid>
-                                                        <!-- Media Content Container -->
-                                                        <StackPanel x:Name="MediaContentPanel" 
-                                                                        Orientation="Vertical" 
-                                                                        Spacing="4"
-                                                                        Padding="8"
-                                                                        Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                            <!-- Media Thumbnail/Icon -->
-                                                            <Border Height="60" 
-                                                                        CornerRadius="4"
-                                                                        Background="White">
-                                                                <Grid>
-                                                                    <Image Source="{Binding LocalPath, Converter={StaticResource FilePathToImageSourceConverter}}"
-                                                                               Stretch="UniformToFill"
-                                                                               Visibility="{Binding IsImage, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                                                    <FontIcon Glyph="&#xE714;"
-                                                                                  FontSize="24"
-                                                                                  HorizontalAlignment="Center"
-                                                                                  VerticalAlignment="Center"
-                                                                                  Visibility="{Binding IsVideo, Converter={StaticResource BoolToVisibilityConverter}}"/>
-                                                                </Grid>
-                                                            </Border>
-
-                                                            <!-- File Name -->
-                                                            <TextBlock Text="{Binding FileName}" 
-                                                                           FontSize="10"
-                                                                           TextAlignment="Center"
-                                                                           TextWrapping="Wrap"
-                                                                           MaxLines="2"/>
-
-                                                            <!-- Remove Button -->
-                                                            <Button Content="Remove"
-                                                                        FontSize="10"
-                                                                        Padding="4,2"
-                                                                        HorizontalAlignment="Center"
-                                                                        Click="RemoveMediaButton_Click"
-                                                                        Tag="{Binding SlotIndex}"/>
-                                                        </StackPanel>
-
-                                                        <!-- Add Media Container -->
-                                                        <StackPanel x:Name="AddMediaPanel"
-                                                                        Orientation="Vertical"
-                                                                        HorizontalAlignment="Center"
-                                                                        VerticalAlignment="Center"
-                                                                        Spacing="8"
-                                                                        Visibility="{Binding HasMedia, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}">
-                                                            <FontIcon Glyph="&#xE710;" 
-                                                                          FontSize="32"
-                                                                          Foreground="Gray"
-                                                                          HorizontalAlignment="Center"/>
-                                                            <TextBlock Text="Add Media" 
-                                                                           FontSize="12"
-                                                                           Foreground="Gray"
-                                                                           HorizontalAlignment="Center"/>
-                                                            <Button Content="+"
-                                                                        FontSize="16"
-                                                                        Width="32"
-                                                                        Height="32"
-                                                                        CornerRadius="16"
-                                                                        HorizontalAlignment="Center"
-                                                                        Click="AddMediaToSlotButton_Click"
-                                                                        Tag="{Binding SlotIndex}"/>
-                                                        </StackPanel>
-
-                                                        <!-- Slot Number Badge -->
-                                                        <Border Background="DodgerBlue"
-                                                                    CornerRadius="12"
-                                                                    Width="24"
-                                                                    Height="24"
-                                                                    HorizontalAlignment="Right"
-                                                                    VerticalAlignment="Top"
-                                                                    Margin="4">
-                                                            <TextBlock Text="{Binding SlotNumber}"
-                                                                           FontSize="10"
-                                                                           FontWeight="Bold"
-                                                                           Foreground="White"
-                                                                           HorizontalAlignment="Center"
-                                                                           VerticalAlignment="Center"/>
-                                                        </Border>
-                                                    </Grid>
+                                <StackPanel Margin="0,8,0,0" Spacing="12">
+                                    <!-- Header with actions -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <FontIcon Glyph="&#xE8FD;" FontSize="16" Foreground="Green"/>
+                                            <TextBlock Text="Media Slots" FontWeight="SemiBold"/>
+                                            <TextBlock Text="(Click empty slot to add media)" 
+                                                       FontSize="10" 
+                                                       Foreground="Gray" 
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                                            <Button x:Name="AddAllMediaButton"
+                                                    Click="AddAllMediaButton_Click"
+                                                    Background="Green"
+                                                    Foreground="White"
+                                                    Padding="8,4"
+                                                    FontSize="10"
+                                                    CornerRadius="4">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <FontIcon Glyph="&#xE710;" FontSize="10"/>
+                                                    <TextBlock Text="Add Multiple"/>
+                                                </StackPanel>
+                                            </Button>
+                                            
+                                            <Button x:Name="ClearAllMediaButton"
+                                                    Click="ClearAllMediaButton_Click"
+                                                    Background="Red"
+                                                    Foreground="White"
+                                                    Padding="8,4"
+                                                    FontSize="10"
+                                                    CornerRadius="4">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <FontIcon Glyph="&#xE74D;" FontSize="10"/>
+                                                    <TextBlock Text="Clear All"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                    
+                                    <!-- Media Slots Grid - 5 horizontal slots -->
+                                    <Grid x:Name="SuspendMediaSlotsGrid">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Media Slot 1 -->
+                                        <Border x:Name="MediaSlot1"
+                                                Grid.Column="0"
+                                                Background="LightGray"
+                                                BorderBrush="Gray"
+                                                BorderThickness="2"
+                                                CornerRadius="8"
+                                                Margin="2"
+                                                Height="120"
+                                                Width="100">
+                                            <Border.Resources>
+                                                <Storyboard x:Name="SlotHoverStoryboard1">
+                                                    <DoubleAnimation Storyboard.TargetName="MediaSlot1"
+                                                                   Storyboard.TargetProperty="Opacity"
+                                                                   To="0.8" Duration="0:0:0.2"/>
+                                                </Storyboard>
+                                                <Storyboard x:Name="SlotLeaveStoryboard1">
+                                                    <DoubleAnimation Storyboard.TargetName="MediaSlot1"
+                                                                   Storyboard.TargetProperty="Opacity"
+                                                                   To="1.0" Duration="0:0:0.2"/>
+                                                </Storyboard>
+                                            </Border.Resources>
+                                            
+                                            <Grid>
+                                                <!-- Thumbnail Image -->
+                                                <Image x:Name="MediaThumbnail1"
+                                                       Stretch="UniformToFill"
+                                                       Visibility="Collapsed"/>
+                                                
+                                                <!-- Add Media Placeholder -->
+                                                <StackPanel x:Name="AddMediaPlaceholder1"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"
+                                                           Spacing="4">
+                                                    <FontIcon Glyph="&#xE710;"
+                                                              FontSize="24"
+                                                              Foreground="Gray"
+                                                              HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Add Media"
+                                                               FontSize="10"
+                                                               Foreground="Gray"
+                                                               HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                                
+                                                <!-- Media Info Overlay -->
+                                                <Border x:Name="MediaInfoOverlay1"
+                                                       Background="#80000000"
+                                                       VerticalAlignment="Bottom"
+                                                       CornerRadius="0,0,6,6"
+                                                       Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2" Spacing="2">
+                                                        <TextBlock x:Name="MediaFileName1"
+                                                                   Text="media1.mp4"
+                                                                   FontSize="9"
+                                                                   Foreground="White"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="Slot 1"
+                                                                   FontSize="8"
+                                                                   Foreground="LimeGreen"/>
+                                                    </StackPanel>
                                                 </Border>
-                                            </DataTemplate>
-                                        </ItemsRepeater.ItemTemplate>
-                                    </ItemsRepeater>
-                                </ScrollViewer>
+                                                
+                                                <!-- Remove Button -->
+                                                <Button x:Name="RemoveMediaButton1"
+                                                       Width="20" Height="20"
+                                                       HorizontalAlignment="Right"
+                                                       VerticalAlignment="Top"
+                                                       Margin="2"
+                                                       Background="Red"
+                                                       Foreground="White"
+                                                       BorderBrush="Transparent"
+                                                       Padding="0"
+                                                       CornerRadius="10"
+                                                       Visibility="Collapsed"
+                                                       Click="RemoveMediaButton_Click"
+                                                       Tag="0">
+                                                    <FontIcon Glyph="&#xE711;" FontSize="10"/>
+                                                </Button>
+                                                
+                                                <!-- Click Handler -->
+                                                <Button x:Name="MediaSlotButton1"
+                                                       Background="Transparent"
+                                                       BorderBrush="Transparent"
+                                                       Padding="0"
+                                                       HorizontalAlignment="Stretch"
+                                                       VerticalAlignment="Stretch"
+                                                       Click="MediaSlotButton_Click"
+                                                       Tag="0"
+                                                       PointerEntered="MediaSlot_PointerEntered"
+                                                       PointerExited="MediaSlot_PointerExited"/>
+                                            </Grid>
+                                        </Border>
+                                        
+                                        <!-- Media Slot 2 -->
+                                        <Border x:Name="MediaSlot2"
+                                                Grid.Column="1"
+                                                Background="LightGray"
+                                                BorderBrush="Gray"
+                                                BorderThickness="2"
+                                                CornerRadius="8"
+                                                Margin="2"
+                                                Height="120"
+                                                Width="100">
+                                            <Grid>
+                                                <Image x:Name="MediaThumbnail2" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                                <StackPanel x:Name="AddMediaPlaceholder2" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                                    <FontIcon Glyph="&#xE710;" FontSize="24" Foreground="Gray" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Add Media" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                                <Border x:Name="MediaInfoOverlay2" Background="#80000000" VerticalAlignment="Bottom" CornerRadius="0,0,6,6" Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2" Spacing="2">
+                                                        <TextBlock x:Name="MediaFileName2" Text="media2.mp4" FontSize="9" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="Slot 2" FontSize="8" Foreground="LimeGreen"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Button x:Name="RemoveMediaButton2" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2" 
+                                                       Background="Red" Foreground="White" BorderBrush="Transparent" Padding="0" CornerRadius="10" Visibility="Collapsed" 
+                                                       Click="RemoveMediaButton_Click" Tag="1">
+                                                    <FontIcon Glyph="&#xE711;" FontSize="10"/>
+                                                </Button>
+                                                <Button x:Name="MediaSlotButton2" Background="Transparent" BorderBrush="Transparent" Padding="0" 
+                                                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="MediaSlotButton_Click" Tag="1"/>
+                                            </Grid>
+                                        </Border>
+                                        
+                                        <!-- Media Slot 3 -->
+                                        <Border x:Name="MediaSlot3"
+                                                Grid.Column="2"
+                                                Background="LightGray"
+                                                BorderBrush="Gray"
+                                                BorderThickness="2"
+                                                CornerRadius="8"
+                                                Margin="2"
+                                                Height="120"
+                                                Width="100">
+                                            <Grid>
+                                                <Image x:Name="MediaThumbnail3" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                                <StackPanel x:Name="AddMediaPlaceholder3" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                                    <FontIcon Glyph="&#xE710;" FontSize="24" Foreground="Gray" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Add Media" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                                <Border x:Name="MediaInfoOverlay3" Background="#80000000" VerticalAlignment="Bottom" CornerRadius="0,0,6,6" Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2" Spacing="2">
+                                                        <TextBlock x:Name="MediaFileName3" Text="media3.mp4" FontSize="9" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="Slot 3" FontSize="8" Foreground="LimeGreen"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Button x:Name="RemoveMediaButton3" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2" 
+                                                       Background="Red" Foreground="White" BorderBrush="Transparent" Padding="0" CornerRadius="10" Visibility="Collapsed" 
+                                                       Click="RemoveMediaButton_Click" Tag="2">
+                                                    <FontIcon Glyph="&#xE711;" FontSize="10"/>
+                                                </Button>
+                                                <Button x:Name="MediaSlotButton3" Background="Transparent" BorderBrush="Transparent" Padding="0" 
+                                                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="MediaSlotButton_Click" Tag="2"/>
+                                            </Grid>
+                                        </Border>
+                                        
+                                        <!-- Media Slot 4 -->
+                                        <Border x:Name="MediaSlot4"
+                                                Grid.Column="3"
+                                                Background="LightGray"
+                                                BorderBrush="Gray"
+                                                BorderThickness="2"
+                                                CornerRadius="8"
+                                                Margin="2"
+                                                Height="120"
+                                                Width="100">
+                                            <Grid>
+                                                <Image x:Name="MediaThumbnail4" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                                <StackPanel x:Name="AddMediaPlaceholder4" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                                    <FontIcon Glyph="&#xE710;" FontSize="24" Foreground="Gray" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Add Media" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                                <Border x:Name="MediaInfoOverlay4" Background="#80000000" VerticalAlignment="Bottom" CornerRadius="0,0,6,6" Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2" Spacing="2">
+                                                        <TextBlock x:Name="MediaFileName4" Text="media4.mp4" FontSize="9" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="Slot 4" FontSize="8" Foreground="LimeGreen"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Button x:Name="RemoveMediaButton4" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2" 
+                                                       Background="Red" Foreground="White" BorderBrush="Transparent" Padding="0" CornerRadius="10" Visibility="Collapsed" 
+                                                       Click="RemoveMediaButton_Click" Tag="3">
+                                                    <FontIcon Glyph="&#xE711;" FontSize="10"/>
+                                                </Button>
+                                                <Button x:Name="MediaSlotButton4" Background="Transparent" BorderBrush="Transparent" Padding="0" 
+                                                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="MediaSlotButton_Click" Tag="3"/>
+                                            </Grid>
+                                        </Border>
+                                        
+                                        <!-- Media Slot 5 -->
+                                        <Border x:Name="MediaSlot5"
+                                                Grid.Column="4"
+                                                Background="LightGray"
+                                                BorderBrush="Gray"
+                                                BorderThickness="2"
+                                                CornerRadius="8"
+                                                Margin="2"
+                                                Height="120"
+                                                Width="100">
+                                            <Grid>
+                                                <Image x:Name="MediaThumbnail5" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                                <StackPanel x:Name="AddMediaPlaceholder5" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="4">
+                                                    <FontIcon Glyph="&#xE710;" FontSize="24" Foreground="Gray" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Add Media" FontSize="10" Foreground="Gray" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                                <Border x:Name="MediaInfoOverlay5" Background="#80000000" VerticalAlignment="Bottom" CornerRadius="0,0,6,6" Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2" Spacing="2">
+                                                        <TextBlock x:Name="MediaFileName5" Text="media5.mp4" FontSize="9" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="Slot 5" FontSize="8" Foreground="LimeGreen"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Button x:Name="RemoveMediaButton5" Width="20" Height="20" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="2" 
+                                                       Background="Red" Foreground="White" BorderBrush="Transparent" Padding="0" CornerRadius="10" Visibility="Collapsed" 
+                                                       Click="RemoveMediaButton_Click" Tag="4">
+                                                    <FontIcon Glyph="&#xE711;" FontSize="10"/>
+                                                </Button>
+                                                <Button x:Name="MediaSlotButton5" Background="Transparent" BorderBrush="Transparent" Padding="0" 
+                                                       HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Click="MediaSlotButton_Click" Tag="4"/>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
                             </toolkit:SettingsCard.Content>
                         </toolkit:SettingsCard>
                     </toolkit:SettingsExpander.Items>
