@@ -1,6 +1,4 @@
-﻿using CMDevicesManager.Models;
-using CMDevicesManager.Services;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -12,6 +10,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using CMDevicesManager.Models;
+using CMDevicesManager.Services;
 using WinFoundation = Windows.Foundation;
 using WinUIColor = Windows.UI.Color;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
@@ -47,25 +47,68 @@ namespace CMDevicesManager.Pages
         private readonly TimeSpan _textUpdateDelay = TimeSpan.FromMilliseconds(500);
         private bool _enableRealTimePreview = true;
 
-        // Color selection state
+        // Enhanced color selection state
         private WinUIColor _selectedColor = WinUIColor.FromArgb(255, 255, 100, 100);
         private bool _isCustomColorPickerOpen = false;
+        private WpfRectangle? _currentSelectedColorRect;
 
-        // Quick colors palette
-        private readonly WinUIColor[] _quickColors = new[]
+        // Enhanced quick colors palette with better color organization
+        private readonly WinUIColor[] _basicColors = new[]
         {
-            WinUIColor.FromArgb(255, 255, 100, 100), // Light Red
-            WinUIColor.FromArgb(255, 100, 255, 100), // Light Green  
-            WinUIColor.FromArgb(255, 100, 100, 255), // Light Blue
-            WinUIColor.FromArgb(255, 255, 255, 100), // Yellow
-            WinUIColor.FromArgb(255, 255, 100, 255), // Magenta
-            WinUIColor.FromArgb(255, 100, 255, 255), // Cyan
-            WinUIColor.FromArgb(255, 255, 165, 0),   // Orange
-            WinUIColor.FromArgb(255, 128, 0, 128),   // Purple
+            // Primary Colors
+            WinUIColor.FromArgb(255, 244, 67, 54),   // Red
+            WinUIColor.FromArgb(255, 233, 30, 99),   // Pink
+            WinUIColor.FromArgb(255, 156, 39, 176),  // Purple
+            WinUIColor.FromArgb(255, 103, 58, 183),  // Deep Purple
+            WinUIColor.FromArgb(255, 63, 81, 181),   // Indigo
+            WinUIColor.FromArgb(255, 33, 150, 243),  // Blue
+            WinUIColor.FromArgb(255, 3, 169, 244),   // Light Blue
+            WinUIColor.FromArgb(255, 0, 188, 212),   // Cyan
+            WinUIColor.FromArgb(255, 0, 150, 136),   // Teal
+            WinUIColor.FromArgb(255, 76, 175, 80),   // Green
+            WinUIColor.FromArgb(255, 139, 195, 74),  // Light Green
+            WinUIColor.FromArgb(255, 205, 220, 57),  // Lime
+            WinUIColor.FromArgb(255, 255, 235, 59),  // Yellow
+            WinUIColor.FromArgb(255, 255, 193, 7),   // Amber
+            WinUIColor.FromArgb(255, 255, 152, 0),   // Orange
+            WinUIColor.FromArgb(255, 255, 87, 34),   // Deep Orange
+            // Neutrals
             WinUIColor.FromArgb(255, 255, 255, 255), // White
-            WinUIColor.FromArgb(255, 128, 128, 128), // Gray
-            WinUIColor.FromArgb(255, 64, 64, 64),    // Dark Gray
+            WinUIColor.FromArgb(255, 224, 224, 224), // Light Gray
+            WinUIColor.FromArgb(255, 158, 158, 158), // Gray
+            WinUIColor.FromArgb(255, 97, 97, 97),    // Dark Gray
+            WinUIColor.FromArgb(255, 66, 66, 66),    // Very Dark Gray
+            WinUIColor.FromArgb(255, 33, 33, 33),    // Near Black
             WinUIColor.FromArgb(255, 0, 0, 0),       // Black
+        };
+
+        // Material Design inspired colors
+        private readonly WinUIColor[] _materialColors = new[]
+        {
+            // Soft pastels
+            WinUIColor.FromArgb(255, 255, 205, 210), // Light Pink
+            WinUIColor.FromArgb(255, 240, 195, 238), // Light Purple
+            WinUIColor.FromArgb(255, 209, 196, 233), // Light Deep Purple
+            WinUIColor.FromArgb(255, 197, 202, 233), // Light Indigo
+            WinUIColor.FromArgb(255, 187, 222, 251), // Light Blue
+            WinUIColor.FromArgb(255, 179, 229, 252), // Light Cyan
+            WinUIColor.FromArgb(255, 178, 223, 219), // Light Teal
+            WinUIColor.FromArgb(255, 200, 230, 201), // Light Green
+            WinUIColor.FromArgb(255, 220, 237, 200), // Light Lime
+            WinUIColor.FromArgb(255, 255, 249, 196), // Light Yellow
+            WinUIColor.FromArgb(255, 255, 224, 178), // Light Orange
+            WinUIColor.FromArgb(255, 255, 204, 188), // Light Deep Orange
+            // Rich colors
+            WinUIColor.FromArgb(255, 198, 40, 40),   // Dark Red
+            WinUIColor.FromArgb(255, 142, 36, 170),  // Dark Purple
+            WinUIColor.FromArgb(255, 26, 35, 126),   // Dark Indigo
+            WinUIColor.FromArgb(255, 13, 71, 161),   // Dark Blue
+            WinUIColor.FromArgb(255, 1, 87, 155),    // Dark Light Blue
+            WinUIColor.FromArgb(255, 0, 96, 100),    // Dark Teal
+            WinUIColor.FromArgb(255, 27, 94, 32),    // Dark Green
+            WinUIColor.FromArgb(255, 130, 119, 23),  // Dark Lime
+            WinUIColor.FromArgb(255, 245, 127, 23),  // Dark Orange
+            WinUIColor.FromArgb(255, 191, 54, 12),   // Dark Deep Orange
         };
 
         public DesignerPage()
@@ -324,7 +367,7 @@ namespace CMDevicesManager.Pages
             
             ColorPalette.Children.Clear();
             
-            foreach (var color in _quickColors)
+            foreach (var color in _basicColors)
             {
                 var colorRect = new WpfRectangle
                 {
@@ -586,6 +629,10 @@ namespace CMDevicesManager.Pages
             };
 
             _renderService.AddElement(textElement);
+            
+            // Auto-select the newly created element
+            _renderService.SelectElement(textElement);
+            
             UpdateElementsList();
             UpdateStatus($"✨ Created text element: {text}", false);
         }
@@ -620,6 +667,10 @@ namespace CMDevicesManager.Pages
             };
 
             _renderService.AddElement(shapeElement);
+            
+            // Auto-select the newly created element
+            _renderService.SelectElement(shapeElement);
+            
             UpdateElementsList();
             UpdateStatus($"✨ Created shape element", false);
         }
@@ -641,6 +692,8 @@ namespace CMDevicesManager.Pages
             
             if (elementIndex >= 0)
             {
+                // Auto-select the newly created element
+                SelectElementByIndex(elementIndex);
                 UpdateElementsList();
                 UpdateStatus($"✨ Created motion text element: {text}", false);
             }
@@ -665,6 +718,8 @@ namespace CMDevicesManager.Pages
             
             if (elementIndex >= 0)
             {
+                // Auto-select the newly created element
+                SelectElementByIndex(elementIndex);
                 UpdateElementsList();
                 UpdateStatus($"✨ Created motion shape element", false);
             }
@@ -739,6 +794,22 @@ namespace CMDevicesManager.Pages
             };
         }
 
+        /// <summary>
+        /// Helper method to auto-select a newly created element by its index
+        /// </summary>
+        /// <param name="elementIndex">Index of the element to select</param>
+        private void SelectElementByIndex(int elementIndex)
+        {
+            if (_renderService == null || elementIndex < 0) return;
+            
+            var elements = _renderService.GetElements();
+            if (elementIndex < elements.Count)
+            {
+                var createdElement = elements[elementIndex];
+                _renderService.SelectElement(createdElement);
+            }
+        }
+
         #endregion
 
         #region Image Selection
@@ -777,6 +848,10 @@ namespace CMDevicesManager.Pages
                         };
 
                         _renderService.AddElement(imageElement);
+                        
+                        // Auto-select the newly created element
+                        _renderService.SelectElement(imageElement);
+                        
                         UpdateElementsList();
                         UpdateStatus($"✨ Created image element: {Path.GetFileName(openDialog.FileName)}", false);
                     }
@@ -1137,6 +1212,8 @@ namespace CMDevicesManager.Pages
 
             if (elementIndex >= 0)
             {
+                // Auto-select the newly created element
+                SelectElementByIndex(elementIndex);
                 UpdateElementsList();
                 UpdateStatus($"🏀 Added bouncing ball", false);
             }
@@ -1170,6 +1247,8 @@ namespace CMDevicesManager.Pages
 
             if (elementIndex >= 0)
             {
+                // Auto-select the newly created element
+                SelectElementByIndex(elementIndex);
                 UpdateElementsList();
                 UpdateStatus($"🔄 Added rotating text", false);
             }
@@ -1197,6 +1276,8 @@ namespace CMDevicesManager.Pages
 
             if (elementIndex >= 0)
             {
+                // Auto-select the newly created element
+                SelectElementByIndex(elementIndex);
                 UpdateElementsList();
                 UpdateStatus($"〰️ Added oscillating shape", false);
             }
@@ -1793,7 +1874,7 @@ namespace CMDevicesManager.Pages
             ElementsListBox.ItemsSource = elements.Select(e =>
             {
                 var motionInfo = e is IMotionElement motionElement ? $" ⚡{motionElement.MotionConfig.MotionType}" : "";
-                var rtInfo = _isRealTimeUpdateEnabled ? " 🔴" : "";
+                var rtInfo = _isRealTimeUpdateEnabled ? " 🔴" : "⚫";
                 return $"{e.Name}{motionInfo}{rtInfo}";
             }).ToList();
 

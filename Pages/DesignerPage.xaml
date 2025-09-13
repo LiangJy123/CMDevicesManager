@@ -97,12 +97,39 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Background" Value="White"/>
         </Style>
+
+        <!-- Compact Button Style for Canvas Controls -->
+        <Style x:Key="CompactButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
+
+        <Style x:Key="CompactActionButtonStyle" TargetType="Button" BasedOn="{StaticResource CompactButtonStyle}">
+            <Setter Property="Background" Value="#FF50C878"/>
+            <Setter Property="BorderBrush" Value="#FF3D9E5D"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FF60D888"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="CompactWarningButtonStyle" TargetType="Button" BasedOn="{StaticResource CompactButtonStyle}">
+            <Setter Property="Background" Value="#FFFF6B6B"/>
+            <Setter Property="BorderBrush" Value="#FFEF5350"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FFFF7B7B"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Page.Resources>
 
     <Grid Background="#FFF8F9FA">
         <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="400"/>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="500"/>
             <ColumnDefinition Width="360"/>
         </Grid.ColumnDefinitions>
 
@@ -112,42 +139,6 @@
                 <StackPanel>
                     <TextBlock Text="Design Studio" Style="{StaticResource SectionHeaderStyle}" FontSize="20" Margin="0,0,0,16"/>
                     
-                    <!-- Canvas Controls -->
-                    <Expander Header="🎮 Canvas Controls" IsExpanded="True" Style="{StaticResource ModernExpanderStyle}">
-                        <StackPanel Margin="12,8">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Button Name="StartRenderingButton" Grid.Column="0" Content="▶ Start" 
-                                       Style="{StaticResource ActionButtonStyle}" Click="StartRenderingButton_Click" Margin="0,0,4,0"/>
-                                <Button Name="StopRenderingButton" Grid.Column="1" Content="⏸ Stop" 
-                                       Style="{StaticResource WarningButtonStyle}" Click="StopRenderingButton_Click" IsEnabled="False" Margin="4,0,0,0"/>
-                            </Grid>
-                            
-                            <Button Name="ClearCanvasButton" Content="🗑️ Clear Canvas" 
-                                   Style="{StaticResource WarningButtonStyle}" Click="ClearCanvasButton_Click" Margin="0,4,0,0"/>
-                            
-                            <CheckBox Name="RealTimeUpdatesCheckBox" Content="⚡ Real-Time Updates" IsChecked="True" 
-                                     Margin="0,12,0,4" Foreground="#FF2C3E50" FontWeight="SemiBold"/>
-                            <TextBlock Text="Changes apply instantly while editing" 
-                                      FontSize="11" Foreground="#FF7F8C8D" Margin="20,0,0,8"/>
-                            
-                            <TextBlock Text="Frame Rate:" Style="{StaticResource PropertyLabelStyle}" Margin="0,8,0,4"/>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="50"/>
-                                </Grid.ColumnDefinitions>
-                                <Slider Name="FpsSlider" Grid.Column="0" Minimum="1" Maximum="120" Value="30" 
-                                       ValueChanged="FpsSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
-                                <TextBlock Name="FpsLabel" Grid.Column="1" Text="30 FPS" VerticalAlignment="Center" 
-                                          HorizontalAlignment="Center" FontSize="11" Foreground="#FF7F8C8D"/>
-                            </Grid>
-                        </StackPanel>
-                    </Expander>
-
                     <!-- Unified Element Creator/Editor -->
                     <Expander Header="🎨 Element Properties" IsExpanded="True" Style="{StaticResource ModernExpanderStyle}">
                         <StackPanel Name="UnifiedPropertiesPanel" Margin="12,8">
@@ -284,7 +275,7 @@
                                 </Grid>
                             </StackPanel>
 
-                            <!-- Shape Properties -->
+                            <!-- Shape Properties with Enhanced Sliders -->
                             <StackPanel Name="ShapePropertiesSection" Visibility="Collapsed">
                                 <TextBlock Text="Shape Properties" Style="{StaticResource PropertyLabelStyle}" Foreground="#FFE67E22"/>
 
@@ -295,7 +286,7 @@
                                     <ComboBoxItem Content="🔺 Triangle"/>
                                 </ComboBox>
 
-                                <TextBlock Text="Size:" Style="{StaticResource PropertyLabelStyle}"/>
+                                <TextBlock Text="Size Controls:" Style="{StaticResource PropertyLabelStyle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
@@ -317,8 +308,8 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Name="ShapeWidthLabel" Grid.Column="1" Text="60" HorizontalAlignment="Center" FontSize="11"/>
-                                    <TextBlock Name="ShapeHeightLabel" Grid.Column="3" Text="60" HorizontalAlignment="Center" FontSize="11"/>
+                                    <TextBlock Name="ShapeWidthLabel" Grid.Column="1" Text="60" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
+                                    <TextBlock Name="ShapeHeightLabel" Grid.Column="3" Text="60" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
                                 </Grid>
 
                                 <TextBlock Text="Fill Color:" Style="{StaticResource PropertyLabelStyle}"/>
@@ -430,14 +421,53 @@
                         </StackPanel>
                     </Expander>
 
-                    <!-- Quick Color Palette -->
+                    <!-- Enhanced Quick Color Palette -->
                     <Expander Header="🎨 Quick Colors" IsExpanded="True" Style="{StaticResource ModernExpanderStyle}">
                         <StackPanel Margin="12,8">
+                            <!-- Current Selected Color Display -->
+                            <Border Background="#FFF8F9FA" BorderBrush="#FFECF0F1" BorderThickness="1" 
+                                   Padding="8" Margin="0,0,0,8" CornerRadius="4">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Selected:" VerticalAlignment="Center" 
+                                              FontSize="11" FontWeight="SemiBold" Foreground="#FF7F8C8D" Margin="0,0,8,0"/>
+                                    <Rectangle Name="CurrentColorDisplay" Grid.Column="1" Height="24" 
+                                              Style="{StaticResource ColorPreviewStyle}" 
+                                              Fill="LightCoral" Margin="0,0,8,0"/>
+                                    <TextBlock Name="CurrentColorHex" Grid.Column="2" Text="#FF6464" 
+                                              VerticalAlignment="Center" FontSize="10" FontFamily="Consolas" 
+                                              Foreground="#FF95A5A6"/>
+                                </Grid>
+                            </Border>
+                            
+                            <!-- Color Palette with Categories -->
+                            <TextBlock Text="Basic Colors:" FontSize="11" FontWeight="SemiBold" 
+                                      Foreground="#FF7F8C8D" Margin="0,0,0,4"/>
                             <WrapPanel Name="ColorPalette" Margin="0,0,0,8">
                                 <!-- Color squares will be added programmatically -->
                             </WrapPanel>
-                            <Button Name="CustomColorButton" Content="🌈 Custom Color..." Style="{StaticResource ModernButtonStyle}" 
-                                   Click="CustomColorButton_Click"/>
+                            
+                            <!-- Material Design Colors -->
+                            <TextBlock Text="Material Colors:" FontSize="11" FontWeight="SemiBold" 
+                                      Foreground="#FF7F8C8D" Margin="0,8,0,4"/>
+                            <WrapPanel Name="MaterialColorPalette" Margin="0,0,0,8">
+                                <!-- Material color squares will be added programmatically -->
+                            </WrapPanel>
+                            
+                            <!-- Action Buttons -->
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Name="CustomColorButton" Grid.Column="0" Content="🌈 Custom..." 
+                                       Style="{StaticResource ModernButtonStyle}" Click="CustomColorButton_Click" 
+                                       Margin="0,0,4,0"/>
+                            </Grid>
                         </StackPanel>
                     </Expander>
 
@@ -473,6 +503,7 @@
         <Grid Grid.Column="1" Background="White" Margin="16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -500,8 +531,48 @@
                 </Grid>
             </Border>
 
+            <!-- Canvas Controls Section (Moved from Left Panel) -->
+            <Border Grid.Row="1" Background="#FFF8F9FA" BorderBrush="#FFECF0F1" BorderThickness="1" 
+                   Padding="12" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Canvas Control Buttons -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,16,0">
+                        <Button Name="StartRenderingButton" Content="▶ Start" 
+                               Style="{StaticResource CompactActionButtonStyle}" Click="StartRenderingButton_Click" Margin="0,0,4,0"/>
+                        <Button Name="StopRenderingButton" Content="⏸ Stop" 
+                               Style="{StaticResource CompactWarningButtonStyle}" Click="StopRenderingButton_Click" IsEnabled="False" Margin="0,0,4,0"/>
+                        <Button Name="ClearCanvasButton" Content="🗑️ Clear" 
+                               Style="{StaticResource CompactWarningButtonStyle}" Click="ClearCanvasButton_Click"/>
+                    </StackPanel>
+
+                    <!-- Real-Time Updates Toggle -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,16,0">
+                        <CheckBox Name="RealTimeUpdatesCheckBox" Content="⚡ Real-Time" IsChecked="True" 
+                                 VerticalAlignment="Center" Foreground="#FF2C3E50" FontSize="11" FontWeight="SemiBold"/>
+                    </StackPanel>
+
+                    <!-- FPS Controls -->
+                    <StackPanel Grid.Column="3" Orientation="Horizontal">
+                        <TextBlock Text="FPS:" VerticalAlignment="Center" FontSize="11" FontWeight="SemiBold" 
+                                  Foreground="#FF7F8C8D" Margin="0,0,4,0"/>
+                        <Slider Name="FpsSlider" Minimum="1" Maximum="120" Value="30" Width="80"
+                               ValueChanged="FpsSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}" 
+                               Height="20" Margin="0,0,4,0"/>
+                        <TextBlock Name="FpsLabel" Text="30" VerticalAlignment="Center" FontSize="11" 
+                                  Foreground="#FF7F8C8D" Width="25" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <!-- Canvas Container -->
-            <Border Grid.Row="1" Background="#FF2C3E50" HorizontalAlignment="Center" VerticalAlignment="Center"
+            <Border Grid.Row="2" Background="#FF2C3E50" HorizontalAlignment="Center" VerticalAlignment="Center"
                    BorderBrush="#FF34495E" BorderThickness="3">
                 <Image Name="CanvasDisplay" Width="480" Height="480" Stretch="Fill"
                       MouseLeftButtonDown="CanvasDisplay_MouseLeftButtonDown"
@@ -511,7 +582,7 @@
             </Border>
 
             <!-- Canvas Footer -->
-            <Border Grid.Row="2" Background="#FFECF0F1" Padding="16,8" Margin="0,16,0,0">
+            <Border Grid.Row="3" Background="#FFECF0F1" Padding="16,8" Margin="0,16,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
