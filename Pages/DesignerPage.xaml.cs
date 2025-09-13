@@ -21,6 +21,7 @@ using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 using WpfColor = System.Windows.Media.Color;
 using WpfRectangle = System.Windows.Shapes.Rectangle;
 using Path = System.IO.Path;
+using System.Windows.Threading;
 
 namespace CMDevicesManager.Pages
 {
@@ -37,6 +38,12 @@ namespace CMDevicesManager.Pages
         private RenderElement? _currentEditingElement;
         private bool _isUpdatingProperties = false;
         private readonly Random _random = new Random();
+
+        // Real-time property update features
+        private bool _isRealTimeUpdateEnabled = true;
+        private DispatcherTimer? _textUpdateDebounceTimer;
+        private readonly TimeSpan _textUpdateDelay = TimeSpan.FromMilliseconds(500); // 500ms debounce for text input
+        private bool _enableRealTimePreview = true;
 
         // Color selection state
         private WinUIColor _selectedColor = WinUIColor.FromArgb(255, 255, 100, 100);
@@ -64,6 +71,7 @@ namespace CMDevicesManager.Pages
             InitializeComponent();
             Loaded += OnDesignerPageLoaded;
             InitializeUI();
+            InitializeRealTimeUpdateSystem();
         }
 
         private void InitializeUI()
@@ -72,6 +80,263 @@ namespace CMDevicesManager.Pages
             InitializeColorPalette();
             InitializeSliderEventHandlers();
         }
+
+        #region Real-Time Update System
+
+        /// <summary>
+        /// Initialize the real-time property update system
+        /// </summary>
+        private void InitializeRealTimeUpdateSystem()
+        {
+            // Initialize debounce timer for text input
+            _textUpdateDebounceTimer = new DispatcherTimer
+            {
+                Interval = _textUpdateDelay
+            };
+            _textUpdateDebounceTimer.Tick += OnTextUpdateDebounceTimerTick;
+
+            // Set up real-time event handlers for all property controls
+            SetupRealTimeEventHandlers();
+        }
+
+        /// <summary>
+        /// Set up event handlers for real-time property updates
+        /// </summary>
+        private void SetupRealTimeEventHandlers()
+        {
+            // This will be called after InitializeComponent() when all controls are available
+            Loaded += (s, e) => AttachRealTimeEventHandlers();
+        }
+
+        /// <summary>
+        /// Attach real-time event handlers to all property controls
+        /// </summary>
+        private void AttachRealTimeEventHandlers()
+        {
+            try
+            {
+                // Real-time updates toggle - safely try to find and attach
+                var realTimeCheckBox = this.FindName("RealTimeUpdatesCheckBox") as System.Windows.Controls.CheckBox;
+                if (realTimeCheckBox != null)
+                {
+                    realTimeCheckBox.Checked += RealTimeUpdatesCheckBox_Changed;
+                    realTimeCheckBox.Unchecked += RealTimeUpdatesCheckBox_Changed;
+                }
+
+                // Text content with debouncing
+                if (TextContentTextBox != null)
+                {
+                    TextContentTextBox.TextChanged += TextProperty_Changed;
+                }
+
+                // Position text boxes with debouncing
+                if (PositionXTextBox != null)
+                {
+                    PositionXTextBox.TextChanged += PositionProperty_Changed;
+                }
+                if (PositionYTextBox != null)
+                {
+                    PositionYTextBox.TextChanged += PositionProperty_Changed;
+                }
+
+                // Font family combo box
+                if (FontFamilyComboBox != null)
+                {
+                    FontFamilyComboBox.SelectionChanged += FontFamilyProperty_Changed;
+                }
+
+                // Shape type combo box
+                if (ShapeTypeComboBox != null)
+                {
+                    ShapeTypeComboBox.SelectionChanged += ShapeTypeProperty_Changed;
+                }
+
+                // Motion type combo box
+                if (MotionTypeComboBox != null)
+                {
+                    MotionTypeComboBox.SelectionChanged += MotionTypeProperty_Changed;
+                }
+
+                // Checkboxes
+                if (VisibleCheckBox != null)
+                {
+                    VisibleCheckBox.Checked += CheckboxProperty_Changed;
+                    VisibleCheckBox.Unchecked += CheckboxProperty_Changed;
+                }
+                if (DraggableCheckBox != null)
+                {
+                    DraggableCheckBox.Checked += CheckboxProperty_Changed;
+                    DraggableCheckBox.Unchecked += CheckboxProperty_Changed;
+                }
+                if (ShowTrailCheckBox != null)
+                {
+                    ShowTrailCheckBox.Checked += CheckboxProperty_Changed;
+                    ShowTrailCheckBox.Unchecked += CheckboxProperty_Changed;
+                }
+                if (MotionPausedCheckBox != null)
+                {
+                    MotionPausedCheckBox.Checked += CheckboxProperty_Changed;
+                    MotionPausedCheckBox.Unchecked += CheckboxProperty_Changed;
+                }
+
+                UpdateStatus("Real-time property updates initialized", false);
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Failed to initialize real-time updates: {ex.Message}", true);
+            }
+        }
+
+        /// <summary>
+        /// Toggle real-time property updates on/off
+        /// </summary>
+        private void ToggleRealTimeUpdates()
+        {
+            _isRealTimeUpdateEnabled = !_isRealTimeUpdateEnabled;
+            
+            var status = _isRealTimeUpdateEnabled ? "enabled" : "disabled";
+            UpdateStatus($"Real-time updates {status}", false);
+            
+            // Update checkbox if it exists
+            var realTimeCheckBox = this.FindName("RealTimeUpdatesCheckBox") as System.Windows.Controls.CheckBox;
+            if (realTimeCheckBox != null && realTimeCheckBox.IsChecked != _isRealTimeUpdateEnabled)
+            {
+                realTimeCheckBox.IsChecked = _isRealTimeUpdateEnabled;
+            }
+
+            // Update elements list to show RT indicator
+            UpdateElementsList();
+        }
+
+        /// <summary>
+        /// Apply real-time property updates immediately (for sliders, checkboxes, etc.)
+        /// </summary>
+        private void ApplyRealTimePropertyUpdate()
+        {
+            if (!_isRealTimeUpdateEnabled || _isUpdatingProperties || _currentEditingElement == null || _renderService == null)
+                return;
+
+            try
+            {
+                var properties = GatherElementPropertiesFromUI();
+                _renderService.UpdateElementProperties(_currentEditingElement, properties);
+                
+                // Optional: Show brief feedback
+                if (_enableRealTimePreview)
+                {
+                    UpdateStatus("Properties updated", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Real-time update error: {ex.Message}", true);
+            }
+        }
+
+        /// <summary>
+        /// Apply real-time property updates with debouncing (for text input)
+        /// </summary>
+        private void ApplyDebouncedPropertyUpdate()
+        {
+            if (!_isRealTimeUpdateEnabled)
+                return;
+
+            // Reset and restart the debounce timer
+            _textUpdateDebounceTimer?.Stop();
+            _textUpdateDebounceTimer?.Start();
+        }
+
+        /// <summary>
+        /// Handle debounced text property updates
+        /// </summary>
+        private void OnTextUpdateDebounceTimerTick(object? sender, EventArgs e)
+        {
+            _textUpdateDebounceTimer?.Stop();
+            ApplyRealTimePropertyUpdate();
+        }
+
+        #endregion
+
+        #region Real-Time Event Handlers
+
+        /// <summary>
+        /// Handle text property changes with debouncing
+        /// </summary>
+        private void TextProperty_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (_isUpdatingProperties) return;
+            ApplyDebouncedPropertyUpdate();
+        }
+
+        /// <summary>
+        /// Handle position property changes with debouncing
+        /// </summary>
+        private void PositionProperty_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (_isUpdatingProperties) return;
+            ApplyDebouncedPropertyUpdate();
+        }
+
+        /// <summary>
+        /// Handle font family property changes immediately
+        /// </summary>
+        private void FontFamilyProperty_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingProperties) return;
+            ApplyRealTimePropertyUpdate();
+        }
+
+        /// <summary>
+        /// Handle shape type property changes immediately
+        /// </summary>
+        private void ShapeTypeProperty_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingProperties) return;
+            ApplyRealTimePropertyUpdate();
+        }
+
+        /// <summary>
+        /// Handle motion type property changes immediately
+        /// </summary>
+        private void MotionTypeProperty_Changed(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingProperties) return;
+            ApplyRealTimePropertyUpdate();
+        }
+
+        /// <summary>
+        /// Handle checkbox property changes immediately
+        /// </summary>
+        private void CheckboxProperty_Changed(object sender, RoutedEventArgs e)
+        {
+            if (_isUpdatingProperties) return;
+            ApplyRealTimePropertyUpdate();
+        }
+
+        /// <summary>
+        /// Handle real-time updates checkbox changes
+        /// </summary>
+        private void RealTimeUpdatesCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            var realTimeCheckBox = sender as System.Windows.Controls.CheckBox;
+            if (realTimeCheckBox != null)
+            {
+                _isRealTimeUpdateEnabled = realTimeCheckBox.IsChecked == true;
+                var status = _isRealTimeUpdateEnabled ? "enabled" : "disabled";
+                UpdateStatus($"Real-time updates {status}", false);
+                
+                // Update elements list to show RT indicator
+                UpdateElementsList();
+                
+                // Update element properties display to show current mode
+                if (_currentEditingElement != null)
+                {
+                    UpdateElementProperties(_currentEditingElement);
+                }
+            }
+        }
+
+        #endregion
 
         private void InitializeComboBoxes()
         {
@@ -168,7 +433,7 @@ namespace CMDevicesManager.Pages
 
                 UpdateElementsList();
                 UpdateColorPreviewsWithCurrentColor();
-                UpdateStatus("Designer ready - Start adding elements!", false);
+                UpdateStatus("Designer ready - Real-time updates enabled!", false);
             }
             catch (Exception ex)
             {
@@ -259,6 +524,10 @@ namespace CMDevicesManager.Pages
         {
             if (FontSizeValueLabel != null)
                 FontSizeValueLabel.Text = ((int)e.NewValue).ToString();
+            
+            // Apply real-time update for font size changes
+            if (!_isUpdatingProperties)
+                ApplyRealTimePropertyUpdate();
         }
 
         private void ShapeSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
@@ -267,30 +536,50 @@ namespace CMDevicesManager.Pages
                 ShapeWidthLabel.Text = ((int)ShapeWidthSlider.Value).ToString();
             if (ShapeHeightLabel != null && ShapeHeightSlider != null)
                 ShapeHeightLabel.Text = ((int)ShapeHeightSlider.Value).ToString();
+            
+            // Apply real-time update for shape size changes
+            if (!_isUpdatingProperties)
+                ApplyRealTimePropertyUpdate();
         }
 
         private void ImageScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (ImageScaleLabel != null)
                 ImageScaleLabel.Text = e.NewValue.ToString("F1");
+            
+            // Apply real-time update for image scale changes
+            if (!_isUpdatingProperties)
+                ApplyRealTimePropertyUpdate();
         }
 
         private void ImageRotationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (ImageRotationLabel != null)
                 ImageRotationLabel.Text = $"{(int)e.NewValue}°";
+            
+            // Apply real-time update for image rotation changes
+            if (!_isUpdatingProperties)
+                ApplyRealTimePropertyUpdate();
         }
 
         private void MotionSpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (MotionSpeedLabel != null)
                 MotionSpeedLabel.Text = ((int)e.NewValue).ToString();
+            
+            // Apply real-time update for motion speed changes
+            if (!_isUpdatingProperties)
+                ApplyRealTimePropertyUpdate();
         }
 
         private void TextColorSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             UpdateTextColorPreview();
             UpdateTextColorLabels();
+            
+            // Apply real-time update for text color changes
+            if (!_isUpdatingProperties)
+                ApplyRealTimePropertyUpdate();
         }
 
         private void UpdateTextColorPreview()
@@ -320,6 +609,10 @@ namespace CMDevicesManager.Pages
         {
             UpdateShapeColorPreview();
             UpdateShapeColorLabels();
+            
+            // Apply real-time update for shape color changes
+            if (!_isUpdatingProperties)
+                ApplyRealTimePropertyUpdate();
         }
 
         private void UpdateShapeColorPreview()
@@ -427,7 +720,7 @@ namespace CMDevicesManager.Pages
                 _renderService.StartAutoRendering(_renderService.TargetFPS);
                 StartRenderingButton.IsEnabled = false;
                 StopRenderingButton.IsEnabled = true;
-                UpdateStatus("Rendering started", false);
+                UpdateStatus("Rendering started - Real-time updates active", false);
             }
             catch (Exception ex)
             {
@@ -506,7 +799,7 @@ namespace CMDevicesManager.Pages
 
             _renderService.AddElement(textElement);
             UpdateElementsList();
-            UpdateStatus($"Added text element: {text}", false);
+            UpdateStatus($"Added text element: {text} (Real-time editing enabled)", false);
         }
 
         private async void AddImageButton_Click(object sender, RoutedEventArgs e)
@@ -539,7 +832,7 @@ namespace CMDevicesManager.Pages
 
                     _renderService.AddElement(imageElement);
                     UpdateElementsList();
-                    UpdateStatus($"Added image element: {Path.GetFileName(openDialog.FileName)}", false);
+                    UpdateStatus($"Added image element: {Path.GetFileName(openDialog.FileName)} (Real-time editing enabled)", false);
                 }
                 catch (Exception ex)
                 {
@@ -569,7 +862,7 @@ namespace CMDevicesManager.Pages
 
             _renderService.AddElement(shapeElement);
             UpdateElementsList();
-            UpdateStatus($"Added shape element", false);
+            UpdateStatus($"Added shape element (Real-time editing enabled)", false);
         }
 
         #endregion
@@ -598,7 +891,7 @@ namespace CMDevicesManager.Pages
             if (elementIndex >= 0)
             {
                 UpdateElementsList();
-                UpdateStatus($"Added bouncing ball", false);
+                UpdateStatus($"Added bouncing ball (Real-time motion editing enabled)", false);
             }
         }
 
@@ -631,7 +924,7 @@ namespace CMDevicesManager.Pages
             if (elementIndex >= 0)
             {
                 UpdateElementsList();
-                UpdateStatus($"Added rotating text", false);
+                UpdateStatus($"Added rotating text (Real-time motion editing enabled)", false);
             }
         }
 
@@ -659,7 +952,7 @@ namespace CMDevicesManager.Pages
             if (elementIndex >= 0)
             {
                 UpdateElementsList();
-                UpdateStatus($"Added oscillating shape", false);
+                UpdateStatus($"Added oscillating shape (Real-time motion editing enabled)", false);
             }
         }
 
@@ -690,7 +983,7 @@ namespace CMDevicesManager.Pages
 
             _renderService.SetElementMotion(selectedElement, motionConfig);
             UpdateElementsList();
-            UpdateStatus("Converted element to motion", false);
+            UpdateStatus("Converted element to motion (Real-time motion editing enabled)", false);
         }
 
         private void PauseAllMotionButton_Click(object sender, RoutedEventArgs e)
@@ -907,10 +1200,11 @@ namespace CMDevicesManager.Pages
             ElementsListBox.ItemsSource = elements.Select(e =>
             {
                 var motionInfo = e is IMotionElement motionElement ? $" [{motionElement.MotionConfig.MotionType}]" : "";
-                return $"{e.Name} ({e.Type}){motionInfo}";
+                var rtInfo = _isRealTimeUpdateEnabled ? " [RT]" : "";
+                return $"{e.Name} ({e.Type}){motionInfo}{rtInfo}";
             }).ToList();
 
-            ElementCountLabel.Text = $"Elements: {elements.Count}";
+            ElementCountLabel.Text = $"Elements: {elements.Count} (Real-time: {(_isRealTimeUpdateEnabled ? "ON" : "OFF")})";
         }
 
         #endregion
@@ -934,7 +1228,8 @@ namespace CMDevicesManager.Pages
 
                 // Update element info
                 ElementNameText.Text = element.Name;
-                ElementTypeText.Text = $"Type: {element.Type} | ID: {element.Id.ToString()[..8]}...";
+                ElementTypeText.Text = $"Type: {element.Type} | ID: {element.Id.ToString()[..8]}... | Real-time: {(_isRealTimeUpdateEnabled ? "ON" : "OFF")}";
+                RenderInfoLabel.Text = $"Rendering at {_renderService?.TargetFPS ?? 30} FPS";
 
                 // Update common properties
                 PositionXTextBox.Text = element.Position.X.ToString("F1");
@@ -1071,12 +1366,24 @@ namespace CMDevicesManager.Pages
 
         private void ElementProperty_Changed(object sender, RoutedEventArgs e)
         {
-            // Properties are staged but not applied until Apply is clicked
-            // This provides better user control
+            // For compatibility with manual mode - properties are now handled by real-time system
+            if (!_isRealTimeUpdateEnabled)
+            {
+                // Properties are staged but not applied until Apply is clicked (legacy behavior)
+            }
         }
 
+        /// <summary>
+        /// Manual apply changes button - now shows informational message about real-time mode
+        /// </summary>
         private void ApplyChangesButton_Click(object sender, RoutedEventArgs e)
         {
+            if (_isRealTimeUpdateEnabled)
+            {
+                UpdateStatus("Real-time updates are enabled - changes apply automatically!", false);
+                return;
+            }
+
             if (_currentEditingElement == null || _renderService == null)
             {
                 UpdateStatus("No element selected for editing", true);
@@ -1088,7 +1395,7 @@ namespace CMDevicesManager.Pages
                 var properties = GatherElementPropertiesFromUI();
                 _renderService.UpdateElementProperties(_currentEditingElement, properties);
                 
-                UpdateStatus("Element changes applied", false);
+                UpdateStatus("Element changes applied manually", false);
                 UpdateElementsList();
                 UpdateElementProperties(_currentEditingElement); // Refresh with updated values
             }
@@ -1288,7 +1595,7 @@ namespace CMDevicesManager.Pages
                         {
                             UpdateElementsList();
                             ClearElementProperties();
-                            UpdateStatus($"Scene imported: {Path.GetFileName(openDialog.FileName)}", false);
+                            UpdateStatus($"Scene imported: {Path.GetFileName(openDialog.FileName)} (Real-time editing enabled)", false);
                         }
                         else
                         {
@@ -1330,6 +1637,11 @@ namespace CMDevicesManager.Pages
         {
             try
             {
+                // Stop debounce timer
+                _textUpdateDebounceTimer?.Stop();
+                _textUpdateDebounceTimer = null;
+
+                // Stop rendering service
                 _renderService?.StopAutoRendering();
                 _renderService?.Dispose();
             }

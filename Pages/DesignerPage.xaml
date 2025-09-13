@@ -74,6 +74,12 @@
                             <Button Name="StartRenderingButton" Content="Start Rendering" Style="{StaticResource ToolButtonStyle}" Click="StartRenderingButton_Click"/>
                             <Button Name="StopRenderingButton" Content="Stop Rendering" Style="{StaticResource ToolButtonStyle}" Click="StopRenderingButton_Click" IsEnabled="False"/>
                             
+                            <Separator Margin="0,8"/>
+                            <CheckBox Name="RealTimeUpdatesCheckBox" Content="Real-Time Property Updates" IsChecked="True" 
+                                     Margin="0,5" Foreground="#FF333333" FontWeight="SemiBold" ToolTip="Enable/disable real-time property updates as you edit elements"/>
+                            <TextBlock Text="When enabled, property changes apply immediately while editing. When disabled, use Apply button." 
+                                      FontSize="10" Foreground="Gray" TextWrapping="Wrap" Margin="0,2,0,8"/>
+                            
                             <TextBlock Text="FPS:" Style="{StaticResource PropertyLabelStyle}"/>
                             <StackPanel Orientation="Horizontal">
                                 <Slider Name="FpsSlider" Width="140" Minimum="1" Maximum="120" Value="30" 
