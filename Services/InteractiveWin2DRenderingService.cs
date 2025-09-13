@@ -238,8 +238,8 @@ namespace CMDevicesManager.Services
                         }
 
                         // Use the composited image as the background
-                        _backgroundImage = CanvasBitmap.CreateFromBytes(_canvasDevice!, tempTarget.GetPixelBytes(),
-                            (int)tempTarget.Size.Width, (int)tempTarget.Size.Height, Windows.Graphics.DirectX.DirectXPixelFormat.B8G8R8A8UIntNormalized);
+                        //_backgroundImage = CanvasBitmap.CreateFromBytes(_canvasDevice!, tempTarget.GetPixelBytes(),
+                            //(int)tempTarget.Size.Width, (int)tempTarget.Size.Height, Windows.Graphics.DirectX.DirectXPixelFormat.B8G8R8A8UIntNormalized);
                     }
 
                     originalImage.Dispose();

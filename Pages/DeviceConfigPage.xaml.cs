@@ -804,6 +804,12 @@ namespace CMDevicesManager.Pages
 
         #endregion
 
+        // ===== 实时发送相关字段 =====
+        private DispatcherTimer? _realtimeJpegTimer;
+        private const int RealtimeIntervalMs = 50; // 约 20FPS
+        private const int RealtimeJpegSize = 480;
+        private bool _realtimeActive;
+        private FrameworkElement? _captureRoot; // 缓存要截取的可视元素
         public DeviceConfigPage(DeviceInfo deviceInfo) : this()
         {
             DeviceInfo = deviceInfo;
@@ -3218,7 +3224,116 @@ namespace CMDevicesManager.Pages
             try { _liveTimer.Stop(); } catch { }
             try { _metrics.Dispose(); } catch { }
             try { _autoMoveTimer.Stop(); } catch { }
+            StopRealtimeJpegStreaming();
             StopVideoPlayback();
+           
+        }
+        private void StartRealtimeJpegStreaming()
+        {
+            if (_realtimeActive) return;
+            // 尝试获取设计画布（按你工程中的名称调整：DesignCanvas / MirrorRoot / RootCanvas …）
+            _captureRoot ??= (FrameworkElement?)this.FindName("DesignCanvas")
+                          ?? (FrameworkElement?)this.FindName("MirrorRoot")
+                          ?? this.Content as FrameworkElement;
+
+            if (_captureRoot == null)
+                return;
+
+            _realtimeJpegTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(RealtimeIntervalMs)
+            };
+            _realtimeJpegTimer.Tick += RealtimeJpegTimer_Tick;
+            _realtimeJpegTimer.Start();
+            _realtimeActive = true;
+        }
+
+        private void StopRealtimeJpegStreaming()
+        {
+            _realtimeActive = false;
+            if (_realtimeJpegTimer != null)
+            {
+                _realtimeJpegTimer.Stop();
+                _realtimeJpegTimer.Tick -= RealtimeJpegTimer_Tick;
+                _realtimeJpegTimer = null;
+            }
+        }
+
+        private void RealtimeJpegTimer_Tick(object? sender, EventArgs e)
+        {
+            if (!_realtimeActive) return;
+            if (_captureRoot == null || _captureRoot.ActualWidth < 1 || _captureRoot.ActualHeight < 1)
+                return;
+
+            var jpeg = CaptureElementToJpegFixedSquare(_captureRoot, RealtimeJpegSize);
+            if (jpeg == null || jpeg.Length == 0) return;
+
+            try
+            {
+                var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
+                // priority 可按需调整，tag 可自定义
+                bool queued = realtimeService.QueueJpegData(jpeg, priority: 2,"DeviceConfigPreview");
+                // 可加简单失败统计或日志（此处不写 Logger 避免你的文件截断区未展示 Logger 引用）
+                if (!queued)
+                {
+                    // 若需要，可在此添加重试或降低频率逻辑
+                }
+            }
+            catch
+            {
+                // 避免异常打断后续 tick
+            }
+        }
+
+        /// <summary>
+        /// 将指定可视元素渲染为固定尺寸(方形)JPEG（保持内容比例，居中填充黑色边框）。
+        /// </summary>
+        private byte[]? CaptureElementToJpegFixedSquare(FrameworkElement element, int size)
+        {
+            try
+            {
+                // 强制最新布局
+                element.UpdateLayout();
+
+                int srcW = (int)Math.Ceiling(element.ActualWidth);
+                int srcH = (int)Math.Ceiling(element.ActualHeight);
+                if (srcW <= 0 || srcH <= 0) return null;
+
+                // 原始渲染
+                var rtb = new RenderTargetBitmap(srcW, srcH, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(element);
+
+                // 目标 DrawingVisual（统一缩放到 size x size）
+                double scale = Math.Min((double)size / srcW, (double)size / srcH);
+                double drawW = srcW * scale;
+                double drawH = srcH * scale;
+                double offsetX = (size - drawW) / 2.0;
+                double offsetY = (size - drawH) / 2.0;
+
+                var dv = new DrawingVisual();
+                using (var dc = dv.RenderOpen())
+                {
+                    dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, size, size));
+                    dc.DrawImage(rtb, new Rect(offsetX, offsetY, drawW, drawH));
+                }
+
+                var finalBmp = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
+                finalBmp.Render(dv);
+
+                // 编码 JPEG
+                var encoder = new JpegBitmapEncoder
+                {
+                    QualityLevel = 80 // 可按需来自配置
+                };
+                encoder.Frames.Add(BitmapFrame.Create(finalBmp));
+                using var ms = new MemoryStream();
+                encoder.Save(ms);
+                return ms.ToArray();
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         // ================= Image Rotate / Mirror =================
@@ -3420,6 +3535,7 @@ namespace CMDevicesManager.Pages
         {
             // Call StartRealTimeShowCanvas(); with Task.Run to avoid blocking UI
             Task.Run(() => StartRealTimeShowCanvas());
+            StartRealtimeJpegStreaming();
         }
 
         private void RotateImageRight_Click(object sender, RoutedEventArgs e) => RotateSelectedImage(90);

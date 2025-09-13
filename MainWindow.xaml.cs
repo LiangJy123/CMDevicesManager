@@ -23,6 +23,8 @@ using System.IO;
 using Path = System.IO.Path;
 using System.Threading.Tasks; // ADDED
 using System.Threading;      // (optional, future cancellation)
+using System.Windows.Threading;
+using Brushes = System.Windows.Media.Brushes; // ADDED for DispatcherTimer
 
 namespace CMDevicesManager
 {
@@ -45,6 +47,12 @@ namespace CMDevicesManager
 
         private RenderDemoPage? _renderDemoPage;
 
+        // ===== ADDED: MainWindow real-time JPEG streaming (非 DeviceConfigPage 时启用) =====
+        private DispatcherTimer? _mainRealtimeTimer;
+        private bool _mainRealtimeActive;
+        private const int MainRealtimeIntervalMs = 50;   // 50ms ≈ 20FPS
+        private const int MainRealtimeSize = 480;        // 输出 480x480
+        private FrameworkElement? _mainCaptureRoot;       // MirrorRoot
 
         public MainWindow()
         {
@@ -82,6 +90,16 @@ namespace CMDevicesManager
             {
                 GlobalMirrorCanvasService.Instance.ReapplyLast();
             }
+
+            // 启停主窗口实时推送 (DeviceConfigPage 本身内部已推送, 此时关闭主窗口推送避免重复)
+            if (e.Content is DeviceConfigPage)
+            {
+                StopMainRealtimeStreaming();
+            }
+            else
+            {
+                StartMainRealtimeStreaming();
+            }
         }
 
         private HomePage GetHomePage() => _homePage ??= new HomePage();
@@ -92,7 +110,6 @@ namespace CMDevicesManager
 
         private DeviceConfigPage GetDeviceConfigPage() => _deviceConfigPage ??= new DeviceConfigPage();
         private RenderDemoPage GetRenderDemoPage() => _renderDemoPage ??= new RenderDemoPage();
-
 
         private void ValidateResources()
         {
@@ -150,21 +167,13 @@ namespace CMDevicesManager
                     return;
                 }
 
-                  
-
                 if (Equals(item.Tag, "__MirrorSaveImage"))
                 {
-                    // Only when not in config/play pages
-                    //if (!IsConfigOrPlayModePage(MainFrame.Content))
-                    //{
-
-                    //}
                     savecanvasglobal();
                     RestorePreviousSelection();
                     return;
                 }
 
-                // Normal navigation
                 if (item.Tag is string pagePath)
                 {
                     try
@@ -185,29 +194,24 @@ namespace CMDevicesManager
                         else if (pagePath.Equals("SettingsPage")) MainFrame.Navigate(GetSettingsPage());
                         else if (pagePath.Equals("DevicePlayModePage")) MainFrame.Navigate(GetDevicePlayModePage());
                         else if (pagePath.Equals("DeviceConfigPage")) MainFrame.Navigate(GetDeviceConfigPage());
-                        else if (pagePath.Equals("RenderDemoPage"))MainFrame.Navigate(GetRenderDemoPage());
+                        else if (pagePath.Equals("RenderDemoPage")) MainFrame.Navigate(GetRenderDemoPage());
                         else MainFrame.Source = new Uri(pagePath, UriKind.Relative);
 
                         _lastNavContentItem = item;
                     }
-
-                    catch (Exception ex){
+                    catch (Exception ex)
+                    {
                         Logger.Error($"Navigation failed to {pagePath}", ex);
                         MainFrame.Navigate(GetHomePage());
                         _lastNavContentItem = null;
-                   
                     }
-
-                 
-                 
-                    
                 }
             }
         }
 
-        private void savecanvasglobal_ori() 
+        private void savecanvasglobal_ori()
         {
-                var DesignRoot = MirrorRoot; // Assuming DesignRoot is the root element of your canvas
+            var DesignRoot = MirrorRoot;
             try
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
@@ -245,11 +249,11 @@ namespace CMDevicesManager
             {
                 MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        
         }
+
         private void savecanvasglobal()
         {
-            var DesignRoot = MirrorRoot; // Assuming DesignRoot is the root element of your canvas
+            var DesignRoot = MirrorRoot;
             try
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
@@ -278,7 +282,7 @@ namespace CMDevicesManager
 
                 var encoder = new JpegBitmapEncoder
                 {
-                    QualityLevel = 90 // Set quality level (1-100)
+                    QualityLevel = 90
                 };
                 encoder.Frames.Add(BitmapFrame.Create(rtb));
                 using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
@@ -290,9 +294,7 @@ namespace CMDevicesManager
             {
                 MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-
         }
-        // ADDED: sequence capture logic
 
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -305,11 +307,6 @@ namespace CMDevicesManager
                 DragMove();
             }
         }
-
-      
-
-        // 单张保存（仍保留）
-      
 
         private void Minimize_Click(object sender, RoutedEventArgs e)
         {
@@ -330,8 +327,6 @@ namespace CMDevicesManager
         {
             WindowState = (WindowState == WindowState.Maximized) ? WindowState.Normal : WindowState.Maximized;
         }
-
-      
 
         private void ToggleMirrorPreviewButton_Checked(object sender, RoutedEventArgs e)
         {
@@ -354,5 +349,101 @@ namespace CMDevicesManager
             GlobalMirrorHost.Visibility = Visibility.Hidden;
         }
 
+        // ===== ADDED: Real-time JPEG streaming for non-DeviceConfig pages =====
+        private void StartMainRealtimeStreaming()
+        {
+            if (_mainRealtimeActive) return;
+            if (MainFrame.Content is DeviceConfigPage) return; // 该页面自身有发送逻辑
+
+            _mainCaptureRoot ??= MirrorRoot;
+            if (_mainCaptureRoot == null) return;
+
+            _mainRealtimeTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(MainRealtimeIntervalMs)
+            };
+            _mainRealtimeTimer.Tick += MainRealtimeTimer_Tick;
+            _mainRealtimeTimer.Start();
+            _mainRealtimeActive = true;
+        }
+
+        private void StopMainRealtimeStreaming()
+        {
+            _mainRealtimeActive = false;
+            if (_mainRealtimeTimer != null)
+            {
+                _mainRealtimeTimer.Stop();
+                _mainRealtimeTimer.Tick -= MainRealtimeTimer_Tick;
+                _mainRealtimeTimer = null;
+            }
+        }
+
+        private void MainRealtimeTimer_Tick(object? sender, EventArgs e)
+        {
+            if (!_mainRealtimeActive) return;
+            if (_mainCaptureRoot == null ||
+                _mainCaptureRoot.ActualWidth < 1 ||
+                _mainCaptureRoot.ActualHeight < 1) return;
+
+            var jpeg = CaptureElementToJpegFixedSquare(_mainCaptureRoot, MainRealtimeSize);
+            if (jpeg == null || jpeg.Length == 0) return;
+
+            try
+            {
+                var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
+                realtimeService.QueueJpegData(jpeg, priority: 1, "MainPreview");
+            }
+            catch
+            {
+                // swallow to keep timer running
+            }
+        }
+
+        private byte[]? CaptureElementToJpegFixedSquare(FrameworkElement element, int size)
+        {
+            try
+            {
+                element.UpdateLayout();
+
+                int srcW = (int)System.Math.Ceiling(element.ActualWidth);
+                int srcH = (int)System.Math.Ceiling(element.ActualHeight);
+                if (srcW <= 0 || srcH <= 0) return null;
+
+                var rtb = new RenderTargetBitmap(srcW, srcH, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(element);
+
+                double scale = System.Math.Min((double)size / srcW, (double)size / srcH);
+                double drawW = srcW * scale;
+                double drawH = srcH * scale;
+                double offsetX = (size - drawW) / 2.0;
+                double offsetY = (size - drawH) / 2.0;
+
+                var dv = new DrawingVisual();
+                using (var dc = dv.RenderOpen())
+                {
+                    dc.DrawRectangle(Brushes.Black, null, new Rect(0, 0, size, size));
+                    dc.DrawImage(rtb, new Rect(offsetX, offsetY, drawW, drawH));
+                }
+
+                var finalBmp = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
+                finalBmp.Render(dv);
+
+                var encoder = new JpegBitmapEncoder { QualityLevel = 80 };
+                encoder.Frames.Add(BitmapFrame.Create(finalBmp));
+                using var ms = new MemoryStream();
+                encoder.Save(ms);
+                return ms.ToArray();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            StopMainRealtimeStreaming();
+            base.OnClosed(e);
+        }
     }
 }
