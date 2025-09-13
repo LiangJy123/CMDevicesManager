@@ -220,7 +220,7 @@ namespace CMDevicesManager.Services
             {
                 try
                 {
-                    RefreshAllHardwareThrottled();
+                    //RefreshAllHardwareThrottled();
 
                     // If cache is null or the sensor is no longer valid, try to resolve it again
                     if (cache == null || cache.Hardware == null)
