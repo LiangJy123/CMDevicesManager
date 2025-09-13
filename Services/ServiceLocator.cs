@@ -11,6 +11,7 @@ namespace CMDevicesManager.Services
         private static OfflineMediaDataService? _offlineMediaDataService;
         private static SystemSleepMonitorService? _systemSleepMonitorService;
         private static InteractiveWin2DRenderingService? _interactiveRenderingService;
+        private static RealtimeJpegTransmissionService? _realtimeJpegTransmissionService;
 
         /// <summary>
         /// Gets the HID Device Service instance
@@ -73,6 +74,21 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+        /// Gets the Realtime JPEG Transmission Service instance
+        /// </summary>
+        public static RealtimeJpegTransmissionService RealtimeJpegTransmissionService
+        {
+            get
+            {
+                if (_realtimeJpegTransmissionService == null)
+                {
+                    throw new InvalidOperationException("RealtimeJpegTransmissionService is not initialized. Call InitializeRealtimeJpegService() first.");
+                }
+                return _realtimeJpegTransmissionService;
+            }
+        }
+
+        /// <summary>
         /// Initialize the service locator with the HID Device Service
         /// </summary>
         internal static void Initialize(HidDeviceService hidDeviceService)
@@ -105,18 +121,56 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+        /// Initialize the Realtime JPEG Transmission Service
+        /// </summary>
+        /// <param name="realtimeJpegTransmissionService">The service instance to register</param>
+        internal static void InitializeRealtimeJpegTransmissionService(RealtimeJpegTransmissionService realtimeJpegTransmissionService)
+        {
+            _realtimeJpegTransmissionService = realtimeJpegTransmissionService;
+        }
+
+        /// <summary>
+        /// Initialize the Realtime JPEG Transmission Service with automatic creation
+        /// </summary>
+        /// <param name="processingIntervalMs">Processing interval in milliseconds (default: 33ms ~30FPS)</param>
+        /// <param name="maxQueueSize">Maximum queue size before dropping frames (default: 10)</param>
+        /// <param name="maxRetryAttempts">Maximum retry attempts for failed transmissions (default: 3)</param>
+        /// <returns>The created service instance</returns>
+        internal static RealtimeJpegTransmissionService InitializeRealtimeJpegTransmissionService(
+            int processingIntervalMs = 33,
+            int maxQueueSize = 10,
+            int maxRetryAttempts = 3)
+        {
+            if (_hidDeviceService == null)
+            {
+                throw new InvalidOperationException("HidDeviceService must be initialized before RealtimeJpegTransmissionService. Call Initialize() first.");
+            }
+
+            _realtimeJpegTransmissionService = new RealtimeJpegTransmissionService(
+                _hidDeviceService,
+                processingIntervalMs,
+                maxQueueSize,
+                maxRetryAttempts
+            );
+
+            return _realtimeJpegTransmissionService;
+        }
+
+        /// <summary>
         /// Initialize all services
         /// </summary>
         internal static void InitializeAll(
             HidDeviceService hidDeviceService, 
             OfflineMediaDataService offlineMediaDataService, 
             SystemSleepMonitorService? systemSleepMonitorService = null,
-            InteractiveWin2DRenderingService? interactiveRenderingService = null)
+            InteractiveWin2DRenderingService? interactiveRenderingService = null,
+            RealtimeJpegTransmissionService? realtimeJpegTransmissionService = null)
         {
             _hidDeviceService = hidDeviceService;
             _offlineMediaDataService = offlineMediaDataService;
             _systemSleepMonitorService = systemSleepMonitorService;
             _interactiveRenderingService = interactiveRenderingService;
+            _realtimeJpegTransmissionService = realtimeJpegTransmissionService;
         }
 
         /// <summary>
@@ -145,6 +199,11 @@ namespace CMDevicesManager.Services
         public static bool IsInteractiveRenderingServiceInitialized => _interactiveRenderingService != null;
 
         /// <summary>
+        /// Gets whether Realtime JPEG Transmission Service is initialized
+        /// </summary>
+        public static bool IsRealtimeJpegTransmissionServiceInitialized => _realtimeJpegTransmissionService != null;
+
+        /// <summary>
         /// Try to get the Interactive Win2D Rendering Service without throwing an exception
         /// </summary>
         /// <returns>The service instance or null if not initialized</returns>
@@ -163,11 +222,59 @@ namespace CMDevicesManager.Services
         }
 
         /// <summary>
+        /// Try to get the Realtime JPEG Transmission Service without throwing an exception
+        /// </summary>
+        /// <returns>The service instance or null if not initialized</returns>
+        public static RealtimeJpegTransmissionService? TryGetRealtimeJpegTransmissionService()
+        {
+            return _realtimeJpegTransmissionService;
+        }
+
+        /// <summary>
+        /// Create and initialize the Realtime JPEG Transmission Service if not already created
+        /// </summary>
+        /// <param name="processingIntervalMs">Processing interval in milliseconds (default: 33ms ~30FPS)</param>
+        /// <param name="maxQueueSize">Maximum queue size before dropping frames (default: 10)</param>
+        /// <param name="maxRetryAttempts">Maximum retry attempts for failed transmissions (default: 3)</param>
+        /// <returns>The service instance (existing or newly created)</returns>
+        public static RealtimeJpegTransmissionService GetOrCreateRealtimeJpegTransmissionService(
+            int processingIntervalMs = 33,
+            int maxQueueSize = 10,
+            int maxRetryAttempts = 3)
+        {
+            if (_realtimeJpegTransmissionService != null)
+            {
+                return _realtimeJpegTransmissionService;
+            }
+
+            return InitializeRealtimeJpegTransmissionService(processingIntervalMs, maxQueueSize, maxRetryAttempts);
+        }
+
+        /// <summary>
         /// Cleanup all services
         /// </summary>
         internal static void Cleanup()
         {
-            // Stop and dispose Interactive Rendering Service first
+            // Stop and dispose Realtime JPEG Transmission Service first
+            if (_realtimeJpegTransmissionService != null)
+            {
+                try
+                {
+                    _realtimeJpegTransmissionService.ClearQueue();
+                    _realtimeJpegTransmissionService.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    // Log error but continue cleanup
+                    System.Diagnostics.Debug.WriteLine($"Error disposing RealtimeJpegTransmissionService: {ex.Message}");
+                }
+                finally
+                {
+                    _realtimeJpegTransmissionService = null;
+                }
+            }
+
+            // Stop and dispose Interactive Rendering Service
             if (_interactiveRenderingService != null)
             {
                 try

@@ -923,7 +923,8 @@ namespace CMDevicesManager.Pages
                     byte transferId = 0x01; // Example transfer ID, transferId in(0,59).
                     // try transferId to unique.
                     transferId = (byte)(new Random().Next(1, 60));
-                    var results = await _hidDeviceService.TransferFileAsync(tempFile, transferId);
+                    //var results = await _hidDeviceService.TransferFileAsync(tempFile, transferId);
+                    var results = await _hidDeviceService.TransferDataAsync(imageData, transferId);
 
                     var successCount = results.Values.Count(r => r);
                     var totalCount = results.Count;
@@ -2668,8 +2669,10 @@ namespace CMDevicesManager.Pages
         // ================= Live Timer =================
         private void LiveTimer_Tick(object? sender, EventArgs e)
         {
-            double cpu = _metrics.GetCpuUsagePercent();
-            double gpu = _metrics.GetGpuUsagePercent();
+            //double cpu = _metrics.GetCpuUsagePercent();
+            //double gpu = _metrics.GetGpuUsagePercent();
+            double cpu = 87.0f;
+            double gpu = 88.9f;
             DateTime now = DateTime.Now;
 
             foreach (var item in _liveItems.ToArray())

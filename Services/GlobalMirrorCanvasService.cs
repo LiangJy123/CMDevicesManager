@@ -238,8 +238,10 @@ namespace CMDevicesManager.Services
         private void UpdateMetricsOnce()
         {
             if (_lastResult == null) return;
-            double cpu = _metrics.GetCpuUsagePercent();
-            double gpu = _metrics.GetGpuUsagePercent();
+            //double cpu = _metrics.GetCpuUsagePercent();
+            //double gpu = _metrics.GetGpuUsagePercent();
+            double cpu = 4.9f;
+            double gpu = 56.0f;
             DateTime now = DateTime.Now;
 
             foreach (var item in _lastResult.UsageItems)
@@ -404,7 +406,7 @@ namespace CMDevicesManager.Services
             {
                 string file = Path.Combine(
                     _autoSnapshotDir,
-                    $"snap_{DateTime.Now:yyyyMMdd_HHmmss_fff}_{_autoSnapshotSeq++:D6}.png");
+                    $"snap_{DateTime.Now:yyyyMMdd_HHmmss_fff}_{_autoSnapshotSeq++:D6}.jpg");
 
                 // 强制使用不受原始低透明度影响的截图
                 SaveSnapshotInvisible(file, overlayHost: null, forceRootOpacity: true);

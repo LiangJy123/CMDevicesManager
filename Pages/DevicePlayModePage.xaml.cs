@@ -309,8 +309,10 @@ namespace CMDevicesManager.Pages
 
         private void LiveUpdateTimer_Tick(object? sender, EventArgs e)
         {
-            double cpu = _metrics.GetCpuUsagePercent();
-            double gpu = _metrics.GetGpuUsagePercent();
+            //double cpu = _metrics.GetCpuUsagePercent();
+            //double gpu = _metrics.GetGpuUsagePercent();
+            double cpu = 4.9f;
+            double gpu = 56.0f;
             DateTime now = DateTime.Now;
 
             // 纯文本/日期（无样式）

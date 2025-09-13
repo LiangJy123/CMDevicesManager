@@ -1184,6 +1184,10 @@ namespace CMDevicesManager.Services
                     // Send JPEG data to HID devices using TransferDataAsync
                     var results = await _hidDeviceService!.TransferDataAsync(jpegData, _transferId);
 
+                    // Direct access - throws exception if not initialized
+                    var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
+                    realtimeService.QueueJpegData(jpegData, priority: 1, "MyFrame");
+
                     // Log results
                     var successCount = results.Values.Count(r => r);
                     if (successCount > 0)

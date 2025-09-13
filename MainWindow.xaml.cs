@@ -205,7 +205,7 @@ namespace CMDevicesManager
             }
         }
 
-        private void savecanvasglobal() 
+        private void savecanvasglobal_ori() 
         {
                 var DesignRoot = MirrorRoot; // Assuming DesignRoot is the root element of your canvas
             try
@@ -247,8 +247,53 @@ namespace CMDevicesManager
             }
         
         }
+        private void savecanvasglobal()
+        {
+            var DesignRoot = MirrorRoot; // Assuming DesignRoot is the root element of your canvas
+            try
+            {
+                if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
+                {
+                    MessageBox.Show("画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                DesignRoot.UpdateLayout();
+
+                int w = (int)Math.Ceiling(DesignRoot.ActualWidth);
+                int h = (int)Math.Ceiling(DesignRoot.ActualHeight);
+
+                var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+                rtb.Render(DesignRoot);
+
+                string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "captureimage");
+                Directory.CreateDirectory(dir);
+
+                string baseName = "GlobalCanvas";
+
+                foreach (var c in Path.GetInvalidFileNameChars())
+                    baseName = baseName.Replace(c, '_');
+
+                string file = Path.Combine(dir, $"{baseName}_{DateTime.Now:yyyyMMdd_HHmmss}.png");
+
+                var encoder = new JpegBitmapEncoder
+                {
+                    QualityLevel = 90 // Set quality level (1-100)
+                };
+                encoder.Frames.Add(BitmapFrame.Create(rtb));
+                using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
+                    encoder.Save(fs);
+
+                MessageBox.Show($"已保存:\n{file}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+        }
         // ADDED: sequence capture logic
-      
+
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ClickCount == 2)
