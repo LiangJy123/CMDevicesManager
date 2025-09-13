@@ -194,6 +194,13 @@ namespace CMDevicesManager.Pages
                     MotionTypeComboBox.SelectionChanged += MotionTypeProperty_Changed;
                 }
 
+                // Sliders - attach opacity slider to real-time updates
+                var opacitySlider = this.FindName("OpacitySlider") as Slider;
+                if (opacitySlider != null)
+                {
+                    opacitySlider.ValueChanged += OpacitySlider_ValueChanged;
+                }
+
                 // Checkboxes
                 AttachCheckboxHandlers();
 
@@ -416,11 +423,16 @@ namespace CMDevicesManager.Pages
                 var shapePropertiesSection = this.FindName("ShapePropertiesSection") as StackPanel;
                 var imagePropertiesSection = this.FindName("ImagePropertiesSection") as StackPanel;
                 var motionPropertiesSection = this.FindName("MotionPropertiesSection") as StackPanel;
+                var commonPropertiesSection = this.FindName("CommonPropertiesSection") as StackPanel;
                 
                 if (textPropertiesSection != null) textPropertiesSection.Visibility = Visibility.Collapsed;
                 if (shapePropertiesSection != null) shapePropertiesSection.Visibility = Visibility.Collapsed;
                 if (imagePropertiesSection != null) imagePropertiesSection.Visibility = Visibility.Collapsed;
                 if (motionPropertiesSection != null) motionPropertiesSection.Visibility = Visibility.Collapsed;
+                
+                // Show common properties when editing an existing element
+                if (!_isCreatingNewElement && commonPropertiesSection != null)
+                    commonPropertiesSection.Visibility = Visibility.Visible;
 
                 // Show relevant property sections
                 switch (elementType)
@@ -599,7 +611,7 @@ namespace CMDevicesManager.Pages
 
             try
             {
-                var properties = GatheringElementPropertiesFromUI();
+                var properties = GatherElementPropertiesFromUI();
                 _renderService.UpdateElementProperties(_currentEditingElement, properties);
                 
                 UpdateStatus($"✅ Updated {_currentEditingElement.Name}", false);
@@ -632,6 +644,15 @@ namespace CMDevicesManager.Pages
             
             // Auto-select the newly created element
             _renderService.SelectElement(textElement);
+            
+            // Apply opacity if available through rendering service
+            var opacitySlider = this.FindName("OpacitySlider") as Slider;
+            var opacityValue = (float)(opacitySlider?.Value ?? 1.0);
+            if (opacityValue < 1.0f)
+            {
+                var properties = new Dictionary<string, object> { ["Opacity"] = opacityValue };
+                _renderService.UpdateElementProperties(textElement, properties);
+            }
             
             UpdateElementsList();
             UpdateStatus($"✨ Created text element: {text}", false);
@@ -671,6 +692,15 @@ namespace CMDevicesManager.Pages
             // Auto-select the newly created element
             _renderService.SelectElement(shapeElement);
             
+            // Apply opacity if available through rendering service
+            var opacitySlider = this.FindName("OpacitySlider") as Slider;
+            var opacityValue = (float)(opacitySlider?.Value ?? 1.0);
+            if (opacityValue < 1.0f)
+            {
+                var properties = new Dictionary<string, object> { ["Opacity"] = opacityValue };
+                _renderService.UpdateElementProperties(shapeElement, properties);
+            }
+            
             UpdateElementsList();
             UpdateStatus($"✨ Created shape element", false);
         }
@@ -694,6 +724,20 @@ namespace CMDevicesManager.Pages
             {
                 // Auto-select the newly created element
                 SelectElementByIndex(elementIndex);
+                
+                // Apply opacity if available through rendering service
+                var opacitySlider = this.FindName("OpacitySlider") as Slider;
+                var opacityValue = (float)(opacitySlider?.Value ?? 1.0);
+                if (opacityValue < 1.0f)
+                {
+                    var elements = _renderService.GetElements();
+                    if (elementIndex < elements.Count)
+                    {
+                        var properties = new Dictionary<string, object> { ["Opacity"] = opacityValue };
+                        _renderService.UpdateElementProperties(elements[elementIndex], properties);
+                    }
+                }
+                
                 UpdateElementsList();
                 UpdateStatus($"✨ Created motion text element: {text}", false);
             }
@@ -720,11 +764,24 @@ namespace CMDevicesManager.Pages
             {
                 // Auto-select the newly created element
                 SelectElementByIndex(elementIndex);
+                
+                // Apply opacity if available through rendering service
+                var opacitySlider = this.FindName("OpacitySlider") as Slider;
+                var opacityValue = (float)(opacitySlider?.Value ?? 1.0);
+                if (opacityValue < 1.0f)
+                {
+                    var elements = _renderService.GetElements();
+                    if (elementIndex < elements.Count)
+                    {
+                        var properties = new Dictionary<string, object> { ["Opacity"] = opacityValue };
+                        _renderService.UpdateElementProperties(elements[elementIndex], properties);
+                    }
+                }
+                
                 UpdateElementsList();
                 UpdateStatus($"✨ Created motion shape element", false);
             }
         }
-
         #endregion
 
         #region Helper Methods for Element Creation
@@ -852,6 +909,15 @@ namespace CMDevicesManager.Pages
                         // Auto-select the newly created element
                         _renderService.SelectElement(imageElement);
                         
+                        // Apply opacity if available through rendering service
+                        var opacitySlider = this.FindName("OpacitySlider") as Slider;
+                        var opacityValue = (float)(opacitySlider?.Value ?? 1.0);
+                        if (opacityValue < 1.0f)
+                        {
+                            var properties = new Dictionary<string, object> { ["Opacity"] = opacityValue };
+                            _renderService.UpdateElementProperties(imageElement, properties);
+                        }
+                        
                         UpdateElementsList();
                         UpdateStatus($"✨ Created image element: {Path.GetFileName(openDialog.FileName)}", false);
                     }
@@ -938,6 +1004,16 @@ namespace CMDevicesManager.Pages
         {
             if (FontSizeValueLabel != null)
                 FontSizeValueLabel.Text = ((int)e.NewValue).ToString();
+            
+            if (!_isUpdatingProperties)
+                ApplyRealTimePropertyUpdate();
+        }
+
+        private void OpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            var opacityValueLabel = this.FindName("OpacityValueLabel") as TextBlock;
+            if (opacityValueLabel != null)
+                opacityValueLabel.Text = $"{(int)(e.NewValue * 100)}%";
             
             if (!_isUpdatingProperties)
                 ApplyRealTimePropertyUpdate();
@@ -1529,6 +1605,22 @@ namespace CMDevicesManager.Pages
                 PositionYTextBox.Text = element.Position.Y.ToString("F1");
                 VisibleCheckBox.IsChecked = element.IsVisible;
                 DraggableCheckBox.IsChecked = element.IsDraggable;
+                
+                // Update opacity if the element has an Opacity property
+                var opacitySlider = this.FindName("OpacitySlider") as Slider;
+                var opacityProperty = element.GetType().GetProperty("Opacity");
+                if (opacityProperty != null && opacitySlider != null)
+                {
+                    var opacityValue = opacityProperty.GetValue(element);
+                    if (opacityValue is float opacity)
+                    {
+                        opacitySlider.Value = opacity;
+                    }
+                }
+                else if (opacitySlider != null)
+                {
+                    opacitySlider.Value = 1.0; // Default opacity
+                }
 
                 // Update element-specific properties
                 switch (element)
@@ -1649,7 +1741,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        private Dictionary<string, object> GatheringElementPropertiesFromUI()
+        private Dictionary<string, object> GatherElementPropertiesFromUI()
         {
             var properties = new Dictionary<string, object>();
 
@@ -1664,6 +1756,13 @@ namespace CMDevicesManager.Pages
 
                 properties["IsVisible"] = VisibleCheckBox?.IsChecked ?? true;
                 properties["IsDraggable"] = DraggableCheckBox?.IsChecked ?? true;
+                
+                // Get opacity from slider
+                var opacitySlider = this.FindName("OpacitySlider") as Slider;
+                if (opacitySlider != null)
+                {
+                    properties["Opacity"] = (float)opacitySlider.Value;
+                }
 
                 // Element-specific properties
                 if (_currentEditingElement != null)
@@ -1879,53 +1978,6 @@ namespace CMDevicesManager.Pages
             }).ToList();
 
             ElementCountLabel.Text = $"Elements: {elements.Count} {(_isRealTimeUpdateEnabled ? "🔴 LIVE" : "⚫ MANUAL")}";
-        }
-
-        private Dictionary<string, object> GatherElementPropertiesFromUI()
-        {
-            var properties = new Dictionary<string, object>();
-
-            try
-            {
-                // Common properties
-                if (double.TryParse(PositionXTextBox.Text, out var posX) &&
-                    double.TryParse(PositionYTextBox.Text, out var posY))
-                {
-                    properties["Position"] = new WinFoundation.Point(posX, posY);
-                }
-
-                properties["IsVisible"] = VisibleCheckBox?.IsChecked ?? true;
-                properties["IsDraggable"] = DraggableCheckBox?.IsChecked ?? true;
-
-                // Element-specific properties
-                if (_currentEditingElement != null)
-                {
-                    switch (_currentEditingElement)
-                    {
-                        case TextElement:
-                            GatherTextElementProperties(properties);
-                            break;
-                        case ImageElement:
-                            GatherImageElementProperties(properties);
-                            break;
-                        case ShapeElement:
-                            GatherShapeElementProperties(properties);
-                            break;
-                    }
-
-                    // Motion properties
-                    if (_currentEditingElement is IMotionElement)
-                    {
-                        GatherMotionElementProperties(properties);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Error gathering properties: {ex.Message}", true);
-            }
-
-            return properties;
         }
 
         #endregion

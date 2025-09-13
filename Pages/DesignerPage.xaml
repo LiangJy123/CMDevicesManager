@@ -196,6 +196,20 @@
                                     <CheckBox Name="VisibleCheckBox" Content="👁️ Visible" IsChecked="True" Margin="0,0,16,0"/>
                                     <CheckBox Name="DraggableCheckBox" Content="🖱️ Draggable" IsChecked="True"/>
                                 </StackPanel>
+
+                                <!-- Opacity Control -->
+                                <TextBlock Text="Opacity:" Style="{StaticResource PropertyLabelStyle}"/>
+                                <Grid Margin="0,4,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="60"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Slider Name="OpacitySlider" Grid.Column="0" Minimum="0" Maximum="1" Value="1" 
+                                           TickFrequency="0.1" ValueChanged="OpacitySlider_ValueChanged" 
+                                           Style="{StaticResource ModernSliderStyle}"/>
+                                    <TextBlock Name="OpacityValueLabel" Grid.Column="1" Text="100%" VerticalAlignment="Center" 
+                                              HorizontalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                                </Grid>
                             </StackPanel>
 
                             <!-- Text Properties -->
