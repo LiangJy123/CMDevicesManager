@@ -5,296 +5,230 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
       xmlns:local="clr-namespace:CMDevicesManager.Pages"
       mc:Ignorable="d" 
-      d:DesignHeight="800" d:DesignWidth="1200"
-      Title="Designer">
+      d:DesignHeight="800" d:DesignWidth="1400"
+      Title="Design Studio">
 
     <Page.Resources>
-        <Style x:Key="ToolButtonStyle" TargetType="Button">
-            <Setter Property="Margin" Value="2"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="MinWidth" Value="80"/>
-            <Setter Property="Height" Value="32"/>
-            <Setter Property="Background" Value="#FF4A4A4A"/>
+        <!-- Modern Styles -->
+        <Style x:Key="ModernButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="Background" Value="#FF4A90E2"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#FF666666"/>
+            <Setter Property="BorderBrush" Value="#FF357ABD"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FF5A5A5A"/>
+                    <Setter Property="Background" Value="#FF5BA0F2"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#FF357ABD"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#FFCCCCCC"/>
+                    <Setter Property="Foreground" Value="#FF888888"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="ActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#FF50C878"/>
+            <Setter Property="BorderBrush" Value="#FF3D9E5D"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FF60D888"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="WarningButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#FFFF6B6B"/>
+            <Setter Property="BorderBrush" Value="#FFEF5350"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#FFFF7B7B"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="PropertyLabelStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#FF333333"/>
+            <Setter Property="Foreground" Value="#FF2C3E50"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Margin" Value="0,4,0,2"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,8,0,4"/>
         </Style>
 
         <Style x:Key="PropertyInputStyle" TargetType="TextBox">
-            <Setter Property="Margin" Value="0,2,0,4"/>
-            <Setter Property="Padding" Value="4"/>
-            <Setter Property="Height" Value="24"/>
-            <Setter Property="BorderBrush" Value="#FFCCCCCC"/>
+            <Setter Property="Margin" Value="0,2,0,6"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="BorderBrush" Value="#FFBDC3C7"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="12"/>
         </Style>
 
-        <Style x:Key="SliderStyle" TargetType="Slider">
-            <Setter Property="Height" Value="20"/>
-            <Setter Property="Margin" Value="0,2,0,4"/>
+        <Style x:Key="ModernSliderStyle" TargetType="Slider">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Margin" Value="0,2,0,6"/>
+            <Setter Property="Foreground" Value="#FF4A90E2"/>
         </Style>
 
         <Style x:Key="ColorPreviewStyle" TargetType="Rectangle">
-            <Setter Property="Width" Value="30"/>
-            <Setter Property="Height" Value="20"/>
-            <Setter Property="Stroke" Value="Gray"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Stroke" Value="#FF95A5A6"/>
             <Setter Property="StrokeThickness" Value="1"/>
             <Setter Property="Margin" Value="2"/>
         </Style>
+
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#FF2C3E50"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <Style x:Key="ModernExpanderStyle" TargetType="Expander">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="BorderBrush" Value="#FFECF0F1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="White"/>
+        </Style>
     </Page.Resources>
 
-    <Grid Background="#FFF5F5F5">
+    <Grid Background="#FFF8F9FA">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="300"/>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="320"/>
+            <ColumnDefinition Width="500"/>
+            <ColumnDefinition Width="360"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Left Toolbar Panel -->
-        <Border Grid.Column="0" Background="#FFE8E8E8" BorderBrush="#FFCCCCCC" BorderThickness="0,0,1,0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
+        <!-- Left Panel - Unified Element Creator & Properties -->
+        <Border Grid.Column="0" Background="White" BorderBrush="#FFECF0F1" BorderThickness="0,0,1,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
                 <StackPanel>
-                    <TextBlock Text="Design Tools" FontSize="16" FontWeight="Bold" Foreground="#FF333333" Margin="0,0,0,10"/>
+                    <TextBlock Text="Design Studio" Style="{StaticResource SectionHeaderStyle}" FontSize="20" Margin="0,0,0,16"/>
                     
                     <!-- Canvas Controls -->
-                    <Expander Header="Canvas" IsExpanded="True" Margin="0,0,0,10">
-                        <StackPanel Margin="10,5">
-                            <Button Name="ClearCanvasButton" Content="Clear Canvas" Style="{StaticResource ToolButtonStyle}" Click="ClearCanvasButton_Click"/>
-                            <Button Name="StartRenderingButton" Content="Start Rendering" Style="{StaticResource ToolButtonStyle}" Click="StartRenderingButton_Click"/>
-                            <Button Name="StopRenderingButton" Content="Stop Rendering" Style="{StaticResource ToolButtonStyle}" Click="StopRenderingButton_Click" IsEnabled="False"/>
-                            
-                            <Separator Margin="0,8"/>
-                            <CheckBox Name="RealTimeUpdatesCheckBox" Content="Real-Time Property Updates" IsChecked="True" 
-                                     Margin="0,5" Foreground="#FF333333" FontWeight="SemiBold" ToolTip="Enable/disable real-time property updates as you edit elements"/>
-                            <TextBlock Text="When enabled, property changes apply immediately while editing. When disabled, use Apply button." 
-                                      FontSize="10" Foreground="Gray" TextWrapping="Wrap" Margin="0,2,0,8"/>
-                            
-                            <TextBlock Text="FPS:" Style="{StaticResource PropertyLabelStyle}"/>
-                            <StackPanel Orientation="Horizontal">
-                                <Slider Name="FpsSlider" Width="140" Minimum="1" Maximum="120" Value="30" 
-                                       ValueChanged="FpsSlider_ValueChanged" VerticalAlignment="Center"/>
-                                <TextBlock Name="FpsLabel" Text="30" VerticalAlignment="Center" Margin="8,0,0,0" MinWidth="30"/>
-                            </StackPanel>
-                        </StackPanel>
-                    </Expander>
-
-                    <!-- Add Elements -->
-                    <Expander Header="Add Elements" IsExpanded="True" Margin="0,0,0,10">
-                        <StackPanel Margin="10,5">
-                            <Button Name="AddTextButton" Content="Add Text" Style="{StaticResource ToolButtonStyle}" Click="AddTextButton_Click"/>
-                            <Button Name="AddImageButton" Content="Add Image" Style="{StaticResource ToolButtonStyle}" Click="AddImageButton_Click"/>
-                            <Button Name="AddShapeButton" Content="Add Shape" Style="{StaticResource ToolButtonStyle}" Click="AddShapeButton_Click"/>
-                            
-                            <TextBlock Text="Text to Add:" Style="{StaticResource PropertyLabelStyle}"/>
-                            <TextBox Name="NewTextContent" Text="Sample Text" Style="{StaticResource PropertyInputStyle}"/>
-
-                            <!-- Quick Element Size Controls -->
-                            <TextBlock Text="Default Element Size:" Style="{StaticResource PropertyLabelStyle}"/>
+                    <Expander Header="🎮 Canvas Controls" IsExpanded="True" Style="{StaticResource ModernExpanderStyle}">
+                        <StackPanel Margin="12,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Text="Size:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                <Slider Name="DefaultElementSizeSlider" Grid.Column="1" Minimum="20" Maximum="200" Value="60" 
-                                       TickFrequency="10" IsSnapToTickEnabled="True" Style="{StaticResource SliderStyle}"/>
-                                <TextBlock Name="DefaultElementSizeLabel" Grid.Column="2" Text="60" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="30"/>
+                                <Button Name="StartRenderingButton" Grid.Column="0" Content="▶ Start" 
+                                       Style="{StaticResource ActionButtonStyle}" Click="StartRenderingButton_Click" Margin="0,0,4,0"/>
+                                <Button Name="StopRenderingButton" Grid.Column="1" Content="⏸ Stop" 
+                                       Style="{StaticResource WarningButtonStyle}" Click="StopRenderingButton_Click" IsEnabled="False" Margin="4,0,0,0"/>
+                            </Grid>
+                            
+                            <Button Name="ClearCanvasButton" Content="🗑️ Clear Canvas" 
+                                   Style="{StaticResource WarningButtonStyle}" Click="ClearCanvasButton_Click" Margin="0,4,0,0"/>
+                            
+                            <CheckBox Name="RealTimeUpdatesCheckBox" Content="⚡ Real-Time Updates" IsChecked="True" 
+                                     Margin="0,12,0,4" Foreground="#FF2C3E50" FontWeight="SemiBold"/>
+                            <TextBlock Text="Changes apply instantly while editing" 
+                                      FontSize="11" Foreground="#FF7F8C8D" Margin="20,0,0,8"/>
+                            
+                            <TextBlock Text="Frame Rate:" Style="{StaticResource PropertyLabelStyle}" Margin="0,8,0,4"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="50"/>
+                                </Grid.ColumnDefinitions>
+                                <Slider Name="FpsSlider" Grid.Column="0" Minimum="1" Maximum="120" Value="30" 
+                                       ValueChanged="FpsSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
+                                <TextBlock Name="FpsLabel" Grid.Column="1" Text="30 FPS" VerticalAlignment="Center" 
+                                          HorizontalAlignment="Center" FontSize="11" Foreground="#FF7F8C8D"/>
                             </Grid>
                         </StackPanel>
                     </Expander>
 
-                    <!-- Quick Color Palette -->
-                    <Expander Header="Quick Colors" IsExpanded="True" Margin="0,0,0,10">
-                        <StackPanel Margin="10,5">
-                            <TextBlock Text="Quick Color Selection:" Style="{StaticResource PropertyLabelStyle}"/>
-                            <WrapPanel Name="ColorPalette" Margin="0,5">
-                                <!-- Color squares will be added programmatically -->
-                            </WrapPanel>
-                            <Button Name="CustomColorButton" Content="Custom Color..." Style="{StaticResource ToolButtonStyle}" Click="CustomColorButton_Click"/>
-                        </StackPanel>
-                    </Expander>
-
-                    <!-- Motion Controls -->
-                    <Expander Header="Motion" IsExpanded="False" Margin="0,0,0,10">
-                        <StackPanel Margin="10,5">
-                            <Button Name="AddBouncingBallButton" Content="Bouncing Ball" Style="{StaticResource ToolButtonStyle}" Click="AddBouncingBallButton_Click"/>
-                            <Button Name="AddRotatingTextButton" Content="Rotating Text" Style="{StaticResource ToolButtonStyle}" Click="AddRotatingTextButton_Click"/>
-                            <Button Name="AddOscillatingShapeButton" Content="Oscillating Shape" Style="{StaticResource ToolButtonStyle}" Click="AddOscillatingShapeButton_Click"/>
-                            <Button Name="ConvertToMotionButton" Content="Add Motion to Selected" Style="{StaticResource ToolButtonStyle}" Click="ConvertToMotionButton_Click"/>
+                    <!-- Unified Element Creator/Editor -->
+                    <Expander Header="🎨 Element Properties" IsExpanded="True" Style="{StaticResource ModernExpanderStyle}">
+                        <StackPanel Name="UnifiedPropertiesPanel" Margin="12,8">
                             
-                            <Separator Margin="0,8"/>
-                            <Button Name="PauseAllMotionButton" Content="Pause All Motion" Style="{StaticResource ToolButtonStyle}" Click="PauseAllMotionButton_Click"/>
-                            <Button Name="ResumeAllMotionButton" Content="Resume All Motion" Style="{StaticResource ToolButtonStyle}" Click="ResumeAllMotionButton_Click"/>
-                        </StackPanel>
-                    </Expander>
+                            <!-- Element Type Selection (for creating new elements) -->
+                            <TextBlock Text="Element Type:" Style="{StaticResource PropertyLabelStyle}"/>
+                            <ComboBox Name="ElementTypeComboBox" Height="32" FontSize="12" Margin="0,2,0,6">
+                                <ComboBoxItem Content="📝 Text" Tag="Text" IsSelected="True"/>
+                                <ComboBoxItem Content="🖼️ Image" Tag="Image"/>
+                                <ComboBoxItem Content="🔴 Shape" Tag="Shape"/>
+                                <ComboBoxItem Content="⚡ Motion Text" Tag="MotionText"/>
+                                <ComboBoxItem Content="🎯 Motion Shape" Tag="MotionShape"/>
+                            </ComboBox>
 
-                    <!-- Background Controls -->
-                    <Expander Header="Background" IsExpanded="False" Margin="0,0,0,10">
-                        <StackPanel Margin="10,5">
-                            <Button Name="SetSolidColorButton" Content="Solid Color" Style="{StaticResource ToolButtonStyle}" Click="SetSolidColorButton_Click"/>
-                            <Button Name="SetGradientButton" Content="Gradient" Style="{StaticResource ToolButtonStyle}" Click="SetGradientButton_Click"/>
-                            <Button Name="LoadBackgroundImageButton" Content="Background Image" Style="{StaticResource ToolButtonStyle}" Click="LoadBackgroundImageButton_Click"/>
-                            <Button Name="ClearBackgroundButton" Content="Clear Background" Style="{StaticResource ToolButtonStyle}" Click="ClearBackgroundButton_Click"/>
-                            
-                            <TextBlock Text="Background Opacity:" Style="{StaticResource PropertyLabelStyle}"/>
-                            <StackPanel Orientation="Horizontal">
-                                <Slider Name="BackgroundOpacitySlider" Width="120" Minimum="0" Maximum="1" Value="1" 
-                                       ValueChanged="BackgroundOpacitySlider_ValueChanged" VerticalAlignment="Center"/>
-                                <TextBlock Name="BackgroundOpacityLabel" Text="1.00" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                            <!-- Quick Action Buttons -->
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Name="CreateElementButton" Grid.Column="0" Content="✨ Create" 
+                                       Style="{StaticResource ActionButtonStyle}" Click="CreateElementButton_Click" Margin="0,0,4,0"/>
+                                <Button Name="UpdateElementButton" Grid.Column="1" Content="💾 Update" 
+                                       Style="{StaticResource ModernButtonStyle}" Click="UpdateElementButton_Click" Margin="4,0,0,0"/>
+                            </Grid>
+
+                            <Separator Margin="0,16"/>
+
+                            <!-- Current Element Info -->
+                            <StackPanel Name="ElementInfoPanel">
+                                <TextBlock Name="ElementNameText" Text="Create new element or select existing" 
+                                          FontWeight="Bold" FontSize="14" Foreground="#FF34495E" Margin="0,0,0,4"/>
+                                <TextBlock Name="ElementTypeText" Text="Configure properties below" 
+                                          FontSize="11" Foreground="#FF7F8C8D" Margin="0,0,0,12"/>
                             </StackPanel>
-                        </StackPanel>
-                    </Expander>
-
-                    <!-- File Operations -->
-                    <Expander Header="File Operations" IsExpanded="False" Margin="0,0,0,10">
-                        <StackPanel Margin="10,5">
-                            <Button Name="SaveImageButton" Content="Save as Image" Style="{StaticResource ToolButtonStyle}" Click="SaveImageButton_Click"/>
-                            <Button Name="ExportSceneButton" Content="Export Scene" Style="{StaticResource ToolButtonStyle}" Click="ExportSceneButton_Click"/>
-                            <Button Name="ImportSceneButton" Content="Import Scene" Style="{StaticResource ToolButtonStyle}" Click="ImportSceneButton_Click"/>
-                        </StackPanel>
-                    </Expander>
-                </StackPanel>
-            </ScrollViewer>
-        </Border>
-
-        <!-- Main Canvas Area -->
-        <Grid Grid.Column="1" Background="White" Margin="20">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-
-            <!-- Canvas Header -->
-            <Border Grid.Row="0" Background="#FF2D2D30" Padding="10,8" Margin="0,0,0,10">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <TextBlock Grid.Column="0" Text="Design Canvas (480 × 480)" 
-                              Foreground="White" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <TextBlock Name="ElementCountLabel" Text="Elements: 0" 
-                                  Foreground="LightGray" FontSize="12" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <TextBlock Name="StatusLabel" Text="Ready" 
-                                  Foreground="LightGreen" FontSize="12" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <!-- Canvas Container -->
-            <Border Grid.Row="1" Background="Black" HorizontalAlignment="Center" VerticalAlignment="Center"
-                   BorderBrush="#FF666666" BorderThickness="2">
-                <Image Name="CanvasDisplay" Width="480" Height="480" Stretch="Fill"
-                      MouseLeftButtonDown="CanvasDisplay_MouseLeftButtonDown"
-                      MouseMove="CanvasDisplay_MouseMove"
-                      MouseLeftButtonUp="CanvasDisplay_MouseLeftButtonUp"
-                      MouseRightButtonDown="CanvasDisplay_MouseRightButtonDown"/>
-            </Border>
-
-            <!-- Canvas Footer -->
-            <Border Grid.Row="2" Background="#FFF0F0F0" Padding="10,6" Margin="0,10,0,0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <TextBlock Name="MousePositionLabel" Grid.Column="0" Text="Mouse: (0, 0)" 
-                              Foreground="#FF666666" FontSize="11" VerticalAlignment="Center"/>
-                    
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <TextBlock Name="FpsDisplayLabel" Text="FPS: 30" 
-                                  Foreground="#FF666666" FontSize="11" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                        <TextBlock Name="RenderInfoLabel" Text="Rendering stopped" 
-                                  Foreground="#FF999999" FontSize="11" VerticalAlignment="Center"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
-        </Grid>
-
-        <!-- Right Properties Panel -->
-        <Border Grid.Column="2" Background="#FFE8E8E8" BorderBrush="#FFCCCCCC" BorderThickness="1,0,0,0">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10">
-                <StackPanel>
-                    <TextBlock Text="Properties" FontSize="16" FontWeight="Bold" Foreground="#FF333333" Margin="0,0,0,10"/>
-
-                    <!-- Element List -->
-                    <Expander Header="Elements" IsExpanded="True" Margin="0,0,0,10">
-                        <StackPanel Margin="10,5">
-                            <ListBox Name="ElementsListBox" Height="120" SelectionChanged="ElementsListBox_SelectionChanged"
-                                    Background="White" BorderBrush="#FFCCCCCC"/>
-                            <Button Name="DeleteElementButton" Content="Delete Selected" Style="{StaticResource ToolButtonStyle}" 
-                                   Click="DeleteElementButton_Click" IsEnabled="False" Margin="0,5,0,0"/>
-                        </StackPanel>
-                    </Expander>
-
-                    <!-- Selected Element Properties -->
-                    <Expander Name="ElementPropertiesExpander" Header="Element Properties" IsExpanded="True" Margin="0,0,0,10">
-                        <StackPanel Name="ElementPropertiesPanel" Margin="10,5">
-                            <TextBlock Name="NoSelectionText" Text="No element selected" FontStyle="Italic" 
-                                      Foreground="Gray" HorizontalAlignment="Center"/>
 
                             <!-- Common Properties -->
-                            <StackPanel Name="CommonPropertiesPanel" Visibility="Collapsed">
-                                <TextBlock Name="ElementNameText" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
-                                <TextBlock Name="ElementTypeText" FontSize="10" Foreground="Gray" Margin="0,0,0,10"/>
-
-                                <TextBlock Text="Position:" Style="{StaticResource PropertyLabelStyle}"/>
-                                <Grid>
+                            <StackPanel Name="CommonPropertiesSection" Visibility="Collapsed">
+                                <TextBlock Text="Position and Visibility" Style="{StaticResource PropertyLabelStyle}" Foreground="#FF8E44AD"/>
+                                
+                                <Grid Margin="0,4,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                    <TextBox Name="PositionXTextBox" Grid.Column="1" Height="20" TextChanged="ElementProperty_Changed" Margin="0,0,5,0"/>
-                                    <TextBlock Grid.Column="2" Text="Y:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                    <TextBox Name="PositionYTextBox" Grid.Column="3" Height="20" TextChanged="ElementProperty_Changed"/>
+                                    <TextBlock Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                                    <TextBox Name="PositionXTextBox" Grid.Column="1" Text="100" Style="{StaticResource PropertyInputStyle}" Margin="0,0,8,0"/>
+                                    <TextBlock Grid.Column="2" Text="Y:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                                    <TextBox Name="PositionYTextBox" Grid.Column="3" Text="100" Style="{StaticResource PropertyInputStyle}"/>
                                 </Grid>
 
-                                <CheckBox Name="VisibleCheckBox" Content="Visible" Margin="0,5" Checked="ElementProperty_Changed" Unchecked="ElementProperty_Changed"/>
-                                <CheckBox Name="DraggableCheckBox" Content="Draggable" Margin="0,2" Checked="ElementProperty_Changed" Unchecked="ElementProperty_Changed"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                                    <CheckBox Name="VisibleCheckBox" Content="👁️ Visible" IsChecked="True" Margin="0,0,16,0"/>
+                                    <CheckBox Name="DraggableCheckBox" Content="🖱️ Draggable" IsChecked="True"/>
+                                </StackPanel>
                             </StackPanel>
 
                             <!-- Text Properties -->
-                            <StackPanel Name="TextPropertiesPanel" Visibility="Collapsed">
-                                <Separator Margin="0,10"/>
-                                <TextBlock Text="TEXT PROPERTIES" FontWeight="Bold" FontSize="11" Foreground="DarkBlue" Margin="0,5"/>
+                            <StackPanel Name="TextPropertiesSection">
+                                <TextBlock Text="Text Properties" Style="{StaticResource PropertyLabelStyle}" Foreground="#FF3498DB"/>
 
-                                <TextBlock Text="Text:" Style="{StaticResource PropertyLabelStyle}"/>
-                                <TextBox Name="TextContentTextBox" Style="{StaticResource PropertyInputStyle}" TextChanged="ElementProperty_Changed"/>
+                                <TextBlock Text="Content:" Style="{StaticResource PropertyLabelStyle}" Margin="0,4,0,4"/>
+                                <TextBox Name="TextContentTextBox" Text="Sample Text" Style="{StaticResource PropertyInputStyle}" FontSize="12"/>
 
                                 <TextBlock Text="Font Size:" Style="{StaticResource PropertyLabelStyle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="50"/>
                                     </Grid.ColumnDefinitions>
                                     <Slider Name="FontSizeSlider" Grid.Column="0" Minimum="8" Maximum="72" Value="24" 
-                                           TickFrequency="4" ValueChanged="FontSizeSlider_ValueChanged" Style="{StaticResource SliderStyle}"/>
-                                    <TextBlock Name="FontSizeValueLabel" Grid.Column="1" Text="24" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="25"/>
+                                           TickFrequency="4" ValueChanged="FontSizeSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
+                                    <TextBlock Name="FontSizeValueLabel" Grid.Column="1" Text="24" VerticalAlignment="Center" 
+                                              HorizontalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
                                 </Grid>
 
                                 <TextBlock Text="Font Family:" Style="{StaticResource PropertyLabelStyle}"/>
-                                <ComboBox Name="FontFamilyComboBox" Margin="0,2,0,4" Height="24" SelectionChanged="ElementProperty_Changed">
-                                    <ComboBoxItem Content="Segoe UI"/>
+                                <ComboBox Name="FontFamilyComboBox" Height="32" FontSize="12" Margin="0,2,0,6">
+                                    <ComboBoxItem Content="Segoe UI" IsSelected="True"/>
                                     <ComboBoxItem Content="Arial"/>
                                     <ComboBoxItem Content="Times New Roman"/>
                                     <ComboBoxItem Content="Calibri"/>
@@ -302,60 +236,63 @@
                                 </ComboBox>
 
                                 <TextBlock Text="Text Color:" Style="{StaticResource PropertyLabelStyle}"/>
-                                <Grid>
+                                <Grid Margin="0,4,0,8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Rectangle Name="TextColorPreview" Grid.Column="0" Style="{StaticResource ColorPreviewStyle}" Fill="White"/>
-                                    <StackPanel Grid.Column="1" Margin="5,0,0,0">
-                                        <Grid>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <!-- RGB Sliders for Text Color -->
+                                        <Grid Margin="0,2">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="20"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="35"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="R:" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                            <Slider Name="TextColorRSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="255" 
-                                                   TickFrequency="15" ValueChanged="TextColorSlider_ValueChanged"/>
-                                            <TextBlock Name="TextColorRLabel" Grid.Column="2" Text="255" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="25"/>
+                                            <TextBlock Grid.Column="0" Text="R:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FFE74C3C"/>
+                                            <Slider Name="TextColorRSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="0" 
+                                                   TickFrequency="15" ValueChanged="TextColorSlider_ValueChanged" Margin="4,0"/>
+                                            <TextBlock Name="TextColorRLabel" Grid.Column="2" Text="0" VerticalAlignment="Center" 
+                                                      HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
                                         </Grid>
-                                        <Grid>
+                                        <Grid Margin="0,2">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="20"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="35"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="G:" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                            <Slider Name="TextColorGSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="255" 
-                                                   TickFrequency="15" ValueChanged="TextColorSlider_ValueChanged"/>
-                                            <TextBlock Name="TextColorGLabel" Grid.Column="2" Text="255" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="25"/>
+                                            <TextBlock Grid.Column="0" Text="G:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF27AE60"/>
+                                            <Slider Name="TextColorGSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="0" 
+                                                   TickFrequency="15" ValueChanged="TextColorSlider_ValueChanged" Margin="4,0"/>
+                                            <TextBlock Name="TextColorGLabel" Grid.Column="2" Text="0" VerticalAlignment="Center" 
+                                                      HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
                                         </Grid>
-                                        <Grid>
+                                        <Grid Margin="0,2">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="20"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="35"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="B:" VerticalAlignment="Center" Margin="0,0,2,0"/>
-                                            <Slider Name="TextColorBSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="255" 
-                                                   TickFrequency="15" ValueChanged="TextColorSlider_ValueChanged"/>
-                                            <TextBlock Name="TextColorBLabel" Grid.Column="2" Text="255" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="25"/>
+                                            <TextBlock Grid.Column="0" Text="B:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF3498DB"/>
+                                            <Slider Name="TextColorBSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="0" 
+                                                   TickFrequency="15" ValueChanged="TextColorSlider_ValueChanged" Margin="4,0"/>
+                                            <TextBlock Name="TextColorBLabel" Grid.Column="2" Text="0" VerticalAlignment="Center" 
+                                                      HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
                                         </Grid>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
 
                             <!-- Shape Properties -->
-                            <StackPanel Name="ShapePropertiesPanel" Visibility="Collapsed">
-                                <Separator Margin="0,10"/>
-                                <TextBlock Text="SHAPE PROPERTIES" FontWeight="Bold" FontSize="11" Foreground="DarkRed" Margin="0,5"/>
+                            <StackPanel Name="ShapePropertiesSection" Visibility="Collapsed">
+                                <TextBlock Text="Shape Properties" Style="{StaticResource PropertyLabelStyle}" Foreground="#FFE67E22"/>
 
                                 <TextBlock Text="Shape Type:" Style="{StaticResource PropertyLabelStyle}"/>
-                                <ComboBox Name="ShapeTypeComboBox" Margin="0,2,0,4" Height="24" SelectionChanged="ElementProperty_Changed">
-                                    <ComboBoxItem Content="Rectangle"/>
-                                    <ComboBoxItem Content="Circle"/>
-                                    <ComboBoxItem Content="Triangle"/>
+                                <ComboBox Name="ShapeTypeComboBox" Height="32" FontSize="12" Margin="0,2,0,6">
+                                    <ComboBoxItem Content="⬜ Rectangle" IsSelected="True"/>
+                                    <ComboBoxItem Content="⭕ Circle"/>
+                                    <ComboBoxItem Content="🔺 Triangle"/>
                                 </ComboBox>
 
                                 <TextBlock Text="Size:" Style="{StaticResource PropertyLabelStyle}"/>
@@ -366,179 +303,362 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="W:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                    <TextBlock Grid.Column="0" Text="W:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
                                     <Slider Name="ShapeWidthSlider" Grid.Column="1" Minimum="10" Maximum="300" Value="60" 
-                                           ValueChanged="ShapeSizeSlider_ValueChanged" Margin="0,0,5,0"/>
-                                    <TextBlock Grid.Column="2" Text="H:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                           ValueChanged="ShapeSizeSlider_ValueChanged" Margin="0,0,8,0" Style="{StaticResource ModernSliderStyle}"/>
+                                    <TextBlock Grid.Column="2" Text="H:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
                                     <Slider Name="ShapeHeightSlider" Grid.Column="3" Minimum="10" Maximum="300" Value="60" 
-                                           ValueChanged="ShapeSizeSlider_ValueChanged"/>
+                                           ValueChanged="ShapeSizeSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
                                 </Grid>
-                                <Grid Margin="0,2">
+                                <Grid Margin="0,2,0,8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Name="ShapeWidthLabel" Grid.Column="1" Text="60" HorizontalAlignment="Center" FontSize="10"/>
-                                    <TextBlock Name="ShapeHeightLabel" Grid.Column="3" Text="60" HorizontalAlignment="Center" FontSize="10"/>
+                                    <TextBlock Name="ShapeWidthLabel" Grid.Column="1" Text="60" HorizontalAlignment="Center" FontSize="11"/>
+                                    <TextBlock Name="ShapeHeightLabel" Grid.Column="3" Text="60" HorizontalAlignment="Center" FontSize="11"/>
                                 </Grid>
 
                                 <TextBlock Text="Fill Color:" Style="{StaticResource PropertyLabelStyle}"/>
-                                <Grid>
+                                <Grid Margin="0,4,0,8">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     <Rectangle Name="ShapeColorPreview" Grid.Column="0" Style="{StaticResource ColorPreviewStyle}" Fill="LightBlue"/>
-                                    <StackPanel Grid.Column="1" Margin="5,0,0,0">
-                                        <Grid>
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <!-- RGB Sliders for Shape Color -->
+                                        <Grid Margin="0,2">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="20"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="35"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="R:" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                                            <TextBlock Grid.Column="0" Text="R:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FFE74C3C"/>
                                             <Slider Name="ShapeColorRSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="173" 
-                                                   TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged"/>
-                                            <TextBlock Name="ShapeColorRLabel" Grid.Column="2" Text="173" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="25"/>
+                                                   TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged" Margin="4,0"/>
+                                            <TextBlock Name="ShapeColorRLabel" Grid.Column="2" Text="173" VerticalAlignment="Center" 
+                                                      HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
                                         </Grid>
-                                        <Grid>
+                                        <Grid Margin="0,2">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="20"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="35"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="G:" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                                            <TextBlock Grid.Column="0" Text="G:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF27AE60"/>
                                             <Slider Name="ShapeColorGSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="216" 
-                                                   TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged"/>
-                                            <TextBlock Name="ShapeColorGLabel" Grid.Column="2" Text="216" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="25"/>
+                                                   TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged" Margin="4,0"/>
+                                            <TextBlock Name="ShapeColorGLabel" Grid.Column="2" Text="216" VerticalAlignment="Center" 
+                                                      HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
                                         </Grid>
-                                        <Grid>
+                                        <Grid Margin="0,2">
                                             <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="20"/>
                                                 <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="35"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="B:" VerticalAlignment="Center" Margin="0,0,2,0"/>
+                                            <TextBlock Grid.Column="0" Text="B:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF3498DB"/>
                                             <Slider Name="ShapeColorBSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="230" 
-                                                   TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged"/>
-                                            <TextBlock Name="ShapeColorBLabel" Grid.Column="2" Text="230" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="25"/>
+                                                   TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged" Margin="4,0"/>
+                                            <TextBlock Name="ShapeColorBLabel" Grid.Column="2" Text="230" VerticalAlignment="Center" 
+                                                      HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
                                         </Grid>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
 
                             <!-- Image Properties -->
-                            <StackPanel Name="ImagePropertiesPanel" Visibility="Collapsed">
-                                <Separator Margin="0,10"/>
-                                <TextBlock Text="IMAGE PROPERTIES" FontWeight="Bold" FontSize="11" Foreground="DarkGreen" Margin="0,5"/>
+                            <StackPanel Name="ImagePropertiesSection" Visibility="Collapsed">
+                                <TextBlock Text="Image Properties" Style="{StaticResource PropertyLabelStyle}" Foreground="#FF16A085"/>
+
+                                <Button Name="SelectImageButton" Content="📁 Select Image" Style="{StaticResource ModernButtonStyle}" 
+                                       Click="SelectImageButton_Click" Margin="0,4,0,8"/>
 
                                 <TextBlock Text="Scale:" Style="{StaticResource PropertyLabelStyle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="60"/>
                                     </Grid.ColumnDefinitions>
                                     <Slider Name="ImageScaleSlider" Grid.Column="0" Minimum="0.1" Maximum="3.0" Value="1.0" 
-                                           TickFrequency="0.1" ValueChanged="ImageScaleSlider_ValueChanged" Style="{StaticResource SliderStyle}"/>
-                                    <TextBlock Name="ImageScaleLabel" Grid.Column="1" Text="1.0" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="30"/>
+                                           TickFrequency="0.1" ValueChanged="ImageScaleSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
+                                    <TextBlock Name="ImageScaleLabel" Grid.Column="1" Text="1.0x" VerticalAlignment="Center" 
+                                              HorizontalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
                                 </Grid>
 
                                 <TextBlock Text="Rotation:" Style="{StaticResource PropertyLabelStyle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="60"/>
                                     </Grid.ColumnDefinitions>
                                     <Slider Name="ImageRotationSlider" Grid.Column="0" Minimum="0" Maximum="360" Value="0" 
-                                           TickFrequency="15" ValueChanged="ImageRotationSlider_ValueChanged" Style="{StaticResource SliderStyle}"/>
-                                    <TextBlock Name="ImageRotationLabel" Grid.Column="1" Text="0°" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="35"/>
+                                           TickFrequency="15" ValueChanged="ImageRotationSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
+                                    <TextBlock Name="ImageRotationLabel" Grid.Column="1" Text="0°" VerticalAlignment="Center" 
+                                              HorizontalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
                                 </Grid>
                             </StackPanel>
 
                             <!-- Motion Properties -->
-                            <StackPanel Name="MotionPropertiesPanel" Visibility="Collapsed">
-                                <Separator Margin="0,10"/>
-                                <TextBlock Text="MOTION PROPERTIES" FontWeight="Bold" FontSize="11" Foreground="Purple" Margin="0,5"/>
+                            <StackPanel Name="MotionPropertiesSection" Visibility="Collapsed">
+                                <TextBlock Text="Motion Properties" Style="{StaticResource PropertyLabelStyle}" Foreground="#FF9B59B6"/>
 
                                 <TextBlock Text="Motion Type:" Style="{StaticResource PropertyLabelStyle}"/>
-                                <ComboBox Name="MotionTypeComboBox" Margin="0,2,0,4" Height="24" SelectionChanged="ElementProperty_Changed"/>
+                                <ComboBox Name="MotionTypeComboBox" Height="32" FontSize="12" Margin="0,2,0,6"/>
 
                                 <TextBlock Text="Speed:" Style="{StaticResource PropertyLabelStyle}"/>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="60"/>
                                     </Grid.ColumnDefinitions>
                                     <Slider Name="MotionSpeedSlider" Grid.Column="0" Minimum="10" Maximum="300" Value="100" 
-                                           ValueChanged="MotionSpeedSlider_ValueChanged" Style="{StaticResource SliderStyle}"/>
-                                    <TextBlock Name="MotionSpeedLabel" Grid.Column="1" Text="100" VerticalAlignment="Center" Margin="5,0,0,0" MinWidth="35"/>
+                                           ValueChanged="MotionSpeedSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
+                                    <TextBlock Name="MotionSpeedLabel" Grid.Column="1" Text="100" VerticalAlignment="Center" 
+                                              HorizontalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
                                 </Grid>
 
-                                <CheckBox Name="ShowTrailCheckBox" Content="Show Trail" Margin="0,5" Checked="ElementProperty_Changed" Unchecked="ElementProperty_Changed"/>
-                                <CheckBox Name="MotionPausedCheckBox" Content="Paused" Margin="0,2" Checked="ElementProperty_Changed" Unchecked="ElementProperty_Changed"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <CheckBox Name="ShowTrailCheckBox" Content="✨ Show Trail" Margin="0,0,16,0"/>
+                                    <CheckBox Name="MotionPausedCheckBox" Content="⏸️ Paused"/>
+                                </StackPanel>
                             </StackPanel>
 
-                            <!-- Apply/Reset Buttons -->
-                            <StackPanel Name="PropertyButtonsPanel" Visibility="Collapsed" Orientation="Horizontal" Margin="0,15,0,5">
-                                <Button Name="ApplyChangesButton" Content="Apply" Width="70" Height="28" Margin="0,0,5,0" 
-                                       Click="ApplyChangesButton_Click" Background="LightGreen" FontWeight="SemiBold"/>
-                                <Button Name="ResetChangesButton" Content="Reset" Width="70" Height="28" 
-                                       Click="ResetChangesButton_Click" Background="LightCoral" FontWeight="SemiBold"/>
-                            </StackPanel>
                         </StackPanel>
                     </Expander>
+
+                    <!-- Quick Color Palette -->
+                    <Expander Header="🎨 Quick Colors" IsExpanded="True" Style="{StaticResource ModernExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <WrapPanel Name="ColorPalette" Margin="0,0,0,8">
+                                <!-- Color squares will be added programmatically -->
+                            </WrapPanel>
+                            <Button Name="CustomColorButton" Content="🌈 Custom Color..." Style="{StaticResource ModernButtonStyle}" 
+                                   Click="CustomColorButton_Click"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Quick Actions -->
+                    <Expander Header="⚡ Quick Actions" IsExpanded="False" Style="{StaticResource ModernExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <Button Name="AddBouncingBallButton" Content="🏀 Bouncing Ball" Style="{StaticResource ActionButtonStyle}" 
+                                   Click="AddBouncingBallButton_Click"/>
+                            <Button Name="AddRotatingTextButton" Content="🔄 Rotating Text" Style="{StaticResource ActionButtonStyle}" 
+                                   Click="AddRotatingTextButton_Click"/>
+                            <Button Name="AddOscillatingShapeButton" Content="〰️ Oscillating Shape" Style="{StaticResource ActionButtonStyle}" 
+                                   Click="AddOscillatingShapeButton_Click"/>
+                            
+                            <Separator Margin="0,8"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Name="PauseAllMotionButton" Grid.Column="0" Content="⏸️ Pause All" 
+                                       Style="{StaticResource ModernButtonStyle}" Click="PauseAllMotionButton_Click" Margin="0,0,4,0"/>
+                                <Button Name="ResumeAllMotionButton" Grid.Column="1" Content="▶️ Resume All" 
+                                       Style="{StaticResource ActionButtonStyle}" Click="ResumeAllMotionButton_Click" Margin="4,0,0,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Main Canvas Area -->
+        <Grid Grid.Column="1" Background="White" Margin="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Canvas Header -->
+            <Border Grid.Row="0" Background="#FF34495E" Padding="16,12" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="🎨" FontSize="20" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Design Canvas" Foreground="White" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="(480 × 480)" Foreground="#FFBDC3C7" FontSize="14" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Name="ElementCountLabel" Text="Elements: 0" 
+                                  Foreground="#FFBDC3C7" FontSize="12" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                        <TextBlock Name="StatusLabel" Text="Ready" 
+                                  Foreground="#FF2ECC71" FontSize="12" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Canvas Container -->
+            <Border Grid.Row="1" Background="#FF2C3E50" HorizontalAlignment="Center" VerticalAlignment="Center"
+                   BorderBrush="#FF34495E" BorderThickness="3">
+                <Image Name="CanvasDisplay" Width="480" Height="480" Stretch="Fill"
+                      MouseLeftButtonDown="CanvasDisplay_MouseLeftButtonDown"
+                      MouseMove="CanvasDisplay_MouseMove"
+                      MouseLeftButtonUp="CanvasDisplay_MouseLeftButtonUp"
+                      MouseRightButtonDown="CanvasDisplay_MouseRightButtonDown"/>
+            </Border>
+
+            <!-- Canvas Footer -->
+            <Border Grid.Row="2" Background="#FFECF0F1" Padding="16,8" Margin="0,16,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="🖱️" FontSize="14" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBlock Name="MousePositionLabel" Text="Mouse: (0, 0)" 
+                                  Foreground="#FF7F8C8D" FontSize="12" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Name="FpsDisplayLabel" Text="FPS: 30" 
+                                  Foreground="#FF7F8C8D" FontSize="12" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                        <TextBlock Name="RenderInfoLabel" Text="Rendering stopped" 
+                                  Foreground="#FF95A5A6" FontSize="12" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Right Panel - Elements & Actions -->
+        <Border Grid.Column="2" Background="White" BorderBrush="#FFECF0F1" BorderThickness="1,0,0,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Scene Manager" Style="{StaticResource SectionHeaderStyle}"/>
+
+                    <!-- Element List -->
+                    <Expander Header="📋 Scene Elements" IsExpanded="True" Style="{StaticResource ModernExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <ListBox Name="ElementsListBox" Height="160" SelectionChanged="ElementsListBox_SelectionChanged"
+                                    Background="#FFF8F9FA" BorderBrush="#FFECF0F1" FontSize="12"/>
+                            <Button Name="DeleteElementButton" Content="🗑️ Delete Selected" 
+                                   Style="{StaticResource WarningButtonStyle}" Click="DeleteElementButton_Click" 
+                                   IsEnabled="False" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- Background Controls -->
+                    <Expander Header="🌄 Background" IsExpanded="False" Style="{StaticResource ModernExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Name="SetSolidColorButton" Grid.Column="0" Content="🎨 Solid" 
+                                       Style="{StaticResource ModernButtonStyle}" Click="SetSolidColorButton_Click" Margin="0,0,4,0"/>
+                                <Button Name="SetGradientButton" Grid.Column="1" Content="🌈 Gradient" 
+                                       Style="{StaticResource ModernButtonStyle}" Click="SetGradientButton_Click" Margin="4,0,0,0"/>
+                            </Grid>
+                            
+                            <Button Name="LoadBackgroundImageButton" Content="🖼️ Background Image" 
+                                   Style="{StaticResource ModernButtonStyle}" Click="LoadBackgroundImageButton_Click"/>
+                            <Button Name="ClearBackgroundButton" Content="🗑️ Clear Background" 
+                                   Style="{StaticResource WarningButtonStyle}" Click="ClearBackgroundButton_Click"/>
+                            
+
+                            <TextBlock Text="Opacity:" Style="{StaticResource PropertyLabelStyle}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="50"/>
+                                </Grid.ColumnDefinitions>
+                                <Slider Name="BackgroundOpacitySlider" Grid.Column="0" Minimum="0" Maximum="1" Value="1" 
+                                       ValueChanged="BackgroundOpacitySlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
+                                <TextBlock Name="BackgroundOpacityLabel" Grid.Column="1" Text="1.00" VerticalAlignment="Center" 
+                                          HorizontalAlignment="Center" FontSize="12"/>
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+
+                    <!-- File Operations -->
+                    <Expander Header="🗂️ File Operations" IsExpanded="False" Style="{StaticResource ModernExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <Button Name="SaveImageButton" Content="💾 Save as Image" Style="{StaticResource ActionButtonStyle}" 
+                                   Click="SaveImageButton_Click"/>
+                            <Button Name="ExportSceneButton" Content="📤 Export Scene" Style="{StaticResource ModernButtonStyle}" 
+                                   Click="ExportSceneButton_Click"/>
+                            <Button Name="ImportSceneButton" Content="📥 Import Scene" Style="{StaticResource ModernButtonStyle}" 
+                                   Click="ImportSceneButton_Click"/>
+                        </StackPanel>
+                    </Expander>
+
                 </StackPanel>
             </ScrollViewer>
         </Border>
 
         <!-- Custom Color Picker Dialog -->
         <Grid Name="ColorPickerOverlay" Background="#80000000" Visibility="Collapsed">
-            <Border Background="White" BorderBrush="Gray" BorderThickness="2" CornerRadius="5" 
-                   Width="320" Height="280" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <StackPanel Margin="15">
-                    <TextBlock Text="Custom Color Picker" FontWeight="Bold" FontSize="14" Margin="0,0,0,10"/>
+            <Border Background="White" BorderBrush="#FF34495E" BorderThickness="2" 
+                   Width="380" Height="320" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Margin="20">
+                    <TextBlock Text="🌈 Custom Color Picker" FontWeight="Bold" FontSize="16" Margin="0,0,0,16" 
+                              Foreground="#FF2C3E50"/>
                     
                     <TextBlock Text="Red:" Style="{StaticResource PropertyLabelStyle}"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="50"/>
                         </Grid.ColumnDefinitions>
-                        <Slider Name="CustomColorRSlider" Grid.Column="0" Minimum="0" Maximum="255" Value="128" ValueChanged="CustomColorSlider_ValueChanged"/>
-                        <TextBlock Name="CustomColorRLabel" Grid.Column="1" Text="128" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="30"/>
+                        <Slider Name="CustomColorRSlider" Grid.Column="0" Minimum="0" Maximum="255" Value="128" 
+                               ValueChanged="CustomColorSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
+                        <TextBlock Name="CustomColorRLabel" Grid.Column="1" Text="128" VerticalAlignment="Center" 
+                                  HorizontalAlignment="Center" FontWeight="SemiBold"/>
                     </Grid>
                     
                     <TextBlock Text="Green:" Style="{StaticResource PropertyLabelStyle}"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="50"/>
                         </Grid.ColumnDefinitions>
-                        <Slider Name="CustomColorGSlider" Grid.Column="0" Minimum="0" Maximum="255" Value="128" ValueChanged="CustomColorSlider_ValueChanged"/>
-                        <TextBlock Name="CustomColorGLabel" Grid.Column="1" Text="128" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="30"/>
+                        <Slider Name="CustomColorGSlider" Grid.Column="0" Minimum="0" Maximum="255" Value="128" 
+                               ValueChanged="CustomColorSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
+                        <TextBlock Name="CustomColorGLabel" Grid.Column="1" Text="128" VerticalAlignment="Center" 
+                                  HorizontalAlignment="Center" FontWeight="SemiBold"/>
                     </Grid>
                     
                     <TextBlock Text="Blue:" Style="{StaticResource PropertyLabelStyle}"/>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="50"/>
                         </Grid.ColumnDefinitions>
-                        <Slider Name="CustomColorBSlider" Grid.Column="0" Minimum="0" Maximum="255" Value="128" ValueChanged="CustomColorSlider_ValueChanged"/>
-                        <TextBlock Name="CustomColorBLabel" Grid.Column="1" Text="128" VerticalAlignment="Center" Margin="10,0,0,0" MinWidth="30"/>
+                        <Slider Name="CustomColorBSlider" Grid.Column="0" Minimum="0" Maximum="255" Value="128" 
+                               ValueChanged="CustomColorSlider_ValueChanged" Style="{StaticResource ModernSliderStyle}"/>
+                        <TextBlock Name="CustomColorBLabel" Grid.Column="1" Text="128" VerticalAlignment="Center" 
+                                  HorizontalAlignment="Center" FontWeight="SemiBold"/>
                     </Grid>
                     
                     <TextBlock Text="Preview:" Style="{StaticResource PropertyLabelStyle}"/>
-                    <Rectangle Name="CustomColorPreview" Height="40" Fill="Gray" Stroke="Black" StrokeThickness="1" Margin="0,5"/>
+                    <Rectangle Name="CustomColorPreview" Height="50" Fill="Gray" Stroke="#FF95A5A6" StrokeThickness="2" 
+                              Margin="0,4,0,16"/>
                     
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,15,0,0">
-                        <Button Name="AcceptCustomColorButton" Content="Accept" Width="80" Height="30" Margin="0,0,10,0" 
-                               Click="AcceptCustomColorButton_Click" Background="LightGreen"/>
-                        <Button Name="CancelCustomColorButton" Content="Cancel" Width="80" Height="30" 
-                               Click="CancelCustomColorButton_Click" Background="LightCoral"/>
-                    </StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Name="AcceptCustomColorButton" Grid.Column="0" Content="✅ Accept" 
+                               Click="AcceptCustomColorButton_Click" Style="{StaticResource ActionButtonStyle}" Margin="0,0,8,0"/>
+                        <Button Name="CancelCustomColorButton" Grid.Column="1" Content="❌ Cancel" 
+                               Click="CancelCustomColorButton_Click" Style="{StaticResource WarningButtonStyle}" Margin="8,0,0,0"/>
+                    </Grid>
                 </StackPanel>
             </Border>
         </Grid>

@@ -34,15 +34,17 @@ namespace CMDevicesManager.Pages
         private WinFoundation.Point _dragOffset;
         private int _elementCounter = 0;
 
-        // Element editing state
+        // Unified element creation/editing state
         private RenderElement? _currentEditingElement;
         private bool _isUpdatingProperties = false;
+        private bool _isCreatingNewElement = true; // True when creating new, false when editing existing
+        private string _selectedImagePath = "";
         private readonly Random _random = new Random();
 
         // Real-time property update features
         private bool _isRealTimeUpdateEnabled = true;
         private DispatcherTimer? _textUpdateDebounceTimer;
-        private readonly TimeSpan _textUpdateDelay = TimeSpan.FromMilliseconds(500); // 500ms debounce for text input
+        private readonly TimeSpan _textUpdateDelay = TimeSpan.FromMilliseconds(500);
         private bool _enableRealTimePreview = true;
 
         // Color selection state
@@ -79,48 +81,44 @@ namespace CMDevicesManager.Pages
             InitializeComboBoxes();
             InitializeColorPalette();
             InitializeSliderEventHandlers();
+            UpdatePropertyVisibility();
+            UpdateElementInfo();
         }
 
         #region Real-Time Update System
 
-        /// <summary>
-        /// Initialize the real-time property update system
-        /// </summary>
         private void InitializeRealTimeUpdateSystem()
         {
-            // Initialize debounce timer for text input
             _textUpdateDebounceTimer = new DispatcherTimer
             {
                 Interval = _textUpdateDelay
             };
             _textUpdateDebounceTimer.Tick += OnTextUpdateDebounceTimerTick;
-
-            // Set up real-time event handlers for all property controls
             SetupRealTimeEventHandlers();
         }
 
-        /// <summary>
-        /// Set up event handlers for real-time property updates
-        /// </summary>
         private void SetupRealTimeEventHandlers()
         {
-            // This will be called after InitializeComponent() when all controls are available
             Loaded += (s, e) => AttachRealTimeEventHandlers();
         }
 
-        /// <summary>
-        /// Attach real-time event handlers to all property controls
-        /// </summary>
         private void AttachRealTimeEventHandlers()
         {
             try
             {
-                // Real-time updates toggle - safely try to find and attach
+                // Real-time updates toggle
                 var realTimeCheckBox = this.FindName("RealTimeUpdatesCheckBox") as System.Windows.Controls.CheckBox;
                 if (realTimeCheckBox != null)
                 {
                     realTimeCheckBox.Checked += RealTimeUpdatesCheckBox_Changed;
                     realTimeCheckBox.Unchecked += RealTimeUpdatesCheckBox_Changed;
+                }
+
+                // Element type selection
+                var elementTypeComboBox = this.FindName("ElementTypeComboBox") as System.Windows.Controls.ComboBox;
+                if (elementTypeComboBox != null)
+                {
+                    elementTypeComboBox.SelectionChanged += ElementTypeComboBox_SelectionChanged;
                 }
 
                 // Text content with debouncing
@@ -139,47 +137,24 @@ namespace CMDevicesManager.Pages
                     PositionYTextBox.TextChanged += PositionProperty_Changed;
                 }
 
-                // Font family combo box
+                // Combo boxes
                 if (FontFamilyComboBox != null)
                 {
                     FontFamilyComboBox.SelectionChanged += FontFamilyProperty_Changed;
                 }
-
-                // Shape type combo box
                 if (ShapeTypeComboBox != null)
                 {
                     ShapeTypeComboBox.SelectionChanged += ShapeTypeProperty_Changed;
                 }
-
-                // Motion type combo box
                 if (MotionTypeComboBox != null)
                 {
                     MotionTypeComboBox.SelectionChanged += MotionTypeProperty_Changed;
                 }
 
                 // Checkboxes
-                if (VisibleCheckBox != null)
-                {
-                    VisibleCheckBox.Checked += CheckboxProperty_Changed;
-                    VisibleCheckBox.Unchecked += CheckboxProperty_Changed;
-                }
-                if (DraggableCheckBox != null)
-                {
-                    DraggableCheckBox.Checked += CheckboxProperty_Changed;
-                    DraggableCheckBox.Unchecked += CheckboxProperty_Changed;
-                }
-                if (ShowTrailCheckBox != null)
-                {
-                    ShowTrailCheckBox.Checked += CheckboxProperty_Changed;
-                    ShowTrailCheckBox.Unchecked += CheckboxProperty_Changed;
-                }
-                if (MotionPausedCheckBox != null)
-                {
-                    MotionPausedCheckBox.Checked += CheckboxProperty_Changed;
-                    MotionPausedCheckBox.Unchecked += CheckboxProperty_Changed;
-                }
+                AttachCheckboxHandlers();
 
-                UpdateStatus("Real-time property updates initialized", false);
+                UpdateStatus("Design Studio initialized - Real-time editing enabled!", false);
             }
             catch (Exception ex)
             {
@@ -187,43 +162,47 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        /// <summary>
-        /// Toggle real-time property updates on/off
-        /// </summary>
-        private void ToggleRealTimeUpdates()
+        private void AttachCheckboxHandlers()
         {
-            _isRealTimeUpdateEnabled = !_isRealTimeUpdateEnabled;
-            
-            var status = _isRealTimeUpdateEnabled ? "enabled" : "disabled";
-            UpdateStatus($"Real-time updates {status}", false);
-            
-            // Update checkbox if it exists
-            var realTimeCheckBox = this.FindName("RealTimeUpdatesCheckBox") as System.Windows.Controls.CheckBox;
-            if (realTimeCheckBox != null && realTimeCheckBox.IsChecked != _isRealTimeUpdateEnabled)
+            if (VisibleCheckBox != null)
             {
-                realTimeCheckBox.IsChecked = _isRealTimeUpdateEnabled;
+                VisibleCheckBox.Checked += CheckboxProperty_Changed;
+                VisibleCheckBox.Unchecked += CheckboxProperty_Changed;
             }
-
-            // Update elements list to show RT indicator
-            UpdateElementsList();
+            if (DraggableCheckBox != null)
+            {
+                DraggableCheckBox.Checked += CheckboxProperty_Changed;
+                DraggableCheckBox.Unchecked += CheckboxProperty_Changed;
+            }
+            if (ShowTrailCheckBox != null)
+            {
+                ShowTrailCheckBox.Checked += CheckboxProperty_Changed;
+                ShowTrailCheckBox.Unchecked += CheckboxProperty_Changed;
+            }
+            if (MotionPausedCheckBox != null)
+            {
+                MotionPausedCheckBox.Checked += CheckboxProperty_Changed;
+                MotionPausedCheckBox.Unchecked += CheckboxProperty_Changed;
+            }
         }
 
-        /// <summary>
-        /// Apply real-time property updates immediately (for sliders, checkboxes, etc.)
-        /// </summary>
         private void ApplyRealTimePropertyUpdate()
         {
-            if (!_isRealTimeUpdateEnabled || _isUpdatingProperties || _currentEditingElement == null || _renderService == null)
+            if (!_isRealTimeUpdateEnabled || _isUpdatingProperties || _renderService == null)
                 return;
 
             try
             {
-                var properties = GatherElementPropertiesFromUI();
-                _renderService.UpdateElementProperties(_currentEditingElement, properties);
-                
-                // Optional: Show brief feedback
-                if (_enableRealTimePreview)
+                if (_isCreatingNewElement)
                 {
+                    // For new elements, just update the preview/status
+                    UpdateStatus("Configure properties, then click Create", false);
+                }
+                else if (_currentEditingElement != null)
+                {
+                    // For existing elements, apply changes immediately
+                    var properties = GatherElementPropertiesFromUI();
+                    _renderService.UpdateElementProperties(_currentEditingElement, properties);
                     UpdateStatus("Properties updated", false);
                 }
             }
@@ -233,22 +212,15 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        /// <summary>
-        /// Apply real-time property updates with debouncing (for text input)
-        /// </summary>
         private void ApplyDebouncedPropertyUpdate()
         {
             if (!_isRealTimeUpdateEnabled)
                 return;
 
-            // Reset and restart the debounce timer
             _textUpdateDebounceTimer?.Stop();
             _textUpdateDebounceTimer?.Start();
         }
 
-        /// <summary>
-        /// Handle debounced text property updates
-        /// </summary>
         private void OnTextUpdateDebounceTimerTick(object? sender, EventArgs e)
         {
             _textUpdateDebounceTimer?.Stop();
@@ -259,63 +231,42 @@ namespace CMDevicesManager.Pages
 
         #region Real-Time Event Handlers
 
-        /// <summary>
-        /// Handle text property changes with debouncing
-        /// </summary>
         private void TextProperty_Changed(object sender, TextChangedEventArgs e)
         {
             if (_isUpdatingProperties) return;
             ApplyDebouncedPropertyUpdate();
         }
 
-        /// <summary>
-        /// Handle position property changes with debouncing
-        /// </summary>
         private void PositionProperty_Changed(object sender, TextChangedEventArgs e)
         {
             if (_isUpdatingProperties) return;
             ApplyDebouncedPropertyUpdate();
         }
 
-        /// <summary>
-        /// Handle font family property changes immediately
-        /// </summary>
         private void FontFamilyProperty_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (_isUpdatingProperties) return;
             ApplyRealTimePropertyUpdate();
         }
 
-        /// <summary>
-        /// Handle shape type property changes immediately
-        /// </summary>
         private void ShapeTypeProperty_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (_isUpdatingProperties) return;
             ApplyRealTimePropertyUpdate();
         }
 
-        /// <summary>
-        /// Handle motion type property changes immediately
-        /// </summary>
         private void MotionTypeProperty_Changed(object sender, SelectionChangedEventArgs e)
         {
             if (_isUpdatingProperties) return;
             ApplyRealTimePropertyUpdate();
         }
 
-        /// <summary>
-        /// Handle checkbox property changes immediately
-        /// </summary>
         private void CheckboxProperty_Changed(object sender, RoutedEventArgs e)
         {
             if (_isUpdatingProperties) return;
             ApplyRealTimePropertyUpdate();
         }
 
-        /// <summary>
-        /// Handle real-time updates checkbox changes
-        /// </summary>
         private void RealTimeUpdatesCheckBox_Changed(object sender, RoutedEventArgs e)
         {
             var realTimeCheckBox = sender as System.Windows.Controls.CheckBox;
@@ -324,16 +275,19 @@ namespace CMDevicesManager.Pages
                 _isRealTimeUpdateEnabled = realTimeCheckBox.IsChecked == true;
                 var status = _isRealTimeUpdateEnabled ? "enabled" : "disabled";
                 UpdateStatus($"Real-time updates {status}", false);
-                
-                // Update elements list to show RT indicator
                 UpdateElementsList();
-                
-                // Update element properties display to show current mode
-                if (_currentEditingElement != null)
-                {
-                    UpdateElementProperties(_currentEditingElement);
-                }
             }
+        }
+
+        private void ElementTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingProperties) return;
+            UpdatePropertyVisibility();
+            
+            // Switch to creation mode when type is changed
+            _isCreatingNewElement = true;
+            _currentEditingElement = null;
+            UpdateElementInfo();
         }
 
         #endregion
@@ -341,23 +295,27 @@ namespace CMDevicesManager.Pages
         private void InitializeComboBoxes()
         {
             // Initialize Motion Type ComboBox
-            MotionTypeComboBox.Items.Clear();
-            foreach (var motionType in Enum.GetValues<MotionType>())
+            if (MotionTypeComboBox != null)
             {
-                MotionTypeComboBox.Items.Add(motionType.ToString());
+                MotionTypeComboBox.Items.Clear();
+                foreach (var motionType in Enum.GetValues<MotionType>())
+                {
+                    MotionTypeComboBox.Items.Add(motionType.ToString());
+                }
+                MotionTypeComboBox.SelectedIndex = 0; // None
             }
 
-            // Initialize Shape Type ComboBox
-            ShapeTypeComboBox.Items.Clear();
-            foreach (var shapeType in Enum.GetValues<ShapeType>())
+            // Initialize Shape Type ComboBox  
+            if (ShapeTypeComboBox != null)
             {
-                ShapeTypeComboBox.Items.Add(shapeType.ToString());
+                ShapeTypeComboBox.SelectedIndex = 0; // Rectangle
             }
 
-            // Set default selections
-            FontFamilyComboBox.SelectedIndex = 0; // Segoe UI
-            MotionTypeComboBox.SelectedIndex = 0; // None
-            ShapeTypeComboBox.SelectedIndex = 0; // Rectangle
+            // Set default font family
+            if (FontFamilyComboBox != null)
+            {
+                FontFamilyComboBox.SelectedIndex = 0; // Segoe UI
+            }
         }
 
         private void InitializeColorPalette()
@@ -370,13 +328,15 @@ namespace CMDevicesManager.Pages
             {
                 var colorRect = new WpfRectangle
                 {
-                    Width = 20,
-                    Height = 20,
+                    Width = 24,
+                    Height = 24,
                     Fill = new SolidColorBrush(WpfColor.FromArgb(color.A, color.R, color.G, color.B)),
                     Stroke = System.Windows.Media.Brushes.Gray,
                     StrokeThickness = 1,
-                    Margin = new Thickness(2),
+                    Margin = new Thickness(3),
                     Cursor = System.Windows.Input.Cursors.Hand,
+                    RadiusX = 3,
+                    RadiusY = 3,
                     Tag = color
                 };
 
@@ -386,6 +346,7 @@ namespace CMDevicesManager.Pages
                     {
                         _selectedColor = selectedColor;
                         UpdateColorPreviewsWithCurrentColor();
+                        ApplyRealTimePropertyUpdate();
                     }
                 };
 
@@ -395,53 +356,89 @@ namespace CMDevicesManager.Pages
 
         private void InitializeSliderEventHandlers()
         {
-            // Default element size slider
-            if (DefaultElementSizeSlider != null)
+            // This method is kept for compatibility but event handlers are now attached in AttachRealTimeEventHandlers
+        }
+
+        #region UI Update Methods
+
+        private void UpdatePropertyVisibility()
+        {
+            var elementTypeComboBox = this.FindName("ElementTypeComboBox") as System.Windows.Controls.ComboBox;
+            if (elementTypeComboBox?.SelectedItem is ComboBoxItem selectedItem)
             {
-                DefaultElementSizeSlider.ValueChanged += (s, e) =>
+                var elementType = selectedItem.Tag?.ToString() ?? "Text";
+                
+                // Hide all property sections first
+                var textPropertiesSection = this.FindName("TextPropertiesSection") as StackPanel;
+                var shapePropertiesSection = this.FindName("ShapePropertiesSection") as StackPanel;
+                var imagePropertiesSection = this.FindName("ImagePropertiesSection") as StackPanel;
+                var motionPropertiesSection = this.FindName("MotionPropertiesSection") as StackPanel;
+                
+                if (textPropertiesSection != null) textPropertiesSection.Visibility = Visibility.Collapsed;
+                if (shapePropertiesSection != null) shapePropertiesSection.Visibility = Visibility.Collapsed;
+                if (imagePropertiesSection != null) imagePropertiesSection.Visibility = Visibility.Collapsed;
+                if (motionPropertiesSection != null) motionPropertiesSection.Visibility = Visibility.Collapsed;
+
+                // Show relevant property sections
+                switch (elementType)
                 {
-                    if (DefaultElementSizeLabel != null)
-                        DefaultElementSizeLabel.Text = ((int)e.NewValue).ToString();
-                };
+                    case "Text":
+                        if (textPropertiesSection != null) textPropertiesSection.Visibility = Visibility.Visible;
+                        break;
+                    case "Image":
+                        if (imagePropertiesSection != null) imagePropertiesSection.Visibility = Visibility.Visible;
+                        break;
+                    case "Shape":
+                        if (shapePropertiesSection != null) shapePropertiesSection.Visibility = Visibility.Visible;
+                        break;
+                    case "MotionText":
+                        if (textPropertiesSection != null) textPropertiesSection.Visibility = Visibility.Visible;
+                        if (motionPropertiesSection != null) motionPropertiesSection.Visibility = Visibility.Visible;
+                        break;
+                    case "MotionShape":
+                        if (shapePropertiesSection != null) shapePropertiesSection.Visibility = Visibility.Visible;
+                        if (motionPropertiesSection != null) motionPropertiesSection.Visibility = Visibility.Visible;
+                        break;
+                }
             }
         }
 
-        private async void OnDesignerPageLoaded(object sender, RoutedEventArgs e)
+        private void UpdateElementInfo()
         {
-            await InitializeDesignerAsync();
-        }
-
-        private async Task InitializeDesignerAsync()
-        {
-            try
+            if (_isCreatingNewElement)
             {
-                UpdateStatus("Initializing Designer...", false);
-
-                _renderService = new InteractiveWin2DRenderingService();
-                await _renderService.InitializeAsync(480, 480); // Fixed 480x480 canvas
-
-                // Subscribe to events
-                _renderService.ImageRendered += OnFrameRendered;
-                _renderService.ElementSelected += OnElementSelected;
-                _renderService.ElementMoved += OnElementMoved;
-                _renderService.HidStatusChanged += OnStatusChanged;
-                _renderService.RenderingError += OnRenderingError;
-                _renderService.BackgroundChanged += OnBackgroundChanged;
-
-                // Set default gradient background
-                await _renderService.ResetBackgroundToDefaultAsync();
-
-                UpdateElementsList();
-                UpdateColorPreviewsWithCurrentColor();
-                UpdateStatus("Designer ready - Real-time updates enabled!", false);
+                var elementType = "";
+                var elementTypeComboBox = this.FindName("ElementTypeComboBox") as System.Windows.Controls.ComboBox;
+                if (elementTypeComboBox?.SelectedItem is ComboBoxItem selectedItem)
+                {
+                    elementType = selectedItem.Content?.ToString() ?? "Element";
+                }
+                
+                if (ElementNameText != null)
+                    ElementNameText.Text = $"Create New {elementType}";
+                if (ElementTypeText != null)
+                    ElementTypeText.Text = "Configure properties below, then click Create";
+                    
+                // Update button states
+                var createElementButton = this.FindName("CreateElementButton") as System.Windows.Controls.Button;
+                var updateElementButton = this.FindName("UpdateElementButton") as System.Windows.Controls.Button;
+                if (createElementButton != null) createElementButton.IsEnabled = true;
+                if (updateElementButton != null) updateElementButton.IsEnabled = false;
             }
-            catch (Exception ex)
+            else if (_currentEditingElement != null)
             {
-                UpdateStatus($"Failed to initialize: {ex.Message}", true);
+                if (ElementNameText != null)
+                    ElementNameText.Text = _currentEditingElement.Name;
+                if (ElementTypeText != null)
+                    ElementTypeText.Text = $"Editing {_currentEditingElement.Type} | Real-time: {(_isRealTimeUpdateEnabled ? "ON" : "OFF")}";
+
+                // Update button states
+                var createElementButton = this.FindName("CreateElementButton") as System.Windows.Controls.Button;
+                var updateElementButton = this.FindName("UpdateElementButton") as System.Windows.Controls.Button;
+                if (createElementButton != null) createElementButton.IsEnabled = true;
+                if (updateElementButton != null) updateElementButton.IsEnabled = true;
             }
         }
-
-        #region Color Management
 
         private void UpdateColorPreviewsWithCurrentColor()
         {
@@ -452,7 +449,348 @@ namespace CMDevicesManager.Pages
                 TextColorPreview.Fill = brush;
             if (ShapeColorPreview != null)
                 ShapeColorPreview.Fill = brush;
+                
+            // Update color sliders to match selected color
+            _isUpdatingProperties = true;
+            try
+            {
+                if (TextColorRSlider != null) TextColorRSlider.Value = _selectedColor.R;
+                if (TextColorGSlider != null) TextColorGSlider.Value = _selectedColor.G;
+                if (TextColorBSlider != null) TextColorBSlider.Value = _selectedColor.B;
+                
+                if (ShapeColorRSlider != null) ShapeColorRSlider.Value = _selectedColor.R;
+                if (ShapeColorGSlider != null) ShapeColorGSlider.Value = _selectedColor.G;
+                if (ShapeColorBSlider != null) ShapeColorBSlider.Value = _selectedColor.B;
+                
+                UpdateTextColorLabels();
+                UpdateShapeColorLabels();
+            }
+            finally
+            {
+                _isUpdatingProperties = false;
+            }
         }
+
+        #endregion
+
+        private async void OnDesignerPageLoaded(object sender, RoutedEventArgs e)
+        {
+            await InitializeDesignerAsync();
+        }
+
+        private async Task InitializeDesignerAsync()
+        {
+            try
+            {
+                UpdateStatus("Initializing Design Studio...", false);
+
+                _renderService = new InteractiveWin2DRenderingService();
+                await _renderService.InitializeAsync(480, 480);
+
+                // Subscribe to events
+                _renderService.ImageRendered += OnFrameRendered;
+                _renderService.ElementSelected += OnElementSelected;
+                _renderService.ElementMoved += OnElementMoved;
+                _renderService.HidStatusChanged += OnStatusChanged;
+                _renderService.RenderingError += OnRenderingError;
+                _renderService.BackgroundChanged += OnBackgroundChanged;
+
+                await _renderService.ResetBackgroundToDefaultAsync();
+
+                UpdateElementsList();
+                UpdateColorPreviewsWithCurrentColor();
+                UpdateStatus("🎨 Design Studio ready - Create your first element!", false);
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Failed to initialize: {ex.Message}", true);
+            }
+        }
+
+        #region Unified Element Creation/Editing
+
+        private void CreateElementButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_renderService == null) return;
+
+            try
+            {
+                var elementTypeComboBox = this.FindName("ElementTypeComboBox") as System.Windows.Controls.ComboBox;
+                if (elementTypeComboBox?.SelectedItem is ComboBoxItem selectedItem)
+                {
+                    var elementType = selectedItem.Tag?.ToString() ?? "Text";
+                    
+                    switch (elementType)
+                    {
+                        case "Text":
+                            CreateTextElement();
+                            break;
+                        case "Image":
+                            CreateImageElement();
+                            break;
+                        case "Shape":
+                            CreateShapeElement();
+                            break;
+                        case "MotionText":
+                            CreateMotionTextElement();
+                            break;
+                        case "MotionShape":
+                            CreateMotionShapeElement();
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Failed to create element: {ex.Message}", true);
+            }
+        }
+
+        private void UpdateElementButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentEditingElement == null || _renderService == null)
+            {
+                UpdateStatus("No element selected for update", true);
+                return;
+            }
+
+            try
+            {
+                var properties = GatheringElementPropertiesFromUI();
+                _renderService.UpdateElementProperties(_currentEditingElement, properties);
+                
+                UpdateStatus($"✅ Updated {_currentEditingElement.Name}", false);
+                UpdateElementsList();
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Failed to update element: {ex.Message}", true);
+            }
+        }
+
+        private void CreateTextElement()
+        {
+            var text = string.IsNullOrWhiteSpace(TextContentTextBox.Text) ? "Sample Text" : TextContentTextBox.Text;
+            var position = GetPositionFromUI();
+            
+            var textElement = new TextElement($"Text_{++_elementCounter}")
+            {
+                Text = text,
+                Position = position,
+                Size = new WinFoundation.Size(200, 40),
+                FontSize = (float)(FontSizeSlider?.Value ?? 24),
+                FontFamily = GetSelectedFontFamily(),
+                TextColor = GetTextColor(),
+                IsDraggable = DraggableCheckBox?.IsChecked ?? true,
+                IsVisible = VisibleCheckBox?.IsChecked ?? true
+            };
+
+            _renderService.AddElement(textElement);
+            UpdateElementsList();
+            UpdateStatus($"✨ Created text element: {text}", false);
+        }
+
+        private void CreateImageElement()
+        {
+            if (string.IsNullOrEmpty(_selectedImagePath))
+            {
+                UpdateStatus("Please select an image first", true);
+                return;
+            }
+
+            // Image creation will be handled by the SelectImageButton_Click method
+            UpdateStatus("Image element creation in progress...", false);
+        }
+
+        private void CreateShapeElement()
+        {
+            var position = GetPositionFromUI();
+            var size = GetShapeSize();
+            
+            var shapeElement = new ShapeElement($"Shape_{++_elementCounter}")
+            {
+                ShapeType = GetSelectedShapeType(),
+                Position = position,
+                Size = size,
+                FillColor = GetShapeColor(),
+                StrokeColor = WinUIColor.FromArgb(255, 255, 255, 255),
+                StrokeWidth = 2,
+                IsDraggable = DraggableCheckBox?.IsChecked ?? true,
+                IsVisible = VisibleCheckBox?.IsChecked ?? true
+            };
+
+            _renderService.AddElement(shapeElement);
+            UpdateElementsList();
+            UpdateStatus($"✨ Created shape element", false);
+        }
+
+        private void CreateMotionTextElement()
+        {
+            var text = string.IsNullOrWhiteSpace(TextContentTextBox.Text) ? "Motion Text" : TextContentTextBox.Text;
+            var position = GetPositionFromUI();
+            
+            var motionConfig = GetMotionConfig();
+            var textConfig = new TextElementConfig
+            {
+                FontSize = (float)(FontSizeSlider?.Value ?? 24),
+                TextColor = GetTextColor(),
+                IsDraggable = DraggableCheckBox?.IsChecked ?? true
+            };
+
+            var elementIndex = _renderService.AddTextElementWithMotion(text, position, motionConfig, textConfig);
+            
+            if (elementIndex >= 0)
+            {
+                UpdateElementsList();
+                UpdateStatus($"✨ Created motion text element: {text}", false);
+            }
+        }
+
+        private void CreateMotionShapeElement()
+        {
+            var position = GetPositionFromUI();
+            var size = GetShapeSize();
+            var motionConfig = GetMotionConfig();
+            
+            int elementIndex;
+            if (GetSelectedShapeType() == ShapeType.Circle)
+            {
+                var radius = (float)(Math.Min(size.Width, size.Height) / 2);
+                elementIndex = _renderService.AddCircleElementWithMotion(position, radius, GetShapeColor(), motionConfig);
+            }
+            else
+            {
+                elementIndex = _renderService.AddRectangleElementWithMotion(position, size, GetShapeColor(), motionConfig);
+            }
+            
+            if (elementIndex >= 0)
+            {
+                UpdateElementsList();
+                UpdateStatus($"✨ Created motion shape element", false);
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods for Element Creation
+
+        private WinFoundation.Point GetPositionFromUI()
+        {
+            var x = double.TryParse(PositionXTextBox.Text, out var posX) ? posX : 100;
+            var y = double.TryParse(PositionYTextBox.Text, out var posY) ? posY : 100;
+            return new WinFoundation.Point(x, y);
+        }
+
+        private string GetSelectedFontFamily()
+        {
+            if (FontFamilyComboBox?.SelectedItem is ComboBoxItem selectedFont)
+                return selectedFont.Content?.ToString() ?? "Segoe UI";
+            return "Segoe UI";
+        }
+
+        private WinUIColor GetTextColor()
+        {
+            var r = (byte)(TextColorRSlider?.Value ?? 0);
+            var g = (byte)(TextColorGSlider?.Value ?? 0);
+            var b = (byte)(TextColorBSlider?.Value ?? 0);
+            return WinUIColor.FromArgb(255, r, g, b);
+        }
+
+        private ShapeType GetSelectedShapeType()
+        {
+            return (ShapeType)(ShapeTypeComboBox?.SelectedIndex ?? 0);
+        }
+
+        private WinFoundation.Size GetShapeSize()
+        {
+            var width = ShapeWidthSlider?.Value ?? 60;
+            var height = ShapeHeightSlider?.Value ?? 60;
+            return new WinFoundation.Size(width, height);
+        }
+
+        private WinUIColor GetShapeColor()
+        {
+            var r = (byte)(ShapeColorRSlider?.Value ?? 173);
+            var g = (byte)(ShapeColorGSlider?.Value ?? 216);
+            var b = (byte)(ShapeColorBSlider?.Value ?? 230);
+            return WinUIColor.FromArgb(255, r, g, b);
+        }
+
+        private ElementMotionConfig GetMotionConfig()
+        {
+            var motionType = MotionType.None;
+            if (MotionTypeComboBox?.SelectedItem is string motionTypeStr)
+            {
+                Enum.TryParse<MotionType>(motionTypeStr, out motionType);
+            }
+
+            var position = GetPositionFromUI();
+            
+            return new ElementMotionConfig
+            {
+                MotionType = motionType,
+                Speed = (float)(MotionSpeedSlider?.Value ?? 100),
+                Direction = GetRandomDirection(),
+                Center = new Vector2((float)position.X, (float)position.Y),
+                Radius = 50f,
+                RespectBoundaries = true,
+                ShowTrail = ShowTrailCheckBox?.IsChecked ?? false,
+                IsPaused = MotionPausedCheckBox?.IsChecked ?? false
+            };
+        }
+
+        #endregion
+
+        #region Image Selection
+
+        private async void SelectImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            var openDialog = new OpenFileDialog
+            {
+                Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif",
+                Title = "Select Image for Element"
+            };
+
+            if (openDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    _selectedImagePath = openDialog.FileName;
+                    
+                    if (_renderService != null)
+                    {
+                        var imageKey = await _renderService.LoadImageAsync(openDialog.FileName);
+                        var position = GetPositionFromUI();
+                        var size = new WinFoundation.Size(
+                            ImageScaleSlider?.Value * 100 ?? 100,
+                            ImageScaleSlider?.Value * 100 ?? 100);
+
+                        var imageElement = new ImageElement($"Image_{++_elementCounter}")
+                        {
+                            ImagePath = imageKey,
+                            Position = position,
+                            Size = size,
+                            Scale = (float)(ImageScaleSlider?.Value ?? 1.0),
+                            Rotation = (float)(ImageRotationSlider?.Value ?? 0.0),
+                            IsDraggable = DraggableCheckBox?.IsChecked ?? true,
+                            IsVisible = VisibleCheckBox?.IsChecked ?? true
+                        };
+
+                        _renderService.AddElement(imageElement);
+                        UpdateElementsList();
+                        UpdateStatus($"✨ Created image element: {Path.GetFileName(openDialog.FileName)}", false);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatus($"Failed to load image: {ex.Message}", true);
+                }
+            }
+        }
+
+        #endregion
+
+        #region Color Management
 
         private void CustomColorButton_Click(object sender, RoutedEventArgs e)
         {
@@ -503,6 +841,7 @@ namespace CMDevicesManager.Pages
             
             _selectedColor = WinUIColor.FromArgb(255, r, g, b);
             UpdateColorPreviewsWithCurrentColor();
+            ApplyRealTimePropertyUpdate();
             
             if (ColorPickerOverlay != null)
                 ColorPickerOverlay.Visibility = Visibility.Collapsed;
@@ -525,7 +864,6 @@ namespace CMDevicesManager.Pages
             if (FontSizeValueLabel != null)
                 FontSizeValueLabel.Text = ((int)e.NewValue).ToString();
             
-            // Apply real-time update for font size changes
             if (!_isUpdatingProperties)
                 ApplyRealTimePropertyUpdate();
         }
@@ -537,7 +875,6 @@ namespace CMDevicesManager.Pages
             if (ShapeHeightLabel != null && ShapeHeightSlider != null)
                 ShapeHeightLabel.Text = ((int)ShapeHeightSlider.Value).ToString();
             
-            // Apply real-time update for shape size changes
             if (!_isUpdatingProperties)
                 ApplyRealTimePropertyUpdate();
         }
@@ -545,9 +882,8 @@ namespace CMDevicesManager.Pages
         private void ImageScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             if (ImageScaleLabel != null)
-                ImageScaleLabel.Text = e.NewValue.ToString("F1");
+                ImageScaleLabel.Text = e.NewValue.ToString("F1") + "x";
             
-            // Apply real-time update for image scale changes
             if (!_isUpdatingProperties)
                 ApplyRealTimePropertyUpdate();
         }
@@ -557,7 +893,6 @@ namespace CMDevicesManager.Pages
             if (ImageRotationLabel != null)
                 ImageRotationLabel.Text = $"{(int)e.NewValue}°";
             
-            // Apply real-time update for image rotation changes
             if (!_isUpdatingProperties)
                 ApplyRealTimePropertyUpdate();
         }
@@ -567,7 +902,6 @@ namespace CMDevicesManager.Pages
             if (MotionSpeedLabel != null)
                 MotionSpeedLabel.Text = ((int)e.NewValue).ToString();
             
-            // Apply real-time update for motion speed changes
             if (!_isUpdatingProperties)
                 ApplyRealTimePropertyUpdate();
         }
@@ -577,7 +911,6 @@ namespace CMDevicesManager.Pages
             UpdateTextColorPreview();
             UpdateTextColorLabels();
             
-            // Apply real-time update for text color changes
             if (!_isUpdatingProperties)
                 ApplyRealTimePropertyUpdate();
         }
@@ -610,7 +943,6 @@ namespace CMDevicesManager.Pages
             UpdateShapeColorPreview();
             UpdateShapeColorLabels();
             
-            // Apply real-time update for shape color changes
             if (!_isUpdatingProperties)
                 ApplyRealTimePropertyUpdate();
         }
@@ -673,13 +1005,16 @@ namespace CMDevicesManager.Pages
                     }
                 }
 
-                UpdateElementProperties(element);
+                // Switch to edit mode for the selected element
+                _isCreatingNewElement = false;
+                _currentEditingElement = element;
+                UpdateElementPropertiesFromElement(element);
+                UpdateElementInfo();
             });
         }
 
         private void OnElementMoved(RenderElement element)
         {
-            // Update position fields if this is the currently selected element
             if (_currentEditingElement == element)
             {
                 UpdateElementPositionFields(element);
@@ -711,16 +1046,13 @@ namespace CMDevicesManager.Pages
 
             try
             {
-                // Enable HID transfer and start auto-rendering with built-in render tick
                 await _renderService.EnableHidTransfer(true, useSuspendMedia: false);
-
-                // Enable real-time display mode on HID devices
                 await _renderService.EnableHidRealTimeDisplayAsync(true);
-
                 _renderService.StartAutoRendering(_renderService.TargetFPS);
+                
                 StartRenderingButton.IsEnabled = false;
                 StopRenderingButton.IsEnabled = true;
-                UpdateStatus("Rendering started - Real-time updates active", false);
+                UpdateStatus("🎬 Rendering started - Live preview active!", false);
             }
             catch (Exception ex)
             {
@@ -737,9 +1069,10 @@ namespace CMDevicesManager.Pages
                 _renderService.StopAutoRendering();
                 await _renderService.EnableHidTransfer(false);
                 await _renderService.EnableHidRealTimeDisplayAsync(false);
+                
                 StartRenderingButton.IsEnabled = true;
                 StopRenderingButton.IsEnabled = false;
-                UpdateStatus("Rendering stopped", false);
+                UpdateStatus("⏸️ Rendering stopped", false);
                 RenderInfoLabel.Text = "Rendering stopped";
             }
             catch (Exception ex)
@@ -754,15 +1087,20 @@ namespace CMDevicesManager.Pages
 
             _renderService.ClearElements();
             UpdateElementsList();
-            ClearElementProperties();
+            
+            // Switch back to creation mode
+            _isCreatingNewElement = true;
+            _currentEditingElement = null;
+            UpdateElementInfo();
+            
             _elementCounter = 0;
-            UpdateStatus("Canvas cleared", false);
+            UpdateStatus("🗑️ Canvas cleared", false);
         }
 
         private void FpsSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             var fps = (int)e.NewValue;
-            if (FpsLabel != null) FpsLabel.Text = fps.ToString();
+            if (FpsLabel != null) FpsLabel.Text = fps + " FPS";
             if (FpsDisplayLabel != null) FpsDisplayLabel.Text = $"FPS: {fps}";
 
             if (_renderService != null)
@@ -777,97 +1115,7 @@ namespace CMDevicesManager.Pages
 
         #endregion
 
-        #region Add Elements
-
-        private void AddTextButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_renderService == null) return;
-
-            var text = string.IsNullOrWhiteSpace(NewTextContent.Text) ? "Sample Text" : NewTextContent.Text;
-            var position = new WinFoundation.Point(50 + (_elementCounter * 20) % 300, 50 + (_elementCounter * 20) % 300);
-
-            var textElement = new TextElement($"Text_{++_elementCounter}")
-            {
-                Text = text,
-                Position = position,
-                Size = new WinFoundation.Size(200, 40),
-                FontSize =(float)(FontSizeSlider?.Value ?? 24),
-                TextColor = _selectedColor,
-                IsDraggable = true,
-                IsVisible = true
-            };
-
-            _renderService.AddElement(textElement);
-            UpdateElementsList();
-            UpdateStatus($"Added text element: {text} (Real-time editing enabled)", false);
-        }
-
-        private async void AddImageButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_renderService == null) return;
-
-            var openDialog = new OpenFileDialog
-            {
-                Filter = "Image Files|*.jpg;*.jpeg;*.png;*.bmp;*.gif",
-                Title = "Select Image"
-            };
-
-            if (openDialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var imageKey = await _renderService.LoadImageAsync(openDialog.FileName);
-                    var position = new WinFoundation.Point(100 + (_elementCounter * 25) % 250, 100 + (_elementCounter * 25) % 250);
-                    var size = (int)(DefaultElementSizeSlider?.Value ?? 80);
-
-                    var imageElement = new ImageElement($"Image_{++_elementCounter}")
-                    {
-                        ImagePath = imageKey,
-                        Position = position,
-                        Size = new WinFoundation.Size(size, size),
-                        Scale = 1.0f,
-                        IsDraggable = true,
-                        IsVisible = true
-                    };
-
-                    _renderService.AddElement(imageElement);
-                    UpdateElementsList();
-                    UpdateStatus($"Added image element: {Path.GetFileName(openDialog.FileName)} (Real-time editing enabled)", false);
-                }
-                catch (Exception ex)
-                {
-                    UpdateStatus($"Failed to add image: {ex.Message}", true);
-                }
-            }
-        }
-
-        private void AddShapeButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_renderService == null) return;
-
-            var position = new WinFoundation.Point(150 + (_elementCounter * 30) % 200, 150 + (_elementCounter * 30) % 200);
-            var size = (int)(DefaultElementSizeSlider?.Value ?? 60);
-
-            var shapeElement = new ShapeElement($"Shape_{++_elementCounter}")
-            {
-                ShapeType = ShapeType.Circle,
-                Position = position,
-                Size = new WinFoundation.Size(size, size),
-                FillColor = _selectedColor,
-                StrokeColor = WinUIColor.FromArgb(255, 255, 255, 255),
-                StrokeWidth = 2,
-                IsDraggable = true,
-                IsVisible = true
-            };
-
-            _renderService.AddElement(shapeElement);
-            UpdateElementsList();
-            UpdateStatus($"Added shape element (Real-time editing enabled)", false);
-        }
-
-        #endregion
-
-        #region Motion Elements
+        #region Quick Motion Elements
 
         private void AddBouncingBallButton_Click(object sender, RoutedEventArgs e)
         {
@@ -885,13 +1133,12 @@ namespace CMDevicesManager.Pages
                 TrailLength = 15
             };
 
-            var elementIndex = _renderService.AddCircleElementWithMotion(
-                position, 12f, _selectedColor, motionConfig);
+            var elementIndex = _renderService.AddCircleElementWithMotion(position, 12f, _selectedColor, motionConfig);
 
             if (elementIndex >= 0)
             {
                 UpdateElementsList();
-                UpdateStatus($"Added bouncing ball (Real-time motion editing enabled)", false);
+                UpdateStatus($"🏀 Added bouncing ball", false);
             }
         }
 
@@ -899,8 +1146,8 @@ namespace CMDevicesManager.Pages
         {
             if (_renderService == null) return;
 
-            var text = string.IsNullOrWhiteSpace(NewTextContent.Text) ? "Rotating Text" : NewTextContent.Text;
-            var center = new WinFoundation.Point(240, 240); // Canvas center
+            var text = string.IsNullOrWhiteSpace(TextContentTextBox.Text) ? "Rotating Text" : TextContentTextBox.Text;
+            var center = new WinFoundation.Point(240, 240);
 
             var motionConfig = new ElementMotionConfig
             {
@@ -924,7 +1171,7 @@ namespace CMDevicesManager.Pages
             if (elementIndex >= 0)
             {
                 UpdateElementsList();
-                UpdateStatus($"Added rotating text (Real-time motion editing enabled)", false);
+                UpdateStatus($"🔄 Added rotating text", false);
             }
         }
 
@@ -946,56 +1193,25 @@ namespace CMDevicesManager.Pages
             };
 
             var size = new WinFoundation.Size(30, 30);
-
             var elementIndex = _renderService.AddRectangleElementWithMotion(position, size, _selectedColor, motionConfig);
 
             if (elementIndex >= 0)
             {
                 UpdateElementsList();
-                UpdateStatus($"Added oscillating shape (Real-time motion editing enabled)", false);
+                UpdateStatus($"〰️ Added oscillating shape", false);
             }
-        }
-
-        private void ConvertToMotionButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_renderService == null || ElementsListBox.SelectedIndex < 0) return;
-
-            var elements = _renderService.GetElements();
-            if (ElementsListBox.SelectedIndex >= elements.Count) return;
-
-            var selectedElement = elements[ElementsListBox.SelectedIndex];
-
-            if (selectedElement is IMotionElement)
-            {
-                UpdateStatus("Element already has motion", false);
-                return;
-            }
-
-            // Create a simple motion configuration
-            var motionConfig = new ElementMotionConfig
-            {
-                MotionType = MotionType.Oscillate,
-                Speed = 1.5f,
-                Direction = Vector2.UnitX,
-                Center = new Vector2((float)selectedElement.Position.X, (float)selectedElement.Position.Y),
-                Radius = 30f
-            };
-
-            _renderService.SetElementMotion(selectedElement, motionConfig);
-            UpdateElementsList();
-            UpdateStatus("Converted element to motion (Real-time motion editing enabled)", false);
         }
 
         private void PauseAllMotionButton_Click(object sender, RoutedEventArgs e)
         {
             _renderService?.PauseAllMotion();
-            UpdateStatus("All motion paused", false);
+            UpdateStatus("⏸️ All motion paused", false);
         }
 
         private void ResumeAllMotionButton_Click(object sender, RoutedEventArgs e)
         {
             _renderService?.ResumeAllMotion();
-            UpdateStatus("All motion resumed", false);
+            UpdateStatus("▶️ All motion resumed", false);
         }
 
         #endregion
@@ -1014,10 +1230,10 @@ namespace CMDevicesManager.Pages
 
             var gradients = new[]
             {
-                (WinUIColor.FromArgb(255, 64, 0, 128), WinUIColor.FromArgb(255, 0, 64, 128)),   // Purple to Blue
-                (WinUIColor.FromArgb(255, 128, 64, 0), WinUIColor.FromArgb(255, 255, 128, 0)),  // Brown to Orange
-                (WinUIColor.FromArgb(255, 0, 64, 0), WinUIColor.FromArgb(255, 0, 128, 64)),     // Dark Green to Green
-                (_selectedColor, WinUIColor.FromArgb(255, 32, 32, 32)),   // Selected color to dark
+                (WinUIColor.FromArgb(255, 64, 0, 128), WinUIColor.FromArgb(255, 0, 64, 128)),
+                (WinUIColor.FromArgb(255, 128, 64, 0), WinUIColor.FromArgb(255, 255, 128, 0)),
+                (WinUIColor.FromArgb(255, 0, 64, 0), WinUIColor.FromArgb(255, 0, 128, 64)),
+                (_selectedColor, WinUIColor.FromArgb(255, 32, 32, 32)),
             };
 
             var (startColor, endColor) = gradients[_random.Next(gradients.Length)];
@@ -1058,7 +1274,8 @@ namespace CMDevicesManager.Pages
         private void BackgroundOpacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             var opacity = e.NewValue;
-            if (BackgroundOpacityLabel != null) BackgroundOpacityLabel.Text = opacity.ToString("F2");
+            if (BackgroundOpacityLabel != null) 
+                BackgroundOpacityLabel.Text = opacity.ToString("F2");
 
             if (_renderService != null)
             {
@@ -1093,7 +1310,10 @@ namespace CMDevicesManager.Pages
             else
             {
                 _renderService.SelectElement(null);
-                ClearElementProperties();
+                // Switch back to creation mode when clicking empty space
+                _isCreatingNewElement = true;
+                _currentEditingElement = null;
+                UpdateElementInfo();
             }
 
             UpdateMousePosition(position);
@@ -1139,8 +1359,6 @@ namespace CMDevicesManager.Pages
 
         private WinFoundation.Point ScalePointToCanvas(Point displayPoint)
         {
-            // Since we're using a fixed 480x480 canvas and the Image control is also 480x480,
-            // the scaling should be 1:1
             return new WinFoundation.Point(displayPoint.X, displayPoint.Y);
         }
 
@@ -1171,7 +1389,6 @@ namespace CMDevicesManager.Pages
             else
             {
                 _renderService?.SelectElement(null);
-                ClearElementProperties();
                 DeleteElementButton.IsEnabled = false;
             }
         }
@@ -1186,50 +1403,45 @@ namespace CMDevicesManager.Pages
                     var element = elements[ElementsListBox.SelectedIndex];
                     _renderService.RemoveElement(element);
                     UpdateElementsList();
-                    ClearElementProperties();
-                    UpdateStatus("Element deleted", false);
+                    
+                    // Switch back to creation mode
+                    _isCreatingNewElement = true;
+                    _currentEditingElement = null;
+                    UpdateElementInfo();
+                    
+                    UpdateStatus("🗑️ Element deleted", false);
                 }
             }
         }
 
-        private void UpdateElementsList()
-        {
-            if (_renderService == null || ElementsListBox == null) return;
-
-            var elements = _renderService.GetElements();
-            ElementsListBox.ItemsSource = elements.Select(e =>
-            {
-                var motionInfo = e is IMotionElement motionElement ? $" [{motionElement.MotionConfig.MotionType}]" : "";
-                var rtInfo = _isRealTimeUpdateEnabled ? " [RT]" : "";
-                return $"{e.Name} ({e.Type}){motionInfo}{rtInfo}";
-            }).ToList();
-
-            ElementCountLabel.Text = $"Elements: {elements.Count} (Real-time: {(_isRealTimeUpdateEnabled ? "ON" : "OFF")})";
-        }
-
         #endregion
 
-        #region Element Properties
+        #region Element Properties Management
 
-        private void UpdateElementProperties(RenderElement? element)
+        private void UpdateElementPropertiesFromElement(RenderElement element)
         {
             _isUpdatingProperties = true;
-            _currentEditingElement = element;
-
+            
             try
             {
-                if (element == null)
+                // Set element type in combo box
+                var elementTypeTag = GetElementTypeTag(element);
+                var elementTypeComboBox = this.FindName("ElementTypeComboBox") as System.Windows.Controls.ComboBox;
+                if (elementTypeComboBox != null)
                 {
-                    ClearElementProperties();
-                    return;
+                    for (int i = 0; i < elementTypeComboBox.Items.Count; i++)
+                    {
+                        if (elementTypeComboBox.Items[i] is ComboBoxItem item && 
+                            item.Tag?.ToString() == elementTypeTag)
+                        {
+                            elementTypeComboBox.SelectedIndex = i;
+                            break;
+                        }
+                    }
                 }
 
-                ShowElementProperties();
-
-                // Update element info
-                ElementNameText.Text = element.Name;
-                ElementTypeText.Text = $"Type: {element.Type} | ID: {element.Id.ToString()[..8]}... | Real-time: {(_isRealTimeUpdateEnabled ? "ON" : "OFF")}";
-                RenderInfoLabel.Text = $"Rendering at {_renderService?.TargetFPS ?? 30} FPS";
+                // Update property visibility
+                UpdatePropertyVisibility();
 
                 // Update common properties
                 PositionXTextBox.Text = element.Position.X.ToString("F1");
@@ -1237,30 +1449,24 @@ namespace CMDevicesManager.Pages
                 VisibleCheckBox.IsChecked = element.IsVisible;
                 DraggableCheckBox.IsChecked = element.IsDraggable;
 
-                // Hide all specific property panels
-                TextPropertiesPanel.Visibility = Visibility.Collapsed;
-                ImagePropertiesPanel.Visibility = Visibility.Collapsed;
-                ShapePropertiesPanel.Visibility = Visibility.Collapsed;
-                MotionPropertiesPanel.Visibility = Visibility.Collapsed;
-
-                // Show element-specific properties
+                // Update element-specific properties
                 switch (element)
                 {
                     case TextElement textElement:
-                        UpdateTextElementProperties(textElement);
+                        UpdateTextElementPropertiesFromElement(textElement);
                         break;
                     case ImageElement imageElement:
-                        UpdateImageElementProperties(imageElement);
+                        UpdateImageElementPropertiesFromElement(imageElement);
                         break;
                     case ShapeElement shapeElement:
-                        UpdateShapeElementProperties(shapeElement);
+                        UpdateShapeElementPropertiesFromElement(shapeElement);
                         break;
                 }
 
-                // Show motion properties if applicable
+                // Update motion properties if applicable
                 if (element is IMotionElement motionElement)
                 {
-                    UpdateMotionElementProperties(motionElement);
+                    UpdateMotionElementPropertiesFromElement(motionElement);
                 }
             }
             finally
@@ -1269,28 +1475,21 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        private void ClearElementProperties()
+        private string GetElementTypeTag(RenderElement element)
         {
-            NoSelectionText.Visibility = Visibility.Visible;
-            CommonPropertiesPanel.Visibility = Visibility.Collapsed;
-            TextPropertiesPanel.Visibility = Visibility.Collapsed;
-            ImagePropertiesPanel.Visibility = Visibility.Collapsed;
-            ShapePropertiesPanel.Visibility = Visibility.Collapsed;
-            MotionPropertiesPanel.Visibility = Visibility.Collapsed;
-            PropertyButtonsPanel.Visibility = Visibility.Collapsed;
-            DeleteElementButton.IsEnabled = false;
+            return element switch
+            {
+                IMotionElement when element is TextElement => "MotionText",
+                IMotionElement when element is ShapeElement => "MotionShape", 
+                TextElement => "Text",
+                ImageElement => "Image",
+                ShapeElement => "Shape",
+                _ => "Text"
+            };
         }
 
-        private void ShowElementProperties()
+        private void UpdateTextElementPropertiesFromElement(TextElement element)
         {
-            NoSelectionText.Visibility = Visibility.Collapsed;
-            CommonPropertiesPanel.Visibility = Visibility.Visible;
-            PropertyButtonsPanel.Visibility = Visibility.Visible;
-        }
-
-        private void UpdateTextElementProperties(TextElement element)
-        {
-            TextPropertiesPanel.Visibility = Visibility.Visible;
             TextContentTextBox.Text = element.Text;
             if (FontSizeSlider != null) FontSizeSlider.Value = element.FontSize;
             
@@ -1298,7 +1497,8 @@ namespace CMDevicesManager.Pages
             var fontFamily = element.FontFamily;
             for (int i = 0; i < FontFamilyComboBox.Items.Count; i++)
             {
-                if (((ComboBoxItem)FontFamilyComboBox.Items[i]).Content.ToString() == fontFamily)
+                if (FontFamilyComboBox.Items[i] is ComboBoxItem item &&
+                    item.Content?.ToString() == fontFamily)
                 {
                     FontFamilyComboBox.SelectedIndex = i;
                     break;
@@ -1313,18 +1513,14 @@ namespace CMDevicesManager.Pages
             UpdateTextColorPreview();
         }
 
-        private void UpdateImageElementProperties(ImageElement element)
+        private void UpdateImageElementPropertiesFromElement(ImageElement element)
         {
-            ImagePropertiesPanel.Visibility = Visibility.Visible;
             if (ImageScaleSlider != null) ImageScaleSlider.Value = element.Scale;
             if (ImageRotationSlider != null) ImageRotationSlider.Value = element.Rotation;
         }
 
-        private void UpdateShapeElementProperties(ShapeElement element)
+        private void UpdateShapeElementPropertiesFromElement(ShapeElement element)
         {
-            ShapePropertiesPanel.Visibility = Visibility.Visible;
-            
-            // Set shape type
             ShapeTypeComboBox.SelectedIndex = (int)element.ShapeType;
             
             if (ShapeWidthSlider != null) ShapeWidthSlider.Value = element.Size.Width;
@@ -1338,11 +1534,19 @@ namespace CMDevicesManager.Pages
             UpdateShapeColorPreview();
         }
 
-        private void UpdateMotionElementProperties(IMotionElement element)
+        private void UpdateMotionElementPropertiesFromElement(IMotionElement element)
         {
-            MotionPropertiesPanel.Visibility = Visibility.Visible;
+            // Find and select the motion type
+            var motionType = element.MotionConfig.MotionType.ToString();
+            for (int i = 0; i < MotionTypeComboBox.Items.Count; i++)
+            {
+                if (MotionTypeComboBox.Items[i].ToString() == motionType)
+                {
+                    MotionTypeComboBox.SelectedIndex = i;
+                    break;
+                }
+            }
             
-            MotionTypeComboBox.SelectedItem = element.MotionConfig.MotionType.ToString();
             if (MotionSpeedSlider != null) MotionSpeedSlider.Value = element.MotionConfig.Speed;
             ShowTrailCheckBox.IsChecked = element.MotionConfig.ShowTrail;
             MotionPausedCheckBox.IsChecked = element.MotionConfig.IsPaused;
@@ -1364,60 +1568,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        private void ElementProperty_Changed(object sender, RoutedEventArgs e)
-        {
-            // For compatibility with manual mode - properties are now handled by real-time system
-            if (!_isRealTimeUpdateEnabled)
-            {
-                // Properties are staged but not applied until Apply is clicked (legacy behavior)
-            }
-        }
-
-        /// <summary>
-        /// Manual apply changes button - now shows informational message about real-time mode
-        /// </summary>
-        private void ApplyChangesButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_isRealTimeUpdateEnabled)
-            {
-                UpdateStatus("Real-time updates are enabled - changes apply automatically!", false);
-                return;
-            }
-
-            if (_currentEditingElement == null || _renderService == null)
-            {
-                UpdateStatus("No element selected for editing", true);
-                return;
-            }
-
-            try
-            {
-                var properties = GatherElementPropertiesFromUI();
-                _renderService.UpdateElementProperties(_currentEditingElement, properties);
-                
-                UpdateStatus("Element changes applied manually", false);
-                UpdateElementsList();
-                UpdateElementProperties(_currentEditingElement); // Refresh with updated values
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Error applying changes: {ex.Message}", true);
-            }
-        }
-
-        private void ResetChangesButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_currentEditingElement == null)
-            {
-                UpdateStatus("No element selected for reset", true);
-                return;
-            }
-
-            UpdateElementProperties(_currentEditingElement);
-            UpdateStatus("Properties reset to current values", false);
-        }
-
-        private Dictionary<string, object> GatherElementPropertiesFromUI()
+        private Dictionary<string, object> GatheringElementPropertiesFromUI()
         {
             var properties = new Dictionary<string, object>();
 
@@ -1430,8 +1581,8 @@ namespace CMDevicesManager.Pages
                     properties["Position"] = new WinFoundation.Point(posX, posY);
                 }
 
-                properties["IsVisible"] = VisibleCheckBox.IsChecked ?? true;
-                properties["IsDraggable"] = DraggableCheckBox.IsChecked ?? true;
+                properties["IsVisible"] = VisibleCheckBox?.IsChecked ?? true;
+                properties["IsDraggable"] = DraggableCheckBox?.IsChecked ?? true;
 
                 // Element-specific properties
                 if (_currentEditingElement != null)
@@ -1470,15 +1621,9 @@ namespace CMDevicesManager.Pages
             properties["FontSize"] = (float)(FontSizeSlider?.Value ?? 24);
 
             if (FontFamilyComboBox.SelectedItem is ComboBoxItem selectedFont)
-                properties["FontFamily"] = selectedFont.Content.ToString();
+                properties["FontFamily"] = selectedFont.Content?.ToString() ?? "Segoe UI";
 
-            if (TextColorRSlider != null && TextColorGSlider != null && TextColorBSlider != null)
-            {
-                var r = (byte)TextColorRSlider.Value;
-                var g = (byte)TextColorGSlider.Value;
-                var b = (byte)TextColorBSlider.Value;
-                properties["TextColor"] = WinUIColor.FromArgb(255, r, g, b);
-            }
+            properties["TextColor"] = GetTextColor();
         }
 
         private void GatherImageElementProperties(Dictionary<string, object> properties)
@@ -1489,21 +1634,9 @@ namespace CMDevicesManager.Pages
 
         private void GatherShapeElementProperties(Dictionary<string, object> properties)
         {
-            if (ShapeTypeComboBox.SelectedIndex >= 0)
-                properties["ShapeType"] = (ShapeType)ShapeTypeComboBox.SelectedIndex;
-
-            if (ShapeWidthSlider != null && ShapeHeightSlider != null)
-            {
-                properties["Size"] = new WinFoundation.Size(ShapeWidthSlider.Value, ShapeHeightSlider.Value);
-            }
-
-            if (ShapeColorRSlider != null && ShapeColorGSlider != null && ShapeColorBSlider != null)
-            {
-                var r = (byte)ShapeColorRSlider.Value;
-                var g = (byte)ShapeColorGSlider.Value;
-                var b = (byte)ShapeColorBSlider.Value;
-                properties["FillColor"] = WinUIColor.FromArgb(255, r, g, b);
-            }
+            properties["ShapeType"] = GetSelectedShapeType();
+            properties["Size"] = GetShapeSize();
+            properties["FillColor"] = GetShapeColor();
         }
 
         private void GatherMotionElementProperties(Dictionary<string, object> properties)
@@ -1512,9 +1645,9 @@ namespace CMDevicesManager.Pages
                 Enum.TryParse<MotionType>(motionTypeStr, out var motionType))
                 properties["MotionType"] = motionType;
 
-            properties["Speed"] = (float)MotionSpeedSlider.Value;
-            properties["ShowTrail"] = ShowTrailCheckBox.IsChecked ?? false;
-            properties["IsPaused"] = MotionPausedCheckBox.IsChecked ?? false;
+            properties["Speed"] = (float)(MotionSpeedSlider?.Value ?? 100);
+            properties["ShowTrail"] = ShowTrailCheckBox?.IsChecked ?? false;
+            properties["IsPaused"] = MotionPausedCheckBox?.IsChecked ?? false;
         }
 
         #endregion
@@ -1537,7 +1670,7 @@ namespace CMDevicesManager.Pages
                 try
                 {
                     await _renderService.SaveRenderedImageAsync(saveDialog.FileName);
-                    UpdateStatus($"Image saved: {Path.GetFileName(saveDialog.FileName)}", false);
+                    UpdateStatus($"💾 Image saved: {Path.GetFileName(saveDialog.FileName)}", false);
                 }
                 catch (Exception ex)
                 {
@@ -1563,7 +1696,7 @@ namespace CMDevicesManager.Pages
                 {
                     var sceneData = await _renderService.ExportSceneToJsonAsync();
                     await File.WriteAllTextAsync(saveDialog.FileName, sceneData);
-                    UpdateStatus($"Scene exported: {Path.GetFileName(saveDialog.FileName)}", false);
+                    UpdateStatus($"📤 Scene exported: {Path.GetFileName(saveDialog.FileName)}", false);
                 }
                 catch (Exception ex)
                 {
@@ -1594,8 +1727,10 @@ namespace CMDevicesManager.Pages
                         if (success)
                         {
                             UpdateElementsList();
-                            ClearElementProperties();
-                            UpdateStatus($"Scene imported: {Path.GetFileName(openDialog.FileName)} (Real-time editing enabled)", false);
+                            _isCreatingNewElement = true;
+                            _currentEditingElement = null;
+                            UpdateElementInfo();
+                            UpdateStatus($"📥 Scene imported: {Path.GetFileName(openDialog.FileName)}", false);
                         }
                         else
                         {
@@ -1637,11 +1772,8 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                // Stop debounce timer
                 _textUpdateDebounceTimer?.Stop();
                 _textUpdateDebounceTimer = null;
-
-                // Stop rendering service
                 _renderService?.StopAutoRendering();
                 _renderService?.Dispose();
             }
@@ -1650,5 +1782,71 @@ namespace CMDevicesManager.Pages
                 UpdateStatus($"Cleanup error: {ex.Message}", true);
             }
         }
+
+        #region Missing Essential Methods
+
+        private void UpdateElementsList()
+        {
+            if (_renderService == null || ElementsListBox == null) return;
+
+            var elements = _renderService.GetElements();
+            ElementsListBox.ItemsSource = elements.Select(e =>
+            {
+                var motionInfo = e is IMotionElement motionElement ? $" ⚡{motionElement.MotionConfig.MotionType}" : "";
+                var rtInfo = _isRealTimeUpdateEnabled ? " 🔴" : "";
+                return $"{e.Name}{motionInfo}{rtInfo}";
+            }).ToList();
+
+            ElementCountLabel.Text = $"Elements: {elements.Count} {(_isRealTimeUpdateEnabled ? "🔴 LIVE" : "⚫ MANUAL")}";
+        }
+
+        private Dictionary<string, object> GatherElementPropertiesFromUI()
+        {
+            var properties = new Dictionary<string, object>();
+
+            try
+            {
+                // Common properties
+                if (double.TryParse(PositionXTextBox.Text, out var posX) &&
+                    double.TryParse(PositionYTextBox.Text, out var posY))
+                {
+                    properties["Position"] = new WinFoundation.Point(posX, posY);
+                }
+
+                properties["IsVisible"] = VisibleCheckBox?.IsChecked ?? true;
+                properties["IsDraggable"] = DraggableCheckBox?.IsChecked ?? true;
+
+                // Element-specific properties
+                if (_currentEditingElement != null)
+                {
+                    switch (_currentEditingElement)
+                    {
+                        case TextElement:
+                            GatherTextElementProperties(properties);
+                            break;
+                        case ImageElement:
+                            GatherImageElementProperties(properties);
+                            break;
+                        case ShapeElement:
+                            GatherShapeElementProperties(properties);
+                            break;
+                    }
+
+                    // Motion properties
+                    if (_currentEditingElement is IMotionElement)
+                    {
+                        GatherMotionElementProperties(properties);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error gathering properties: {ex.Message}", true);
+            }
+
+            return properties;
+        }
+
+        #endregion
     }
 }
