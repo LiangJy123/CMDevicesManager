@@ -701,11 +701,11 @@ namespace CMDevicesManager.Pages
             {
                 if (_interactiveService != null)
                 {
-                    // Enable HID transfer and start auto-rendering with built-in render tick
-                    await _interactiveService.EnableHidTransfer(true, useSuspendMedia: false);
+                    //// Enable HID transfer and start auto-rendering with built-in render tick
+                    //await _interactiveService.EnableHidTransfer(true, useSuspendMedia: false);
                     
-                    // Enable real-time display mode on HID devices
-                    await _interactiveService.EnableHidRealTimeDisplayAsync(true);
+                    //// Enable real-time display mode on HID devices
+                    //await _interactiveService.EnableHidRealTimeDisplayAsync(true);
                     
                     // Start auto-rendering with built-in render tick
                     _interactiveService.StartAutoRendering(_interactiveService.TargetFPS);
@@ -729,8 +729,8 @@ namespace CMDevicesManager.Pages
                 {
                     // Stop auto-rendering and disable HID transfer
                     _interactiveService.StopAutoRendering();
-                    _interactiveService.EnableHidTransfer(false);
-                    await _interactiveService.EnableHidRealTimeDisplayAsync(false);
+                    //_interactiveService.EnableHidTransfer(false);
+                    //await _interactiveService.EnableHidRealTimeDisplayAsync(false);
                 }
 
                 StartButton.IsEnabled = true;

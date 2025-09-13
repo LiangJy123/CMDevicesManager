@@ -1,3 +1,5 @@
+using CMDevicesManager.Models;
+using HidSharp.Utility;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Brushes;
 using Microsoft.Graphics.Canvas.Text;
@@ -5,19 +7,18 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Windows.Foundation;
-using CMDevicesManager.Models;
-using System.Numerics;
-using WinUIColor = Windows.UI.Color;
 using Point = Windows.Foundation.Point;
 using Size = Windows.Foundation.Size;
-using System.Windows.Threading;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text;
+using WinUIColor = Windows.UI.Color;
 
 namespace CMDevicesManager.Services
 {
@@ -479,7 +480,7 @@ namespace CMDevicesManager.Services
                 var bitmap = await RenderFrameAsync();
                 
                 // Send to HID devices if enabled
-                if (SendToHidDevices && _hidDeviceService?.IsInitialized == true && _hidRealTimeModeEnabled)
+                //if (SendToHidDevices && _hidDeviceService?.IsInitialized == true && _hidRealTimeModeEnabled)
                 {
                     var rawData = GetRenderedImageBytes();
                     if (rawData != null)
@@ -1182,24 +1183,34 @@ namespace CMDevicesManager.Services
                     if (_transferId > 59) _transferId = 1;
 
                     // Send JPEG data to HID devices using TransferDataAsync
-                    var results = await _hidDeviceService!.TransferDataAsync(jpegData, _transferId);
+                    //var results = await _hidDeviceService!.TransferDataAsync(jpegData, _transferId);
 
                     // Direct access - throws exception if not initialized
                     var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
-                    realtimeService.QueueJpegData(jpegData, priority: 1, "MyFrame");
-
-                    // Log results
-                    var successCount = results.Values.Count(r => r);
-                    if (successCount > 0)
+                    bool ifQueued = realtimeService.QueueJpegData(jpegData, priority: 1, "MyFrame");
+                    //var successCount = results.Values.Count(r => r);
+                    if (ifQueued)
                     {
                         _hidFramesSent++;
                         JpegDataSentToHid?.Invoke(jpegData);
-                        HidStatusChanged?.Invoke($"Frame #{_hidFramesSent} sent to {successCount}/{results.Count} devices (ID: {_transferId}, Size: {jpegData.Length:N0} bytes)");
+                        HidStatusChanged?.Invoke($"Frame #{_hidFramesSent} sent to devices (ID: {_transferId}, Size: {jpegData.Length:N0} bytes)");
                     }
                     else
                     {
                         HidStatusChanged?.Invoke("Failed to send frame to any HID devices");
                     }
+                    // Log results
+                    //var successCount = results.Values.Count(r => r);
+                    //if (successCount > 0)
+                    //{
+                    //    _hidFramesSent++;
+                    //    JpegDataSentToHid?.Invoke(jpegData);
+                    //    HidStatusChanged?.Invoke($"Frame #{_hidFramesSent} sent to {successCount}/{results.Count} devices (ID: {_transferId}, Size: {jpegData.Length:N0} bytes)");
+                    //}
+                    //else
+                    //{
+                    //    HidStatusChanged?.Invoke("Failed to send frame to any HID devices");
+                    //}
                 }
             }
             catch (Exception ex)

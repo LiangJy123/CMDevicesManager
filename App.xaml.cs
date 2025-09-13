@@ -16,6 +16,7 @@ namespace CMDevicesManager
         private HidDeviceService? _hidDeviceService;
         private OfflineMediaDataService? _offlineMediaDataService;
         private InteractiveWin2DRenderingService? _interactiveRenderingService;
+        private RealtimeJpegTransmissionService? _realtimeJpegTransmissionService;
 
         public App()
         {
@@ -117,6 +118,25 @@ namespace CMDevicesManager
                     usagePage: 0xFFFF   // Your device's usage page
                 );
 
+                // Initialize Realtime JPEG Transmission Service
+                Logger.Info("Initializing Realtime JPEG Transmission Service");
+                _realtimeJpegTransmissionService = new RealtimeJpegTransmissionService(
+                    _hidDeviceService,
+                    processingIntervalMs: 33,    // ~30 FPS for balanced performance
+                    maxQueueSize: 8,             // Moderate queue size for smooth operation
+                    maxRetryAttempts: 2          // Quick retry for responsive transmission
+                );
+
+                // Set up comprehensive event handlers for transmission monitoring
+                _realtimeJpegTransmissionService.QueueMonitorUpdate += OnRealtimeJpegQueueMonitorUpdate;
+                _realtimeJpegTransmissionService.RealTimeModeChanged += OnRealtimeJpegRealTimeModeChanged;
+                _realtimeJpegTransmissionService.JpegDataSent += OnRealtimeJpegDataSent;
+                _realtimeJpegTransmissionService.JpegDataDropped += OnRealtimeJpegDataDropped;
+                _realtimeJpegTransmissionService.TransmissionError += OnRealtimeJpegTransmissionError;
+                _realtimeJpegTransmissionService.QueueStatusChanged += OnRealtimeJpegQueueStatusChanged;
+
+                Logger.Info("Realtime JPEG Transmission Service initialized successfully");
+
                 // Initialize Interactive Win2D Rendering Service
                 Logger.Info("Initializing Interactive Win2D Rendering Service");
                 _interactiveRenderingService = new InteractiveWin2DRenderingService();
@@ -145,8 +165,14 @@ namespace CMDevicesManager
                 Logger.Info("Initializing System Sleep Monitor Service");
                 var systemSleepMonitorService = new SystemSleepMonitorService(_hidDeviceService);
                 
-                // Initialize the service locator with all services
-                ServiceLocator.InitializeAll(_hidDeviceService, _offlineMediaDataService, systemSleepMonitorService, _interactiveRenderingService);
+                // Initialize the service locator with all services (including RealtimeJpegTransmissionService)
+                ServiceLocator.InitializeAll(
+                    _hidDeviceService, 
+                    _offlineMediaDataService, 
+                    systemSleepMonitorService, 
+                    _interactiveRenderingService,
+                    _realtimeJpegTransmissionService
+                );
                 
                 // Start monitoring system sleep events
                 systemSleepMonitorService.StartMonitoring();
@@ -164,7 +190,8 @@ namespace CMDevicesManager
                 Logger.Info($"Services status: HID={_hidDeviceService.IsInitialized}, " +
                           $"InteractiveRendering=True, " +
                           $"OfflineMedia={_offlineMediaDataService != null}, " +
-                          $"SleepMonitor={systemSleepMonitorService != null}");
+                          $"SleepMonitor={systemSleepMonitorService != null}, " +
+                          $"RealtimeJpeg={_realtimeJpegTransmissionService != null}");
             }
             catch (Exception ex)
             {
@@ -282,6 +309,21 @@ namespace CMDevicesManager
                     _interactiveRenderingService.StopAutoRendering();
                     Logger.Info("Interactive rendering paused for system sleep");
                 }
+
+                // Pause Realtime JPEG Transmission Service during sleep
+                if (_realtimeJpegTransmissionService != null)
+                {
+                    // Clear any pending queue to prevent stale data after resume
+                    var queueSize = _realtimeJpegTransmissionService.QueueSize;
+                    if (queueSize > 0)
+                    {
+                        _realtimeJpegTransmissionService.ClearQueue();
+                        Logger.Info($"Cleared {queueSize} items from JPEG transmission queue for system sleep");
+                    }
+
+                    // The service will automatically disable real-time mode when queue becomes empty
+                    Logger.Info("Realtime JPEG transmission service prepared for system sleep");
+                }
             }
             catch (Exception ex)
             {
@@ -298,6 +340,18 @@ namespace CMDevicesManager
                 // Resume Interactive Rendering Service after sleep if it was running
                 // Note: This is optional - you might want to let individual pages control this
                 Logger.Info("Interactive rendering service available for resumption by individual pages");
+
+                // Realtime JPEG Transmission Service will automatically resume when new data is queued
+                if (_realtimeJpegTransmissionService != null)
+                {
+                    // Reset statistics after sleep to get fresh performance metrics
+                    _realtimeJpegTransmissionService.ResetStatistics();
+                    Logger.Info("Realtime JPEG transmission service ready for resumption");
+                    
+                    // Log current service status
+                    var stats = _realtimeJpegTransmissionService.Statistics;
+                    Logger.Info($"JPEG Service Status: {stats.GetDetailedReport()}");
+                }
             }
             catch (Exception ex)
             {
@@ -327,6 +381,116 @@ namespace CMDevicesManager
             catch (Exception ex)
             {
                 Logger.Error($"Error handling device sleep mode change: {ex.Message}", ex);
+            }
+        }
+
+        #endregion
+
+        #region Realtime JPEG Transmission Service Event Handlers
+
+        private void OnRealtimeJpegQueueMonitorUpdate(object? sender, QueueMonitorEventArgs e)
+        {
+            try
+            {
+                // Log detailed queue monitoring information periodically (only when status changes significantly)
+                if (e.CurrentQueueSize > 0 || e.TimeSinceLastActivity.TotalSeconds > 30)
+                {
+                    Logger.Info($"JPEG Queue Monitor: {e.GetStatusSummary()}");
+                }
+                
+                // Application-level logic based on queue status
+                // For example, you could show UI indicators or adjust other services
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling realtime JPEG queue monitor update: {ex.Message}", ex);
+            }
+        }
+
+        private void OnRealtimeJpegRealTimeModeChanged(object? sender, RealTimeModeChangedEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"JPEG Transmission Real-time Mode {(e.IsEnabled ? "ENABLED" : "DISABLED")}: " +
+                          $"Success on {e.SuccessfulDevices}/{e.TotalDevices} devices at {e.Timestamp:HH:mm:ss.fff}");
+                
+                // You can add application-level logic here
+                // For example, notify other services or update UI indicators
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling realtime JPEG real-time mode change: {ex.Message}", ex);
+            }
+        }
+
+        private void OnRealtimeJpegDataSent(object? sender, JpegDataSentEventArgs e)
+        {
+            try
+            {
+                // Log successful transmissions (but avoid too much noise - only log periodically)
+                if (e.TransferId % 30 == 0) // Log every 30th transmission
+                {
+                    Logger.Info($"JPEG Data Sent: ID={e.TransferId}, Size={e.JpegData.Length} bytes, " +
+                              $"Success={e.SuccessfulDevices}/{e.TotalDevices} devices, Metadata={e.Metadata}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling realtime JPEG data sent: {ex.Message}", ex);
+            }
+        }
+
+        private void OnRealtimeJpegDataDropped(object? sender, JpegDataDroppedEventArgs e)
+        {
+            try
+            {
+                Logger.Warn($"JPEG Data Dropped: Size={e.JpegData.Length} bytes, " +
+                          $"Reason={e.Reason}, Metadata={e.Metadata}, Time={e.Timestamp:HH:mm:ss.fff}");
+                
+                // Application-level logic for dropped frames
+                // You might want to adjust quality settings or notify user
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling realtime JPEG data dropped: {ex.Message}", ex);
+            }
+        }
+
+        private void OnRealtimeJpegTransmissionError(object? sender, TransmissionErrorEventArgs e)
+        {
+            try
+            {
+                Logger.Error($"JPEG Transmission Error: {e.Context} - {e.Exception.Message}", e.Exception);
+                
+                // Application-level error recovery
+                // You might want to restart services or notify user of issues
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling realtime JPEG transmission error: {ex.Message}", ex);
+            }
+        }
+
+        private void OnRealtimeJpegQueueStatusChanged(object? sender, QueueStatusChangedEventArgs e)
+        {
+            try
+            {
+                // Monitor queue pressure for performance optimization
+                if (e.FillPercentage > 80) // Queue is getting full
+                {
+                    Logger.Warn($"JPEG Queue High Pressure: {e.CurrentSize}/{e.MaxSize} ({e.FillPercentage:F1}% full)");
+                    
+                    // You could implement adaptive quality reduction here
+                    // Or notify other services to reduce frame rates
+                }
+                else if (e.FillPercentage < 20 && e.CurrentSize > 0) // Queue is very light
+                {
+                    // Optimal operating conditions - could increase quality if needed
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling realtime JPEG queue status change: {ex.Message}", ex);
             }
         }
 
