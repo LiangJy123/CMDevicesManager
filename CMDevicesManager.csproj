@@ -29,6 +29,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Remove="Resources\ColorWheelPicker.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="exe\ffprobe.exe" />
     <None Remove="ffmpeg.exe" />
     <None Remove="Fonts\FangZheng.ttf" />
@@ -52,11 +56,6 @@
     <None Remove="Resources\icon\icon.svg" />
     <None Remove="Resources\icon\icon2.ico" />
     <None Remove="Resources\SplashGIF.gif" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="Services\BackgroundRenderingService.cs_bak" />
-    <Compile Include="Services\Win2DRenderingService.cs_bak" />
   </ItemGroup>
 
   <ItemGroup>
@@ -127,6 +126,9 @@
     </Resource>
     <Resource Include="Fonts\Saira-SemiBold.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resources\ColorWheelPicker.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resources\Devices\HAF700V2.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

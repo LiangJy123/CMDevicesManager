@@ -2,6 +2,7 @@
 using CMDevicesManager.Models;
 using CMDevicesManager.Services;
 using CMDevicesManager.Utilities;
+using CMDevicesManager.Windows;
 using HID.DisplayController;
 using HidApi;
 using Microsoft.Win32;
@@ -765,7 +766,13 @@ namespace CMDevicesManager.Pages
                 OnPropertyChanged(nameof(IsGaugeSelected));
             }
         }
-
+        private void OpenColorPicker(Color initial, Action<Color> apply)
+        {
+            var dlg = new ColorPickerWindow(initial);
+            dlg.Owner = Application.Current?.MainWindow;
+            if (dlg.ShowDialog() == true)
+                apply(dlg.SelectedColor);
+        }
         private string ResourcesFolder => Path.Combine(OutputFolder, "Resources");
 
         #region Properties
@@ -1139,14 +1146,7 @@ namespace CMDevicesManager.Pages
         private void PickUsageBarBackgroundColor_Click(object sender, RoutedEventArgs e)
         {
             if (!IsUsageSelected) return;
-            using var dlg = new WF.ColorDialog
-            {
-                AllowFullOpen = true,
-                FullOpen = true,
-                Color = System.Drawing.Color.FromArgb(UsageBarBackgroundColor.A, UsageBarBackgroundColor.R, UsageBarBackgroundColor.G, UsageBarBackgroundColor.B)
-            };
-            if (dlg.ShowDialog() == WF.DialogResult.OK)
-                UsageBarBackgroundColor = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
+            OpenColorPicker(UsageBarBackgroundColor, c => UsageBarBackgroundColor = c);
         }
 
         // ================= Helpers =================
@@ -1268,16 +1268,11 @@ namespace CMDevicesManager.Pages
         // ================= Color Pickers =================
         private void PickBackgroundColor_Click(object sender, RoutedEventArgs e)
         {
-            using var dlg = new WF.ColorDialog
+            OpenColorPicker(BackgroundColor, c =>
             {
-                AllowFullOpen = true,
-                FullOpen = true,
-                Color = System.Drawing.Color.FromArgb(BackgroundColor.A, BackgroundColor.R, BackgroundColor.G, BackgroundColor.B)
-            };
-            if (dlg.ShowDialog() == WF.DialogResult.OK)
-            {
-                BackgroundColor = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
-            }
+                BackgroundColor = c;
+                BackgroundHex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+            });
         }
 
         private void PickBackgroundImage_Click(object sender, RoutedEventArgs e)
@@ -1299,66 +1294,31 @@ namespace CMDevicesManager.Pages
         private void PickSelectedTextColor_Click(object sender, RoutedEventArgs e)
         {
             if (GetCurrentTextBlock() == null) return;
-            using var dlg = new WF.ColorDialog
-            {
-                AllowFullOpen = true,
-                FullOpen = true,
-                Color = System.Drawing.Color.FromArgb(SelectedTextColor.A, SelectedTextColor.R, SelectedTextColor.G, SelectedTextColor.B)
-            };
-            if (dlg.ShowDialog() == WF.DialogResult.OK)
-                SelectedTextColor = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
+            OpenColorPicker(SelectedTextColor, c => SelectedTextColor = c);
         }
 
         private void PickSelectedTextColor2_Click(object sender, RoutedEventArgs e)
         {
             if (GetCurrentTextBlock() == null) return;
-            using var dlg = new WF.ColorDialog
-            {
-                AllowFullOpen = true,
-                FullOpen = true,
-                Color = System.Drawing.Color.FromArgb(SelectedTextColor2.A, SelectedTextColor2.R, SelectedTextColor2.G, SelectedTextColor2.B)
-            };
-            if (dlg.ShowDialog() == WF.DialogResult.OK)
-                SelectedTextColor2 = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
+            OpenColorPicker(SelectedTextColor2, c => SelectedTextColor2 = c);
         }
 
         private void PickUsageStartColor_Click(object sender, RoutedEventArgs e)
         {
             if (!IsUsageVisualSelected) return;
-            using var dlg = new WF.ColorDialog
-            {
-                AllowFullOpen = true,
-                FullOpen = true,
-                Color = System.Drawing.Color.FromArgb(UsageStartColor.A, UsageStartColor.R, UsageStartColor.G, UsageStartColor.B)
-            };
-            if (dlg.ShowDialog() == WF.DialogResult.OK)
-                UsageStartColor = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
+            OpenColorPicker(UsageStartColor, c => UsageStartColor = c);
         }
 
         private void PickUsageEndColor_Click(object sender, RoutedEventArgs e)
         {
             if (!IsUsageVisualSelected) return;
-            using var dlg = new WF.ColorDialog
-            {
-                AllowFullOpen = true,
-                FullOpen = true,
-                Color = System.Drawing.Color.FromArgb(UsageEndColor.A, UsageEndColor.R, UsageEndColor.G, UsageEndColor.B)
-            };
-            if (dlg.ShowDialog() == WF.DialogResult.OK)
-                UsageEndColor = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
+            OpenColorPicker(UsageEndColor, c => UsageEndColor = c);
         }
 
         private void PickUsageNeedleColor_Click(object sender, RoutedEventArgs e)
         {
             if (!IsGaugeSelected) return;
-            using var dlg = new WF.ColorDialog
-            {
-                AllowFullOpen = true,
-                FullOpen = true,
-                Color = System.Drawing.Color.FromArgb(UsageNeedleColor.A, UsageNeedleColor.R, UsageNeedleColor.G, UsageNeedleColor.B)
-            };
-            if (dlg.ShowDialog() == WF.DialogResult.OK)
-                UsageNeedleColor = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
+            OpenColorPicker(UsageNeedleColor, c => UsageNeedleColor = c);
         }
 
         // ================= Z-Order / Delete =================
