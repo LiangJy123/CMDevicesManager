@@ -1,4 +1,5 @@
 using CMDevicesManager.Models;
+using CMDevicesManager.Services;
 using HidSharp.Utility;
 using Microsoft.Graphics.Canvas;
 using Microsoft.Graphics.Canvas.Brushes;
@@ -3377,3 +3378,9 @@ namespace CMDevicesManager.Services
 
     #endregion // End of JSON Serialization Data Models
 }
+
+
+//Example:
+
+//var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
+//bool ifQueued = realtimeService.QueueJpegData(jpegData, priority: 1, "MyFrame");
