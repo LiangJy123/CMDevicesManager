@@ -9,19 +9,21 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using WinFoundation = Windows.Foundation;
 using WinUIColor = Windows.UI.Color;
 using MouseEventArgs = System.Windows.Input.MouseEventArgs;
 using Point = System.Windows.Point;
 using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
+using WpfColor = System.Windows.Media.Color;
+using WpfRectangle = System.Windows.Shapes.Rectangle;
+using Path = System.IO.Path;
 
 namespace CMDevicesManager.Pages
 {
-    /// <summary>
-    /// Interaction logic for DesignerPage.xaml
-    /// </summary>
     public partial class DesignerPage : Page
     {
         private InteractiveWin2DRenderingService? _renderService;
@@ -36,16 +38,39 @@ namespace CMDevicesManager.Pages
         private bool _isUpdatingProperties = false;
         private readonly Random _random = new Random();
 
+        // Color selection state
+        private WinUIColor _selectedColor = WinUIColor.FromArgb(255, 255, 100, 100);
+        private bool _isCustomColorPickerOpen = false;
+
+        // Quick colors palette
+        private readonly WinUIColor[] _quickColors = new[]
+        {
+            WinUIColor.FromArgb(255, 255, 100, 100), // Light Red
+            WinUIColor.FromArgb(255, 100, 255, 100), // Light Green  
+            WinUIColor.FromArgb(255, 100, 100, 255), // Light Blue
+            WinUIColor.FromArgb(255, 255, 255, 100), // Yellow
+            WinUIColor.FromArgb(255, 255, 100, 255), // Magenta
+            WinUIColor.FromArgb(255, 100, 255, 255), // Cyan
+            WinUIColor.FromArgb(255, 255, 165, 0),   // Orange
+            WinUIColor.FromArgb(255, 128, 0, 128),   // Purple
+            WinUIColor.FromArgb(255, 255, 255, 255), // White
+            WinUIColor.FromArgb(255, 128, 128, 128), // Gray
+            WinUIColor.FromArgb(255, 64, 64, 64),    // Dark Gray
+            WinUIColor.FromArgb(255, 0, 0, 0),       // Black
+        };
+
         public DesignerPage()
         {
             InitializeComponent();
             Loaded += OnDesignerPageLoaded;
-            InitializeComboBoxes();
+            InitializeUI();
         }
 
-        private async void OnDesignerPageLoaded(object sender, RoutedEventArgs e)
+        private void InitializeUI()
         {
-            await InitializeDesignerAsync();
+            InitializeComboBoxes();
+            InitializeColorPalette();
+            InitializeSliderEventHandlers();
         }
 
         private void InitializeComboBoxes()
@@ -70,6 +95,57 @@ namespace CMDevicesManager.Pages
             ShapeTypeComboBox.SelectedIndex = 0; // Rectangle
         }
 
+        private void InitializeColorPalette()
+        {
+            if (ColorPalette == null) return;
+            
+            ColorPalette.Children.Clear();
+            
+            foreach (var color in _quickColors)
+            {
+                var colorRect = new WpfRectangle
+                {
+                    Width = 20,
+                    Height = 20,
+                    Fill = new SolidColorBrush(WpfColor.FromArgb(color.A, color.R, color.G, color.B)),
+                    Stroke = System.Windows.Media.Brushes.Gray,
+                    StrokeThickness = 1,
+                    Margin = new Thickness(2),
+                    Cursor = System.Windows.Input.Cursors.Hand,
+                    Tag = color
+                };
+
+                colorRect.MouseLeftButtonDown += (s, e) =>
+                {
+                    if (s is WpfRectangle rect && rect.Tag is WinUIColor selectedColor)
+                    {
+                        _selectedColor = selectedColor;
+                        UpdateColorPreviewsWithCurrentColor();
+                    }
+                };
+
+                ColorPalette.Children.Add(colorRect);
+            }
+        }
+
+        private void InitializeSliderEventHandlers()
+        {
+            // Default element size slider
+            if (DefaultElementSizeSlider != null)
+            {
+                DefaultElementSizeSlider.ValueChanged += (s, e) =>
+                {
+                    if (DefaultElementSizeLabel != null)
+                        DefaultElementSizeLabel.Text = ((int)e.NewValue).ToString();
+                };
+            }
+        }
+
+        private async void OnDesignerPageLoaded(object sender, RoutedEventArgs e)
+        {
+            await InitializeDesignerAsync();
+        }
+
         private async Task InitializeDesignerAsync()
         {
             try
@@ -91,6 +167,7 @@ namespace CMDevicesManager.Pages
                 await _renderService.ResetBackgroundToDefaultAsync();
 
                 UpdateElementsList();
+                UpdateColorPreviewsWithCurrentColor();
                 UpdateStatus("Designer ready - Start adding elements!", false);
             }
             catch (Exception ex)
@@ -98,6 +175,177 @@ namespace CMDevicesManager.Pages
                 UpdateStatus($"Failed to initialize: {ex.Message}", true);
             }
         }
+
+        #region Color Management
+
+        private void UpdateColorPreviewsWithCurrentColor()
+        {
+            var wpfColor = WpfColor.FromArgb(_selectedColor.A, _selectedColor.R, _selectedColor.G, _selectedColor.B);
+            var brush = new SolidColorBrush(wpfColor);
+
+            if (TextColorPreview != null)
+                TextColorPreview.Fill = brush;
+            if (ShapeColorPreview != null)
+                ShapeColorPreview.Fill = brush;
+        }
+
+        private void CustomColorButton_Click(object sender, RoutedEventArgs e)
+        {
+            _isCustomColorPickerOpen = true;
+            if (ColorPickerOverlay != null)
+                ColorPickerOverlay.Visibility = Visibility.Visible;
+            
+            // Set sliders to current selected color
+            if (CustomColorRSlider != null) CustomColorRSlider.Value = _selectedColor.R;
+            if (CustomColorGSlider != null) CustomColorGSlider.Value = _selectedColor.G;
+            if (CustomColorBSlider != null) CustomColorBSlider.Value = _selectedColor.B;
+            
+            UpdateCustomColorPreview();
+        }
+
+        private void CustomColorSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            UpdateCustomColorPreview();
+            
+            if (CustomColorRSlider != null && CustomColorRLabel != null) 
+                CustomColorRLabel.Text = ((int)CustomColorRSlider.Value).ToString();
+            if (CustomColorGSlider != null && CustomColorGLabel != null) 
+                CustomColorGLabel.Text = ((int)CustomColorGSlider.Value).ToString();
+            if (CustomColorBSlider != null && CustomColorBLabel != null) 
+                CustomColorBLabel.Text = ((int)CustomColorBSlider.Value).ToString();
+        }
+
+        private void UpdateCustomColorPreview()
+        {
+            if (CustomColorPreview == null || CustomColorRSlider == null || 
+                CustomColorGSlider == null || CustomColorBSlider == null) return;
+            
+            var r = (byte)CustomColorRSlider.Value;
+            var g = (byte)CustomColorGSlider.Value;
+            var b = (byte)CustomColorBSlider.Value;
+            
+            var color = WpfColor.FromArgb(255, r, g, b);
+            CustomColorPreview.Fill = new SolidColorBrush(color);
+        }
+
+        private void AcceptCustomColorButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (CustomColorRSlider == null || CustomColorGSlider == null || CustomColorBSlider == null) return;
+            
+            var r = (byte)CustomColorRSlider.Value;
+            var g = (byte)CustomColorGSlider.Value;
+            var b = (byte)CustomColorBSlider.Value;
+            
+            _selectedColor = WinUIColor.FromArgb(255, r, g, b);
+            UpdateColorPreviewsWithCurrentColor();
+            
+            if (ColorPickerOverlay != null)
+                ColorPickerOverlay.Visibility = Visibility.Collapsed;
+            _isCustomColorPickerOpen = false;
+        }
+
+        private void CancelCustomColorButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ColorPickerOverlay != null)
+                ColorPickerOverlay.Visibility = Visibility.Collapsed;
+            _isCustomColorPickerOpen = false;
+        }
+
+        #endregion
+
+        #region Slider Event Handlers
+
+        private void FontSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (FontSizeValueLabel != null)
+                FontSizeValueLabel.Text = ((int)e.NewValue).ToString();
+        }
+
+        private void ShapeSizeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (ShapeWidthLabel != null && ShapeWidthSlider != null)
+                ShapeWidthLabel.Text = ((int)ShapeWidthSlider.Value).ToString();
+            if (ShapeHeightLabel != null && ShapeHeightSlider != null)
+                ShapeHeightLabel.Text = ((int)ShapeHeightSlider.Value).ToString();
+        }
+
+        private void ImageScaleSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (ImageScaleLabel != null)
+                ImageScaleLabel.Text = e.NewValue.ToString("F1");
+        }
+
+        private void ImageRotationSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (ImageRotationLabel != null)
+                ImageRotationLabel.Text = $"{(int)e.NewValue}°";
+        }
+
+        private void MotionSpeedSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (MotionSpeedLabel != null)
+                MotionSpeedLabel.Text = ((int)e.NewValue).ToString();
+        }
+
+        private void TextColorSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            UpdateTextColorPreview();
+            UpdateTextColorLabels();
+        }
+
+        private void UpdateTextColorPreview()
+        {
+            if (TextColorPreview == null || TextColorRSlider == null || 
+                TextColorGSlider == null || TextColorBSlider == null) return;
+            
+            var r = (byte)TextColorRSlider.Value;
+            var g = (byte)TextColorGSlider.Value;
+            var b = (byte)TextColorBSlider.Value;
+            
+            var color = WpfColor.FromArgb(255, r, g, b);
+            TextColorPreview.Fill = new SolidColorBrush(color);
+        }
+
+        private void UpdateTextColorLabels()
+        {
+            if (TextColorRLabel != null && TextColorRSlider != null) 
+                TextColorRLabel.Text = ((int)TextColorRSlider.Value).ToString();
+            if (TextColorGLabel != null && TextColorGSlider != null) 
+                TextColorGLabel.Text = ((int)TextColorGSlider.Value).ToString();
+            if (TextColorBLabel != null && TextColorBSlider != null) 
+                TextColorBLabel.Text = ((int)TextColorBSlider.Value).ToString();
+        }
+
+        private void ShapeColorSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            UpdateShapeColorPreview();
+            UpdateShapeColorLabels();
+        }
+
+        private void UpdateShapeColorPreview()
+        {
+            if (ShapeColorPreview == null || ShapeColorRSlider == null || 
+                ShapeColorGSlider == null || ShapeColorBSlider == null) return;
+            
+            var r = (byte)ShapeColorRSlider.Value;
+            var g = (byte)ShapeColorGSlider.Value;
+            var b = (byte)ShapeColorBSlider.Value;
+            
+            var color = WpfColor.FromArgb(255, r, g, b);
+            ShapeColorPreview.Fill = new SolidColorBrush(color);
+        }
+
+        private void UpdateShapeColorLabels()
+        {
+            if (ShapeColorRLabel != null && ShapeColorRSlider != null) 
+                ShapeColorRLabel.Text = ((int)ShapeColorRSlider.Value).ToString();
+            if (ShapeColorGLabel != null && ShapeColorGSlider != null) 
+                ShapeColorGLabel.Text = ((int)ShapeColorGSlider.Value).ToString();
+            if (ShapeColorBLabel != null && ShapeColorBSlider != null) 
+                ShapeColorBLabel.Text = ((int)ShapeColorBSlider.Value).ToString();
+        }
+
+        #endregion
 
         #region Event Handlers
 
@@ -170,14 +418,12 @@ namespace CMDevicesManager.Pages
 
             try
             {
-
                 // Enable HID transfer and start auto-rendering with built-in render tick
                 await _renderService.EnableHidTransfer(true, useSuspendMedia: false);
 
                 // Enable real-time display mode on HID devices
                 await _renderService.EnableHidRealTimeDisplayAsync(true);
 
-                // Start auto-rendering with built-in render tick
                 _renderService.StartAutoRendering(_renderService.TargetFPS);
                 StartRenderingButton.IsEnabled = false;
                 StopRenderingButton.IsEnabled = true;
@@ -252,8 +498,8 @@ namespace CMDevicesManager.Pages
                 Text = text,
                 Position = position,
                 Size = new WinFoundation.Size(200, 40),
-                FontSize = 24,
-                TextColor = WinUIColor.FromArgb(255, 255, 255, 255),
+                FontSize =(float)(FontSizeSlider?.Value ?? 24),
+                TextColor = _selectedColor,
                 IsDraggable = true,
                 IsVisible = true
             };
@@ -279,12 +525,13 @@ namespace CMDevicesManager.Pages
                 {
                     var imageKey = await _renderService.LoadImageAsync(openDialog.FileName);
                     var position = new WinFoundation.Point(100 + (_elementCounter * 25) % 250, 100 + (_elementCounter * 25) % 250);
+                    var size = (int)(DefaultElementSizeSlider?.Value ?? 80);
 
                     var imageElement = new ImageElement($"Image_{++_elementCounter}")
                     {
                         ImagePath = imageKey,
                         Position = position,
-                        Size = new WinFoundation.Size(80, 80),
+                        Size = new WinFoundation.Size(size, size),
                         Scale = 1.0f,
                         IsDraggable = true,
                         IsVisible = true
@@ -306,22 +553,14 @@ namespace CMDevicesManager.Pages
             if (_renderService == null) return;
 
             var position = new WinFoundation.Point(150 + (_elementCounter * 30) % 200, 150 + (_elementCounter * 30) % 200);
-            var colors = new[]
-            {
-                WinUIColor.FromArgb(255, 255, 100, 100), // Light Red
-                WinUIColor.FromArgb(255, 100, 255, 100), // Light Green
-                WinUIColor.FromArgb(255, 100, 100, 255), // Light Blue
-                WinUIColor.FromArgb(255, 255, 255, 100), // Yellow
-                WinUIColor.FromArgb(255, 255, 100, 255), // Magenta
-                WinUIColor.FromArgb(255, 100, 255, 255), // Cyan
-            };
+            var size = (int)(DefaultElementSizeSlider?.Value ?? 60);
 
             var shapeElement = new ShapeElement($"Shape_{++_elementCounter}")
             {
                 ShapeType = ShapeType.Circle,
                 Position = position,
-                Size = new WinFoundation.Size(60, 60),
-                FillColor = colors[_elementCounter % colors.Length],
+                Size = new WinFoundation.Size(size, size),
+                FillColor = _selectedColor,
                 StrokeColor = WinUIColor.FromArgb(255, 255, 255, 255),
                 StrokeWidth = 2,
                 IsDraggable = true,
@@ -342,13 +581,6 @@ namespace CMDevicesManager.Pages
             if (_renderService == null) return;
 
             var position = new WinFoundation.Point(_random.Next(50, 400), _random.Next(50, 400));
-            var colors = new[]
-            {
-                WinUIColor.FromArgb(255, 255, 0, 0),   // Red
-                WinUIColor.FromArgb(255, 0, 255, 0),   // Green
-                WinUIColor.FromArgb(255, 0, 0, 255),   // Blue
-                WinUIColor.FromArgb(255, 255, 165, 0), // Orange
-            };
 
             var motionConfig = new ElementMotionConfig
             {
@@ -361,7 +593,7 @@ namespace CMDevicesManager.Pages
             };
 
             var elementIndex = _renderService.AddCircleElementWithMotion(
-                position, 12f, colors[_random.Next(colors.Length)], motionConfig);
+                position, 12f, _selectedColor, motionConfig);
 
             if (elementIndex >= 0)
             {
@@ -389,8 +621,8 @@ namespace CMDevicesManager.Pages
 
             var textConfig = new TextElementConfig
             {
-                FontSize = 16,
-                TextColor = WinUIColor.FromArgb(255, 0, 255, 255),
+                FontSize = (float)(FontSizeSlider?.Value ?? 24),
+                TextColor = _selectedColor,
                 IsDraggable = false
             };
 
@@ -420,10 +652,9 @@ namespace CMDevicesManager.Pages
                 ShowTrail = false
             };
 
-            var color = WinUIColor.FromArgb(255, 255, 255, 0); // Yellow
             var size = new WinFoundation.Size(30, 30);
 
-            var elementIndex = _renderService.AddRectangleElementWithMotion(position, size, color, motionConfig);
+            var elementIndex = _renderService.AddRectangleElementWithMotion(position, size, _selectedColor, motionConfig);
 
             if (elementIndex >= 0)
             {
@@ -481,18 +712,7 @@ namespace CMDevicesManager.Pages
         private async void SetSolidColorButton_Click(object sender, RoutedEventArgs e)
         {
             if (_renderService == null) return;
-
-            var colors = new[]
-            {
-                WinUIColor.FromArgb(255, 64, 64, 64),    // Dark Gray
-                WinUIColor.FromArgb(255, 0, 64, 128),    // Dark Blue
-                WinUIColor.FromArgb(255, 64, 0, 64),     // Dark Purple
-                WinUIColor.FromArgb(255, 0, 64, 0),      // Dark Green
-                WinUIColor.FromArgb(255, 64, 32, 0),     // Dark Brown
-            };
-
-            var randomColor = colors[_random.Next(colors.Length)];
-            await _renderService.SetBackgroundColorAsync(randomColor, (float)BackgroundOpacitySlider.Value);
+            await _renderService.SetBackgroundColorAsync(_selectedColor, (float)BackgroundOpacitySlider.Value);
         }
 
         private async void SetGradientButton_Click(object sender, RoutedEventArgs e)
@@ -504,7 +724,7 @@ namespace CMDevicesManager.Pages
                 (WinUIColor.FromArgb(255, 64, 0, 128), WinUIColor.FromArgb(255, 0, 64, 128)),   // Purple to Blue
                 (WinUIColor.FromArgb(255, 128, 64, 0), WinUIColor.FromArgb(255, 255, 128, 0)),  // Brown to Orange
                 (WinUIColor.FromArgb(255, 0, 64, 0), WinUIColor.FromArgb(255, 0, 128, 64)),     // Dark Green to Green
-                (WinUIColor.FromArgb(255, 64, 64, 64), WinUIColor.FromArgb(255, 32, 32, 32)),   // Gray gradient
+                (_selectedColor, WinUIColor.FromArgb(255, 32, 32, 32)),   // Selected color to dark
             };
 
             var (startColor, endColor) = gradients[_random.Next(gradients.Length)];
@@ -559,7 +779,7 @@ namespace CMDevicesManager.Pages
 
         private void CanvasDisplay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (_renderService == null) return;
+            if (_renderService == null || _isCustomColorPickerOpen) return;
 
             var position = e.GetPosition(CanvasDisplay);
             var scaledPosition = ScalePointToCanvas(position);
@@ -615,7 +835,7 @@ namespace CMDevicesManager.Pages
 
         private void CanvasDisplay_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (_renderService == null) return;
+            if (_renderService == null || _isCustomColorPickerOpen) return;
 
             var position = e.GetPosition(CanvasDisplay);
             var scaledPosition = ScalePointToCanvas(position);
@@ -777,7 +997,7 @@ namespace CMDevicesManager.Pages
         {
             TextPropertiesPanel.Visibility = Visibility.Visible;
             TextContentTextBox.Text = element.Text;
-            FontSizeTextBox.Text = element.FontSize.ToString();
+            if (FontSizeSlider != null) FontSizeSlider.Value = element.FontSize;
             
             // Set font family
             var fontFamily = element.FontFamily;
@@ -790,17 +1010,19 @@ namespace CMDevicesManager.Pages
                 }
             }
 
-            // Set color
-            ColorRTextBox.Text = element.TextColor.R.ToString();
-            ColorGTextBox.Text = element.TextColor.G.ToString();
-            ColorBTextBox.Text = element.TextColor.B.ToString();
+            // Set color sliders
+            if (TextColorRSlider != null) TextColorRSlider.Value = element.TextColor.R;
+            if (TextColorGSlider != null) TextColorGSlider.Value = element.TextColor.G;
+            if (TextColorBSlider != null) TextColorBSlider.Value = element.TextColor.B;
+            
+            UpdateTextColorPreview();
         }
 
         private void UpdateImageElementProperties(ImageElement element)
         {
             ImagePropertiesPanel.Visibility = Visibility.Visible;
-            ImageScaleTextBox.Text = element.Scale.ToString("F2");
-            ImageRotationTextBox.Text = element.Rotation.ToString("F1");
+            if (ImageScaleSlider != null) ImageScaleSlider.Value = element.Scale;
+            if (ImageRotationSlider != null) ImageRotationSlider.Value = element.Rotation;
         }
 
         private void UpdateShapeElementProperties(ShapeElement element)
@@ -810,13 +1032,15 @@ namespace CMDevicesManager.Pages
             // Set shape type
             ShapeTypeComboBox.SelectedIndex = (int)element.ShapeType;
             
-            ShapeWidthTextBox.Text = element.Size.Width.ToString("F1");
-            ShapeHeightTextBox.Text = element.Size.Height.ToString("F1");
+            if (ShapeWidthSlider != null) ShapeWidthSlider.Value = element.Size.Width;
+            if (ShapeHeightSlider != null) ShapeHeightSlider.Value = element.Size.Height;
             
-            // Set fill color
-            FillColorRTextBox.Text = element.FillColor.R.ToString();
-            FillColorGTextBox.Text = element.FillColor.G.ToString();
-            FillColorBTextBox.Text = element.FillColor.B.ToString();
+            // Set fill color sliders
+            if (ShapeColorRSlider != null) ShapeColorRSlider.Value = element.FillColor.R;
+            if (ShapeColorGSlider != null) ShapeColorGSlider.Value = element.FillColor.G;
+            if (ShapeColorBSlider != null) ShapeColorBSlider.Value = element.FillColor.B;
+            
+            UpdateShapeColorPreview();
         }
 
         private void UpdateMotionElementProperties(IMotionElement element)
@@ -824,7 +1048,7 @@ namespace CMDevicesManager.Pages
             MotionPropertiesPanel.Visibility = Visibility.Visible;
             
             MotionTypeComboBox.SelectedItem = element.MotionConfig.MotionType.ToString();
-            MotionSpeedTextBox.Text = element.MotionConfig.Speed.ToString("F1");
+            if (MotionSpeedSlider != null) MotionSpeedSlider.Value = element.MotionConfig.Speed;
             ShowTrailCheckBox.IsChecked = element.MotionConfig.ShowTrail;
             MotionPausedCheckBox.IsChecked = element.MotionConfig.IsPaused;
         }
@@ -936,28 +1160,24 @@ namespace CMDevicesManager.Pages
         private void GatherTextElementProperties(Dictionary<string, object> properties)
         {
             properties["Text"] = TextContentTextBox.Text ?? "";
-
-            if (float.TryParse(FontSizeTextBox.Text, out var fontSize))
-                properties["FontSize"] = fontSize;
+            properties["FontSize"] = (float)(FontSizeSlider?.Value ?? 24);
 
             if (FontFamilyComboBox.SelectedItem is ComboBoxItem selectedFont)
                 properties["FontFamily"] = selectedFont.Content.ToString();
 
-            if (byte.TryParse(ColorRTextBox.Text, out var r) &&
-                byte.TryParse(ColorGTextBox.Text, out var g) &&
-                byte.TryParse(ColorBTextBox.Text, out var b))
+            if (TextColorRSlider != null && TextColorGSlider != null && TextColorBSlider != null)
             {
+                var r = (byte)TextColorRSlider.Value;
+                var g = (byte)TextColorGSlider.Value;
+                var b = (byte)TextColorBSlider.Value;
                 properties["TextColor"] = WinUIColor.FromArgb(255, r, g, b);
             }
         }
 
         private void GatherImageElementProperties(Dictionary<string, object> properties)
         {
-            if (float.TryParse(ImageScaleTextBox.Text, out var scale))
-                properties["Scale"] = scale;
-
-            if (float.TryParse(ImageRotationTextBox.Text, out var rotation))
-                properties["Rotation"] = rotation;
+            properties["Scale"] = (float)(ImageScaleSlider?.Value ?? 1.0);
+            properties["Rotation"] = (float)(ImageRotationSlider?.Value ?? 0.0);
         }
 
         private void GatherShapeElementProperties(Dictionary<string, object> properties)
@@ -965,16 +1185,16 @@ namespace CMDevicesManager.Pages
             if (ShapeTypeComboBox.SelectedIndex >= 0)
                 properties["ShapeType"] = (ShapeType)ShapeTypeComboBox.SelectedIndex;
 
-            if (double.TryParse(ShapeWidthTextBox.Text, out var width) &&
-                double.TryParse(ShapeHeightTextBox.Text, out var height))
+            if (ShapeWidthSlider != null && ShapeHeightSlider != null)
             {
-                properties["Size"] = new WinFoundation.Size(width, height);
+                properties["Size"] = new WinFoundation.Size(ShapeWidthSlider.Value, ShapeHeightSlider.Value);
             }
 
-            if (byte.TryParse(FillColorRTextBox.Text, out var r) &&
-                byte.TryParse(FillColorGTextBox.Text, out var g) &&
-                byte.TryParse(FillColorBTextBox.Text, out var b))
+            if (ShapeColorRSlider != null && ShapeColorGSlider != null && ShapeColorBSlider != null)
             {
+                var r = (byte)ShapeColorRSlider.Value;
+                var g = (byte)ShapeColorGSlider.Value;
+                var b = (byte)ShapeColorBSlider.Value;
                 properties["FillColor"] = WinUIColor.FromArgb(255, r, g, b);
             }
         }
@@ -985,9 +1205,7 @@ namespace CMDevicesManager.Pages
                 Enum.TryParse<MotionType>(motionTypeStr, out var motionType))
                 properties["MotionType"] = motionType;
 
-            if (float.TryParse(MotionSpeedTextBox.Text, out var speed))
-                properties["Speed"] = speed;
-
+            properties["Speed"] = (float)MotionSpeedSlider.Value;
             properties["ShowTrail"] = ShowTrailCheckBox.IsChecked ?? false;
             properties["IsPaused"] = MotionPausedCheckBox.IsChecked ?? false;
         }
@@ -1101,8 +1319,8 @@ namespace CMDevicesManager.Pages
             {
                 StatusLabel.Text = message;
                 StatusLabel.Foreground = isError ? 
-                    new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red) :
-                    new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.LightGreen);
+                    new SolidColorBrush(Colors.Red) :
+                    new SolidColorBrush(Colors.LightGreen);
             }
         }
 
