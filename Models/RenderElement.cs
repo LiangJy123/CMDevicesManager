@@ -33,6 +33,7 @@ namespace CMDevicesManager.Models
         public bool IsSelected { get; set; }
         public bool IsDraggable { get; set; } = true;
         public float ZIndex { get; set; } = 0;
+        public float Opacity { get; set; } = 1.0f; // Add opacity property (0.0 to 1.0)
 
         protected RenderElement(ElementType type, string name)
         {

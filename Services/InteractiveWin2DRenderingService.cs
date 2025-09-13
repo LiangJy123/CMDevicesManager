@@ -1756,7 +1756,14 @@ namespace CMDevicesManager.Services
             };
 
             var bounds = element.GetBounds();
-            session.DrawText(element.Text, bounds, element.TextColor, textFormat);
+            // Apply element opacity to text color
+            var color = WinUIColor.FromArgb(
+                (byte)(element.TextColor.A * element.Opacity),
+                element.TextColor.R,
+                element.TextColor.G,
+                element.TextColor.B);
+
+            session.DrawText(element.Text, bounds, color, textFormat);
         }
 
         private void RenderMotionShapeElement(CanvasDrawingSession session, MotionShapeElement element)
@@ -1846,7 +1853,14 @@ namespace CMDevicesManager.Services
             };
 
             var bounds = element.GetBounds();
-            session.DrawText(element.Text, bounds, element.TextColor, textFormat);
+            // Apply element opacity to text color
+            var color = WinUIColor.FromArgb(
+                (byte)(element.TextColor.A * element.Opacity),
+                element.TextColor.R,
+                element.TextColor.G,
+                element.TextColor.B);
+
+            session.DrawText(element.Text, bounds, color, textFormat);
         }
 
         private void RenderLiveElement(CanvasDrawingSession session, LiveElement element)
@@ -1859,13 +1873,20 @@ namespace CMDevicesManager.Services
                 VerticalAlignment = CanvasVerticalAlignment.Center
             };
 
+            // Apply element opacity to text color
+            var color = WinUIColor.FromArgb(
+                (byte)(element.TextColor.A * element.Opacity),
+                element.TextColor.R,
+                element.TextColor.G,
+                element.TextColor.B);
+
             var bounds = element.GetBounds();
             var text = element.GetCurrentText();
             
             // Add shadow effect for live elements
             session.DrawText(text, new Rect(bounds.X + 2, bounds.Y + 2, bounds.Width, bounds.Height), 
                 WinUIColor.FromArgb(100, 0, 0, 0), textFormat);
-            session.DrawText(text, bounds, element.TextColor, textFormat);
+            session.DrawText(text, bounds, color, textFormat);
         }
 
         private void RenderImageElement(CanvasDrawingSession session, ImageElement element)
@@ -1873,42 +1894,56 @@ namespace CMDevicesManager.Services
             if (_loadedImages.TryGetValue(element.ImagePath, out var bitmap))
             {
                 var bounds = element.GetBounds();
-                session.DrawImage(bitmap, bounds);
+
+                // Apply element opacity to image
+                if (element.Opacity < 1.0f)
+                {
+                    session.DrawImage(bitmap, bounds, new Rect(0, 0, bitmap.Size.Width, bitmap.Size.Height), element.Opacity);
+                }
+                else
+                {
+                    session.DrawImage(bitmap, bounds);
+                }
             }
         }
 
         private void RenderShapeElement(CanvasDrawingSession session, ShapeElement element)
         {
             var bounds = element.GetBounds();
-            
+
+            // Apply element opacity to fill color
+            var fillColor = WinUIColor.FromArgb(
+                (byte)(element.FillColor.A * element.Opacity),
+                element.FillColor.R,
+                element.FillColor.G,
+                element.FillColor.B);
+
+            // Apply element opacity to stroke color  
+            var strokeColor = WinUIColor.FromArgb(
+                (byte)(element.StrokeColor.A * element.Opacity),
+                element.StrokeColor.R,
+                element.StrokeColor.G,
+                element.StrokeColor.B);
+
             switch (element.ShapeType)
             {
                 case ShapeType.Circle:
                     var centerX = (float)(bounds.X + bounds.Width / 2);
                     var centerY = (float)(bounds.Y + bounds.Height / 2);
                     var radius = (float)(Math.Min(bounds.Width, bounds.Height) / 2);
-                    
-                    session.FillCircle(centerX, centerY, radius, element.FillColor);
+
+                    session.FillCircle(centerX, centerY, radius, fillColor);
                     if (element.StrokeWidth > 0)
                     {
-                        session.DrawCircle(centerX, centerY, radius, element.StrokeColor, element.StrokeWidth);
+                        session.DrawCircle(centerX, centerY, radius, strokeColor, element.StrokeWidth);
                     }
                     break;
-                
+
                 case ShapeType.Rectangle:
-                    session.FillRectangle(bounds, element.FillColor);
+                    session.FillRectangle(bounds, fillColor);
                     if (element.StrokeWidth > 0)
                     {
-                        session.DrawRectangle(bounds, element.StrokeColor, element.StrokeWidth);
-                    }
-                    break;
-                
-                case ShapeType.Triangle:
-                    // Simple triangle implementation using rectangle for now
-                    session.FillRectangle(bounds, element.FillColor);
-                    if (element.StrokeWidth > 0)
-                    {
-                        session.DrawRectangle(bounds, element.StrokeColor, element.StrokeWidth);
+                        session.DrawRectangle(bounds, strokeColor, element.StrokeWidth);
                     }
                     break;
             }
@@ -2072,6 +2107,11 @@ namespace CMDevicesManager.Services
                         element.ZIndex = zIndexValue;
                         // Re-sort elements by Z-index
                         _elements.Sort((a, b) => a.ZIndex.CompareTo(b.ZIndex));
+                    }
+                    // Opacity property
+                    if (properties.TryGetValue("Opacity", out var opacity) && opacity is float opacityValue)
+                    {
+                        element.Opacity = Math.Clamp(opacityValue, 0.0f, 1.0f);
                     }
 
                     // Update element-specific properties
