@@ -24,278 +24,748 @@
                        HorizontalAlignment="Left"/>
         </Border>
         
-        <!-- Main content area -->
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20">
-            <Grid>
-                <!-- No scenes message -->
-                <Border x:Name="NoScenesPanel"
-                        Background="#1A1A1A"
-                        CornerRadius="16"
-                        Padding="48"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Scenes.Count}" Value="0">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                        </Style>
-                    </Border.Style>
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="&#xE8B7;"
-                                   FontFamily="Segoe MDL2 Assets"
-                                   FontSize="64"
-                                   Foreground="#666666"
+        <!-- Main content area with left panel and right scenes -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="360"/> <!-- Left panel for image and controls -->
+                <ColumnDefinition Width="20"/>   <!-- Spacing -->
+                <ColumnDefinition Width="*"/>    <!-- Right panel for scenes -->
+            </Grid.ColumnDefinitions>
+            
+            <!-- Left Panel: Image Display and HID Device Controls -->
+            <StackPanel Grid.Column="0" Margin="20">
+                
+                <!-- Image Display Area (300x300) -->
+                <Border Background="#1A1A1A"
+                        CornerRadius="8"
+                        Padding="15"
+                        Margin="0,0,0,20">
+                    <StackPanel>
+                        <TextBlock Text="🖼️ Device Display Preview" 
+                                   FontSize="16" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="White" 
                                    HorizontalAlignment="Center"
-                                   Margin="0,0,0,16"/>
-                        <TextBlock Text="No Scenes Found"
-                                   FontSize="24"
-                                   FontWeight="SemiBold"
-                                   Foreground="#CCCCCC"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,0,0,8"/>
-                        <TextBlock Text="Add scene files to the Scenes folder to get started"
-                                   FontSize="14"
-                                   Foreground="#888888"
-                                   HorizontalAlignment="Center"/>
+                                   Margin="0,0,0,15"/>
+                        
+                        <!-- 300x300 Image Display -->
+                        <Border Width="300" Height="300"
+                                Background="#0A0A0A" 
+                                BorderBrush="#333333" 
+                                BorderThickness="2"
+                                CornerRadius="4" 
+                                HorizontalAlignment="Center">
+                            <Grid>
+                                <!-- Placeholder content -->
+                                <StackPanel x:Name="ImagePlaceholderContent"
+                                           HorizontalAlignment="Center" 
+                                           VerticalAlignment="Center">
+                                    <TextBlock Text="📺" 
+                                              FontSize="48" 
+                                              HorizontalAlignment="Center" 
+                                              Foreground="#666666"
+                                              Margin="0,0,0,10"/>
+                                    <TextBlock Text="No content" 
+                                              FontSize="12" 
+                                              Foreground="#888888"
+                                              HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Load a scene to preview" 
+                                              FontSize="10" 
+                                              Foreground="#666666"
+                                              HorizontalAlignment="Center"
+                                              Margin="0,5,0,0"/>
+                                </StackPanel>
+
+                                <!-- Image viewer -->
+                                <Image x:Name="DeviceImageViewer" 
+                                      Stretch="Uniform"
+                                      StretchDirection="DownOnly"
+                                      Visibility="Collapsed">
+                                    <Image.Effect>
+                                        <DropShadowEffect Color="Black" 
+                                                        BlurRadius="10" 
+                                                        ShadowDepth="3" 
+                                                        Opacity="0.5"/>
+                                    </Image.Effect>
+                                </Image>
+                            </Grid>
+                        </Border>
+                        
+                        <!-- Image Info -->
+                        <Border Background="#2A2A2A" 
+                               BorderBrush="#444444" 
+                               BorderThickness="1" 
+                               CornerRadius="4" 
+                               Padding="10,8"
+                               Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock x:Name="CurrentImageName" 
+                                          Text="No image loaded" 
+                                          FontSize="11" 
+                                          FontWeight="Medium"
+                                          Foreground="White"
+                                          TextTrimming="CharacterEllipsis"
+                                          HorizontalAlignment="Center"/>
+                                <TextBlock x:Name="ImageDimensions" 
+                                          Text="" 
+                                          FontSize="10" 
+                                          Foreground="#CCCCCC"
+                                          Margin="0,2,0,0"
+                                          HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
 
-                <!-- Scenes display -->
-                <ItemsControl ItemsSource="{Binding Scenes}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel IsItemsHost="True" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
+                <!-- HID Device Controls -->
+                <StackPanel>
+                    
+                    <!-- Rotation Control -->
+                    <Border Background="#2A2A2A"
+                            BorderBrush="#444444"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="15,12"
+                            Margin="0,0,0,15">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="🔄" 
+                                          FontSize="16" 
+                                          VerticalAlignment="Center" 
+                                          Margin="0,0,8,0"/>
+                                <TextBlock Text="Display Rotation" 
+                                          FontSize="14" 
+                                          FontWeight="SemiBold" 
+                                          Foreground="White" 
+                                          VerticalAlignment="Center"/>
+                            </StackPanel>
 
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <!-- Scene card -->
-                            <Border x:Name="SceneCard"
-                                    CornerRadius="8"
-                                    Background="#121212"
-                                    Margin="8"
-                                    Width="180"
-                                    Height="240"
-                                    ClipToBounds="True"
-                                    Cursor="Hand">
-                                <Border.Effect>
-                                    <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
-                                </Border.Effect>
-                                <Border.RenderTransform>
-                                    <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1"/>
-                                </Border.RenderTransform>
-                                
-                                <Grid>
-                                    <!-- Cover image area -->
-                                    <Border Height="140" VerticalAlignment="Top" CornerRadius="8,8,0,0" ClipToBounds="True">
-                                        <!-- Background for image -->
-                                        <Border Background="#2A2A2A">
-                                            <Grid>
-                                                <!-- Cover image -->
-                                                <Image x:Name="CoverImage" 
-                                                       Stretch="UniformToFill"
-                                                       HorizontalAlignment="Center"
-                                                       VerticalAlignment="Center">
-                                                   <Image.Style>
-                                                        <Style TargetType="Image">
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding CoverImagePath}" Value="">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding CoverImagePath}" Value="{x:Null}">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                            <Setter Property="Source" Value="{Binding CoverImagePath}"/>
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </Style>
-                                                    </Image.Style>
-                                                </Image>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Rotation buttons for 0, 90, 180, 270 degrees -->
+                                <Button x:Name="Rotation0Button"
+                                        Grid.Column="0"
+                                        Content="0°"
+                                        Height="36"
+                                        Margin="0,0,3,0"
+                                        Background="#404040"
+                                        BorderBrush="#666666"
+                                        BorderThickness="1"
+                                        Foreground="White"
+                                        FontSize="12"
+                                        FontWeight="Medium"
+                                        Click="RotationButton_Click"
+                                        Tag="0"
+                                        ToolTip="Rotate display to 0 degrees">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                               BorderBrush="{TemplateBinding BorderBrush}"
+                                                               BorderThickness="{TemplateBinding BorderThickness}"
+                                                               CornerRadius="4">
+                                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                                            VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#505050"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter Property="Background" Value="#2A4A8B"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+                                <Button x:Name="Rotation90Button"
+                                        Grid.Column="1"
+                                        Content="90°"
+                                        Height="36"
+                                        Margin="3,0,3,0"
+                                        Background="#404040"
+                                        BorderBrush="#666666"
+                                        BorderThickness="1"
+                                        Foreground="White"
+                                        FontSize="12"
+                                        FontWeight="Medium"
+                                        Click="RotationButton_Click"
+                                        Tag="90"
+                                        ToolTip="Rotate display to 90 degrees">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                               BorderBrush="{TemplateBinding BorderBrush}"
+                                                               BorderThickness="{TemplateBinding BorderThickness}"
+                                                               CornerRadius="4">
+                                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                                            VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#505050"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter Property="Background" Value="#2A4A8B"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+                                <Button x:Name="Rotation180Button"
+                                        Grid.Column="2"
+                                        Content="180°"
+                                        Height="36"
+                                        Margin="3,0,3,0"
+                                        Background="#404040"
+                                        BorderBrush="#666666"
+                                        BorderThickness="1"
+                                        Foreground="White"
+                                        FontSize="12"
+                                        FontWeight="Medium"
+                                        Click="RotationButton_Click"
+                                        Tag="180"
+                                        ToolTip="Rotate display to 180 degrees">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                               BorderBrush="{TemplateBinding BorderBrush}"
+                                                               BorderThickness="{TemplateBinding BorderThickness}"
+                                                               CornerRadius="4">
+                                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                                            VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#505050"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter Property="Background" Value="#2A4A8B"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+
+                                <Button x:Name="Rotation270Button"
+                                        Grid.Column="3"
+                                        Content="270°"
+                                        Height="36"
+                                        Margin="3,0,0,0"
+                                        Background="#404040"
+                                        BorderBrush="#666666"
+                                        BorderThickness="1"
+                                        Foreground="White"
+                                        FontSize="12"
+                                        FontWeight="Medium"
+                                        Click="RotationButton_Click"
+                                        Tag="270"
+                                        ToolTip="Rotate display to 270 degrees">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="Button">
+                                                        <Border Background="{TemplateBinding Background}"
+                                                               BorderBrush="{TemplateBinding BorderBrush}"
+                                                               BorderThickness="{TemplateBinding BorderThickness}"
+                                                               CornerRadius="4">
+                                                            <ContentPresenter HorizontalAlignment="Center" 
+                                                                            VerticalAlignment="Center"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#505050"/>
+                                                            </Trigger>
+                                                            <Trigger Property="IsPressed" Value="True">
+                                                                <Setter Property="Background" Value="#2A4A8B"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </Grid>
+
+                            <!-- Current rotation display -->
+                            <TextBlock x:Name="CurrentRotationText"
+                                      Text="Current: 0°"
+                                      FontSize="11"
+                                      Foreground="#CCCCCC"
+                                      HorizontalAlignment="Center"
+                                      Margin="0,10,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Brightness Control -->
+                    <Border Background="#2A2A2A"
+                            BorderBrush="#444444"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="15,12">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock Text="💡" 
+                                          FontSize="16" 
+                                          VerticalAlignment="Center" 
+                                          Margin="0,0,8,0"/>
+                                <TextBlock Text="Display Brightness" 
+                                          FontSize="14" 
+                                          FontWeight="SemiBold" 
+                                          Foreground="White" 
+                                          VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Brightness slider -->
+                            <Slider x:Name="BrightnessSlider"
+                                    Minimum="0"
+                                    Maximum="100"
+                                    Value="80"
+                                    TickFrequency="10"
+                                    IsSnapToTickEnabled="True"
+                                    Margin="0,0,0,10"
+                                    ValueChanged="BrightnessSlider_ValueChanged"
+                                    ToolTip="Adjust display brightness (0-100%)"/>
+                            
+                            <!-- Brightness value display and quick set buttons -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock x:Name="BrightnessValueText"
+                                          Grid.Column="0"
+                                          Text="80%"
+                                          FontSize="13"
+                                          FontWeight="Medium"
+                                          Foreground="White"
+                                          VerticalAlignment="Center"/>
+
+                                <!-- Quick brightness buttons -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button Content="25%"
+                                            Height="24"
+                                            Width="35"
+                                            Margin="0,0,4,0"
+                                            Background="#404040"
+                                            BorderBrush="#666666"
+                                            BorderThickness="1"
+                                            Foreground="White"
+                                            FontSize="10"
+                                            Click="QuickBrightnessButton_Click"
+                                            Tag="25"
+                                            ToolTip="Set brightness to 25%">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                   BorderBrush="{TemplateBinding BorderBrush}"
+                                                                   BorderThickness="{TemplateBinding BorderThickness}"
+                                                                   CornerRadius="3">
+                                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                                VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#505050"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsPressed" Value="True">
+                                                                    <Setter Property="Background" Value="#4A6BAB"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <Button Content="50%"
+                                            Height="24"
+                                            Width="35"
+                                            Margin="0,0,4,0"
+                                            Background="#404040"
+                                            BorderBrush="#666666"
+                                            BorderThickness="1"
+                                            Foreground="White"
+                                            FontSize="10"
+                                            Click="QuickBrightnessButton_Click"
+                                            Tag="50"
+                                            ToolTip="Set brightness to 50%">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                   BorderBrush="{TemplateBinding BorderBrush}"
+                                                                   BorderThickness="{TemplateBinding BorderThickness}"
+                                                                   CornerRadius="3">
+                                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                                VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#505050"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsPressed" Value="True">
+                                                                    <Setter Property="Background" Value="#4A6BAB"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <Button Content="100%"
+                                            Height="24"
+                                            Width="37"
+                                            Background="#404040"
+                                            BorderBrush="#666666"
+                                            BorderThickness="1"
+                                            Foreground="White"
+                                            FontSize="10"
+                                            Click="QuickBrightnessButton_Click"
+                                            Tag="100"
+                                            ToolTip="Set brightness to 100%">
+                                        <Button.Style>
+                                            <Style TargetType="Button">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border Background="{TemplateBinding Background}"
+                                                                   BorderBrush="{TemplateBinding BorderBrush}"
+                                                                   BorderThickness="{TemplateBinding BorderThickness}"
+                                                                   CornerRadius="3">
+                                                                <ContentPresenter HorizontalAlignment="Center" 
+                                                                                VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#505050"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsPressed" Value="True">
+                                                                    <Setter Property="Background" Value="#4A6BAB"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+            
+            <!-- Right Panel: Scenes Collection -->
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" Padding="0,20,20,20">
+                <Grid>
+                    <!-- No scenes message -->
+                    <Border x:Name="NoScenesPanel"
+                            Background="#1A1A1A"
+                            CornerRadius="16"
+                            Padding="48"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Scenes.Count}" Value="0">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="&#xE8B7;"
+                                       FontFamily="Segoe MDL2 Assets"
+                                       FontSize="64"
+                                       Foreground="#666666"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,16"/>
+                            <TextBlock Text="No Scenes Found"
+                                       FontSize="24"
+                                       FontWeight="SemiBold"
+                                       Foreground="#CCCCCC"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                            <TextBlock Text="Add scene files to the Scenes folder to get started"
+                                       FontSize="14"
+                                       Foreground="#888888"
+                                       HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Scenes display -->
+                    <ItemsControl ItemsSource="{Binding Scenes}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel IsItemsHost="True" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <!-- Scene card -->
+                                <Border x:Name="SceneCard"
+                                        CornerRadius="8"
+                                        Background="#121212"
+                                        Margin="8"
+                                        Width="180"
+                                        Height="240"
+                                        ClipToBounds="True"
+                                        Cursor="Hand">
+                                    <Border.Effect>
+                                        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="2" Opacity="0.25" />
+                                    </Border.Effect>
+                                    <Border.RenderTransform>
+                                        <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1"/>
+                                    </Border.RenderTransform>
+                                    
+                                    <Grid>
+                                        <!-- Cover image area -->
+                                        <Border Height="140" VerticalAlignment="Top" CornerRadius="8,8,0,0" ClipToBounds="True">
+                                            <!-- Background for image -->
+                                            <Border Background="#2A2A2A">
+                                                <Grid>
+                                                    <!-- Cover image -->
+                                                    <Image x:Name="CoverImage" 
+                                                           Stretch="UniformToFill"
+                                                           HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center">
+                                                       <Image.Style>
+                                                            <Style TargetType="Image">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding CoverImagePath}" Value="">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding CoverImagePath}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                                <Setter Property="Source" Value="{Binding CoverImagePath}"/>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </Style>
+                                                        </Image.Style>
+                                                    </Image>
                                                 
-                                                <!-- Fallback icon when no cover image -->
-                                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                    <StackPanel.Style>
-                                                        <Style TargetType="StackPanel">
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding CoverImagePath}" Value="">
-                                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding CoverImagePath}" Value="{x:Null}">
-                                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </Style>
-                                                    </StackPanel.Style>
-                                                    <TextBlock Text="&#xE8B7;"
-                                                               FontFamily="Segoe MDL2 Assets"
-                                                               FontSize="32"
-                                                               Foreground="#666666"
-                                                               HorizontalAlignment="Center"/>
-                                                    <TextBlock Text="Scene"
-                                                               FontSize="10"
-                                                               Foreground="#888888"
-                                                               HorizontalAlignment="Center"
-                                                               Margin="0,6,0,0"/>
-                                                </StackPanel>
-                                            </Grid>
+                                                    <!-- Fallback icon when no cover image -->
+                                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <StackPanel.Style>
+                                                            <Style TargetType="StackPanel">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding CoverImagePath}" Value="">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding CoverImagePath}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </Style>
+                                                        </StackPanel.Style>
+                                                        <TextBlock Text="&#xE8B7;"
+                                                                   FontFamily="Segoe MDL2 Assets"
+                                                                   FontSize="32"
+                                                                   Foreground="#666666"
+                                                                   HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Scene"
+                                                                   FontSize="10"
+                                                                   Foreground="#888888"
+                                                                   HorizontalAlignment="Center"
+                                                                   Margin="0,6,0,0"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
                                         </Border>
-                                    </Border>
 
-                                    <!-- Scene information -->
-                                    <StackPanel Orientation="Vertical" 
-                                                Margin="12" 
-                                                VerticalAlignment="Bottom"
-                                                Height="85">
-                                        <TextBlock Text="{Binding DisplayName}"
-                                                   Foreground="White"
-                                                   FontSize="13"
-                                                   FontWeight="Bold"
-                                                   TextWrapping="Wrap"
-                                                   MaxHeight="32"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding SceneId}"
-                                                   Foreground="#AAFFFFFF"
-                                                   FontSize="9"
-                                                   Opacity="0.7"
-                                                   Margin="0,3,0,0"
-                                                   Visibility="Collapsed"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        <TextBlock Text="{Binding SceneFileName}"
-                                                   Foreground="#AAFFFFFF"
-                                                   FontSize="8"
-                                                   Opacity="0.6"
-                                                   Margin="0,2,0,0"
-                                                   Visibility="Collapsed"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                        
-                                        <!-- Action buttons -->
-                                        <StackPanel Orientation="Horizontal" 
-                                                    HorizontalAlignment="Center"
-                                                    Margin="0,8,0,0">
-                                            <Button Content="Load"
-                                                    Background="#2196F3"
-                                                    Foreground="White"
-                                                    BorderBrush="Transparent"
-                                                    Padding="8,4"
-                                                    Margin="0,0,6,0"
-                                                    FontSize="9"
-                                                    Cursor="Hand"
-                                                    Click="LoadButton_Click">
-                                                <Button.Style>
-                                                    <Style TargetType="Button">
-                                                        <Setter Property="Template">
-                                                            <Setter.Value>
-                                                                <ControlTemplate TargetType="Button">
-                                                                    <Border x:Name="border"
-                                                                            Background="{TemplateBinding Background}"
-                                                                            Padding="{TemplateBinding Padding}">
-                                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                    </Border>
-                                                                    <ControlTemplate.Triggers>
-                                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter TargetName="border" Property="Background" Value="#1976D2"/>
-                                                                        </Trigger>
-                                                                        <Trigger Property="IsPressed" Value="True">
-                                                                            <Setter TargetName="border" Property="Background" Value="#1565C0"/>
-                                                                        </Trigger>
-                                                                    </ControlTemplate.Triggers>
-                                                                </ControlTemplate>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
+                                        <!-- Scene information -->
+                                        <StackPanel Orientation="Vertical" 
+                                                    Margin="12" 
+                                                    VerticalAlignment="Bottom"
+                                                    Height="85">
+                                            <TextBlock Text="{Binding DisplayName}"
+                                                       Foreground="White"
+                                                       FontSize="13"
+                                                       FontWeight="Bold"
+                                                       TextWrapping="Wrap"
+                                                       MaxHeight="32"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding SceneId}"
+                                                       Foreground="#AAFFFFFF"
+                                                       FontSize="9"
+                                                       Opacity="0.7"
+                                                       Margin="0,3,0,0"
+                                                       Visibility="Collapsed"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <TextBlock Text="{Binding SceneFileName}"
+                                                       Foreground="#AAFFFFFF"
+                                                       FontSize="8"
+                                                       Opacity="0.6"
+                                                       Margin="0,2,0,0"
+                                                       Visibility="Collapsed"
+                                                       TextTrimming="CharacterEllipsis"/>
                                             
-                                            <Button Content="Edit"
-                                                    Background="#FF9800"
-                                                    Foreground="White"
-                                                    BorderBrush="Transparent"
-                                                    Padding="8,4"
-                                                    FontSize="9"
-                                                    Cursor="Hand"
-                                                    Click="EditButton_Click">
-                                                <Button.Style>
-                                                    <Style TargetType="Button">
-                                                        <Setter Property="Template">
-                                                            <Setter.Value>
-                                                                <ControlTemplate TargetType="Button">
-                                                                    <Border x:Name="border"
-                                                                            Background="{TemplateBinding Background}"
-                                                                            Padding="{TemplateBinding Padding}">
-                                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                                    </Border>
-                                                                    <ControlTemplate.Triggers>
-                                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                                            <Setter TargetName="border" Property="Background" Value="#F57C00"/>
-                                                                        </Trigger>
-                                                                        <Trigger Property="IsPressed" Value="True">
-                                                                            <Setter TargetName="border" Property="Background" Value="#E65100"/>
-                                                                        </Trigger>
-                                                                    </ControlTemplate.Triggers>
-                                                                </ControlTemplate>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
+                                            <!-- Action buttons -->
+                                            <StackPanel Orientation="Horizontal" 
+                                                        HorizontalAlignment="Center"
+                                                        Margin="0,8,0,0">
+                                                <Button Content="Load"
+                                                        Background="#2196F3"
+                                                        Foreground="White"
+                                                        BorderBrush="Transparent"
+                                                        Padding="8,4"
+                                                        Margin="0,0,6,0"
+                                                        FontSize="9"
+                                                        Cursor="Hand"
+                                                        Click="LoadButton_Click">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border x:Name="border"
+                                                                                Background="{TemplateBinding Background}"
+                                                                                Padding="{TemplateBinding Padding}">
+                                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                        </Border>
+                                                                        <ControlTemplate.Triggers>
+                                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                                <Setter TargetName="border" Property="Background" Value="#1976D2"/>
+                                                                            </Trigger>
+                                                                            <Trigger Property="IsPressed" Value="True">
+                                                                                <Setter TargetName="border" Property="Background" Value="#1565C0"/>
+                                                                            </Trigger>
+                                                                        </ControlTemplate.Triggers>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            
+                                                <Button Content="Edit"
+                                                        Background="#FF9800"
+                                                        Foreground="White"
+                                                        BorderBrush="Transparent"
+                                                        Padding="8,4"
+                                                        FontSize="9"
+                                                        Cursor="Hand"
+                                                        Click="EditButton_Click">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border x:Name="border"
+                                                                                Background="{TemplateBinding Background}"
+                                                                                Padding="{TemplateBinding Padding}">
+                                                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                        </Border>
+                                                                        <ControlTemplate.Triggers>
+                                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                                <Setter TargetName="border" Property="Background" Value="#F57C00"/>
+                                                                            </Trigger>
+                                                                            <Trigger Property="IsPressed" Value="True">
+                                                                                <Setter TargetName="border" Property="Background" Value="#E65100"/>
+                                                                            </Trigger>
+                                                                        </ControlTemplate.Triggers>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </StackPanel>
                                         </StackPanel>
-                                    </StackPanel>
-                                </Grid>
+                                    </Grid>
 
-                                <!-- Card hover effects -->
-                                <Border.Triggers>
-                                    <EventTrigger RoutedEvent="MouseEnter">
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                 Storyboard.TargetProperty="ScaleX"
-                                                                 To="1.02" Duration="0:0:0.2">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <CubicEase EasingMode="EaseOut"/>
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                 Storyboard.TargetProperty="ScaleY"
-                                                                 To="1.02" Duration="0:0:0.2">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <CubicEase EasingMode="EaseOut"/>
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </EventTrigger>
-                                    <EventTrigger RoutedEvent="MouseLeave">
-                                        <BeginStoryboard>
-                                            <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                 Storyboard.TargetProperty="ScaleX"
-                                                                 To="1" Duration="0:0:0.15">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <CubicEase EasingMode="EaseIn"/>
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
-                                                                 Storyboard.TargetProperty="ScaleY"
-                                                                 To="1" Duration="0:0:0.15">
-                                                    <DoubleAnimation.EasingFunction>
-                                                        <CubicEase EasingMode="EaseIn"/>
-                                                    </DoubleAnimation.EasingFunction>
-                                                </DoubleAnimation>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </EventTrigger>
-                                </Border.Triggers>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Grid>
-        </ScrollViewer>
+                                    <!-- Card hover effects -->
+                                    <Border.Triggers>
+                                        <EventTrigger RoutedEvent="MouseEnter">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                                     Storyboard.TargetProperty="ScaleX"
+                                                                     To="1.02" Duration="0:0:0.2">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <CubicEase EasingMode="EaseOut"/>
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                    <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                                     Storyboard.TargetProperty="ScaleY"
+                                                                     To="1.02" Duration="0:0:0.2">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <CubicEase EasingMode="EaseOut"/>
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                        <EventTrigger RoutedEvent="MouseLeave">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                                     Storyboard.TargetProperty="ScaleX"
+                                                                     To="1" Duration="0:0:0.15">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <CubicEase EasingMode="EaseIn"/>
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                    <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                                     Storyboard.TargetProperty="ScaleY"
+                                                                     To="1" Duration="0:0:0.15">
+                                                        <DoubleAnimation.EasingFunction>
+                                                            <CubicEase EasingMode="EaseIn"/>
+                                                        </DoubleAnimation.EasingFunction>
+                                                    </DoubleAnimation>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Border.Triggers>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
     </Grid>
 </Page>

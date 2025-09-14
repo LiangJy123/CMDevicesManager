@@ -19,8 +19,13 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using HID.DisplayController;
+using HidApi;
+using CMDevicesManager.Services;
 
 using Path = System.IO.Path;
+using Button = System.Windows.Controls.Button;
+using Color = System.Windows.Media.Color;
 
 namespace CMDevicesManager.Pages
 {
@@ -30,7 +35,13 @@ namespace CMDevicesManager.Pages
     public partial class DeviceShow : Page, INotifyPropertyChanged
     {
         private readonly string? _appFolder = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? AppDomain.CurrentDomain.BaseDirectory;
-        private Dictionary<string, SceneInfo> _scens = new();
+        private Dictionary<string, SceneInfo> _scenes = new();
+
+        // HID Device Control fields
+        private HidDeviceService? _hidDeviceService;
+        private int _currentRotation = 0;
+        private int _currentBrightness = 80;
+        private bool _isBrightnessSliderUpdating = false;
 
         // Observable collection for data binding
         public ObservableCollection<SceneInfo> Scenes { get; } = new ObservableCollection<SceneInfo>();
@@ -40,24 +51,545 @@ namespace CMDevicesManager.Pages
             InitializeComponent();
             DataContext = this; // Set DataContext for binding
             this.Loaded += DeviceShow_Loaded;
+            this.Unloaded += Page_Unloaded; // Add unloaded event handler
+            InitializeDisplayControls();
+        }
+
+        /// <summary>
+        /// Initialize HID device display control states
+        /// </summary>
+        private void InitializeDisplayControls()
+        {
+            // Set initial brightness slider value - with null check
+            if (BrightnessSlider != null)
+            {
+                BrightnessSlider.Value = _currentBrightness;
+            }
+            if (BrightnessValueText != null)
+            {
+                BrightnessValueText.Text = $"{_currentBrightness}%";
+            }
+
+            // Set initial rotation display - with null check
+            if (CurrentRotationText != null)
+            {
+                CurrentRotationText.Text = $"Current: {_currentRotation}°";
+            }
+
+            // Update rotation button appearance to show current selection
+            UpdateRotationButtonAppearance(_currentRotation);
+
+            // Initialize image viewer
+            ResetImageViewer();
         }
 
         private void DeviceShow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Get all scenes from the Scenes folder: ap
+            // Get all scenes from the Scenes folder
             var scenesFolder = Path.Combine(_appFolder ?? string.Empty, "Scenes");
 
-            _scens = GetScenesWithJsonFiles(scenesFolder);
+            _scenes = GetScenesWithJsonFiles(scenesFolder);
             
             // Populate the observable collection for data binding
             Scenes.Clear();
-            foreach (var scene in _scens.Values)
+            foreach (var scene in _scenes.Values)
             {
                 Scenes.Add(scene);
             }
             
-            Console.WriteLine($"Total scenes with JSON files: {_scens.Count}");
+            Console.WriteLine($"Total scenes with JSON files: {_scenes.Count}");
+
+            // Initialize HID device service
+            InitializeHidDeviceService();
         }
+
+        /// <summary>
+        /// Initialize HID device service for controlling devices
+        /// </summary>
+        private void InitializeHidDeviceService()
+        {
+            try
+            {
+                // Use HidDeviceService from ServiceLocator instead of creating new MultiDeviceManager
+                _hidDeviceService = ServiceLocator.HidDeviceService;
+
+                // Set up event handlers for HidDeviceService events
+                _hidDeviceService.DeviceConnected += OnDeviceConnected;
+                _hidDeviceService.DeviceDisconnected += OnDeviceDisconnected;
+                _hidDeviceService.DeviceError += OnDeviceError;
+
+                // Load current device settings if devices are already connected
+                if (_hidDeviceService.ConnectedDeviceCount > 0)
+                {
+                    Task.Run(LoadCurrentDeviceSettings);
+                }
+
+                Debug.WriteLine($"HID Device Service initialized. Connected devices: {_hidDeviceService.ConnectedDeviceCount}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to initialize HID Device Service: {ex.Message}");
+            }
+        }
+
+        // Event handlers for HidDeviceService
+        private void OnDeviceConnected(object? sender, DeviceEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Debug.WriteLine($"HID Device connected: {e.Device.ProductString}");
+                // Load current device settings when a device is added
+                Task.Run(LoadCurrentDeviceSettings);
+            });
+        }
+
+        private void OnDeviceDisconnected(object? sender, DeviceEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Debug.WriteLine($"HID Device disconnected: {e.Device.ProductString}");
+            });
+        }
+
+        private void OnDeviceError(object? sender, DeviceErrorEventArgs e)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                Debug.WriteLine($"HID Device Error - {e.Device.ProductString}: {e.Exception.Message}");
+            });
+        }
+
+        /// <summary>
+        /// Load current device settings and update UI accordingly
+        /// </summary>
+        private async void LoadCurrentDeviceSettings()
+        {
+            if (_hidDeviceService == null || !_hidDeviceService.IsInitialized)
+                return;
+
+            if (_hidDeviceService.ConnectedDeviceCount == 0)
+                return;
+
+            try
+            {
+                // Get current settings from the first device using HidDeviceService GetActiveControllers
+                var activeControllers = _hidDeviceService.GetActiveControllers();
+                if (activeControllers.Count == 0)
+                    return;
+
+                var firstController = activeControllers.First();
+
+                // Read current rotation
+                var rotationResponse = await firstController.SendCmdReadRotatedAngleWithResponse();
+                if (rotationResponse?.IsSuccess == true && !string.IsNullOrEmpty(rotationResponse.Value.ResponseData))
+                {
+                    try
+                    {
+                        var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(rotationResponse.Value.ResponseData);
+                        if (jsonResponse?.ContainsKey("degree") == true)
+                        {
+                            if (int.TryParse(jsonResponse["degree"].ToString(), out int currentRotation))
+                            {
+                                _currentRotation = currentRotation;
+                                Dispatcher.Invoke(() =>
+                                {
+                                    if (CurrentRotationText != null)
+                                        CurrentRotationText.Text = $"Current: {currentRotation}°";
+                                    UpdateRotationButtonAppearance(currentRotation);
+                                });
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to parse rotation response: {ex.Message}");
+                    }
+                }
+
+                // Read current brightness
+                var brightnessResponse = await firstController.SendCmdReadBrightnessWithResponse();
+                if (brightnessResponse?.IsSuccess == true && !string.IsNullOrEmpty(brightnessResponse.Value.ResponseData))
+                {
+                    try
+                    {
+                        var jsonResponse = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(brightnessResponse.Value.ResponseData);
+                        if (jsonResponse?.ContainsKey("brightness") == true)
+                        {
+                            if (int.TryParse(jsonResponse["brightness"].ToString(), out int currentBrightness))
+                            {
+                                _currentBrightness = currentBrightness;
+                                Dispatcher.Invoke(() =>
+                                {
+                                    _isBrightnessSliderUpdating = true;
+                                    if (BrightnessSlider != null)
+                                        BrightnessSlider.Value = currentBrightness;
+                                    if (BrightnessValueText != null)
+                                        BrightnessValueText.Text = $"{currentBrightness}%";
+                                    _isBrightnessSliderUpdating = false;
+                                });
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to parse brightness response: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load current device settings: {ex.Message}");
+            }
+        }
+
+        #region HID Device Controls
+
+        /// <summary>
+        /// Update the appearance of rotation buttons to highlight the selected one
+        /// </summary>
+        /// <param name="selectedRotation">Currently selected rotation value</param>
+        private void UpdateRotationButtonAppearance(int selectedRotation)
+        {
+            // Reset all buttons to default style - with null checks
+            var defaultColor = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+            var selectedColor = new SolidColorBrush(Color.FromRgb(0x2A, 0x4A, 0x8B));
+
+            if (Rotation0Button != null) Rotation0Button.Background = defaultColor;
+            if (Rotation90Button != null) Rotation90Button.Background = defaultColor;
+            if (Rotation180Button != null) Rotation180Button.Background = defaultColor;
+            if (Rotation270Button != null) Rotation270Button.Background = defaultColor;
+
+            // Highlight the selected button
+            switch (selectedRotation)
+            {
+                case 0:
+                    if (Rotation0Button != null) Rotation0Button.Background = selectedColor;
+                    break;
+                case 90:
+                    if (Rotation90Button != null) Rotation90Button.Background = selectedColor;
+                    break;
+                case 180:
+                    if (Rotation180Button != null) Rotation180Button.Background = selectedColor;
+                    break;
+                case 270:
+                    if (Rotation270Button != null) Rotation270Button.Background = selectedColor;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Handle rotation button clicks
+        /// </summary>
+        private async void RotationButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_hidDeviceService == null || !_hidDeviceService.IsInitialized)
+            {
+                Debug.WriteLine("HID Device Service not initialized");
+                return;
+            }
+
+            if (_hidDeviceService.ConnectedDeviceCount == 0)
+            {
+                Debug.WriteLine("No devices connected for rotation control");
+                return;
+            }
+
+            if (sender is Button button && button.Tag is string rotationString)
+            {
+                if (int.TryParse(rotationString, out int rotation))
+                {
+                    try
+                    {
+                        // Disable rotation buttons during operation
+                        SetRotationButtonsEnabled(false);
+
+                        Debug.WriteLine($"Setting rotation to {rotation}° on {_hidDeviceService.ConnectedDeviceCount} device(s)...");
+
+                        // Send rotation command to all devices using HidDeviceService
+                        var results = await _hidDeviceService.SetRotationAsync(rotation);
+
+                        // Check results
+                        int successCount = results.Values.Count(success => success);
+                        if (successCount == results.Count)
+                        {
+                            _currentRotation = rotation;
+                            if (CurrentRotationText != null)
+                                CurrentRotationText.Text = $"Current: {rotation}°";
+                            UpdateRotationButtonAppearance(rotation);
+                            Debug.WriteLine($"Rotation set to {rotation}° on all {successCount} device(s) successfully!");
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"Rotation setting completed with mixed results: {successCount}/{results.Count} devices succeeded");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to set rotation: {ex.Message}");
+                    }
+                    finally
+                    {
+                        // Re-enable rotation buttons
+                        SetRotationButtonsEnabled(true);
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("Invalid rotation value");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Enable or disable rotation buttons
+        /// </summary>
+        /// <param name="enabled">Whether buttons should be enabled</param>
+        private void SetRotationButtonsEnabled(bool enabled)
+        {
+            if (Rotation0Button != null) Rotation0Button.IsEnabled = enabled;
+            if (Rotation90Button != null) Rotation90Button.IsEnabled = enabled;
+            if (Rotation180Button != null) Rotation180Button.IsEnabled = enabled;
+            if (Rotation270Button != null) Rotation270Button.IsEnabled = enabled;
+        }
+
+        /// <summary>
+        /// Handle brightness slider value changes
+        /// </summary>
+        private async void BrightnessSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_isBrightnessSliderUpdating || _hidDeviceService == null || !_hidDeviceService.IsInitialized)
+                return;
+
+            int newBrightness = (int)Math.Round(e.NewValue);
+
+            // Update the display text immediately for responsive UI
+            if (BrightnessValueText != null)
+                BrightnessValueText.Text = $"{newBrightness}%";
+
+            // Only send command if the value actually changed significantly
+            if (Math.Abs(newBrightness - _currentBrightness) < 1)
+                return;
+
+            try
+            {
+                if (_hidDeviceService.ConnectedDeviceCount == 0)
+                {
+                    Debug.WriteLine("No devices connected for brightness control");
+                    return;
+                }
+
+                // Disable slider during operation to prevent multiple rapid calls
+                if (BrightnessSlider != null)
+                    BrightnessSlider.IsEnabled = false;
+
+                // Send brightness command to all devices using HidDeviceService
+                var results = await _hidDeviceService.SetBrightnessAsync(newBrightness);
+
+                // Check results
+                int successCount = results.Values.Count(success => success);
+                if (successCount == results.Count)
+                {
+                    _currentBrightness = newBrightness;
+                    Debug.WriteLine($"Brightness set to {newBrightness}% on all {successCount} device(s) successfully!");
+                }
+                else
+                {
+                    Debug.WriteLine($"Brightness setting completed with mixed results: {successCount}/{results.Count} devices succeeded");
+
+                    // Revert slider to previous value on failure
+                    _isBrightnessSliderUpdating = true;
+                    if (BrightnessSlider != null)
+                        BrightnessSlider.Value = _currentBrightness;
+                    if (BrightnessValueText != null)
+                        BrightnessValueText.Text = $"{_currentBrightness}%";
+                    _isBrightnessSliderUpdating = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to set brightness: {ex.Message}");
+
+                // Revert slider to previous value on error
+                _isBrightnessSliderUpdating = true;
+                if (BrightnessSlider != null)
+                    BrightnessSlider.Value = _currentBrightness;
+                if (BrightnessValueText != null)
+                    BrightnessValueText.Text = $"{_currentBrightness}%";
+                _isBrightnessSliderUpdating = false;
+            }
+            finally
+            {
+                // Re-enable slider
+                if (BrightnessSlider != null)
+                    BrightnessSlider.IsEnabled = true;
+            }
+        }
+
+        /// <summary>
+        /// Handle quick brightness button clicks
+        /// </summary>
+        private async void QuickBrightnessButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_hidDeviceService == null || !_hidDeviceService.IsInitialized)
+            {
+                Debug.WriteLine("HID Device Service not initialized");
+                return;
+            }
+
+            if (_hidDeviceService.ConnectedDeviceCount == 0)
+            {
+                Debug.WriteLine("No devices connected for brightness control");
+                return;
+            }
+
+            if (sender is Button button && button.Tag is string brightnessString)
+            {
+                if (int.TryParse(brightnessString, out int brightness))
+                {
+                    try
+                    {
+                        // Update UI immediately
+                        _isBrightnessSliderUpdating = true;
+                        if (BrightnessSlider != null)
+                            BrightnessSlider.Value = brightness;
+                        if (BrightnessValueText != null)
+                            BrightnessValueText.Text = $"{brightness}%";
+                        _isBrightnessSliderUpdating = false;
+
+                        Debug.WriteLine($"Setting brightness to {brightness}% on {_hidDeviceService.ConnectedDeviceCount} device(s)...");
+
+                        // Send brightness command to all devices using HidDeviceService
+                        var results = await _hidDeviceService.SetBrightnessAsync(brightness);
+
+                        // Check results
+                        int successCount = results.Values.Count(success => success);
+                        if (successCount == results.Count)
+                        {
+                            _currentBrightness = brightness;
+                            Debug.WriteLine($"Brightness set to {brightness}% on all {successCount} device(s) successfully!");
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"Brightness setting completed with mixed results: {successCount}/{results.Count} devices succeeded");
+
+                            // Revert UI to previous value on failure
+                            _isBrightnessSliderUpdating = true;
+                            if (BrightnessSlider != null)
+                                BrightnessSlider.Value = _currentBrightness;
+                            if (BrightnessValueText != null)
+                                BrightnessValueText.Text = $"{_currentBrightness}%";
+                            _isBrightnessSliderUpdating = false;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to set brightness: {ex.Message}");
+
+                        // Revert UI to previous value on error
+                        _isBrightnessSliderUpdating = true;
+                        if (BrightnessSlider != null)
+                            BrightnessSlider.Value = _currentBrightness;
+                        if (BrightnessValueText != null)
+                            BrightnessValueText.Text = $"{_currentBrightness}%";
+                        _isBrightnessSliderUpdating = false;
+                    }
+                }
+                else
+                {
+                    Debug.WriteLine("Invalid brightness value");
+                }
+            }
+        }
+
+        #endregion
+
+        /// <summary>
+        /// Cleanup resources when page is unloaded
+        /// </summary>
+        private void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Unsubscribe from HidDeviceService events when page is unloaded
+                if (_hidDeviceService != null)
+                {
+                    _hidDeviceService.DeviceConnected -= OnDeviceConnected;
+                    _hidDeviceService.DeviceDisconnected -= OnDeviceDisconnected;
+                    _hidDeviceService.DeviceError -= OnDeviceError;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error during page cleanup: {ex.Message}");
+            }
+        }
+
+        #region Image Display
+
+        /// <summary>
+        /// Reset the image viewer to placeholder state
+        /// </summary>
+        private void ResetImageViewer()
+        {
+            if (DeviceImageViewer != null)
+            {
+                DeviceImageViewer.Source = null;
+                DeviceImageViewer.Visibility = Visibility.Collapsed;
+            }
+            
+            if (ImagePlaceholderContent != null)
+                ImagePlaceholderContent.Visibility = Visibility.Visible;
+
+            if (CurrentImageName != null)
+                CurrentImageName.Text = "No image loaded";
+            if (ImageDimensions != null)
+                ImageDimensions.Text = "";
+        }
+
+        /// <summary>
+        /// Update the image viewer with a scene's cover image
+        /// </summary>
+        /// <param name="sceneInfo">Scene information containing cover image path</param>
+        private void UpdateImageViewer(SceneInfo sceneInfo)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(sceneInfo.CoverImagePath) && File.Exists(sceneInfo.CoverImagePath))
+                {
+                    var bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri(sceneInfo.CoverImagePath, UriKind.Absolute);
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    bitmap.EndInit();
+                    bitmap.Freeze();
+
+                    if (DeviceImageViewer != null)
+                    {
+                        DeviceImageViewer.Source = bitmap;
+                        DeviceImageViewer.Visibility = Visibility.Visible;
+                    }
+                    
+                    if (ImagePlaceholderContent != null)
+                        ImagePlaceholderContent.Visibility = Visibility.Collapsed;
+
+                    if (CurrentImageName != null)
+                        CurrentImageName.Text = sceneInfo.DisplayName;
+                    if (ImageDimensions != null)
+                        ImageDimensions.Text = $"{bitmap.PixelWidth} × {bitmap.PixelHeight}";
+                }
+                else
+                {
+                    ResetImageViewer();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to update image viewer: {ex.Message}");
+                ResetImageViewer();
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Event handler for Edit button click - navigates to DesignerPage to edit the selected scene
@@ -68,6 +600,9 @@ namespace CMDevicesManager.Pages
             {
                 if (sender is System.Windows.Controls.Button btn && btn.DataContext is SceneInfo sceneInfo)
                 {
+                    // Update image viewer with scene's cover image
+                    UpdateImageViewer(sceneInfo);
+
                     // Construct the full path to the scene JSON file
                     var sceneFilePath = Path.Combine(_appFolder ?? string.Empty, "Scenes", sceneInfo.SceneId, sceneInfo.SceneFileName);
                     
@@ -112,6 +647,9 @@ namespace CMDevicesManager.Pages
             {
                 if (sender is System.Windows.Controls.Button btn && btn.DataContext is SceneInfo sceneInfo)
                 {
+                    // Update image viewer with scene's cover image
+                    UpdateImageViewer(sceneInfo);
+
                     Debug.WriteLine($"Loading scene: {sceneInfo.DisplayName} (ID: {sceneInfo.SceneId})");
                     
                     // For now, show a message indicating the scene would be loaded
