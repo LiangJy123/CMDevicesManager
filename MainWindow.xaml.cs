@@ -25,6 +25,7 @@ using System.Threading.Tasks; // ADDED
 using System.Threading;      // (optional, future cancellation)
 using System.Windows.Threading;
 using Brushes = System.Windows.Media.Brushes; // ADDED for DispatcherTimer
+using System.Linq; // 若文件顶部尚未有
 
 namespace CMDevicesManager
 {
@@ -33,6 +34,7 @@ namespace CMDevicesManager
     /// </summary>
     public partial class MainWindow : MicaWindow
     {
+        public MainWindow? Instance => this;
         // Cache single instances to avoid reinitialization on repeated clicks
         private HomePage? _homePage;
         private DevicePage? _devicePage;
@@ -106,7 +108,7 @@ namespace CMDevicesManager
         private DevicePage GetDevicePage() => _devicePage ??= new DevicePage();
         private DevicePageDemo GetDevicePageDemo() => _devicePageDemo ??= new DevicePageDemo();
         private SettingsPage GetSettingsPage() => _settingsPage ??= new SettingsPage();
-        private DevicePlayModePage GetDevicePlayModePage() => _devicePlayModePage ??= new DevicePlayModePage();
+        public DevicePlayModePage GetDevicePlayModePage() => _devicePlayModePage ??= new DevicePlayModePage();
 
         private DeviceConfigPage GetDeviceConfigPage() => _deviceConfigPage ??= new DeviceConfigPage();
         private RenderDemoPage GetRenderDemoPage() => _renderDemoPage ??= new RenderDemoPage();
@@ -437,6 +439,51 @@ namespace CMDevicesManager
             catch
             {
                 return null;
+            }
+        }
+
+        public void NavigateToPlayModePageAndSelectNav()
+        {
+            try
+            {
+                // 已经就是播放模式页面，仅更新选中项
+                if (MainFrame.Content is DevicePlayModePage existing)
+                {
+                    SelectNavItemByTag("Pages/DevicePlayModePage.xaml");
+                    return;
+                }
+
+                var page = GetDevicePlayModePage();
+                MainFrame.Navigate(page);
+                SelectNavItemByTag("Pages/DevicePlayModePage.xaml");
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("NavigateToPlayModePageAndSelectNav failed", ex);
+            }
+        }
+
+        private void SelectNavItemByTag(string tagKey)
+        {
+            ListBoxItem? target = null;
+            foreach (var item in NavList.Items.OfType<ListBoxItem>())
+            {
+                if (item.Tag is string tag)
+                {
+                    var normalized = tag.Replace("Pages/", "").Replace(".xaml", "");
+                    if (normalized.Equals("DevicePlayModePage", StringComparison.OrdinalIgnoreCase))
+                    {
+                        target = item;
+                        break;
+                    }
+                }
+            }
+            if (target != null)
+            {
+                NavList.SelectionChanged -= NavList_SelectionChanged;
+                NavList.SelectedItem = target;
+                _lastNavContentItem = target;
+                NavList.SelectionChanged += NavList_SelectionChanged;
             }
         }
 
