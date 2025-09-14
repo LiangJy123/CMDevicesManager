@@ -198,7 +198,7 @@ namespace CMDevicesManager.Pages
         private bool _isBrightnessSliderUpdating;
 
         // NEW: metrics + timer for live elements
-        private readonly ISystemMetricsService _metrics = new RealSystemMetricsService();
+        private readonly ISystemMetricsService _metrics = RealSystemMetricsService.Instance;
         private readonly System.Windows.Threading.DispatcherTimer _liveUpdateTimer;
         private readonly List<(TextBlock Text, LiveInfoKindAlias Kind, string? DateFormat)> _liveDynamicItems = new();
 

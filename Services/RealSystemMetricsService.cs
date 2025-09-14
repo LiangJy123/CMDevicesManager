@@ -1,58 +1,87 @@
-// CMDevicesManager - Hardware Monitoring Service
+﻿// CMDevicesManager - Hardware Monitoring Service
 // This service reads hardware sensors for system performance display.
 // Uses LibreHardwareMonitor library for legitimate hardware monitoring.
 // All data is used locally for dashboard display only.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.NetworkInformation;
 using System.Threading;
+using System.Threading.Tasks;
 using CMDevicesManager.Helper;
 using LibreHardwareMonitor.Hardware;
 
 namespace CMDevicesManager.Services
 {
+    /// <summary>
+    /// Singleton-like hardware metrics provider.
+    /// - A single background task refreshes sensors at a fixed interval.
+    /// - Public Get* methods return cached values instantly (thread-safe).
+    /// - Dispose() is intentionally a no-op so pages can "dispose" safely without shutting service down.
+    /// - Call Shutdown() once on application exit if you want to really release resources.
+    /// </summary>
     public sealed class RealSystemMetricsService : ISystemMetricsService
     {
+        // ---------- Singleton ----------
+        private static readonly Lazy<RealSystemMetricsService> _instance =
+            new(() => new RealSystemMetricsService(), LazyThreadSafetyMode.ExecutionAndPublication);
+
+        public static RealSystemMetricsService Instance => _instance.Value;
+
+        // ---------- LibreHardwareMonitor core ----------
         private readonly Computer _computer;
-        private readonly object _lock = new();
+        private readonly object _sensorLock = new();          // 保护传感器解析
+        private readonly object _nameLock = new();            // 保护名称赋值（一次性）
+        private readonly TimeSpan _refreshInterval = TimeSpan.FromMilliseconds(500);
 
-        private ISensor? _cpuTemp;
-        private ISensor? _gpuTemp;
-        private ISensor? _cpuPower;
-        private ISensor? _gpuPower;
-        private ISensor? _cpuLoad;
-        private ISensor? _gpuLoad;
-        private ISensor? _memLoad;
+        // Raw sensor references
+        private ISensor? _cpuTempSensor;
+        private ISensor? _gpuTempSensor;
+        private ISensor? _cpuPowerSensor;
+        private ISensor? _gpuPowerSensor;
+        private ISensor? _cpuLoadSensor;
+        private ISensor? _gpuLoadSensor;
+        private ISensor? _memLoadSensor;
 
-        private bool _loggedCpuTemp, _loggedGpuTemp, _loggedCpuPower, _loggedGpuPower, _loggedCpuLoad, _loggedGpuLoad, _loggedMemLoad;
-        private bool _loggedCpuName, _loggedGpuName, _loggedMemName;
+        // Cached numeric values (volatile 简化读取无需锁)
+        private  double _cpuTempValue;
+        private  double _gpuTempValue;
+        private  double _cpuPowerValue;
+        private  double _gpuPowerValue;
+        private  double _cpuLoadValue;
+        private  double _gpuLoadValue;
+        private  double _memLoadValue;
+        private  double _netDownKBs;
+        private  double _netUpKBs;
 
+        // Names (once set基本不变)
+        public string CpuName { get; private set; } = "CPU";
+        public string PrimaryGpuName { get; private set; } = "GPU";
+        public string MemoryName { get; private set; } = "Memory";
+
+        // Network sampling
         private long _lastRecvBytes;
         private long _lastSentBytes;
         private DateTime _lastNetSample = DateTime.MinValue;
-        private double _lastDownKbs, _lastUpKbs;
 
-        public string CpuName { get; }
-        public string PrimaryGpuName { get; }
-        public string MemoryName { get; }
-        private readonly TimeSpan _hardwareRefreshInterval = TimeSpan.FromMilliseconds(500);
-        private DateTime _lastHardwareRefresh = DateTime.MinValue;
-        private bool _refreshRunning;
-        public RealSystemMetricsService()
+        // Control
+        private readonly CancellationTokenSource _cts = new();
+        private Task? _loopTask;
+        private bool _shutdown;
+
+        // Log-once flags (和原实现保持语义，防止刷日志)
+        private bool _loggedCpuTemp, _loggedGpuTemp, _loggedCpuPower, _loggedGpuPower, _loggedCpuLoad, _loggedGpuLoad, _loggedMemLoad;
+        private bool _loggedCpuName, _loggedGpuName, _loggedMemName;
+
+        private RealSystemMetricsService()
         {
-            // Log the purpose of hardware monitoring for transparency
-            Logger.Info("[HW] Initializing hardware monitoring service for system performance display");
-            Logger.Info("[HW] This service reads CPU, GPU, and memory metrics for dashboard display only");
-            Logger.Info("[HW] No data is transmitted externally or stored permanently");
-            
+            Logger.Info("[HW] RealSystemMetricsService singleton initializing...");
             try
             {
                 _computer = new Computer
                 {
                     IsCpuEnabled = true,
-                    IsGpuEnabled = true,          // <- replace vendor-specific flags with this 
+                    IsGpuEnabled = true,
                     IsMemoryEnabled = true,
                     IsMotherboardEnabled = true,
                     IsStorageEnabled = false,
@@ -60,241 +89,246 @@ namespace CMDevicesManager.Services
                 };
                 _computer.Open();
 
-                // Build initial sensor map
-                lock (_lock)
-                {
-                    RefreshAllHardware();
+                // 初次解析名称 & 初次刷新
+                ResolveHardwareNames();
+                InitialSensorCache();
+                ForceRefreshOnce();
 
-                    CpuName = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu)?.Name ?? "CPU";
-                    if (CpuName == "CPU" && !_loggedCpuName) { Logger.Info("[HW] CPU name not found."); _loggedCpuName = true; }
-
-                    PrimaryGpuName = _computer.Hardware.FirstOrDefault(h => h.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd)?.Name ?? "GPU";
-                    if (PrimaryGpuName == "GPU" && !_loggedGpuName) { Logger.Info("[HW] GPU name not found."); _loggedGpuName = true; }
-
-                    MemoryName = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Memory)?.Name ?? "Memory";
-                    if (MemoryName == "Memory" && !_loggedMemName) { Logger.Info("[HW] Memory device not found."); _loggedMemName = true; }
-
-                    CacheSensors();
-                }
-                
-                Logger.Info("[HW] Hardware monitoring service initialized successfully");
+                // 启动后台循环
+                _loopTask = Task.Run(RefreshLoop);
+                Logger.Info("[HW] RealSystemMetricsService initialized.");
             }
             catch (Exception ex)
             {
-                Logger.Error("[HW] Failed to initialize hardware monitoring service", ex);
+                Logger.Error("[HW] Failed to initialize RealSystemMetricsService singleton", ex);
                 throw;
-
             }
         }
-        private void RefreshAllHardwareThrottled(bool force = false)
+
+        // ========== Public API (cached reads) ==========
+        public double GetCpuTemperature() => Round0(_cpuTempValue);
+        public double GetGpuTemperature() => Round0(_gpuTempValue);
+        public double GetCpuPower() => Round0(_cpuPowerValue);
+        public double GetGpuPower() => Round0(_gpuPowerValue);
+        public double GetCpuUsagePercent() => Round0(_cpuLoadValue);
+        public double GetGpuUsagePercent() => Round0(_gpuLoadValue);
+        public double GetMemoryUsagePercent() => Round0(_memLoadValue);
+        public double GetNetDownloadKBs() => Round0(_netDownKBs);
+        public double GetNetUploadKBs() => Round0(_netUpKBs);
+
+        private static double Round0(double v) => Math.Round(v, 0);
+
+        // ========== Background Loop ==========
+        private async Task RefreshLoop()
         {
-            var now = DateTime.UtcNow;
-            if (!force && (now - _lastHardwareRefresh) < _hardwareRefreshInterval)
-                return;
-
-            if (_refreshRunning) // prevent re-entrancy (should not happen with _lock, but defensive)
-                return;
-
-            _refreshRunning = true;
-            try
+            while (!_cts.IsCancellationRequested)
             {
-                foreach (var h in _computer.Hardware)
+                var started = DateTime.UtcNow;
+                try
                 {
-                    if (h == null) continue;
+                    UpdateAllSensors();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Info($"[HW] Refresh loop iteration failed: {ex.Message}");
+                }
+
+                var elapsed = DateTime.UtcNow - started;
+                var delay = _refreshInterval - elapsed;
+                if (delay < TimeSpan.FromMilliseconds(50))
+                    delay = TimeSpan.FromMilliseconds(50);
+
+                try
+                {
+                    await Task.Delay(delay, _cts.Token);
+                }
+                catch (TaskCanceledException) { }
+            }
+        }
+
+        // ========== One-shot initial update ==========
+        private void ForceRefreshOnce()
+        {
+            try { UpdateAllSensors(); } catch { /* ignore */ }
+        }
+
+        // ========== Update logic ==========
+        private void UpdateAllSensors()
+        {
+            lock (_sensorLock)
+            {
+                foreach (var hw in _computer.Hardware)
+                {
                     try
                     {
-                        h.Update();
-                        foreach (var sub in h.SubHardware)
+                        hw.Update();
+                        // 递归子硬件
+                        foreach (var sub in hw.SubHardware)
                         {
                             sub.Update();
-                            foreach (var subSub in sub.SubHardware)
-                            {
-                                subSub.Update();
-                            }
+                            foreach (var sub2 in sub.SubHardware)
+                                sub2.Update();
                         }
                     }
                     catch (Exception ex)
                     {
-                        Logger.Info($"[HW] Failed to update hardware {h.Name}: {ex.Message}");
+                        Logger.Info($"[HW] Hardware update failed: {hw?.Name} - {ex.Message}");
                     }
                 }
-                _lastHardwareRefresh = now;
+
+                // 解析一次（如果之前没成功）
+                if (CpuName == "CPU" || PrimaryGpuName == "GPU" || MemoryName == "Memory")
+                    ResolveHardwareNames();
+
+                // 传感器对象确保
+                EnsureSensorsResolved();
+
+                // 读取值（容错）
+                _cpuTempValue = ReadSensorSafe(_cpuTempSensor, ref _loggedCpuTemp, "[HW] CPU temperature sensor not found");
+                _gpuTempValue = ReadSensorSafe(_gpuTempSensor, ref _loggedGpuTemp, "[HW] GPU temperature sensor not found");
+                _cpuPowerValue = ReadSensorSafe(_cpuPowerSensor, ref _loggedCpuPower, "[HW] CPU power sensor not found");
+                _gpuPowerValue = ReadSensorSafe(_gpuPowerSensor, ref _loggedGpuPower, "[HW] GPU power sensor not found");
+                _cpuLoadValue = ReadSensorSafe(_cpuLoadSensor, ref _loggedCpuLoad, "[HW] CPU load sensor not found");
+                _gpuLoadValue = ReadSensorSafe(_gpuLoadSensor, ref _loggedGpuLoad, "[HW] GPU load sensor not found");
+                _memLoadValue = ReadSensorSafe(_memLoadSensor, ref _loggedMemLoad, "[HW] Memory load sensor not found");
+
+                UpdateNetworkRatesLocked();
             }
-            finally
+        }
+
+        private void EnsureSensorsResolved()
+        {
+            _cpuTempSensor ??= FindCpuSensor(SensorType.Temperature, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase))
+                                ?? FindCpuSensor(SensorType.Temperature, _ => true);
+
+            _gpuTempSensor ??= FindGpuSensor(SensorType.Temperature, s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase))
+                                ?? FindGpuSensor(SensorType.Temperature, _ => true);
+
+            _cpuPowerSensor ??= FindCpuSensor(SensorType.Power, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("CPU", StringComparison.OrdinalIgnoreCase))
+                                 ?? FindCpuSensor(SensorType.Power, _ => true);
+
+            _gpuPowerSensor ??= FindGpuSensor(SensorType.Power, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase))
+                                 ?? FindGpuSensor(SensorType.Power, _ => true);
+
+            _cpuLoadSensor ??= FindCpuSensor(SensorType.Load, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase))
+                                ?? FindCpuSensor(SensorType.Load, _ => true);
+
+            _gpuLoadSensor ??= FindGpuSensor(SensorType.Load, s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase))
+                                ?? FindGpuSensor(SensorType.Load, _ => true);
+
+            _memLoadSensor ??= FindMemorySensor(SensorType.Load, s => s.Name.Equals("Memory", StringComparison.OrdinalIgnoreCase))
+                                ?? FindMemorySensor(SensorType.Load, _ => true);
+        }
+
+        private void InitialSensorCache()
+        {
+            lock (_sensorLock)
             {
-                _refreshRunning = false;
+                EnsureSensorsResolved();
             }
         }
 
-        public double GetCpuTemperature() => ReadOrZero(ref _cpuTemp, () =>
-            FindCpuSensor(SensorType.Temperature, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)));
-
-        public double GetGpuTemperature() => ReadOrZero(ref _gpuTemp, () =>
-            FindGpuSensor(SensorType.Temperature, s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)));
-
-        public double GetCpuPower() => ReadOrZero(ref _cpuPower, () =>
-            FindCpuSensor(SensorType.Power, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("CPU", StringComparison.OrdinalIgnoreCase)));
-
-        public double GetGpuPower() => ReadOrZero(ref _gpuPower, () =>
-            FindGpuSensor(SensorType.Power, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)));
-
-        public double GetCpuUsagePercent() => ReadOrZero(ref _cpuLoad, () =>
-            FindCpuSensor(SensorType.Load, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase)));
-
-        public double GetGpuUsagePercent() => ReadOrZero(ref _gpuLoad, () =>
-            FindGpuSensor(SensorType.Load, s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)));
-
-        public double GetMemoryUsagePercent() => ReadOrZero(ref _memLoad, () =>
-            FindMemorySensor(SensorType.Load, s => s.Name.Equals("Memory", StringComparison.OrdinalIgnoreCase)));
-
-        public double GetNetDownloadKBs()
+        private void ResolveHardwareNames()
         {
-            UpdateNetworkRates();
-            return _lastDownKbs;
-        }
-
-        public double GetNetUploadKBs()
-        {
-            UpdateNetworkRates();
-            return _lastUpKbs;
-        }
-
-        private void UpdateNetworkRates()
-        {
-            lock (_lock)
+            lock (_nameLock)
             {
-                var now = DateTime.UtcNow;
-                if (_lastNetSample != DateTime.MinValue && (now - _lastNetSample).TotalMilliseconds < 400)
-                    return; // throttle
-
-                try
+                if (CpuName == "CPU")
                 {
-                    // Only monitor basic network statistics for display purposes
-                    // This is for showing network usage in the dashboard, not for monitoring traffic content
-                    var nics = NetworkInterface.GetAllNetworkInterfaces()
-                        .Where(n =>
-                            n.OperationalStatus == OperationalStatus.Up &&
-                            n.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
-                            n.NetworkInterfaceType != NetworkInterfaceType.Tunnel);
+                    var c = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Cpu)?.Name;
+                    if (!string.IsNullOrWhiteSpace(c)) CpuName = c;
+                    else if (!_loggedCpuName) { Logger.Info("[HW] CPU name not found."); _loggedCpuName = true; }
+                }
 
-                    long recv = 0, sent = 0;
-                    foreach (var nic in nics)
-                    {
-                        var s = nic.GetIPv4Statistics();
-                        recv += s.BytesReceived;
-                        sent += s.BytesSent;
-                    }
+                if (PrimaryGpuName == "GPU")
+                {
+                    var g = _computer.Hardware.FirstOrDefault(h => h.HardwareType is HardwareType.GpuNvidia or HardwareType.GpuAmd)?.Name;
+                    if (!string.IsNullOrWhiteSpace(g)) PrimaryGpuName = g;
+                    else if (!_loggedGpuName) { Logger.Info("[HW] GPU name not found."); _loggedGpuName = true; }
+                }
 
-                    if (_lastNetSample == DateTime.MinValue)
-                    {
-                        _lastRecvBytes = recv;
-                        _lastSentBytes = sent;
-                        _lastNetSample = now;
-                        _lastDownKbs = 0;
-                        _lastUpKbs = 0;
-                        Logger.Info("[NET] Network monitoring initialized for bandwidth display");
-                        return;
-                    }
+                if (MemoryName == "Memory")
+                {
+                    var m = _computer.Hardware.FirstOrDefault(h => h.HardwareType == HardwareType.Memory)?.Name;
+                    if (!string.IsNullOrWhiteSpace(m)) MemoryName = m;
+                    else if (!_loggedMemName) { Logger.Info("[HW] Memory device not found."); _loggedMemName = true; }
+                }
+            }
+        }
 
-                    var seconds = Math.Max(0.001, (now - _lastNetSample).TotalSeconds);
-                    _lastDownKbs = Math.Round((recv - _lastRecvBytes) / 1024.0 / seconds, 0);
-                    _lastUpKbs = Math.Round((sent - _lastSentBytes) / 1024.0 / seconds, 0);
+        private double ReadSensorSafe(ISensor? sensor, ref bool loggedFlag, string logMsg)
+        {
+            try
+            {
+                var v = sensor?.Value;
+                if (v.HasValue) return v.Value;
+                if (!loggedFlag)
+                {
+                    Logger.Info(logMsg);
+                    loggedFlag = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                if (!loggedFlag)
+                {
+                    Logger.Info($"{logMsg}. {ex.Message}");
+                    loggedFlag = true;
+                }
+            }
+            return 0;
+        }
 
+        // ---------- Network ----------
+        private void UpdateNetworkRatesLocked()
+        {
+            var now = DateTime.UtcNow;
+            if (_lastNetSample != DateTime.MinValue && (now - _lastNetSample).TotalMilliseconds < 400)
+                return;
+
+            try
+            {
+                var nics = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(n =>
+                        n.OperationalStatus == OperationalStatus.Up &&
+                        n.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                        n.NetworkInterfaceType != NetworkInterfaceType.Tunnel);
+
+                long recv = 0, sent = 0;
+                foreach (var nic in nics)
+                {
+                    var stats = nic.GetIPv4Statistics();
+                    recv += stats.BytesReceived;
+                    sent += stats.BytesSent;
+                }
+
+                if (_lastNetSample == DateTime.MinValue)
+                {
                     _lastRecvBytes = recv;
                     _lastSentBytes = sent;
                     _lastNetSample = now;
+                    _netDownKBs = 0;
+                    _netUpKBs = 0;
+                    return;
                 }
-                catch (Exception ex)
-                {
-                    if (_lastDownKbs != 0 || _lastUpKbs != 0)
-                        Logger.Info("[NET] Network rate read failed, falling back to 0. " + ex.Message);
-                    _lastDownKbs = 0;
-                    _lastUpKbs = 0;
-                }
-            }
-        }
 
-        private double ReadOrZero(ref ISensor? cache, Func<ISensor?> resolver)
-        {
-            lock (_lock)
+                var seconds = Math.Max(0.001, (now - _lastNetSample).TotalSeconds);
+                _netDownKBs = (recv - _lastRecvBytes) / 1024.0 / seconds;
+                _netUpKBs = (sent - _lastSentBytes) / 1024.0 / seconds;
+
+                _lastRecvBytes = recv;
+                _lastSentBytes = sent;
+                _lastNetSample = now;
+            }
+            catch (Exception ex)
             {
-                try
-                {
-                    RefreshAllHardwareThrottled();
-
-                    // If cache is null or the sensor is no longer valid, try to resolve it again
-                    if (cache == null || cache.Hardware == null)
-                    {
-                        cache = resolver();
-                    }
-                    if (cache == null || cache.Hardware == null)
-                    {
-                        LogMissing(cache);
-                        return 0;
-                    }
-                    //try { cache.Hardware.Update(); }
-                    //catch (Exception ex)
-                    //{
-                    //    Logger.Error("cache.Hardware.Update() crash", ex);
-                    //    cache=null;
-                    //    return 0;
-                    //}
-                    
-
-                    var value = cache?.Value;
-                    if (value.HasValue)
-                        return Math.Round(value.Value, 0);
-
-                    // If we still don't have a value, try to resolve the sensor again
-                    // This handles cases where sensors become available after initialization
-                    if (cache == null)
-                    {
-                        cache = resolver();
-                        cache?.Hardware?.Update();
-                        
-                        value = cache?.Value;
-                        if (value.HasValue)
-                            return Math.Round(value.Value, 0);
-                    }
-
-                    // Log once per sensor type
-                    LogMissing(cache);
-                    return 0;
-                }
-                catch (Exception ex)
-                {
-                    // Unexpected failure -> log once per sensor instance
-                    LogMissing(cache, ex);
-                    return 0;
-                }
+                // 降级为 0
+                _netDownKBs = 0;
+                _netUpKBs = 0;
+                Logger.Info("[NET] Network rate read failed: " + ex.Message);
             }
         }
 
-        private void CacheSensors()
-        {
-            // Use the same patterns as the Get methods for consistency
-            _cpuTemp = FindCpuSensor(SensorType.Temperature, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)) ??
-                       FindCpuSensor(SensorType.Temperature, _ => true);
-
-            _gpuTemp = FindGpuSensor(SensorType.Temperature, s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)) ??
-                       FindGpuSensor(SensorType.Temperature, _ => true);
-
-            _cpuPower = FindCpuSensor(SensorType.Power, s => s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("CPU", StringComparison.OrdinalIgnoreCase)) ??
-                        FindCpuSensor(SensorType.Power, _ => true);
-
-            _gpuPower = FindGpuSensor(SensorType.Power, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Package", StringComparison.OrdinalIgnoreCase) || s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)) ??
-                        FindGpuSensor(SensorType.Power, _ => true);
-
-            _cpuLoad = FindCpuSensor(SensorType.Load, s => s.Name.Contains("Total", StringComparison.OrdinalIgnoreCase)) ??
-                       FindCpuSensor(SensorType.Load, _ => true);
-            
-            _gpuLoad = FindGpuSensor(SensorType.Load, s => s.Name.Contains("Core", StringComparison.OrdinalIgnoreCase)) ??
-                       FindGpuSensor(SensorType.Load, _ => true);
-
-            _memLoad = FindMemorySensor(SensorType.Load, s => s.Name.Equals("Memory", StringComparison.OrdinalIgnoreCase)) ??
-                       FindMemorySensor(SensorType.Load, _ => true);
-        }
-
+        // ---------- Sensor find helpers ----------
         private ISensor? FindCpuSensor(SensorType type, Func<ISensor, bool> predicate) =>
             _computer.Hardware
                 .FirstOrDefault(h => h.HardwareType == HardwareType.Cpu)?
@@ -316,118 +350,30 @@ namespace CMDevicesManager.Services
                 .OrderBy(s => s.Index)
                 .FirstOrDefault(predicate);
 
-        private void RefreshAllHardware()
-        {
-            foreach (var h in _computer.Hardware)
-            {
-                if (h == null) continue;
-                try
-                {
-                    h.Update();
-                    // Also update sub-hardware recursively
-                    foreach (var sub in h.SubHardware) 
-                    {
-                        sub.Update();
-                        // Some hardware may have nested sub-hardware
-                        foreach (var subSub in sub.SubHardware)
-                        {
-                            subSub.Update();
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Log but don't fail completely if one piece of hardware fails to update
-                    Logger.Info($"[HW] Failed to update hardware {h.Name}: {ex.Message}");
-                }
-            }
-        }
-
-        private void LogAvailableSensors()
-        {
-            try
-            {
-                Logger.Info("[HW] Available hardware and sensors:");
-                foreach (var hardware in _computer.Hardware)
-                {
-                    Logger.Info($"[HW] Hardware: {hardware.Name} ({hardware.HardwareType})");
-                    foreach (var sensor in hardware.Sensors)
-                    {
-                        Logger.Info($"[HW]   Sensor: {sensor.Name} ({sensor.SensorType}) = {sensor.Value}");
-                    }
-                    foreach (var subHardware in hardware.SubHardware)
-                    {
-                        Logger.Info($"[HW]   SubHardware: {subHardware.Name} ({subHardware.HardwareType})");
-                        foreach (var sensor in subHardware.Sensors)
-                        {
-                            Logger.Info($"[HW]     Sensor: {sensor.Name} ({sensor.SensorType}) = {sensor.Value}");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Info($"[HW] Failed to log available sensors: {ex.Message}");
-            }
-        }
-
-        private void LogMissing(ISensor? sensor, Exception? ex = null)
-        {
-            string msg;
-            if (sensor == _cpuTemp && !_loggedCpuTemp)
-            {
-                msg = "[HW] CPU temperature sensor not found. Using 0.";
-                Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
-                Logger.Info($"[HW] Looking for CPU temp sensor with patterns: Package, Core");
-                _loggedCpuTemp = true;
-            }
-            else if (sensor == _gpuTemp && !_loggedGpuTemp)
-            {
-                msg = "[HW] GPU temperature sensor not found. Using 0.";
-                Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
-                Logger.Info($"[HW] Looking for GPU temp sensor with pattern: Core");
-                _loggedGpuTemp = true;
-            }
-            else if (sensor == _cpuPower && !_loggedCpuPower)
-            {
-                msg = "[HW] CPU power sensor not found. Using 0.";
-                Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
-                Logger.Info($"[HW] Looking for CPU power sensor with patterns: Package, CPU");
-                _loggedCpuPower = true;
-            }
-            else if (sensor == _gpuPower && !_loggedGpuPower)
-            {
-                msg = "[HW] GPU power sensor not found. Using 0.";
-                Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
-                Logger.Info($"[HW] Looking for GPU power sensor with patterns: Total, Package, Core");
-                _loggedGpuPower = true;
-            }
-            else if (sensor == _cpuLoad && !_loggedCpuLoad)
-            {
-                msg = "[HW] CPU load sensor not found. Using 0%.";
-                Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
-                Logger.Info($"[HW] Looking for CPU load sensor with pattern: Total");
-                _loggedCpuLoad = true;
-            }
-            else if (sensor == _gpuLoad && !_loggedGpuLoad)
-            {
-                msg = "[HW] GPU load sensor not found. Using 0%.";
-                Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
-                Logger.Info($"[HW] Looking for GPU load sensor with pattern: Core");
-                _loggedGpuLoad = true;
-            }
-            else if (sensor == _memLoad && !_loggedMemLoad)
-            {
-                msg = "[HW] Memory load sensor not found. Using 0%.";
-                Logger.Info(msg + (ex != null ? " " + ex.Message : string.Empty));
-                Logger.Info($"[HW] Looking for Memory load sensor with pattern: Memory");
-                _loggedMemLoad = true;
-            }
-        }
-
+        // ---------- Dispose / Shutdown ----------
         public void Dispose()
         {
-            try { _computer.Close(); } catch { /* ignore */ }
+            // No-op for per-page usage.
+            // Use Shutdown() if you really want to terminate background loop.
+        }
+
+        /// <summary>
+        /// Call once at application shutdown if you want to stop background thread and close hardware.
+        /// </summary>
+        public static void Shutdown()
+        {
+            if (!_instance.IsValueCreated) return;
+            _instance.Value.InternalShutdown();
+        }
+
+        private void InternalShutdown()
+        {
+            if (_shutdown) return;
+            _shutdown = true;
+            try { _cts.Cancel(); } catch { }
+            try { _loopTask?.Wait(1000); } catch { }
+            try { _computer.Close(); } catch { }
+            Logger.Info("[HW] RealSystemMetricsService shutdown complete.");
         }
     }
 }

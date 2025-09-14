@@ -810,6 +810,7 @@ namespace CMDevicesManager.Pages
         private const int RealtimeJpegSize = 480;
         private bool _realtimeActive;
         private FrameworkElement? _captureRoot; // 缓存要截取的可视元素
+        private bool _deviceErrorSubscribed = false;
         public DeviceConfigPage(DeviceInfo deviceInfo) : this()
         {
             DeviceInfo = deviceInfo;
@@ -820,7 +821,7 @@ namespace CMDevicesManager.Pages
             DataContext = this;
 
             _selectedInfo = Application.Current.FindResource("None")?.ToString() ?? "None";
-            _metrics = new RealSystemMetricsService();
+            _metrics = RealSystemMetricsService.Instance;
             BuildSystemInfoButtons();
 
             try
@@ -840,9 +841,63 @@ namespace CMDevicesManager.Pages
             _autoMoveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             _autoMoveTimer.Tick += AutoMoveTimer_Tick;
 
-            Unloaded += DeviceConfigPage_Unloaded;
+            Loaded += DeviceConfigPage_Loaded;          // 新增：进入页面恢复资源
+            Unloaded += DeviceConfigPage_Unloaded;      // 退出时释放资源
         }
+        // 新增：Loaded 回调，恢复 Unloaded 中释放的内容
+        private async void DeviceConfigPage_Loaded(object? sender, RoutedEventArgs e)
+        {
+            // 1. 恢复 HID 服务（如果之前被释放或过滤移除）
+            if (DeviceInfo != null)
+            {
+                if (_hidDeviceService == null || !_isHidServiceInitialized)
+                {
+                    await InitializeHidDeviceServiceAsync();
+                }
+                else
+                {
+                    // 重新设置过滤（Unloaded 时 Remove 过）
+                    if (!string.IsNullOrEmpty(DeviceInfo.Path))
+                    {
+                        _hidDeviceService.SetDevicePathFilter(DeviceInfo.Path, enableFilter: true);
+                    }
+                    // 重新订阅 DeviceError
+                    if (!_deviceErrorSubscribed)
+                    {
+                        _hidDeviceService.DeviceError += OnHidDeviceError;
+                        _deviceErrorSubscribed = true;
+                    }
+                }
+            }
 
+            // 2. 重新启动实时使用的定时器
+            if (!_liveTimer.IsEnabled) _liveTimer.Start();
+
+            // 3. 自动移动（仅当有需要移动的元素）
+            UpdateAutoMoveTimer();
+
+            // 4. 恢复视频播放
+            if (_currentVideoFrames != null && _currentVideoFrames.Count > 0)
+            {
+                ResumeVideoPlayback();
+            }
+
+            // 5. 实时显示（发送到设备 + 本地实时 JPEG 推送）
+            Task.Run(() => StartRealTimeShowCanvas());
+            StartRealtimeJpegStreaming();
+
+            // 6. 如果当前已经加载配置，重新着色或刷新一次文本（确保 UI 立即同步）
+            foreach (var live in _liveItems)
+            {
+                if (live.DisplayStyle == UsageDisplayStyle.Gauge && live.GaugeNeedleRotate != null)
+                {
+                    // 强制一次 UI 值更新
+                    live.GaugeNeedleRotate.Angle = GaugeRotationFromPercent(0);
+                }
+            }
+            // 主动触发一次 Live 刷新文本
+            LiveTimer_Tick(null, EventArgs.Empty);
+        }
 
         #region HID Device Service Management
 
@@ -2635,10 +2690,9 @@ namespace CMDevicesManager.Pages
         // ================= Live Timer =================
         private void LiveTimer_Tick(object? sender, EventArgs e)
         {
-            //double cpu = _metrics.GetCpuUsagePercent();
-            //double gpu = _metrics.GetGpuUsagePercent();
-            double cpu = 87.0f;
-            double gpu = 88.9f;
+            double cpu = _metrics.GetCpuUsagePercent();
+            double gpu = _metrics.GetGpuUsagePercent();
+            
             DateTime now = DateTime.Now;
 
             foreach (var item in _liveItems.ToArray())
@@ -3205,14 +3259,14 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                // Unsubscribe from HID service events
                 if (_hidDeviceService != null)
                 {
-                    // Task.Run(() => StopRealTimeShowCanvas());
                     StopRealTimeShowCanvas();
-                    _hidDeviceService.DeviceError -= OnHidDeviceError;
-
-                    // Clear the device filter for this device
+                    if (_deviceErrorSubscribed)
+                    {
+                        _hidDeviceService.DeviceError -= OnHidDeviceError;
+                        _deviceErrorSubscribed = false;              // 新增：标记已解除
+                    }
                     if (_deviceInfo != null && !string.IsNullOrEmpty(_deviceInfo.Path))
                     {
                         _hidDeviceService.RemoveDevicePathFromFilter(_deviceInfo.Path);
@@ -3222,11 +3276,10 @@ namespace CMDevicesManager.Pages
             }
             catch { }
             try { _liveTimer.Stop(); } catch { }
-            try { _metrics.Dispose(); } catch { }
             try { _autoMoveTimer.Stop(); } catch { }
             StopRealtimeJpegStreaming();
             StopVideoPlayback();
-           
+            // 不再 Dispose 单例 _metrics（RealSystemMetricsService.Instance 是全局的） 
         }
         private void StartRealtimeJpegStreaming()
         {
