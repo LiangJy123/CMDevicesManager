@@ -1918,14 +1918,12 @@ namespace CMDevicesManager.Pages
         private string? _coverFileName;
         private string? _timestamp;
 
+        private readonly string? _appFolder = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) ?? AppDomain.CurrentDomain.BaseDirectory;
+       
+
         private void CreateSceneButton_Click(object sender, RoutedEventArgs e)
         {
             _sceneId = Guid.NewGuid();
-
-            //_mediasDirectoryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias");
-            // Get the application executable directory
-            var appDirectory = System.Reflection.Assembly.GetExecutingAssembly().Location;
-            var appFolder = Path.GetDirectoryName(appDirectory) ?? AppDomain.CurrentDomain.BaseDirectory;
 
             if (_sceneId == null)
             {
@@ -1933,7 +1931,7 @@ namespace CMDevicesManager.Pages
             }
 
             // Initialize private scene folder paths
-            _sceneFolder = Path.Combine(appFolder, "Scenes", _sceneId?.ToString());
+            _sceneFolder = Path.Combine(_appFolder, "Scenes", _sceneId?.ToString());
             _coversDirectory = Path.Combine(_sceneFolder, "covers");
             _backgroundDirectory = Path.Combine(_sceneFolder, "background");
             _imagesDirectory = Path.Combine(_sceneFolder, "images");
@@ -2029,14 +2027,13 @@ namespace CMDevicesManager.Pages
                     }
 
                     // Add cover information using private fields
-                    if (_sceneFolder != null && _coverFilePath != null)
+                    if (_appFolder != null && _coverFilePath != null)
                     {
-                        sceneWithCover["coverImagePath"] = Path.GetRelativePath(_sceneFolder, _coverFilePath);
+                        sceneWithCover["coverImagePath"] = Path.GetRelativePath(_appFolder, _coverFilePath);
                     }
                     sceneWithCover["coverImageFileName"] = _coverFileName;
                     sceneWithCover["exportTimestamp"] = _timestamp;
                     sceneWithCover["sceneFileName"] = _sceneFileName;
-                    sceneWithCover["sceneFolder"] = _sceneFolder;
 
                     // Serialize the updated scene data
                     var options = new System.Text.Json.JsonSerializerOptions
@@ -2108,7 +2105,6 @@ namespace CMDevicesManager.Pages
                 //sceneWithCover["coverImageFileName"] = _coverFileName;
                 //sceneWithCover["exportTimestamp"] = _timestamp;
                 //sceneWithCover["sceneFileName"] = _sceneFileName;
-                //sceneWithCover["sceneFolder"] = _sceneFolder;
                 if (sceneObject.TryGetProperty("sceneFileName", out var sceneFileNameProp))
                 {
                     _sceneFileName = sceneFileNameProp.GetString();
