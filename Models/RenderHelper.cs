@@ -180,6 +180,7 @@ namespace CMDevicesManager.Models
     public class SceneExportData
     {
         public string SceneName { get; set; } = "";
+        public string? SceneId { get; set; } // Add SceneId property
         public DateTime ExportDate { get; set; }
         public string Version { get; set; } = "1.0";
         public int CanvasWidth { get; set; }

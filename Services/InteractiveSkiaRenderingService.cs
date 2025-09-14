@@ -1113,7 +1113,8 @@ namespace CMDevicesManager.Services
             if (!File.Exists(imagePath))
                 throw new FileNotFoundException("Image file not found");
 
-            var key = Path.GetFileName(imagePath);
+            //var key = Path.GetFileName(imagePath);
+            var key = imagePath;
             if (!_loadedImages.ContainsKey(key))
             {
                 var bitmap = SKBitmap.Decode(imagePath);
@@ -2199,13 +2200,14 @@ namespace CMDevicesManager.Services
         /// Export current scene state to JSON
         /// </summary>
         /// <returns>JSON string containing complete scene data</returns>
-        public async Task<string> ExportSceneToJsonAsync()
+        public async Task<string> ExportSceneToJsonAsync(string sceneID)
         {
             try
             {
                 var sceneData = new SceneExportData
                 {
                     SceneName = "Exported Scene",
+                    SceneId = sceneID, // Add the SceneId here
                     ExportDate = DateTime.Now,
                     Version = "1.0",
                     CanvasWidth = Width,
@@ -2224,14 +2226,16 @@ namespace CMDevicesManager.Services
                     BackgroundGradientEndColor = SerializeColor(_backgroundGradientEndColor),
                     BackgroundScaleMode = _backgroundScaleMode,
                     GradientDirection = _gradientDirection,
-                    BackgroundImagePath = _backgroundImagePath,
+                    //BackgroundImagePath = _backgroundImagePath,
+                    BackgroundImagePath = GetRelativeBackgroundImagePath(sceneID),
+
 
                     // Render settings
                     TargetFPS = TargetFPS,
                     JpegQuality = JpegQuality,
 
                     // Elements
-                    Elements = await SerializeElementsAsync()
+                    Elements = await SerializeElementsAsync(sceneID)
                 };
 
                 var options = new JsonSerializerOptions
@@ -2248,6 +2252,27 @@ namespace CMDevicesManager.Services
                 RenderingError?.Invoke(new InvalidOperationException($"Failed to export scene to JSON: {ex.Message}", ex));
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Convert absolute background image path to relative path for export
+        /// </summary>
+        /// <param name="sceneID">Scene ID for building relative path</param>
+        /// <returns>Relative path for background image</returns>
+        private string? GetRelativeBackgroundImagePath(string sceneID)
+        {
+            if (string.IsNullOrEmpty(_backgroundImagePath) ||
+                _backgroundImagePath == "<from byte array>")
+                return _backgroundImagePath;
+
+            // If it's already a relative path starting with "Scenes", return as-is
+            if (_backgroundImagePath.StartsWith("Scenes" + Path.DirectorySeparatorChar) ||
+                _backgroundImagePath.StartsWith("Scenes/"))
+                return _backgroundImagePath;
+
+            // Convert to relative path format: Scenes\sceneID\background\filename
+            var filename = Path.GetFileName(_backgroundImagePath);
+            return Path.Combine("Scenes", sceneID, "background", filename);
         }
 
         /// <summary>
@@ -2392,7 +2417,7 @@ namespace CMDevicesManager.Services
 
         #region JSON Serialization Helper Methods
 
-        private async Task<List<ElementExportData>> SerializeElementsAsync()
+        private async Task<List<ElementExportData>> SerializeElementsAsync(string sceneID)
         {
             var elements = GetElements();
             var exportElements = new List<ElementExportData>();

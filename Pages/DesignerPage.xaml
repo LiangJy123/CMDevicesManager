@@ -561,12 +561,20 @@
 
                     <!-- Canvas Control Buttons -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,16,0">
-                        <Button Name="StartRenderingButton" Content="▶ Start" 
+                        <Button Visibility="Collapsed" Name="StartRenderingButton" Content="▶ Start" 
                                Style="{StaticResource CompactActionButtonStyle}" Click="StartRenderingButton_Click" Margin="0,0,4,0"/>
-                        <Button Name="StopRenderingButton" Content="⏸ Stop" 
+                        <Button Visibility="Collapsed" Name="StopRenderingButton" Content="⏸ Stop" 
                                Style="{StaticResource CompactWarningButtonStyle}" Click="StopRenderingButton_Click" IsEnabled="False" Margin="0,0,4,0"/>
+                        
+                        <Button Name="CreateSceneButton" Content="✨ Create Scene" Style="{StaticResource ModernButtonStyle}" 
+                                   Click="CreateSceneButton_Click"/>
+                        <Button Name="ImportSceneButton" Content="📥 Import Scene" Style="{StaticResource ModernButtonStyle}" 
+                                   Click="ImportSceneButton_Click"/>
+                        <Button Name="ExportSceneButton" Content="📤 Save Scene" Style="{StaticResource ModernButtonStyle}" 
+                                   Click="ExportSceneButton_Click"/>
                         <Button Name="ClearCanvasButton" Content="🗑️ Clear" 
-                               Style="{StaticResource CompactWarningButtonStyle}" Click="ClearCanvasButton_Click"/>
+                                   Style="{StaticResource CompactWarningButtonStyle}" Click="ClearCanvasButton_Click"/>
+
                     </StackPanel>
 
                     <!-- Real-Time Updates Toggle -->
@@ -678,9 +686,9 @@
                         <StackPanel Margin="12,8">
                             <Button Name="SaveImageButton" Content="💾 Save as Image" Style="{StaticResource ActionButtonStyle}" 
                                    Click="SaveImageButton_Click"/>
-                            <Button Name="ExportSceneButton" Content="📤 Export Scene" Style="{StaticResource ModernButtonStyle}" 
+                            <Button Name="ExportSceneButton1" Content="📤 Export Scene" Style="{StaticResource ModernButtonStyle}" 
                                    Click="ExportSceneButton_Click"/>
-                            <Button Name="ImportSceneButton" Content="📥 Import Scene" Style="{StaticResource ModernButtonStyle}" 
+                            <Button Name="ImportSceneButton1" Content="📥 Import Scene" Style="{StaticResource ModernButtonStyle}" 
                                    Click="ImportSceneButton_Click"/>
                         </StackPanel>
                     </Expander>

@@ -53,6 +53,8 @@ namespace CMDevicesManager.Pages
         private bool _isCustomColorPickerOpen = false;
         private WpfRectangle? _currentSelectedColorRect;
 
+        private Guid? _sceneId = null;
+
         // Enhanced quick colors palette with better color organization
         private readonly WinUIColor[] _basicColors = new[]
         {
@@ -873,6 +875,22 @@ namespace CMDevicesManager.Pages
 
         #region Image Selection
 
+        private string? GetRelativeImagePath(string imagePath)
+        {
+            if (string.IsNullOrEmpty(imagePath) ||
+                imagePath == "<from byte array>")
+                return imagePath;
+
+            // If it's already a relative path starting with "Scenes", return as-is
+            if (imagePath.StartsWith("Scenes" + Path.DirectorySeparatorChar) ||
+                imagePath.StartsWith("Scenes/"))
+                return imagePath;
+
+            // Convert to relative path format: Scenes\sceneID\images\filename
+            var filename = Path.GetFileName(imagePath);
+            return Path.Combine("Scenes", _sceneId.ToString(), "images", filename);
+        }
+
         private async void SelectImageButton_Click(object sender, RoutedEventArgs e)
         {
             var openDialog = new OpenFileDialog
@@ -886,10 +904,28 @@ namespace CMDevicesManager.Pages
                 try
                 {
                     _selectedImagePath = openDialog.FileName;
-                    
+
+                    // Copy the image to _imagesDirectory to ensure it's accessible
+                    string? copiedImagePath = null;
+                    if (!string.IsNullOrEmpty(_imagesDirectory))
+                    {
+                        var originalFileName = Path.GetFileName(openDialog.FileName);
+                        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                        var newFileName = $"img_{timestamp}_{originalFileName}";
+                        copiedImagePath = Path.Combine(_imagesDirectory, newFileName);
+
+                        // Copy the file to the images directory
+                        File.Copy(openDialog.FileName, copiedImagePath, overwrite: true);
+                        UpdateStatus($"📁 Element image copied: {newFileName}", false);
+                    }
+
                     if (_renderService != null)
                     {
-                        var imageKey = await _renderService.LoadImageAsync(openDialog.FileName);
+                        // Use the copied image path for loading, fallback to original if copy failed
+                        var imagePathToLoad = copiedImagePath ?? openDialog.FileName;
+                        // get the relative path if possible like "Scenes/scenesid/images
+                        var relativeImagePath = GetRelativeImagePath(imagePathToLoad) ?? imagePathToLoad;
+                        var imageKey = await _renderService.LoadImageAsync(relativeImagePath);
                         var position = GetPositionFromUI();
                         var size = new WinFoundation.Size(
                             ImageScaleSlider?.Value * 100 ?? 100,
@@ -907,10 +943,10 @@ namespace CMDevicesManager.Pages
                         };
 
                         _renderService.AddElement(imageElement);
-                        
+
                         // Auto-select the newly created element
                         _renderService.SelectElement(imageElement);
-                        
+
                         // Apply opacity if available through rendering service
                         var opacitySlider = this.FindName("OpacitySlider") as Slider;
                         var opacityValue = (float)(opacitySlider?.Value ?? 1.0);
@@ -919,9 +955,9 @@ namespace CMDevicesManager.Pages
                             var properties = new Dictionary<string, object> { ["Opacity"] = opacityValue };
                             _renderService.UpdateElementProperties(imageElement, properties);
                         }
-                        
+
                         UpdateElementsList();
-                        UpdateStatus($"✨ Created image element: {Path.GetFileName(openDialog.FileName)}", false);
+                        UpdateStatus($"✨ Created image element: {Path.GetFileName(imagePathToLoad)}", false);
                     }
                 }
                 catch (Exception ex)
@@ -930,7 +966,6 @@ namespace CMDevicesManager.Pages
                 }
             }
         }
-
         #endregion
 
         #region Color Management
@@ -1191,9 +1226,8 @@ namespace CMDevicesManager.Pages
 
         #endregion
 
-        #region Canvas Controls
-
-        private async void StartRenderingButton_Click(object sender, RoutedEventArgs e)
+        #region Helper Methods
+        private async void StartRendering()
         {
             if (_renderService == null) return;
 
@@ -1202,7 +1236,7 @@ namespace CMDevicesManager.Pages
                 await _renderService.EnableHidTransfer(true, useSuspendMedia: false);
                 await _renderService.EnableHidRealTimeDisplayAsync(true);
                 _renderService.StartAutoRendering(_renderService.TargetFPS);
-                
+
                 StartRenderingButton.IsEnabled = false;
                 StopRenderingButton.IsEnabled = true;
                 UpdateStatus("🎬 Rendering started - Live preview active!", false);
@@ -1213,7 +1247,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        private async void StopRenderingButton_Click(object sender, RoutedEventArgs e)
+        private async void StopRendering()
         {
             if (_renderService == null) return;
 
@@ -1222,7 +1256,7 @@ namespace CMDevicesManager.Pages
                 _renderService.StopAutoRendering();
                 await _renderService.EnableHidTransfer(false);
                 await _renderService.EnableHidRealTimeDisplayAsync(false);
-                
+
                 StartRenderingButton.IsEnabled = true;
                 StopRenderingButton.IsEnabled = false;
                 UpdateStatus("⏸️ Rendering stopped", false);
@@ -1232,6 +1266,20 @@ namespace CMDevicesManager.Pages
             {
                 UpdateStatus($"Failed to stop rendering: {ex.Message}", true);
             }
+        }
+
+        #endregion
+
+        #region Canvas Controls
+
+        private async void StartRenderingButton_Click(object sender, RoutedEventArgs e)
+        {
+            StartRendering();
+        }
+
+        private async void StopRenderingButton_Click(object sender, RoutedEventArgs e)
+        {
+            StopRendering();
         }
 
         private void ClearCanvasButton_Click(object sender, RoutedEventArgs e)
@@ -1417,8 +1465,27 @@ namespace CMDevicesManager.Pages
             {
                 try
                 {
-                    await _renderService.SetBackgroundImageAsync(openDialog.FileName, 
+                    // Copy the image to _backgroundDirectory to ensure it's accessible
+                    string? copiedImagePath = null;
+                    if (!string.IsNullOrEmpty(_backgroundDirectory))
+                    {
+                        var originalFileName = Path.GetFileName(openDialog.FileName);
+                        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                        var newFileName = $"bg_{timestamp}_{originalFileName}";
+                        copiedImagePath = Path.Combine(_backgroundDirectory, newFileName);
+
+                        // Copy the file to the background directory
+                        File.Copy(openDialog.FileName, copiedImagePath, overwrite: true);
+                        UpdateStatus($"📁 Background image copied: {newFileName}", false);
+                    }
+
+                    // Use the copied image path if available, otherwise use original path
+                    var imagePathToUse = copiedImagePath ?? openDialog.FileName;
+
+                    await _renderService.SetBackgroundImageAsync(imagePathToUse,
                         BackgroundScaleMode.UniformToFill, (float)BackgroundOpacitySlider.Value);
+
+                    UpdateStatus($"🖼️ Background image loaded: {Path.GetFileName(imagePathToUse)}", false);
                 }
                 catch (Exception ex)
                 {
@@ -1839,6 +1906,65 @@ namespace CMDevicesManager.Pages
 
         #region File Operations
 
+
+        // Private scene folder paths
+        private string? _sceneFolder;
+        private string? _coversDirectory;
+        private string? _backgroundDirectory;
+        private string? _imagesDirectory;
+        private string? _sceneFilePath;
+        private string? _coverFilePath;
+        private string? _sceneFileName;
+        private string? _coverFileName;
+        private string? _timestamp;
+
+        private void CreateSceneButton_Click(object sender, RoutedEventArgs e)
+        {
+            _sceneId = Guid.NewGuid();
+
+            //_mediasDirectoryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias");
+            // Get the application executable directory
+            var appDirectory = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            var appFolder = Path.GetDirectoryName(appDirectory) ?? AppDomain.CurrentDomain.BaseDirectory;
+
+            if (_sceneId == null)
+            {
+                _sceneId = Guid.NewGuid();
+            }
+
+            // Initialize private scene folder paths
+            _sceneFolder = Path.Combine(appFolder, "Scenes", _sceneId?.ToString());
+            _coversDirectory = Path.Combine(_sceneFolder, "covers");
+            _backgroundDirectory = Path.Combine(_sceneFolder, "background");
+            _imagesDirectory = Path.Combine(_sceneFolder, "images");
+
+            // Ensure directories exist, if not, create them
+            Directory.CreateDirectory(_sceneFolder);
+            Directory.CreateDirectory(_coversDirectory);
+            Directory.CreateDirectory(_backgroundDirectory);
+            Directory.CreateDirectory(_imagesDirectory);
+
+            // Generate filename with timestamp
+            _timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            _sceneFileName = $"scene_{_timestamp}.json";
+            _sceneFilePath = Path.Combine(_sceneFolder, _sceneFileName);
+
+            _coverFileName = $"scene_{_timestamp}.png";
+            _coverFilePath = Path.Combine(_coversDirectory, _coverFileName);
+
+            // Clear current elements
+            _renderService?.ClearElements();
+
+            // Reset UI and state
+            UpdateElementsList();
+
+            // Start rendering if not already started
+            if (_renderService != null && !_renderService.IsAutoRenderingEnabled)
+            {
+                StartRendering();
+            }
+        }
+
         private async void SaveImageButton_Click(object sender, RoutedEventArgs e)
         {
             if (_renderService == null) return;
@@ -1867,26 +1993,78 @@ namespace CMDevicesManager.Pages
         private async void ExportSceneButton_Click(object sender, RoutedEventArgs e)
         {
             if (_renderService == null) return;
+            if (_sceneId == null) return;
 
-            var saveDialog = new SaveFileDialog
+            try
             {
-                Filter = "JSON Scene Files (*.json)|*.json",
-                DefaultExt = "json",
-                FileName = $"scene_{DateTime.Now:yyyyMMdd_HHmmss}.json"
-            };
-
-            if (saveDialog.ShowDialog() == true)
-            {
+                // Save the cover image first
                 try
                 {
-                    var sceneData = await _renderService.ExportSceneToJsonAsync();
-                    await File.WriteAllTextAsync(saveDialog.FileName, sceneData);
-                    UpdateStatus($"📤 Scene exported: {Path.GetFileName(saveDialog.FileName)}", false);
+                    if (_coverFilePath != null)
+                    {
+                        await _renderService.SaveRenderedImageAsync(_coverFilePath);
+                        UpdateStatus($"💾 Cover saved: {_coverFileName}", false);
+                    }
                 }
-                catch (Exception ex)
+                catch (Exception coverEx)
                 {
-                    UpdateStatus($"Export failed: {ex.Message}", true);
+                    UpdateStatus($"Cover save warning: {coverEx.Message}", false);
                 }
+
+                // Export scene data with cover reference
+                var sceneData = await _renderService.ExportSceneToJsonAsync(_sceneId.ToString());
+
+                // Parse the JSON to add cover information
+                try
+                {
+                    var sceneObject = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(sceneData);
+
+                    // Create a new scene object with cover information
+                    var sceneWithCover = new Dictionary<string, object>();
+
+                    // Copy existing properties
+                    foreach (var property in sceneObject.EnumerateObject())
+                    {
+                        sceneWithCover[property.Name] = property.Value;
+                    }
+
+                    // Add cover information using private fields
+                    if (_sceneFolder != null && _coverFilePath != null)
+                    {
+                        sceneWithCover["coverImagePath"] = Path.GetRelativePath(_sceneFolder, _coverFilePath);
+                    }
+                    sceneWithCover["coverImageFileName"] = _coverFileName;
+                    sceneWithCover["exportTimestamp"] = _timestamp;
+                    sceneWithCover["sceneFileName"] = _sceneFileName;
+                    sceneWithCover["sceneFolder"] = _sceneFolder;
+
+                    // Serialize the updated scene data
+                    var options = new System.Text.Json.JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                    };
+
+                    sceneData = System.Text.Json.JsonSerializer.Serialize(sceneWithCover, options);
+                }
+                catch (Exception jsonEx)
+                {
+                    UpdateStatus($"JSON processing warning: {jsonEx.Message}", false);
+                    // Continue with original scene data if JSON modification fails
+                }
+
+                // Write the scene file using private field
+                if (_sceneFilePath != null)
+                {
+                    await File.WriteAllTextAsync(_sceneFilePath, sceneData);
+
+                    UpdateStatus($"📤 Scene exported: {_sceneFileName} with cover", false);
+                    UpdateStatus($"📁 Location: Scene\\scenelist\\{_sceneFileName}", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Export failed: {ex.Message}", true);
             }
         }
 
@@ -1904,6 +2082,8 @@ namespace CMDevicesManager.Pages
             {
                 try
                 {
+                    StartRendering();
+
                     if (File.Exists(openDialog.FileName))
                     {
                         var jsonData = await File.ReadAllTextAsync(openDialog.FileName);
