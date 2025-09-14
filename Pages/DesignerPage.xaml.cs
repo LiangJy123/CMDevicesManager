@@ -22,6 +22,7 @@ using WpfColor = System.Windows.Media.Color;
 using WpfRectangle = System.Windows.Shapes.Rectangle;
 using Path = System.IO.Path;
 using System.Windows.Threading;
+using MessageBox = System.Windows.MessageBox;
 
 namespace CMDevicesManager.Pages
 {
@@ -54,6 +55,8 @@ namespace CMDevicesManager.Pages
         private WpfRectangle? _currentSelectedColorRect;
 
         private Guid? _sceneId = null;
+
+        private string _jsonFilePath;
 
         // Enhanced quick colors palette with better color organization
         private readonly WinUIColor[] _basicColors = new[]
@@ -120,6 +123,99 @@ namespace CMDevicesManager.Pages
             Loaded += OnDesignerPageLoaded;
             InitializeUI();
             InitializeRealTimeUpdateSystem();
+        }
+
+        /// <summary>
+        /// Constructor that accepts a JSON file path for automatic scene loading
+        /// </summary>
+        /// <param name="jsonFilePath">Full path to the JSON scene file to load</param>
+        public DesignerPage(string jsonFilePath) : this()
+        {
+            _jsonFilePath = jsonFilePath;
+        }
+
+        /// <summary>
+        /// Loads a scene from the specified JSON file path
+        /// </summary>
+        /// <param name="jsonFilePath">Full path to the JSON scene file</param>
+        private async Task LoadSceneFromPath(string jsonFilePath)
+        {
+            if (_renderService == null)
+            {
+                UpdateStatus("Render service not initialized", true);
+                return;
+            }
+
+            try
+            {
+                if (string.IsNullOrEmpty(jsonFilePath))
+                {
+                    UpdateStatus("Invalid scene file path", true);
+                    return;
+                }
+
+                if (!File.Exists(jsonFilePath))
+                {
+                    UpdateStatus($"Scene file not found: {Path.GetFileName(jsonFilePath)}", true);
+                    return;
+                }
+
+                UpdateStatus($"Loading scene: {Path.GetFileName(jsonFilePath)}...", false);
+
+                // Read the scene JSON data
+                var jsonData = await File.ReadAllTextAsync(jsonFilePath);
+                
+                if (string.IsNullOrWhiteSpace(jsonData))
+                {
+                    UpdateStatus("Scene file is empty or invalid", true);
+                    return;
+                }
+
+                // Start rendering if not already started
+                if (!_renderService.IsAutoRenderingEnabled)
+                {
+                    StartRendering();
+                }
+
+                // Clear any existing elements before importing
+                _renderService.ClearElements();
+
+                // Import the scene data
+                var success = await _renderService.ImportSceneFromJsonAsync(jsonData);
+
+                if (success)
+                {
+                    // Initialize scene info from the loaded JSON
+                    InitInfoFromJson(jsonData);
+
+                    // Update UI state
+                    UpdateElementsList();
+                    _isCreatingNewElement = true;
+                    _currentEditingElement = null;
+                    UpdateElementInfo();
+                    
+                    UpdateStatus($"✅ Scene loaded successfully: {Path.GetFileName(jsonFilePath)}", false);
+                    
+                    // Log successful loading
+                    System.Diagnostics.Debug.WriteLine($"Successfully loaded scene from: {jsonFilePath}");
+                }
+                else
+                {
+                    UpdateStatus($"Failed to import scene: {Path.GetFileName(jsonFilePath)}", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error loading scene: {ex.Message}", true);
+                System.Diagnostics.Debug.WriteLine($"Scene loading error: {ex}");
+                
+                // Optionally show a user-friendly error dialog
+                MessageBox.Show(
+                    $"Failed to load scene:\n{ex.Message}", 
+                    "Scene Loading Error", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Warning);
+            }
         }
 
         private void InitializeUI()
@@ -534,6 +630,10 @@ namespace CMDevicesManager.Pages
         private async void OnDesignerPageLoaded(object sender, RoutedEventArgs e)
         {
             await InitializeDesignerAsync();
+            if (!string.IsNullOrEmpty(_jsonFilePath))
+            {
+                await LoadSceneFromPath(_jsonFilePath);
+            }
         }
 
         private async Task InitializeDesignerAsync()

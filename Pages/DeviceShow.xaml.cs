@@ -68,15 +68,31 @@ namespace CMDevicesManager.Pages
             {
                 if (sender is System.Windows.Controls.Button btn && btn.DataContext is SceneInfo sceneInfo)
                 {
-                    // Navigate to DesignerPage for editing the scene
-                    var designerPage = new DesignerPage();
-                    NavigationService?.Navigate(designerPage);
+                    // Construct the full path to the scene JSON file
+                    var sceneFilePath = Path.Combine(_appFolder ?? string.Empty, "Scenes", sceneInfo.SceneId, sceneInfo.SceneFileName);
                     
-                    Debug.WriteLine($"Navigating to DesignerPage to edit scene: {sceneInfo.DisplayName} (ID: {sceneInfo.SceneId})");
-                    
-                    // Store scene info for the designer page to access
-                    // The user can manually import the scene using the Import button in the designer
-                    // Or we could pass the scene path as a parameter if the constructor supported it
+                    if (File.Exists(sceneFilePath))
+                    {
+                        // Navigate to DesignerPage with the JSON file path for automatic loading
+                        var designerPage = new DesignerPage(sceneFilePath);
+                        NavigationService?.Navigate(designerPage);
+                        
+                        Debug.WriteLine($"Navigating to DesignerPage to edit scene: {sceneInfo.DisplayName} (ID: {sceneInfo.SceneId})");
+                        Debug.WriteLine($"Scene file path: {sceneFilePath}");
+                    }
+                    else
+                    {
+                        // File not found - show error and navigate to empty designer
+                        var errorMessage = $"Scene file not found: {sceneInfo.SceneFileName}\n\nWould you like to open the Designer anyway?";
+                        var result = System.Windows.MessageBox.Show(errorMessage, "File Not Found", 
+                            MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        
+                        if (result == MessageBoxResult.Yes)
+                        {
+                            var designerPage = new DesignerPage();
+                            NavigationService?.Navigate(designerPage);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
