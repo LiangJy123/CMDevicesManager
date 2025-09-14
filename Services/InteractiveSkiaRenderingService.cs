@@ -1434,7 +1434,7 @@ namespace CMDevicesManager.Services
                     
                     using (var fillPaint = new SKPaint())
                     {
-                        fillPaint.Color = ConvertToSKColor(element.FillColor);
+                        fillPaint.Color = ConvertToSKColor(element.FillColor).WithAlpha((byte)(element.FillColor.A * element.Opacity));
                         fillPaint.IsAntialias = true;
                         canvas.DrawCircle(centerX, centerY, radius, fillPaint);
                     }
@@ -1443,7 +1443,8 @@ namespace CMDevicesManager.Services
                     {
                         using (var strokePaint = new SKPaint())
                         {
-                            strokePaint.Color = ConvertToSKColor(element.StrokeColor);
+                            strokePaint.Color = ConvertToSKColor(element.FillColor).WithAlpha((byte)(element.FillColor.A * element.Opacity));
+                            //strokePaint.Color = ConvertToSKColor(element.StrokeColor);
                             strokePaint.Style = SKPaintStyle.Stroke;
                             strokePaint.StrokeWidth = element.StrokeWidth;
                             strokePaint.IsAntialias = true;
@@ -1457,7 +1458,8 @@ namespace CMDevicesManager.Services
                     
                     using (var fillPaint = new SKPaint())
                     {
-                        fillPaint.Color = ConvertToSKColor(element.FillColor);
+                        fillPaint.Color = ConvertToSKColor(element.FillColor).WithAlpha((byte)(element.FillColor.A * element.Opacity));
+                        //fillPaint.Color = ConvertToSKColor(element.FillColor);
                         canvas.DrawRect(rect, fillPaint);
                     }
 
@@ -1465,7 +1467,8 @@ namespace CMDevicesManager.Services
                     {
                         using (var strokePaint = new SKPaint())
                         {
-                            strokePaint.Color = ConvertToSKColor(element.StrokeColor);
+                            strokePaint.Color = ConvertToSKColor(element.FillColor).WithAlpha((byte)(element.FillColor.A * element.Opacity));
+                            //strokePaint.Color = ConvertToSKColor(element.StrokeColor);
                             strokePaint.Style = SKPaintStyle.Stroke;
                             strokePaint.StrokeWidth = element.StrokeWidth;
                             canvas.DrawRect(rect, strokePaint);
@@ -2189,7 +2192,6 @@ namespace CMDevicesManager.Services
         }
 
         #endregion
-
 
         #region JSON Scene Export/Import
 

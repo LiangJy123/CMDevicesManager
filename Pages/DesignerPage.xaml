@@ -177,27 +177,28 @@
 
                             <!-- Common Properties -->
                             <StackPanel Name="CommonPropertiesSection" Visibility="Collapsed">
-                                <TextBlock Text="Position and Visibility" Style="{StaticResource PropertyLabelStyle}" Foreground="#FF8E44AD"/>
+                                <StackPanel Visibility="Collapsed">
+                                    <TextBlock Text="Position and Visibility" Style="{StaticResource PropertyLabelStyle}" Foreground="#FF8E44AD"/>
                                 
-                                <Grid Margin="0,4,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
-                                    <TextBox Name="PositionXTextBox" Grid.Column="1" Text="100" Style="{StaticResource PropertyInputStyle}" Margin="0,0,8,0"/>
-                                    <TextBlock Grid.Column="2" Text="Y:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
-                                    <TextBox Name="PositionYTextBox" Grid.Column="3" Text="100" Style="{StaticResource PropertyInputStyle}"/>
-                                </Grid>
+                                    <Grid Margin="0,4,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="X:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                                        <TextBox Name="PositionXTextBox" Grid.Column="1" Text="100" Style="{StaticResource PropertyInputStyle}" Margin="0,0,8,0"/>
+                                        <TextBlock Grid.Column="2" Text="Y:" VerticalAlignment="Center" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                                        <TextBox Name="PositionYTextBox" Grid.Column="3" Text="100" Style="{StaticResource PropertyInputStyle}"/>
+                                    </Grid>
 
-                                <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
-                                    <CheckBox Name="VisibleCheckBox" Content="👁️ Visible" IsChecked="True" Margin="0,0,16,0"/>
-                                    <CheckBox Name="DraggableCheckBox" Content="🖱️ Draggable" IsChecked="True"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                                        <CheckBox Name="VisibleCheckBox" Content="👁️ Visible" IsChecked="True" Margin="0,0,16,0"/>
+                                        <CheckBox Name="DraggableCheckBox" Content="🖱️ Draggable" IsChecked="True"/>
+                                    </StackPanel>
                                 </StackPanel>
-
-                                <!-- Opacity Control -->
+                            <!-- Opacity Control -->
                                 <TextBlock Text="Opacity:" Style="{StaticResource PropertyLabelStyle}"/>
                                 <Grid Margin="0,4,0,8">
                                     <Grid.ColumnDefinitions>
@@ -239,7 +240,7 @@
                                     <ComboBoxItem Content="Calibri"/>
                                     <ComboBoxItem Content="Consolas"/>
                                 </ComboBox>
-
+                                <StackPanel Visibility="Collapsed">
                                 <TextBlock Text="Text Color:" Style="{StaticResource PropertyLabelStyle}"/>
                                 <Grid Margin="0,4,0,8">
                                     <Grid.ColumnDefinitions>
@@ -287,6 +288,7 @@
                                         </Grid>
                                     </StackPanel>
                                 </Grid>
+                                </StackPanel>
                             </StackPanel>
 
                             <!-- Shape Properties with Enhanced Sliders -->
@@ -325,55 +327,56 @@
                                     <TextBlock Name="ShapeWidthLabel" Grid.Column="1" Text="60" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
                                     <TextBlock Name="ShapeHeightLabel" Grid.Column="3" Text="60" HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
                                 </Grid>
-
-                                <TextBlock Text="Fill Color:" Style="{StaticResource PropertyLabelStyle}"/>
-                                <Grid Margin="0,4,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Rectangle Name="ShapeColorPreview" Grid.Column="0" Style="{StaticResource ColorPreviewStyle}" Fill="LightBlue"/>
-                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
-                                        <!-- RGB Sliders for Shape Color -->
-                                        <Grid Margin="0,2">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="20"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="35"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="R:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FFE74C3C"/>
-                                            <Slider Name="ShapeColorRSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="173" 
-                                                   TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged" Margin="4,0"/>
-                                            <TextBlock Name="ShapeColorRLabel" Grid.Column="2" Text="173" VerticalAlignment="Center" 
-                                                      HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
-                                        </Grid>
-                                        <Grid Margin="0,2">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="20"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="35"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="G:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF27AE60"/>
-                                            <Slider Name="ShapeColorGSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="216" 
-                                                   TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged" Margin="4,0"/>
-                                            <TextBlock Name="ShapeColorGLabel" Grid.Column="2" Text="216" VerticalAlignment="Center" 
-                                                      HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
-                                        </Grid>
-                                        <Grid Margin="0,2">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="20"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="35"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="B:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF3498DB"/>
-                                            <Slider Name="ShapeColorBSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="230" 
-                                                   TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged" Margin="4,0"/>
-                                            <TextBlock Name="ShapeColorBLabel" Grid.Column="2" Text="230" VerticalAlignment="Center" 
-                                                      HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
+                                <StackPanel Visibility="Collapsed">
+                                    <TextBlock Text="Fill Color:" Style="{StaticResource PropertyLabelStyle}"/>
+                                    <Grid Margin="0,4,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Rectangle Name="ShapeColorPreview" Grid.Column="0" Style="{StaticResource ColorPreviewStyle}" Fill="LightBlue"/>
+                                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                            <!-- RGB Sliders for Shape Color -->
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="20"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="35"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="R:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FFE74C3C"/>
+                                                <Slider Name="ShapeColorRSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="173" 
+                                                       TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged" Margin="4,0"/>
+                                                <TextBlock Name="ShapeColorRLabel" Grid.Column="2" Text="173" VerticalAlignment="Center" 
+                                                          HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
+                                            </Grid>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="20"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="35"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="G:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF27AE60"/>
+                                                <Slider Name="ShapeColorGSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="216" 
+                                                       TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged" Margin="4,0"/>
+                                                <TextBlock Name="ShapeColorGLabel" Grid.Column="2" Text="216" VerticalAlignment="Center" 
+                                                          HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
+                                            </Grid>
+                                            <Grid Margin="0,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="20"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="35"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="B:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#FF3498DB"/>
+                                                <Slider Name="ShapeColorBSlider" Grid.Column="1" Minimum="0" Maximum="255" Value="230" 
+                                                       TickFrequency="15" ValueChanged="ShapeColorSlider_ValueChanged" Margin="4,0"/>
+                                                <TextBlock Name="ShapeColorBLabel" Grid.Column="2" Text="230" VerticalAlignment="Center" 
+                                                          HorizontalAlignment="Center" FontSize="11" FontWeight="SemiBold"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                        </StackPanel>
 
                             <!-- Image Properties -->
                             <StackPanel Name="ImagePropertiesSection" Visibility="Collapsed">
