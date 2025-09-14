@@ -2068,6 +2068,75 @@ namespace CMDevicesManager.Pages
             }
         }
 
+        private void InitInfoFromJson(string jsonData)
+        {
+            // Need init the scene ID, folder paths, etc from the imported data
+            try
+            {
+                var sceneObject = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(jsonData);
+                if (sceneObject.TryGetProperty("sceneId", out var sceneIdProp) &&
+                    Guid.TryParse(sceneIdProp.GetString(), out var sceneId))
+                {
+                    _sceneId = sceneId;
+                }
+                else
+                {
+                    throw new Exception("Invalid or missing sceneId in JSON");
+                }
+                // Get the application executable directory
+                var appDirectory = System.Reflection.Assembly.GetExecutingAssembly().Location;
+                var appFolder = Path.GetDirectoryName(appDirectory) ?? AppDomain.CurrentDomain.BaseDirectory;
+                // Initialize private scene folder paths
+                _sceneFolder = Path.Combine(appFolder, "Scenes", _sceneId?.ToString());
+                _coversDirectory = Path.Combine(_sceneFolder, "covers");
+                _backgroundDirectory = Path.Combine(_sceneFolder, "background");
+                _imagesDirectory = Path.Combine(_sceneFolder, "images");
+
+                // Need check the directories exist..
+                if(Directory.Exists(_sceneFolder) || Directory.Exists(_coversDirectory) ||
+                   Directory.Exists(_backgroundDirectory) || Directory.Exists(_imagesDirectory))
+                {
+                    // Directories exist, proceed
+                }
+                else
+                {
+                    throw new Exception("Scene directories do not exist");
+                }
+
+
+                // get the cover image, scene file name, and timestamp if available
+                //sceneWithCover["coverImageFileName"] = _coverFileName;
+                //sceneWithCover["exportTimestamp"] = _timestamp;
+                //sceneWithCover["sceneFileName"] = _sceneFileName;
+                //sceneWithCover["sceneFolder"] = _sceneFolder;
+                if (sceneObject.TryGetProperty("sceneFileName", out var sceneFileNameProp))
+                {
+                    _sceneFileName = sceneFileNameProp.GetString();
+                    if (!string.IsNullOrEmpty(_sceneFileName))
+                    {
+                        _sceneFilePath = Path.Combine(_sceneFolder, _sceneFileName);
+                    }
+                }
+                if (sceneObject.TryGetProperty("coverImageFileName", out var coverFileNameProp))
+                {
+                    _coverFileName = coverFileNameProp.GetString();
+                    if (!string.IsNullOrEmpty(_coverFileName))
+                    {
+                        _coverFilePath = Path.Combine(_coversDirectory, _coverFileName);
+                    }
+                }
+                if (sceneObject.TryGetProperty("exportTimestamp", out var timestampProp))
+                {
+                    _timestamp = timestampProp.GetString();
+                }
+
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Scene ID init warning: {ex.Message}", false);
+            }
+        }
+
         private async void ImportSceneButton_Click(object sender, RoutedEventArgs e)
         {
             if (_renderService == null) return;
@@ -2091,11 +2160,14 @@ namespace CMDevicesManager.Pages
 
                         if (success)
                         {
+                            InitInfoFromJson(jsonData);
+
                             UpdateElementsList();
                             _isCreatingNewElement = true;
                             _currentEditingElement = null;
                             UpdateElementInfo();
                             UpdateStatus($"📥 Scene imported: {Path.GetFileName(openDialog.FileName)}", false);
+
                         }
                         else
                         {
