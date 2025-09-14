@@ -43,6 +43,8 @@ namespace CMDevicesManager.Pages
         private int _currentBrightness = 80;
         private bool _isBrightnessSliderUpdating = false;
 
+        private InteractiveSkiaRenderingService? _renderService;
+
         // Observable collection for data binding
         public ObservableCollection<SceneInfo> Scenes { get; } = new ObservableCollection<SceneInfo>();
 
@@ -79,11 +81,9 @@ namespace CMDevicesManager.Pages
             // Update rotation button appearance to show current selection
             UpdateRotationButtonAppearance(_currentRotation);
 
-            // Initialize image viewer
-            ResetImageViewer();
         }
 
-        private void DeviceShow_Loaded(object sender, RoutedEventArgs e)
+        private async void DeviceShow_Loaded(object sender, RoutedEventArgs e)
         {
             // Get all scenes from the Scenes folder
             var scenesFolder = Path.Combine(_appFolder ?? string.Empty, "Scenes");
@@ -101,7 +101,152 @@ namespace CMDevicesManager.Pages
 
             // Initialize HID device service
             InitializeHidDeviceService();
+
+            await InitializeDesignerAsync();
+            // if want to load a default scene, do it here
         }
+
+        private async Task InitializeDesignerAsync()
+        {
+            try
+            {
+
+                //_renderService = new InteractiveWin2DRenderingService();
+                _renderService = new InteractiveSkiaRenderingService();
+                await _renderService.InitializeAsync(480, 480);
+
+                // Subscribe to events
+                _renderService.ImageRendered += OnFrameRendered;
+
+                await _renderService.ResetBackgroundToDefaultAsync();
+
+            }
+            catch (Exception ex)
+            {
+            }
+        }
+
+        private void OnFrameRendered(WriteableBitmap bitmap)
+        {
+            if (Dispatcher.CheckAccess())
+            {
+                DeviceImageViewer.Source = bitmap;
+                //RenderInfoLabel.Text = $"Rendering at {_renderService?.TargetFPS ?? 30} FPS";
+            }
+            else
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    DeviceImageViewer.Source = bitmap;
+                    //RenderInfoLabel.Text = $"Rendering at {_renderService?.TargetFPS ?? 30} FPS";
+                });
+            }
+        }
+
+
+        /// <summary>
+        /// Loads a scene from the specified JSON file path
+        /// </summary>
+        /// <param name="jsonFilePath">Full path to the JSON scene file</param>
+        private async Task LoadSceneFromPath(string jsonFilePath)
+        {
+            if (_renderService == null)
+            {
+                Debug.WriteLine("Render service not initialized", true);
+                return;
+            }
+
+            try
+            {
+                if (string.IsNullOrEmpty(jsonFilePath))
+                {
+                    Debug.WriteLine("Invalid scene file path", true);
+                    return;
+                }
+
+                if (!File.Exists(jsonFilePath))
+                {
+                    Debug.WriteLine($"Scene file not found: {Path.GetFileName(jsonFilePath)}", true);
+                    return;
+                }
+
+                Debug.WriteLine($"Loading scene: {Path.GetFileName(jsonFilePath)}...", false);
+
+                // Read the scene JSON data
+                var jsonData = await File.ReadAllTextAsync(jsonFilePath);
+
+                if (string.IsNullOrWhiteSpace(jsonData))
+                {
+                    Debug.WriteLine("Scene file is empty or invalid", true);
+                    return;
+                }
+
+                // Start rendering if not already started
+                if (!_renderService.IsAutoRenderingEnabled)
+                {
+                    StartRendering();
+                }
+
+                // Clear any existing elements before importing
+                _renderService.ClearElements();
+
+                // Import the scene data
+                var success = await _renderService.ImportSceneFromJsonAsync(jsonData);
+
+                if (success)
+                {
+
+                    // Log successful loading
+                    System.Diagnostics.Debug.WriteLine($"Successfully loaded scene from: {jsonFilePath}");
+                }
+                else
+                {
+                    Debug.WriteLine($"Failed to import scene: {Path.GetFileName(jsonFilePath)}", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Scene loading error: {ex}");
+            }
+        }
+
+        #region Helper Methods
+        private async void StartRendering()
+        {
+            if (_renderService == null) return;
+
+            try
+            {
+                await _renderService.EnableHidTransfer(true, useSuspendMedia: false);
+                await _renderService.EnableHidRealTimeDisplayAsync(true);
+                _renderService.StartAutoRendering(_renderService.TargetFPS);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to start rendering: {ex.Message}", true);
+            }
+        }
+
+        private async void StopRendering()
+        {
+            if (_renderService == null) return;
+
+            try
+            {
+                _renderService.StopAutoRendering();
+                await _renderService.EnableHidTransfer(false);
+                await _renderService.EnableHidRealTimeDisplayAsync(false);
+
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to stop rendering: {ex.Message}", true);
+            }
+        }
+
+        #endregion
+
+
 
         /// <summary>
         /// Initialize HID device service for controlling devices
@@ -517,79 +662,14 @@ namespace CMDevicesManager.Pages
                     _hidDeviceService.DeviceDisconnected -= OnDeviceDisconnected;
                     _hidDeviceService.DeviceError -= OnDeviceError;
                 }
+
+                StopRendering();
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error during page cleanup: {ex.Message}");
             }
         }
-
-        #region Image Display
-
-        /// <summary>
-        /// Reset the image viewer to placeholder state
-        /// </summary>
-        private void ResetImageViewer()
-        {
-            if (DeviceImageViewer != null)
-            {
-                DeviceImageViewer.Source = null;
-                DeviceImageViewer.Visibility = Visibility.Collapsed;
-            }
-            
-            if (ImagePlaceholderContent != null)
-                ImagePlaceholderContent.Visibility = Visibility.Visible;
-
-            if (CurrentImageName != null)
-                CurrentImageName.Text = "No image loaded";
-            if (ImageDimensions != null)
-                ImageDimensions.Text = "";
-        }
-
-        /// <summary>
-        /// Update the image viewer with a scene's cover image
-        /// </summary>
-        /// <param name="sceneInfo">Scene information containing cover image path</param>
-        private void UpdateImageViewer(SceneInfo sceneInfo)
-        {
-            try
-            {
-                if (!string.IsNullOrEmpty(sceneInfo.CoverImagePath) && File.Exists(sceneInfo.CoverImagePath))
-                {
-                    var bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.UriSource = new Uri(sceneInfo.CoverImagePath, UriKind.Absolute);
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    bitmap.EndInit();
-                    bitmap.Freeze();
-
-                    if (DeviceImageViewer != null)
-                    {
-                        DeviceImageViewer.Source = bitmap;
-                        DeviceImageViewer.Visibility = Visibility.Visible;
-                    }
-                    
-                    if (ImagePlaceholderContent != null)
-                        ImagePlaceholderContent.Visibility = Visibility.Collapsed;
-
-                    if (CurrentImageName != null)
-                        CurrentImageName.Text = sceneInfo.DisplayName;
-                    if (ImageDimensions != null)
-                        ImageDimensions.Text = $"{bitmap.PixelWidth} × {bitmap.PixelHeight}";
-                }
-                else
-                {
-                    ResetImageViewer();
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to update image viewer: {ex.Message}");
-                ResetImageViewer();
-            }
-        }
-
-        #endregion
 
         /// <summary>
         /// Event handler for Edit button click - navigates to DesignerPage to edit the selected scene
@@ -600,8 +680,6 @@ namespace CMDevicesManager.Pages
             {
                 if (sender is System.Windows.Controls.Button btn && btn.DataContext is SceneInfo sceneInfo)
                 {
-                    // Update image viewer with scene's cover image
-                    UpdateImageViewer(sceneInfo);
 
                     // Construct the full path to the scene JSON file
                     var sceneFilePath = Path.Combine(_appFolder ?? string.Empty, "Scenes", sceneInfo.SceneId, sceneInfo.SceneFileName);
@@ -639,37 +717,28 @@ namespace CMDevicesManager.Pages
         }
 
         /// <summary>
-        /// Event handler for Load button click - loads/plays the selected scene
+        /// Event handler for Load button click - loads/plays the selected scene using InteractiveSkiaRenderingService
         /// </summary>
-        private void LoadButton_Click(object sender, RoutedEventArgs e)
+        private async void LoadButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 if (sender is System.Windows.Controls.Button btn && btn.DataContext is SceneInfo sceneInfo)
                 {
-                    // Update image viewer with scene's cover image
-                    UpdateImageViewer(sceneInfo);
 
                     Debug.WriteLine($"Loading scene: {sceneInfo.DisplayName} (ID: {sceneInfo.SceneId})");
-                    
-                    // For now, show a message indicating the scene would be loaded
-                    // This could be extended to actually load the scene into a play mode or device
-                    System.Windows.MessageBox.Show($"Loading scene: {sceneInfo.DisplayName}\n\nThis feature will load the scene for playback or device display.", 
-                        "Load Scene", MessageBoxButton.OK, MessageBoxImage.Information);
-                    
-                    // TODO: Implement actual scene loading logic here
-                    // This might involve:
-                    // - Loading the scene into a rendering service
-                    // - Sending the scene data to connected devices
-                    // - Starting playback mode
-                    // - Navigating to a scene playback page
+
+                    // Construct the full path to the scene JSON file
+                    var sceneFilePath = Path.Combine(_appFolder ?? string.Empty, "Scenes", sceneInfo.SceneId, sceneInfo.SceneFileName);
+                    if (!string.IsNullOrEmpty(sceneFilePath))
+                    {
+                        await LoadSceneFromPath(sceneFilePath);
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to load scene: {ex}");
-                System.Windows.MessageBox.Show($"Failed to load scene: {ex.Message}", "Load Error", 
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
