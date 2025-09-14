@@ -179,14 +179,15 @@ namespace CMDevicesManager.Services
                         return false;
                     }
 
-                    // Create a defensive copy of jpegData to prevent external modifications
-                    byte[] jpegDataCopy;
-                    lock (jpegData) // Lock the jpegData parameter to prevent concurrent modifications
-                    {
-                        jpegDataCopy = new byte[jpegData.Length];
-                        Buffer.BlockCopy(jpegData, 0, jpegDataCopy, 0, jpegData.Length);
-                    }
-                    
+                    //// Create a defensive copy of jpegData to prevent external modifications
+                    //byte[] jpegDataCopy;
+                    //lock (jpegData) // Lock the jpegData parameter to prevent concurrent modifications
+                    //{
+                    //    jpegDataCopy = new byte[jpegData.Length];
+                    //    Buffer.BlockCopy(jpegData, 0, jpegDataCopy, 0, jpegData.Length);
+                    //}
+                    //var jpegDataCopy = jpegData;
+
                     // Update activity timestamp (thread-safe)
                     var currentTime = DateTime.Now;
                     lock (_timestampLock)
@@ -225,7 +226,7 @@ namespace CMDevicesManager.Services
                     // Create transmission item with locked data copy
                     var item = new JpegTransmissionItem
                     {
-                        JpegData = jpegDataCopy, // Use the defensive copy
+                        JpegData = jpegData, // Use the defensive copy
                         Priority = priority,
                         Metadata = metadata,
                         QueuedTime = currentTime,
@@ -237,7 +238,7 @@ namespace CMDevicesManager.Services
                     Interlocked.Increment(ref _totalFramesQueued);
                     
                     var newQueueSize = _jpegDataQueue.Count;
-                    Logger.Info($"JPEG data queued safely: size={jpegDataCopy.Length} bytes, priority={priority}, " +
+                    Logger.Info($"JPEG data queued safely: size={jpegData.Length} bytes, priority={priority}, " +
                               $"metadata={metadata}, queue size: {newQueueSize}");
                     
                     // Fire events outside of lock to prevent potential deadlocks
@@ -245,7 +246,7 @@ namespace CMDevicesManager.Services
                     {
                         try
                         {
-                            JpegDataQueued?.Invoke(this, new JpegDataQueuedEventArgs(jpegDataCopy, priority, metadata));
+                            JpegDataQueued?.Invoke(this, new JpegDataQueuedEventArgs(jpegData, priority, metadata));
                         }
                         catch (Exception ex)
                         {

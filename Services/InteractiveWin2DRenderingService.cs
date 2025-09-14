@@ -481,7 +481,7 @@ namespace CMDevicesManager.Services
                 var bitmap = await RenderFrameAsync();
                 
                 // Send to HID devices if enabled
-                //if (SendToHidDevices && _hidDeviceService?.IsInitialized == true && _hidRealTimeModeEnabled)
+                if (SendToHidDevices && _hidDeviceService?.IsInitialized == true && _hidRealTimeModeEnabled)
                 {
                     var rawData = GetRenderedImageBytes();
                     if (rawData != null)
@@ -1179,39 +1179,50 @@ namespace CMDevicesManager.Services
                 var jpegData = await ConvertToJpegAsync(rawImageData, Width, Height);
                 if (jpegData != null && jpegData.Length > 0)
                 {
+                    // ////////////////////////////////////////////////////////////
                     // Increment transfer ID (1-59 range as per HID service requirement)
                     _transferId++;
                     if (_transferId > 59) _transferId = 1;
 
                     // Send JPEG data to HID devices using TransferDataAsync
-                    //var results = await _hidDeviceService!.TransferDataAsync(jpegData, _transferId);
-
-                    // Direct access - throws exception if not initialized
-                    var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
-                    bool ifQueued = realtimeService.QueueJpegData(jpegData, priority: 1, "MyFrame");
-                    //var successCount = results.Values.Count(r => r);
-                    if (ifQueued)
+                    var results = await _hidDeviceService!.TransferDataAsync(jpegData, _transferId);
+                    //Log results
+                    var successCount = results.Values.Count(r => r);
+                    if (successCount > 0)
                     {
                         _hidFramesSent++;
                         JpegDataSentToHid?.Invoke(jpegData);
-                        HidStatusChanged?.Invoke($"Frame #{_hidFramesSent} sent to devices (ID: {_transferId}, Size: {jpegData.Length:N0} bytes)");
+                        HidStatusChanged?.Invoke($"Frame #{_hidFramesSent} sent to {successCount}/{results.Count} devices (ID: {_transferId}, Size: {jpegData.Length:N0} bytes)");
                     }
                     else
                     {
                         HidStatusChanged?.Invoke("Failed to send frame to any HID devices");
                     }
-                    // Log results
-                    //var successCount = results.Values.Count(r => r);
-                    //if (successCount > 0)
+
+                    //////////////////////////////////////////////////////////////
+
+                    // Direct access - throws exception if not initialized
+                    //var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
+                    //// Create a defensive copy of jpegData to prevent external modifications
+                    //byte[] jpegDataCopy;
+                    //lock (jpegData) // Lock the jpegData parameter to prevent concurrent modifications
+                    //{
+                    //    jpegDataCopy = new byte[jpegData.Length];
+                    //    Buffer.BlockCopy(jpegData, 0, jpegDataCopy, 0, jpegData.Length);
+                    //}
+                    //bool ifQueued = realtimeService.QueueJpegData(jpegDataCopy, priority: 1, "MyFrame");
+                    ////var successCount = results.Values.Count(r => r);
+                    //if (ifQueued)
                     //{
                     //    _hidFramesSent++;
                     //    JpegDataSentToHid?.Invoke(jpegData);
-                    //    HidStatusChanged?.Invoke($"Frame #{_hidFramesSent} sent to {successCount}/{results.Count} devices (ID: {_transferId}, Size: {jpegData.Length:N0} bytes)");
+                    //    HidStatusChanged?.Invoke($"Frame #{_hidFramesSent} sent to devices (ID: {_transferId}, Size: {jpegData.Length:N0} bytes)");
                     //}
                     //else
                     //{
                     //    HidStatusChanged?.Invoke("Failed to send frame to any HID devices");
                     //}
+                    ///////////////////////////////////////////////
                 }
             }
             catch (Exception ex)
