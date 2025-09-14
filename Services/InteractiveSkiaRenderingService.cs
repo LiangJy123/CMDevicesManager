@@ -2433,6 +2433,8 @@ namespace CMDevicesManager.Services
                     IsVisible = element.IsVisible,
                     IsDraggable = element.IsDraggable,
                     ZIndex = element.ZIndex
+                    // Opacity
+                    , Opacity = element.Opacity
                 };
 
                 // Serialize element-specific properties
@@ -2641,6 +2643,7 @@ namespace CMDevicesManager.Services
                         element.IsVisible = exportElement.IsVisible;
                         element.IsDraggable = exportElement.IsDraggable;
                         element.ZIndex = exportElement.ZIndex;
+                        element.Opacity = exportElement.Opacity; // Apply opacity
 
                         // Convert to motion element if motion data exists
                         if (exportElement.MotionData != null)

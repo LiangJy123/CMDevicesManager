@@ -221,6 +221,8 @@ namespace CMDevicesManager.Models
         public bool IsVisible { get; set; } = true;
         public bool IsDraggable { get; set; } = true;
         public float ZIndex { get; set; } = 0;
+        public float Opacity { get; set; } = 1.0f; // Add opacity property for JSON export
+
 
         // Element-specific data (only one will be populated per element)
         public TextElementData? TextData { get; set; }
