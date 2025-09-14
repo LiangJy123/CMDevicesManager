@@ -296,6 +296,45 @@ namespace CMDevicesManager.Services
                 BackgroundGradientDirection.TopToBottom);
         }
 
+        /// <summary>
+        /// Update background image scale mode
+        /// </summary>
+        /// <param name="scaleMode">New scale mode</param>
+        public void SetBackgroundScaleMode(BackgroundScaleMode scaleMode)
+        {
+            if (_backgroundType == BackgroundType.Image)
+            {
+                _backgroundScaleMode = scaleMode;
+                BackgroundChanged?.Invoke($"Background scale mode changed to: {scaleMode}");
+            }
+        }
+
+        /// <summary>
+        /// Update background opacity
+        /// </summary>
+        /// <param name="opacity">New opacity (0.0 to 1.0)</param>
+        public void SetBackgroundOpacity(float opacity)
+        {
+            _backgroundOpacity = Math.Clamp(opacity, 0.0f, 1.0f);
+            BackgroundChanged?.Invoke($"Background opacity changed to: {_backgroundOpacity:F2}");
+        }
+
+        /// <summary>
+        /// Get background information
+        /// </summary>
+        /// <returns>Background information string</returns>
+        public string GetBackgroundInfo()
+        {
+            return _backgroundType switch
+            {
+                BackgroundType.SolidColor => $"Solid Color: {_backgroundColor} (Opacity: {_backgroundOpacity:F2})",
+                BackgroundType.Gradient => $"Gradient: {_backgroundColor} to {_backgroundGradientEndColor} ({_gradientDirection}, Opacity: {_backgroundOpacity:F2})",
+                BackgroundType.Image => $"Image: {_backgroundImagePath ?? "Unknown"} (Scale: {_backgroundScaleMode}, Opacity: {_backgroundOpacity:F2})",
+                BackgroundType.Transparent => "Transparent",
+                _ => "Unknown"
+            };
+        }
+
         #endregion
 
         private void InitializeRenderTimer()
@@ -442,6 +481,125 @@ namespace CMDevicesManager.Services
             AddElement(element);
             
             return _elements.Count - 1;
+        }
+
+        /// <summary>
+        /// Add a rectangle element with motion capabilities
+        /// </summary>
+        public int AddRectangleElementWithMotion(Point position, Size size, WinUIColor color, ElementMotionConfig? motionConfig = null)
+        {
+            motionConfig ??= new ElementMotionConfig();
+
+            var element = new MotionShapeElement($"MotionRectangle_{Guid.NewGuid()}")
+            {
+                ShapeType = ShapeType.Rectangle,
+                Position = position,
+                OriginalPosition = position,
+                Size = size,
+                FillColor = color,
+                StrokeColor = WinUIColor.FromArgb(255, 255, 255, 255),
+                StrokeWidth = 1,
+                MotionConfig = motionConfig,
+                IsDraggable = true,
+                IsVisible = true
+            };
+
+            InitializeMotionElement(element, motionConfig);
+            AddElement(element);
+
+            return _elements.Count - 1;
+        }
+
+        /// <summary>
+        /// Add an image element with motion capabilities
+        /// </summary>
+        public int AddImageElementWithMotion(string imagePath, Point position, ElementMotionConfig? motionConfig = null, ImageElementConfig? imageConfig = null)
+        {
+            imageConfig ??= new ImageElementConfig();
+            motionConfig ??= new ElementMotionConfig();
+
+            var element = new MotionImageElement($"MotionImage_{Guid.NewGuid()}")
+            {
+                ImagePath = imagePath,
+                Position = position,
+                OriginalPosition = position,
+                Size = imageConfig.Size,
+                Scale = imageConfig.Scale,
+                Rotation = imageConfig.Rotation,
+                MotionConfig = motionConfig,
+                IsDraggable = imageConfig.IsDraggable,
+                IsVisible = true
+            };
+
+            InitializeMotionElement(element, motionConfig);
+            AddElement(element);
+
+            return _elements.Count - 1;
+        }
+
+        /// <summary>
+        /// Set motion configuration for an existing element
+        /// </summary>
+        public void SetElementMotion(RenderElement element, ElementMotionConfig motionConfig)
+        {
+            if (element is IMotionElement motionElement)
+            {
+                motionElement.MotionConfig = motionConfig;
+                InitializeMotionElement(motionElement, motionConfig);
+                HidStatusChanged?.Invoke($"Motion updated for element: {element.Name}");
+            }
+        }
+
+        /// <summary>
+        /// Pause motion for an element
+        /// </summary>
+        public void PauseElementMotion(RenderElement element)
+        {
+            if (element is IMotionElement motionElement)
+            {
+                motionElement.MotionConfig.IsPaused = true;
+            }
+        }
+
+        /// <summary>
+        /// Resume motion for an element
+        /// </summary>
+        public void ResumeElementMotion(RenderElement element)
+        {
+            if (element is IMotionElement motionElement)
+            {
+                motionElement.MotionConfig.IsPaused = false;
+            }
+        }
+
+        /// <summary>
+        /// Pause all motion
+        /// </summary>
+        public void PauseAllMotion()
+        {
+            lock (_lockObject)
+            {
+                foreach (var element in _elements.OfType<IMotionElement>())
+                {
+                    element.MotionConfig.IsPaused = true;
+                }
+            }
+            HidStatusChanged?.Invoke("All motion paused");
+        }
+
+        /// <summary>
+        /// Resume all motion
+        /// </summary>
+        public void ResumeAllMotion()
+        {
+            lock (_lockObject)
+            {
+                foreach (var element in _elements.OfType<IMotionElement>())
+                {
+                    element.MotionConfig.IsPaused = false;
+                }
+            }
+            HidStatusChanged?.Invoke("All motion resumed");
         }
 
         private void InitializeMotionElement(IMotionElement element, ElementMotionConfig config)
@@ -636,6 +794,21 @@ namespace CMDevicesManager.Services
             }
         }
 
+        /// <summary>
+        /// Update the FPS for auto rendering
+        /// </summary>
+        /// <param name="fps">New target FPS</param>
+        public void SetAutoRenderingFPS(int fps)
+        {
+            TargetFPS = Math.Clamp(fps, 1, 120);
+
+            if (_renderTimer != null)
+            {
+                _renderTimer.Interval = TimeSpan.FromMilliseconds(1000.0 / TargetFPS);
+                HidStatusChanged?.Invoke($"Auto rendering FPS updated to {TargetFPS}");
+            }
+        }
+
         #endregion
 
         #region HID Device Integration
@@ -659,6 +832,41 @@ namespace CMDevicesManager.Services
             else
             {
                 HidStatusChanged?.Invoke("HID transfer disabled");
+            }
+        }
+
+        /// <summary>
+        /// Enable real-time display mode on HID devices
+        /// </summary>
+        public async Task<bool> EnableHidRealTimeDisplayAsync(bool enable)
+        {
+            if (_hidDeviceService == null || !_hidDeviceService.IsInitialized)
+            {
+                HidStatusChanged?.Invoke("HID service not available");
+                return false;
+            }
+
+            try
+            {
+                var results = await _hidDeviceService.SetRealTimeDisplayAsync(enable);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    _hidRealTimeModeEnabled = enable;
+                    HidStatusChanged?.Invoke($"Real-time display {(enable ? "enabled" : "disabled")} on {successCount}/{results.Count} devices");
+                    return true;
+                }
+                else
+                {
+                    HidStatusChanged?.Invoke("Failed to set real-time display mode on any device");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                HidStatusChanged?.Invoke($"Error setting real-time display mode: {ex.Message}");
+                return false;
             }
         }
 
@@ -1572,5 +1780,1022 @@ namespace CMDevicesManager.Services
             _surface?.Dispose();
             _renderTimer = null;
         }
+
+        #region Element Property Update Methods
+
+        /// <summary>
+        /// Update element properties from editor values
+        /// </summary>
+        /// <param name="element">Element to update</param>
+        /// <param name="properties">Dictionary of property name-value pairs</param>
+        public void UpdateElementProperties(RenderElement element, Dictionary<string, object> properties)
+        {
+            if (element == null || properties == null) return;
+
+            try
+            {
+                lock (_lockObject)
+                {
+                    // Update common properties
+                    if (properties.TryGetValue("Position", out var position) && position is Point newPosition)
+                    {
+                        element.Position = newPosition;
+                        if (element is IMotionElement motionElement)
+                        {
+                            motionElement.OriginalPosition = newPosition;
+                        }
+                    }
+
+                    if (properties.TryGetValue("IsVisible", out var visible) && visible is bool isVisible)
+                    {
+                        element.IsVisible = isVisible;
+                    }
+
+                    if (properties.TryGetValue("IsDraggable", out var draggable) && draggable is bool isDraggable)
+                    {
+                        element.IsDraggable = isDraggable;
+                    }
+
+                    if (properties.TryGetValue("ZIndex", out var zIndex) && zIndex is float zIndexValue)
+                    {
+                        element.ZIndex = zIndexValue;
+                        // Re-sort elements by Z-index
+                        _elements.Sort((a, b) => a.ZIndex.CompareTo(b.ZIndex));
+                    }
+                    // Opacity property
+                    if (properties.TryGetValue("Opacity", out var opacity) && opacity is float opacityValue)
+                    {
+                        element.Opacity = Math.Clamp(opacityValue, 0.0f, 1.0f);
+                    }
+
+                    // Update element-specific properties
+                    UpdateElementSpecificProperties(element, properties);
+                }
+
+                // Notify that element was updated
+                ElementMoved?.Invoke(element);
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to update element properties: {ex.Message}", ex));
+            }
+        }
+
+        /// <summary>
+        /// Update properties specific to element type
+        /// </summary>
+        private void UpdateElementSpecificProperties(RenderElement element, Dictionary<string, object> properties)
+        {
+            switch (element)
+            {
+                case TextElement textElement:
+                    UpdateTextElementProperties(textElement, properties);
+                    break;
+                case ShapeElement shapeElement:
+                    UpdateShapeElementProperties(shapeElement, properties);
+                    break;
+                case ImageElement imageElement:
+                    UpdateImageElementProperties(imageElement, properties);
+                    break;
+                case LiveElement liveElement:
+                    UpdateLiveElementProperties(liveElement, properties);
+                    break;
+            }
+
+            // Update motion properties if element has motion
+            if (element is IMotionElement motionElement)
+            {
+                UpdateMotionElementProperties(motionElement, properties);
+            }
+        }
+
+        /// <summary>
+        /// Update text element specific properties
+        /// </summary>
+        private void UpdateTextElementProperties(TextElement element, Dictionary<string, object> properties)
+        {
+            if (properties.TryGetValue("Text", out var text) && text is string textValue)
+            {
+                element.Text = textValue;
+            }
+
+            if (properties.TryGetValue("FontSize", out var fontSize) && fontSize is float fontSizeValue)
+            {
+                element.FontSize = fontSizeValue;
+            }
+
+            if (properties.TryGetValue("FontFamily", out var fontFamily) && fontFamily is string fontFamilyValue)
+            {
+                element.FontFamily = fontFamilyValue;
+            }
+
+            if (properties.TryGetValue("TextColor", out var textColor) && textColor is WinUIColor textColorValue)
+            {
+                element.TextColor = textColorValue;
+            }
+
+            if (properties.TryGetValue("Size", out var size) && size is Size sizeValue)
+            {
+                element.Size = sizeValue;
+            }
+        }
+
+        /// <summary>
+        /// Update shape element specific properties
+        /// </summary>
+        private void UpdateShapeElementProperties(ShapeElement element, Dictionary<string, object> properties)
+        {
+            if (properties.TryGetValue("ShapeType", out var shapeType) && shapeType is ShapeType shapeTypeValue)
+            {
+                element.ShapeType = shapeTypeValue;
+            }
+
+            if (properties.TryGetValue("Size", out var size) && size is Size sizeValue)
+            {
+                element.Size = sizeValue;
+            }
+
+            if (properties.TryGetValue("FillColor", out var fillColor) && fillColor is WinUIColor fillColorValue)
+            {
+                element.FillColor = fillColorValue;
+            }
+
+            if (properties.TryGetValue("StrokeColor", out var strokeColor) && strokeColor is WinUIColor strokeColorValue)
+            {
+                element.StrokeColor = strokeColorValue;
+            }
+
+            if (properties.TryGetValue("StrokeWidth", out var strokeWidth) && strokeWidth is float strokeWidthValue)
+            {
+                element.StrokeWidth = strokeWidthValue;
+            }
+        }
+
+        /// <summary>
+        /// Update image element specific properties
+        /// </summary>
+        private void UpdateImageElementProperties(ImageElement element, Dictionary<string, object> properties)
+        {
+            if (properties.TryGetValue("Scale", out var scale) && scale is float scaleValue)
+            {
+                element.Scale = scaleValue;
+            }
+
+            if (properties.TryGetValue("Rotation", out var rotation) && rotation is float rotationValue)
+            {
+                element.Rotation = rotationValue;
+            }
+
+            if (properties.TryGetValue("Size", out var size) && size is Size sizeValue)
+            {
+                element.Size = sizeValue;
+            }
+        }
+
+        /// <summary>
+        /// Update live element specific properties
+        /// </summary>
+        private void UpdateLiveElementProperties(LiveElement element, Dictionary<string, object> properties)
+        {
+            if (properties.TryGetValue("Format", out var format) && format is string formatValue)
+            {
+                element.Format = formatValue;
+            }
+
+            if (properties.TryGetValue("FontSize", out var fontSize) && fontSize is float fontSizeValue)
+            {
+                element.FontSize = fontSizeValue;
+            }
+
+            if (properties.TryGetValue("FontFamily", out var fontFamily) && fontFamily is string fontFamilyValue)
+            {
+                element.FontFamily = fontFamilyValue;
+            }
+
+            if (properties.TryGetValue("TextColor", out var textColor) && textColor is WinUIColor textColorValue)
+            {
+                element.TextColor = textColorValue;
+            }
+
+            if (properties.TryGetValue("Size", out var size) && size is Size sizeValue)
+            {
+                element.Size = sizeValue;
+            }
+        }
+
+        /// <summary>
+        /// Update motion element specific properties
+        /// </summary>
+        private void UpdateMotionElementProperties(IMotionElement element, Dictionary<string, object> properties)
+        {
+            var config = element.MotionConfig;
+            var configChanged = false;
+
+            if (properties.TryGetValue("MotionType", out var motionType) && motionType is MotionType motionTypeValue)
+            {
+                config.MotionType = motionTypeValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("Speed", out var speed) && speed is float speedValue)
+            {
+                config.Speed = speedValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("Direction", out var direction) && direction is Vector2 directionValue)
+            {
+                config.Direction = directionValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("Center", out var center) && center is Vector2 centerValue)
+            {
+                config.Center = centerValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("Radius", out var radius) && radius is float radiusValue)
+            {
+                config.Radius = radiusValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("RespectBoundaries", out var respectBoundaries) && respectBoundaries is bool respectBoundariesValue)
+            {
+                config.RespectBoundaries = respectBoundariesValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("ShowTrail", out var showTrail) && showTrail is bool showTrailValue)
+            {
+                config.ShowTrail = showTrailValue;
+                if (showTrailValue && element.TrailPositions == null)
+                {
+                    element.TrailPositions = new Queue<Vector2>();
+                }
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("TrailLength", out var trailLength) && trailLength is int trailLengthValue)
+            {
+                config.TrailLength = trailLengthValue;
+                configChanged = true;
+            }
+
+            if (properties.TryGetValue("IsPaused", out var isPaused) && isPaused is bool isPausedValue)
+            {
+                config.IsPaused = isPausedValue;
+                configChanged = true;
+            }
+
+            // Re-initialize motion element if configuration changed
+            if (configChanged)
+            {
+                InitializeMotionElement(element, config);
+            }
+        }
+
+        /// <summary>
+        /// Get element properties for editor display
+        /// </summary>
+        /// <param name="element">Element to get properties from</param>
+        /// <returns>Dictionary of property name-value pairs</returns>
+        public Dictionary<string, object> GetElementProperties(RenderElement element)
+        {
+            if (element == null) return new Dictionary<string, object>();
+
+            var properties = new Dictionary<string, object>();
+
+            try
+            {
+                // Common properties
+                properties["Id"] = element.Id;
+                properties["Name"] = element.Name;
+                properties["Type"] = element.Type.ToString();
+                properties["Position"] = element.Position;
+                properties["IsVisible"] = element.IsVisible;
+                properties["IsDraggable"] = element.IsDraggable;
+                properties["IsSelected"] = element.IsSelected;
+                properties["ZIndex"] = element.ZIndex;
+
+                // Element-specific properties
+                switch (element)
+                {
+                    case TextElement textElement:
+                        properties["Text"] = textElement.Text;
+                        properties["FontSize"] = textElement.FontSize;
+                        properties["FontFamily"] = textElement.FontFamily;
+                        properties["TextColor"] = textElement.TextColor;
+                        properties["Size"] = textElement.Size;
+                        break;
+
+                    case ShapeElement shapeElement:
+                        properties["ShapeType"] = shapeElement.ShapeType;
+                        properties["Size"] = shapeElement.Size;
+                        properties["FillColor"] = shapeElement.FillColor;
+                        properties["StrokeColor"] = shapeElement.StrokeColor;
+                        properties["StrokeWidth"] = shapeElement.StrokeWidth;
+                        break;
+
+                    case ImageElement imageElement:
+                        properties["ImagePath"] = imageElement.ImagePath;
+                        properties["Size"] = imageElement.Size;
+                        properties["Scale"] = imageElement.Scale;
+                        properties["Rotation"] = imageElement.Rotation;
+                        break;
+
+                    case LiveElement liveElement:
+                        properties["Format"] = liveElement.Format;
+                        properties["FontSize"] = liveElement.FontSize;
+                        properties["FontFamily"] = liveElement.FontFamily;
+                        properties["TextColor"] = liveElement.TextColor;
+                        properties["Size"] = liveElement.Size;
+                        properties["CurrentText"] = liveElement.GetCurrentText();
+                        break;
+                }
+
+                // Motion properties
+                if (element is IMotionElement motionElement)
+                {
+                    properties["HasMotion"] = true;
+                    properties["OriginalPosition"] = motionElement.OriginalPosition;
+                    properties["MotionType"] = motionElement.MotionConfig.MotionType;
+                    properties["Speed"] = motionElement.MotionConfig.Speed;
+                    properties["Direction"] = motionElement.MotionConfig.Direction;
+                    properties["Center"] = motionElement.MotionConfig.Center;
+                    properties["Radius"] = motionElement.MotionConfig.Radius;
+                    properties["RespectBoundaries"] = motionElement.MotionConfig.RespectBoundaries;
+                    properties["ShowTrail"] = motionElement.MotionConfig.ShowTrail;
+                    properties["TrailLength"] = motionElement.MotionConfig.TrailLength;
+                    properties["IsPaused"] = motionElement.MotionConfig.IsPaused;
+                    properties["StartTime"] = motionElement.StartTime;
+                    properties["CurrentAngle"] = motionElement.CurrentAngle;
+                }
+                else
+                {
+                    properties["HasMotion"] = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to get element properties: {ex.Message}", ex));
+            }
+
+            return properties;
+        }
+
+        /// <summary>
+        /// Find element by ID
+        /// </summary>
+        /// <param name="elementId">Element ID</param>
+        /// <returns>Element if found, null otherwise</returns>
+        public RenderElement? FindElementById(Guid elementId)
+        {
+            lock (_lockObject)
+            {
+                return _elements.FirstOrDefault(e => e.Id == elementId);
+            }
+        }
+
+        /// <summary>
+        /// Find element by name
+        /// </summary>
+        /// <param name="elementName">Element name</param>
+        /// <returns>Element if found, null otherwise</returns>
+        public RenderElement? FindElementByName(string elementName)
+        {
+            if (string.IsNullOrWhiteSpace(elementName)) return null;
+
+            lock (_lockObject)
+            {
+                return _elements.FirstOrDefault(e => string.Equals(e.Name, elementName, StringComparison.OrdinalIgnoreCase));
+            }
+        }
+
+        /// <summary>
+        /// Update element by ID
+        /// </summary>
+        /// <param name="elementId">Element ID</param>
+        /// <param name="properties">Properties to update</param>
+        /// <returns>True if element was found and updated</returns>
+        public bool UpdateElementById(Guid elementId, Dictionary<string, object> properties)
+        {
+            var element = FindElementById(elementId);
+            if (element == null) return false;
+
+            UpdateElementProperties(element, properties);
+            return true;
+        }
+
+        #endregion
+
+
+        #region JSON Scene Export/Import
+
+        /// <summary>
+        /// Export current scene state to JSON
+        /// </summary>
+        /// <returns>JSON string containing complete scene data</returns>
+        public async Task<string> ExportSceneToJsonAsync()
+        {
+            try
+            {
+                var sceneData = new SceneExportData
+                {
+                    SceneName = "Exported Scene",
+                    ExportDate = DateTime.Now,
+                    Version = "1.0",
+                    CanvasWidth = Width,
+                    CanvasHeight = Height,
+
+                    // Display options
+                    ShowTime = ShowTime,
+                    ShowDate = ShowDate,
+                    ShowSystemInfo = ShowSystemInfo,
+                    ShowAnimation = ShowAnimation,
+
+                    // Background configuration
+                    BackgroundType = _backgroundType,
+                    BackgroundOpacity = _backgroundOpacity,
+                    BackgroundColor = SerializeColor(_backgroundColor),
+                    BackgroundGradientEndColor = SerializeColor(_backgroundGradientEndColor),
+                    BackgroundScaleMode = _backgroundScaleMode,
+                    GradientDirection = _gradientDirection,
+                    BackgroundImagePath = _backgroundImagePath,
+
+                    // Render settings
+                    TargetFPS = TargetFPS,
+                    JpegQuality = JpegQuality,
+
+                    // Elements
+                    Elements = await SerializeElementsAsync()
+                };
+
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    Converters = { new JsonStringEnumConverter() }
+                };
+
+                return JsonSerializer.Serialize(sceneData, options);
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to export scene to JSON: {ex.Message}", ex));
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Import scene state from JSON
+        /// </summary>
+        /// <param name="jsonData">JSON string containing scene data</param>
+        /// <returns>True if import was successful, false otherwise</returns>
+        public async Task<bool> ImportSceneFromJsonAsync(string jsonData)
+        {
+            try
+            {
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    Converters = { new JsonStringEnumConverter() }
+                };
+
+                var sceneData = JsonSerializer.Deserialize<SceneExportData>(jsonData, options);
+                if (sceneData == null)
+                {
+                    HidStatusChanged?.Invoke("Failed to deserialize scene data");
+                    return false;
+                }
+
+                // Clear existing elements
+                ClearElements();
+
+                // Apply scene configuration
+                await ApplySceneConfigurationAsync(sceneData);
+
+                // Import elements
+                await ImportElementsAsync(sceneData.Elements);
+
+                HidStatusChanged?.Invoke($"Scene imported: {sceneData.SceneName} ({sceneData.Elements.Count} elements)");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to import scene from JSON: {ex.Message}", ex));
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Get scene information as formatted string
+        /// </summary>
+        /// <returns>Formatted scene information</returns>
+        public async Task<string> GetSceneInfoAsync()
+        {
+            try
+            {
+                var elements = GetElements();
+                var motionElementCount = elements.Count(e => e is IMotionElement);
+
+                var info = new StringBuilder();
+                info.AppendLine("=== SCENE INFORMATION ===");
+                info.AppendLine($"Scene Export Date: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                info.AppendLine($"Canvas Size: {Width} x {Height}");
+                info.AppendLine();
+
+                info.AppendLine("=== DISPLAY SETTINGS ===");
+                info.AppendLine($"Show Time: {ShowTime}");
+                info.AppendLine($"Show Date: {ShowDate}");
+                info.AppendLine($"Show System Info: {ShowSystemInfo}");
+                info.AppendLine($"Show Animation: {ShowAnimation}");
+                info.AppendLine();
+
+                info.AppendLine("=== BACKGROUND CONFIGURATION ===");
+                info.AppendLine($"Background Type: {_backgroundType}");
+                info.AppendLine($"Background Opacity: {_backgroundOpacity:F2}");
+
+                switch (_backgroundType)
+                {
+                    case BackgroundType.SolidColor:
+                        info.AppendLine($"Background Color: {_backgroundColor}");
+                        break;
+                    case BackgroundType.Gradient:
+                        info.AppendLine($"Gradient Start: {_backgroundColor}");
+                        info.AppendLine($"Gradient End: {_backgroundGradientEndColor}");
+                        info.AppendLine($"Gradient Direction: {_gradientDirection}");
+                        break;
+                    case BackgroundType.Image:
+                        info.AppendLine($"Image Path: {_backgroundImagePath ?? "Unknown"}");
+                        info.AppendLine($"Scale Mode: {_backgroundScaleMode}");
+                        break;
+                }
+                info.AppendLine();
+
+                info.AppendLine("=== RENDER SETTINGS ===");
+                info.AppendLine($"Target FPS: {TargetFPS}");
+                info.AppendLine($"Auto Rendering: {IsAutoRenderingEnabled}");
+                info.AppendLine($"JPEG Quality: {JpegQuality}%");
+                info.AppendLine($"HID Service Connected: {IsHidServiceConnected}");
+                info.AppendLine($"HID Real-time Mode: {IsHidRealTimeModeEnabled}");
+                info.AppendLine($"HID Frames Sent: {HidFramesSent}");
+                info.AppendLine();
+
+                info.AppendLine("=== ELEMENTS ===");
+                info.AppendLine($"Total Elements: {elements.Count}");
+                info.AppendLine($"Motion Elements: {motionElementCount}");
+                info.AppendLine($"Static Elements: {elements.Count - motionElementCount}");
+                info.AppendLine();
+
+                if (elements.Any())
+                {
+                    info.AppendLine("Element Details:");
+                    foreach (var element in elements.OrderBy(e => e.ZIndex))
+                    {
+                        var motionInfo = element is IMotionElement me ? $" [Motion: {me.MotionConfig.MotionType}]" : "";
+                        info.AppendLine($"  � {element.Name} ({element.Type}){motionInfo}");
+                        info.AppendLine($"    Position: ({element.Position.X:F0}, {element.Position.Y:F0})");
+                        info.AppendLine($"    Visible: {element.IsVisible}, Draggable: {element.IsDraggable}");
+
+                        if (element is TextElement te)
+                        {
+                            var textPreview = te.Text.Length > 30 ? te.Text.Substring(0, 30) + "..." : te.Text;
+                            info.AppendLine($"    Text: \"{textPreview}\" (Size: {te.FontSize})");
+                        }
+                        else if (element is ImageElement ie)
+                        {
+                            info.AppendLine($"    Image: {Path.GetFileName(ie.ImagePath)} (Scale: {ie.Scale})");
+                        }
+                        else if (element is ShapeElement se)
+                        {
+                            info.AppendLine($"    Shape: {se.ShapeType} (Size: {se.Size.Width:F0}x{se.Size.Height:F0})");
+                        }
+
+                        info.AppendLine();
+                    }
+                }
+
+                return info.ToString();
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to generate scene info: {ex.Message}", ex));
+                return $"Error generating scene info: {ex.Message}";
+            }
+        }
+
+        #endregion
+
+        #region JSON Serialization Helper Methods
+
+        private async Task<List<ElementExportData>> SerializeElementsAsync()
+        {
+            var elements = GetElements();
+            var exportElements = new List<ElementExportData>();
+
+            foreach (var element in elements)
+            {
+                var exportElement = new ElementExportData
+                {
+                    Id = element.Id.ToString(),
+                    Name = element.Name,
+                    Type = element.Type.ToString(),
+                    Position = SerializePoint(element.Position),
+                    IsVisible = element.IsVisible,
+                    IsDraggable = element.IsDraggable,
+                    ZIndex = element.ZIndex
+                };
+
+                // Serialize element-specific properties
+                switch (element)
+                {
+                    case TextElement textElement:
+                        exportElement.TextData = new TextElementData
+                        {
+                            Text = textElement.Text,
+                            FontSize = textElement.FontSize,
+                            FontFamily = textElement.FontFamily,
+                            TextColor = SerializeColor(textElement.TextColor),
+                            Size = SerializeSize(textElement.Size)
+                        };
+                        break;
+
+                    case ImageElement imageElement:
+                        exportElement.ImageData = new ImageElementData
+                        {
+                            ImagePath = imageElement.ImagePath,
+                            Size = SerializeSize(imageElement.Size),
+                            Scale = imageElement.Scale,
+                            Rotation = imageElement.Rotation
+                        };
+                        break;
+
+                    case ShapeElement shapeElement:
+                        exportElement.ShapeData = new ShapeElementData
+                        {
+                            ShapeType = shapeElement.ShapeType.ToString(),
+                            Size = SerializeSize(shapeElement.Size),
+                            FillColor = SerializeColor(shapeElement.FillColor),
+                            StrokeColor = SerializeColor(shapeElement.StrokeColor),
+                            StrokeWidth = shapeElement.StrokeWidth
+                        };
+                        break;
+
+                    case LiveElement liveElement:
+                        exportElement.LiveData = new LiveElementData
+                        {
+                            Format = liveElement.Format,
+                            FontSize = liveElement.FontSize,
+                            FontFamily = liveElement.FontFamily,
+                            TextColor = SerializeColor(liveElement.TextColor),
+                            Size = SerializeSize(liveElement.Size)
+                        };
+                        break;
+                }
+
+                // Serialize motion data if element has motion
+                if (element is IMotionElement motionElement)
+                {
+                    exportElement.MotionData = new MotionElementData
+                    {
+                        OriginalPosition = SerializePoint(motionElement.OriginalPosition),
+                        MotionConfig = SerializeMotionConfig(motionElement.MotionConfig),
+                        StartTime = motionElement.StartTime,
+                        CurrentAngle = motionElement.CurrentAngle
+                    };
+                }
+
+                exportElements.Add(exportElement);
+            }
+
+            return exportElements;
+        }
+
+        private async Task ApplySceneConfigurationAsync(SceneExportData sceneData)
+        {
+            try
+            {
+                // Apply display settings
+                ShowTime = sceneData.ShowTime;
+                ShowDate = sceneData.ShowDate;
+                ShowSystemInfo = sceneData.ShowSystemInfo;
+                ShowAnimation = sceneData.ShowAnimation;
+
+                // Apply render settings
+                TargetFPS = sceneData.TargetFPS;
+                JpegQuality = sceneData.JpegQuality;
+
+                // Apply background settings
+                switch (sceneData.BackgroundType)
+                {
+                    case BackgroundType.SolidColor:
+                        var solidColor = DeserializeColor(sceneData.BackgroundColor);
+                        var skSolidColor = new SkiaSharp.SKColor(solidColor.R, solidColor.G, solidColor.B, solidColor.A);
+                        await SetBackgroundColorAsync(skSolidColor, sceneData.BackgroundOpacity);
+                        break;
+
+                    case BackgroundType.Gradient:
+                        var startColor = DeserializeColor(sceneData.BackgroundColor);
+                        var endColor = DeserializeColor(sceneData.BackgroundGradientEndColor);
+                        var skStartColor = new SkiaSharp.SKColor(startColor.R, startColor.G, startColor.B, startColor.A);
+                        var skEndColor = new SkiaSharp.SKColor(endColor.R, endColor.G, endColor.B, endColor.A);
+
+                        await SetBackgroundGradientAsync(skEndColor, skEndColor, sceneData.GradientDirection, sceneData.BackgroundOpacity);
+                        break;
+
+                    case BackgroundType.Image:
+                        if (!string.IsNullOrEmpty(sceneData.BackgroundImagePath) && File.Exists(sceneData.BackgroundImagePath))
+                        {
+                            await SetBackgroundImageAsync(sceneData.BackgroundImagePath, sceneData.BackgroundScaleMode, sceneData.BackgroundOpacity);
+                        }
+                        else
+                        {
+                            HidStatusChanged?.Invoke($"Background image not found: {sceneData.BackgroundImagePath}");
+                        }
+                        break;
+
+                    case BackgroundType.Transparent:
+                        await ClearBackgroundAsync();
+                        break;
+                }
+
+                BackgroundChanged?.Invoke($"Scene configuration applied: {sceneData.SceneName}");
+            }
+            catch (Exception ex)
+            {
+                RenderingError?.Invoke(new InvalidOperationException($"Failed to apply scene configuration: {ex.Message}", ex));
+            }
+        }
+
+        private async Task ImportElementsAsync(List<ElementExportData> elements)
+        {
+            foreach (var exportElement in elements.OrderBy(e => e.ZIndex))
+            {
+                try
+                {
+                    RenderElement? element = null;
+
+                    // Create element based on type
+                    switch (exportElement.Type)
+                    {
+                        case "Text":
+                            if (exportElement.TextData != null)
+                            {
+                                element = new TextElement(exportElement.Name)
+                                {
+                                    Text = exportElement.TextData.Text,
+                                    FontSize = exportElement.TextData.FontSize,
+                                    FontFamily = exportElement.TextData.FontFamily,
+                                    TextColor = DeserializeColor(exportElement.TextData.TextColor),
+                                    Size = DeserializeSize(exportElement.TextData.Size)
+                                };
+                            }
+                            break;
+
+                        case "Image":
+                            if (exportElement.ImageData != null)
+                            {
+                                element = new ImageElement(exportElement.Name)
+                                {
+                                    ImagePath = exportElement.ImageData.ImagePath,
+                                    Size = DeserializeSize(exportElement.ImageData.Size),
+                                    Scale = exportElement.ImageData.Scale,
+                                    Rotation = exportElement.ImageData.Rotation
+                                };
+
+                                // Load image if it exists
+                                if (File.Exists(exportElement.ImageData.ImagePath))
+                                {
+                                    await LoadImageAsync(exportElement.ImageData.ImagePath);
+                                }
+                            }
+                            break;
+
+                        case "Shape":
+                            if (exportElement.ShapeData != null)
+                            {
+                                if (Enum.TryParse<ShapeType>(exportElement.ShapeData.ShapeType, out var shapeType))
+                                {
+                                    element = new ShapeElement(exportElement.Name)
+                                    {
+                                        ShapeType = shapeType,
+                                        Size = DeserializeSize(exportElement.ShapeData.Size),
+                                        FillColor = DeserializeColor(exportElement.ShapeData.FillColor),
+                                        StrokeColor = DeserializeColor(exportElement.ShapeData.StrokeColor),
+                                        StrokeWidth = exportElement.ShapeData.StrokeWidth
+                                    };
+                                }
+                            }
+                            break;
+
+                        case "LiveTime":
+                        case "LiveDate":
+                        case "SystemInfo":
+                            if (exportElement.LiveData != null && Enum.TryParse<ElementType>(exportElement.Type, out var liveType))
+                            {
+                                element = new LiveElement(liveType, exportElement.Name)
+                                {
+                                    Format = exportElement.LiveData.Format,
+                                    FontSize = exportElement.LiveData.FontSize,
+                                    FontFamily = exportElement.LiveData.FontFamily,
+                                    TextColor = DeserializeColor(exportElement.LiveData.TextColor),
+                                    Size = DeserializeSize(exportElement.LiveData.Size)
+                                };
+                            }
+                            break;
+                    }
+
+                    if (element != null)
+                    {
+                        // Apply common properties
+                        element.Position = DeserializePoint(exportElement.Position);
+                        element.IsVisible = exportElement.IsVisible;
+                        element.IsDraggable = exportElement.IsDraggable;
+                        element.ZIndex = exportElement.ZIndex;
+
+                        // Convert to motion element if motion data exists
+                        if (exportElement.MotionData != null)
+                        {
+                            element = await ConvertToMotionElementAsync(element, exportElement.MotionData);
+                        }
+
+                        AddElement(element);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    HidStatusChanged?.Invoke($"Failed to import element '{exportElement.Name}': {ex.Message}");
+                }
+            }
+        }
+
+        private async Task<RenderElement> ConvertToMotionElementAsync(RenderElement element, MotionElementData motionData)
+        {
+            var motionConfig = DeserializeMotionConfig(motionData.MotionConfig);
+
+            switch (element)
+            {
+                case TextElement textElement:
+                    var motionText = new MotionTextElement(textElement.Name)
+                    {
+                        Text = textElement.Text,
+                        FontSize = textElement.FontSize,
+                        FontFamily = textElement.FontFamily,
+                        TextColor = textElement.TextColor,
+                        Size = textElement.Size,
+                        Position = textElement.Position,
+                        OriginalPosition = DeserializePoint(motionData.OriginalPosition),
+                        MotionConfig = motionConfig,
+                        StartTime = motionData.StartTime,
+                        CurrentAngle = motionData.CurrentAngle,
+                        IsVisible = textElement.IsVisible,
+                        IsDraggable = textElement.IsDraggable,
+                        ZIndex = textElement.ZIndex
+                    };
+                    InitializeMotionElement(motionText, motionConfig);
+                    return motionText;
+
+                case ShapeElement shapeElement:
+                    var motionShape = new MotionShapeElement(shapeElement.Name)
+                    {
+                        ShapeType = shapeElement.ShapeType,
+                        Size = shapeElement.Size,
+                        FillColor = shapeElement.FillColor,
+                        StrokeColor = shapeElement.StrokeColor,
+                        StrokeWidth = shapeElement.StrokeWidth,
+                        Position = shapeElement.Position,
+                        OriginalPosition = DeserializePoint(motionData.OriginalPosition),
+                        MotionConfig = motionConfig,
+                        StartTime = motionData.StartTime,
+                        CurrentAngle = motionData.CurrentAngle,
+                        IsVisible = shapeElement.IsVisible,
+                        IsDraggable = shapeElement.IsDraggable,
+                        ZIndex = shapeElement.ZIndex
+                    };
+                    InitializeMotionElement(motionShape, motionConfig);
+                    return motionShape;
+
+                case ImageElement imageElement:
+                    var motionImage = new MotionImageElement(imageElement.Name)
+                    {
+                        ImagePath = imageElement.ImagePath,
+                        Size = imageElement.Size,
+                        Scale = imageElement.Scale,
+                        Rotation = imageElement.Rotation,
+                        Position = imageElement.Position,
+                        OriginalPosition = DeserializePoint(motionData.OriginalPosition),
+                        MotionConfig = motionConfig,
+                        StartTime = motionData.StartTime,
+                        CurrentAngle = motionData.CurrentAngle,
+                        IsVisible = imageElement.IsVisible,
+                        IsDraggable = imageElement.IsDraggable,
+                        ZIndex = imageElement.ZIndex
+                    };
+                    InitializeMotionElement(motionImage, motionConfig);
+                    return motionImage;
+
+                default:
+                    return element;
+            }
+        }
+        #endregion
+
+        #region Serialization Utility Methods
+
+        private SerializedColor SerializeColor(WinUIColor color)
+        {
+            return new SerializedColor
+            {
+                A = color.A,
+                R = color.R,
+                G = color.G,
+                B = color.B
+            };
+        }
+
+        private SerializedColor SerializeColor(SKColor color)
+        {
+            return new SerializedColor
+            {
+                A = color.Alpha,
+                R = color.Red,
+                G = color.Green,
+                B = color.Blue
+            };
+        }
+
+        private WinUIColor DeserializeColor(SerializedColor color)
+        {
+            return WinUIColor.FromArgb(color.A, color.R, color.G, color.B);
+        }
+
+        private SerializedPoint SerializePoint(Point point)
+        {
+            return new SerializedPoint { X = point.X, Y = point.Y };
+        }
+
+        private Point DeserializePoint(SerializedPoint point)
+        {
+            return new Point(point.X, point.Y);
+        }
+
+        private SerializedSize SerializeSize(Size size)
+        {
+            return new SerializedSize { Width = size.Width, Height = size.Height };
+        }
+
+        private Size DeserializeSize(SerializedSize size)
+        {
+            return new Size(size.Width, size.Height);
+        }
+
+        private SerializedVector2 SerializeVector2(Vector2 vector)
+        {
+            return new SerializedVector2 { X = vector.X, Y = vector.Y };
+        }
+
+        private Vector2 DeserializeVector2(SerializedVector2 vector)
+        {
+            return new Vector2(vector.X, vector.Y);
+        }
+
+        private SerializedMotionConfig SerializeMotionConfig(ElementMotionConfig config)
+        {
+            return new SerializedMotionConfig
+            {
+                MotionType = config.MotionType.ToString(),
+                Speed = config.Speed,
+                Direction = SerializeVector2(config.Direction),
+                Center = SerializeVector2(config.Center),
+                Radius = config.Radius,
+                RespectBoundaries = config.RespectBoundaries,
+                ShowTrail = config.ShowTrail,
+                TrailLength = config.TrailLength,
+                IsPaused = config.IsPaused
+            };
+        }
+
+        private ElementMotionConfig DeserializeMotionConfig(SerializedMotionConfig config)
+        {
+            Enum.TryParse<MotionType>(config.MotionType, out var motionType);
+
+            return new ElementMotionConfig
+            {
+                MotionType = motionType,
+                Speed = config.Speed,
+                Direction = DeserializeVector2(config.Direction),
+                Center = DeserializeVector2(config.Center),
+                Radius = config.Radius,
+                RespectBoundaries = config.RespectBoundaries,
+                ShowTrail = config.ShowTrail,
+                TrailLength = config.TrailLength,
+                IsPaused = config.IsPaused
+            };
+        }
+
+
+        #endregion // End of JSON Serialization Data Models
     }
 }

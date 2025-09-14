@@ -27,7 +27,8 @@ namespace CMDevicesManager.Pages
 {
     public partial class DesignerPage : Page
     {
-        private InteractiveWin2DRenderingService? _renderService;
+        //private InteractiveWin2DRenderingService? _renderService;
+        private InteractiveSkiaRenderingService? _renderService;
         private bool _isDragging;
         private RenderElement? _draggedElement;
         private WinFoundation.Point _lastMousePosition;
@@ -539,7 +540,8 @@ namespace CMDevicesManager.Pages
             {
                 UpdateStatus("Initializing Design Studio...", false);
 
-                _renderService = new InteractiveWin2DRenderingService();
+                //_renderService = new InteractiveWin2DRenderingService();
+                _renderService = new InteractiveSkiaRenderingService();
                 await _renderService.InitializeAsync(480, 480);
 
                 // Subscribe to events
@@ -1378,7 +1380,8 @@ namespace CMDevicesManager.Pages
         private async void SetSolidColorButton_Click(object sender, RoutedEventArgs e)
         {
             if (_renderService == null) return;
-            await _renderService.SetBackgroundColorAsync(_selectedColor, (float)BackgroundOpacitySlider.Value);
+            var skSelectedColor = new SkiaSharp.SKColor(_selectedColor.R, _selectedColor.G, _selectedColor.B, _selectedColor.A);
+            await _renderService.SetBackgroundColorAsync(skSelectedColor, (float)BackgroundOpacitySlider.Value);
         }
 
         private async void SetGradientButton_Click(object sender, RoutedEventArgs e)
@@ -1394,7 +1397,9 @@ namespace CMDevicesManager.Pages
             };
 
             var (startColor, endColor) = gradients[_random.Next(gradients.Length)];
-            await _renderService.SetBackgroundGradientAsync(startColor, endColor, 
+            var skStartColor = new SkiaSharp.SKColor(startColor.R, startColor.G, startColor.B, startColor.A);
+            var skEndColor = new SkiaSharp.SKColor(endColor.R, endColor.G, endColor.B, endColor.A);
+            await _renderService.SetBackgroundGradientAsync(skStartColor, skEndColor, 
                 BackgroundGradientDirection.TopToBottom, (float)BackgroundOpacitySlider.Value);
         }
 
