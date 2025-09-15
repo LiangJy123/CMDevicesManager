@@ -118,22 +118,20 @@ namespace CMDevicesManager
                     usagePage: 0xFFFF   // Your device's usage page
                 );
 
-                // Initialize Realtime JPEG Transmission Service
+                // Initialize Realtime JPEG Transmission Service (simplified)
                 Logger.Info("Initializing Realtime JPEG Transmission Service");
                 _realtimeJpegTransmissionService = new RealtimeJpegTransmissionService(
                     _hidDeviceService,
                     processingIntervalMs: 33,    // ~30 FPS for balanced performance
                     maxQueueSize: 8,             // Moderate queue size for smooth operation
-                    maxRetryAttempts: 2          // Quick retry for responsive transmission
+                    realTimeTimeoutMs: 5000      // 5 second timeout for real-time mode
                 );
 
-                // Set up comprehensive event handlers for transmission monitoring
-                _realtimeJpegTransmissionService.QueueMonitorUpdate += OnRealtimeJpegQueueMonitorUpdate;
+                // Set up event handlers for the simplified service
+                _realtimeJpegTransmissionService.FrameProcessed += OnRealtimeJpegFrameProcessed;
+                _realtimeJpegTransmissionService.FrameDropped += OnRealtimeJpegFrameDropped;
                 _realtimeJpegTransmissionService.RealTimeModeChanged += OnRealtimeJpegRealTimeModeChanged;
-                _realtimeJpegTransmissionService.JpegDataSent += OnRealtimeJpegDataSent;
-                _realtimeJpegTransmissionService.JpegDataDropped += OnRealtimeJpegDataDropped;
-                _realtimeJpegTransmissionService.TransmissionError += OnRealtimeJpegTransmissionError;
-                _realtimeJpegTransmissionService.QueueStatusChanged += OnRealtimeJpegQueueStatusChanged;
+                _realtimeJpegTransmissionService.ServiceError += OnRealtimeJpegServiceError;
 
                 Logger.Info("Realtime JPEG Transmission Service initialized successfully");
 
@@ -344,13 +342,11 @@ namespace CMDevicesManager
                 // Realtime JPEG Transmission Service will automatically resume when new data is queued
                 if (_realtimeJpegTransmissionService != null)
                 {
-                    // Reset statistics after sleep to get fresh performance metrics
-                    _realtimeJpegTransmissionService.ResetStatistics();
                     Logger.Info("Realtime JPEG transmission service ready for resumption");
                     
                     // Log current service status
                     var stats = _realtimeJpegTransmissionService.Statistics;
-                    Logger.Info($"JPEG Service Status: {stats.GetDetailedReport()}");
+                    Logger.Info($"JPEG Service Status: {stats}");
                 }
             }
             catch (Exception ex)
@@ -386,28 +382,42 @@ namespace CMDevicesManager
 
         #endregion
 
-        #region Realtime JPEG Transmission Service Event Handlers
+        #region Simplified Realtime JPEG Transmission Service Event Handlers
 
-        private void OnRealtimeJpegQueueMonitorUpdate(object? sender, QueueMonitorEventArgs e)
+        private void OnRealtimeJpegFrameProcessed(object? sender, JpegFrameProcessedEventArgs e)
         {
             try
             {
-                // Log detailed queue monitoring information periodically (only when status changes significantly)
-                if (e.CurrentQueueSize > 0 || e.TimeSinceLastActivity.TotalSeconds > 30)
+                // Log successful transmissions (but avoid too much noise - only log periodically)
+                if (e.TransferId % 30 == 0) // Log every 30th transmission
                 {
-                    Logger.Info($"JPEG Queue Monitor: {e.GetStatusSummary()}");
+                    Logger.Info($"JPEG Frame Sent: ID={e.TransferId}, Size={e.Frame.Data.Length} bytes, " +
+                              $"Success={e.SuccessfulDevices}/{e.TotalDevices} devices, Metadata={e.Frame.Metadata}");
                 }
-                
-                // Application-level logic based on queue status
-                // For example, you could show UI indicators or adjust other services
             }
             catch (Exception ex)
             {
-                Logger.Error($"Error handling realtime JPEG queue monitor update: {ex.Message}", ex);
+                Logger.Error($"Error handling realtime JPEG frame processed: {ex.Message}", ex);
             }
         }
 
-        private void OnRealtimeJpegRealTimeModeChanged(object? sender, RealTimeModeChangedEventArgs e)
+        private void OnRealtimeJpegFrameDropped(object? sender, JpegFrameDroppedEventArgs e)
+        {
+            try
+            {
+                Logger.Warn($"JPEG Frame Dropped: Size={e.Frame.Data.Length} bytes, " +
+                          $"Reason={e.Reason}, Metadata={e.Frame.Metadata}, Time={e.Timestamp:HH:mm:ss.fff}");
+                
+                // Application-level logic for dropped frames
+                // You might want to adjust quality settings or notify user
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling realtime JPEG frame dropped: {ex.Message}", ex);
+            }
+        }
+
+        private void OnRealtimeJpegRealTimeModeChanged(object? sender, RealtimeModeChangedEventArgs e)
         {
             try
             {
@@ -423,40 +433,7 @@ namespace CMDevicesManager
             }
         }
 
-        private void OnRealtimeJpegDataSent(object? sender, JpegDataSentEventArgs e)
-        {
-            try
-            {
-                // Log successful transmissions (but avoid too much noise - only log periodically)
-                if (e.TransferId % 30 == 0) // Log every 30th transmission
-                {
-                    Logger.Info($"JPEG Data Sent: ID={e.TransferId}, Size={e.JpegData.Length} bytes, " +
-                              $"Success={e.SuccessfulDevices}/{e.TotalDevices} devices, Metadata={e.Metadata}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Error handling realtime JPEG data sent: {ex.Message}", ex);
-            }
-        }
-
-        private void OnRealtimeJpegDataDropped(object? sender, JpegDataDroppedEventArgs e)
-        {
-            try
-            {
-                Logger.Warn($"JPEG Data Dropped: Size={e.JpegData.Length} bytes, " +
-                          $"Reason={e.Reason}, Metadata={e.Metadata}, Time={e.Timestamp:HH:mm:ss.fff}");
-                
-                // Application-level logic for dropped frames
-                // You might want to adjust quality settings or notify user
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Error handling realtime JPEG data dropped: {ex.Message}", ex);
-            }
-        }
-
-        private void OnRealtimeJpegTransmissionError(object? sender, TransmissionErrorEventArgs e)
+        private void OnRealtimeJpegServiceError(object? sender, RealtimeServiceErrorEventArgs e)
         {
             try
             {
@@ -467,30 +444,7 @@ namespace CMDevicesManager
             }
             catch (Exception ex)
             {
-                Logger.Error($"Error handling realtime JPEG transmission error: {ex.Message}", ex);
-            }
-        }
-
-        private void OnRealtimeJpegQueueStatusChanged(object? sender, QueueStatusChangedEventArgs e)
-        {
-            try
-            {
-                // Monitor queue pressure for performance optimization
-                if (e.FillPercentage > 80) // Queue is getting full
-                {
-                    Logger.Warn($"JPEG Queue High Pressure: {e.CurrentSize}/{e.MaxSize} ({e.FillPercentage:F1}% full)");
-                    
-                    // You could implement adaptive quality reduction here
-                    // Or notify other services to reduce frame rates
-                }
-                else if (e.FillPercentage < 20 && e.CurrentSize > 0) // Queue is very light
-                {
-                    // Optimal operating conditions - could increase quality if needed
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Error handling realtime JPEG queue status change: {ex.Message}", ex);
+                Logger.Error($"Error handling realtime JPEG service error: {ex.Message}", ex);
             }
         }
 

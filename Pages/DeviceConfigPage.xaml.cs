@@ -1078,141 +1078,6 @@ private bool IsGlobalPlayModeEmpty()
         }
 
         /// <summary>
-        /// Send the current canvas configuration to the target HID device
-        /// </summary>
-        private async Task SendConfigurationToDeviceAsync()
-        {
-            if (!IsHidServiceReady || _hidDeviceService == null)
-            {
-                Logger.Warn("HID Device Service is not ready for sending configuration");
-                return;
-            }
-
-            try
-            {
-                Logger.Info("Sending configuration to HID device...");
-
-                // Capture canvas as image data
-                var imageData = CaptureCanvasAsStream();
-                if (imageData == null || imageData.Length == 0)
-                {
-                    Logger.Error("Failed to capture canvas image for device transfer");
-                    return;
-                }
-
-                // Save image to temp file for transfer
-                var tempFile = Path.Combine(Path.GetTempPath(), $"canvas_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
-                await File.WriteAllBytesAsync(tempFile, imageData);
-
-                try
-                {
-                    // Transfer file to device, use transferId as unique identifier if needed
-                    byte transferId = 0x01; // Example transfer ID, transferId in(0,59).
-                    // try transferId to unique.
-                    transferId = (byte)(new Random().Next(1, 60));
-                    //var results = await _hidDeviceService.TransferFileAsync(tempFile, transferId);
-                    var results = await _hidDeviceService.TransferDataAsync(imageData, transferId);
-
-                    var successCount = results.Values.Count(r => r);
-                    var totalCount = results.Count;
-
-                    if (successCount > 0)
-                    {
-                        Logger.Info($"Configuration sent successfully to {successCount}/{totalCount} devices");
-                    }
-                    else
-                    {
-                        Logger.Warn("Failed to send configuration to any devices");
-                    }
-                }
-                finally
-                {
-                    // Clean up temp file
-                    try { File.Delete(tempFile); } catch { }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to send configuration to device: {ex.Message}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Test connection to the target HID device
-        /// </summary>
-        private async Task TestDeviceConnectionAsync()
-        {
-            if (!IsHidServiceReady || _hidDeviceService == null)
-            {
-                Logger.Warn("HID Device Service is not ready for connection test");
-                return;
-            }
-
-            try
-            {
-                Logger.Info("Testing device connection...");
-
-                // Get device status
-                var statusResults = await _hidDeviceService.GetDeviceStatusAsync();
-
-                if (statusResults.Any())
-                {
-                    var result = statusResults.First();
-                    if (result.Value.HasValue)
-                    {
-                        var status = result.Value.Value;
-                        Logger.Info($"Device connection test successful. Device Path: {result.Key}, Brightness: {status.Brightness}%, Rotation: {status.Degree}°");
-                    }
-                    else
-                    {
-                        Logger.Warn("Device connection test failed - no status received");
-                    }
-                }
-                else
-                {
-                    Logger.Warn("Device connection test failed - no devices found");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Device connection test failed: {ex.Message}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Set brightness on the target device
-        /// </summary>
-        /// <param name="brightness">Brightness value (0-100)</param>
-        private async Task SetDeviceBrightnessAsync(int brightness)
-        {
-            if (!IsHidServiceReady || _hidDeviceService == null)
-            {
-                Logger.Warn("HID Device Service is not ready for brightness control");
-                return;
-            }
-
-            try
-            {
-                Logger.Info($"Setting device brightness to {brightness}%");
-                var results = await _hidDeviceService.SetBrightnessAsync(brightness);
-                var successCount = results.Values.Count(r => r);
-
-                if (successCount > 0)
-                {
-                    Logger.Info($"Device brightness set to {brightness}% successfully");
-                }
-                else
-                {
-                    Logger.Warn("Failed to set device brightness");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to set brightness: {ex.Message}", ex);
-            }
-        }
-
-        /// <summary>
         /// Enable or disable real-time display mode
         /// </summary>
         /// <param name="enable">True to enable real-time display mode</param>
@@ -1253,15 +1118,15 @@ private bool IsGlobalPlayModeEmpty()
             // Step 1: Enable real-time display mode
             await SetRealTimeDisplayModeAsync(true);
             // Step 2: Start a timer to send canvas periodically
-            _ = Task.Run(async () =>
-            {
-                //Task.Delay(5000).Wait(); // Initial delay to allow device to enter real-time mode
-                while (IsHidServiceReady && _hidDeviceService != null && _hidDeviceService.IsRealTimeDisplayEnabled)
-                {
-                    await SendConfigurationToDeviceAsync();
-                    await Task.Delay(30); // Send every 2 seconds
-                }
-            });
+            //_ = Task.Run(async () =>
+            //{
+            //    //Task.Delay(5000).Wait(); // Initial delay to allow device to enter real-time mode
+            //    while (IsHidServiceReady && _hidDeviceService != null && _hidDeviceService.IsRealTimeDisplayEnabled)
+            //    {
+            //        await SendConfigurationToDeviceAsync();
+            //        await Task.Delay(16); // Send every 2 seconds
+            //    }
+            ////});
         }
 
         /// <summary>
@@ -3435,7 +3300,7 @@ private bool IsGlobalPlayModeEmpty()
             }
         }
 
-        private void RealtimeJpegTimer_Tick(object? sender, EventArgs e)
+        private async void RealtimeJpegTimer_Tick(object? sender, EventArgs e)
         {
             if (!_realtimeActive) return;
             if (_captureRoot == null || _captureRoot.ActualWidth < 1 || _captureRoot.ActualHeight < 1)
@@ -3444,20 +3309,54 @@ private bool IsGlobalPlayModeEmpty()
             var jpeg = CaptureElementToJpegFixedSquare(_captureRoot, RealtimeJpegSize);
             if (jpeg == null || jpeg.Length == 0) return;
 
+            //try
+            //{
+            //    var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
+            //    // lock copy
+
+            //    // priority 可按需调整，tag 可自定义
+            //    bool queued = realtimeService.QueueJpegData(jpeg, priority: 2, "DeviceConfigPreview");
+            //    // 可加简单失败统计或日志（此处不写 Logger 避免你的文件截断区未展示 Logger 引用）
+            //    if (!queued)
+            //    {
+            //        // 若需要，可在此添加重试或降低频率逻辑
+            //    }
+            //}
+            //catch
+            //{
+            //    // 避免异常打断后续 tick
+            //}
+
+
             try
             {
-                var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
-                // priority 可按需调整，tag 可自定义
-                bool queued = realtimeService.QueueJpegData(jpeg, priority: 2,"DeviceConfigPreview");
-                // 可加简单失败统计或日志（此处不写 Logger 避免你的文件截断区未展示 Logger 引用）
-                if (!queued)
+                if(_hidDeviceService == null)
                 {
-                    // 若需要，可在此添加重试或降低频率逻辑
+                    return;
+                }
+                // Transfer file to device, use transferId as unique identifier if needed
+                byte transferId = 0x01; // Example transfer ID, transferId in(0,59).
+                                        // try transferId to unique.
+                transferId = (byte)(new Random().Next(1, 60));
+                //var results = await _hidDeviceService.TransferFileAsync(tempFile, transferId);
+                 var results = await _hidDeviceService.TransferDataAsync(jpeg, transferId);
+
+                var successCount = results.Values.Count(r => r);
+                var totalCount = results.Count;
+
+                if (successCount > 0)
+                {
+                    Logger.Info($"Configuration sent successfully to {successCount}/{totalCount} devices");
+                }
+                else
+                {
+                    Logger.Warn("Failed to send configuration to any devices");
                 }
             }
-            catch
+            finally
             {
-                // 避免异常打断后续 tick
+                // Clean up temp file
+                //try { File.Delete(tempFile); } catch { }
             }
         }
 

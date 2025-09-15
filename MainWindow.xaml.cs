@@ -393,7 +393,7 @@ namespace CMDevicesManager
             try
             {
                 var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
-                realtimeService.QueueJpegData(jpeg, priority: 1, "MainPreview");
+                realtimeService?.QueueJpegData(jpeg, "MainPreview");
             }
             catch
             {
