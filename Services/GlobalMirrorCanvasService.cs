@@ -44,7 +44,7 @@ namespace CMDevicesManager.Services
         private CanvasRenderEngine.RenderResult? _lastResult;
         private CanvasConfiguration? _lastConfig;
 
-        private readonly ISystemMetricsService _metrics = new RealSystemMetricsService();
+        private readonly ISystemMetricsService _metrics = RealSystemMetricsService.Instance;
         private readonly DispatcherTimer _metricsTimer;
         private readonly DispatcherTimer _moveTimer;
 

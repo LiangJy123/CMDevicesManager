@@ -2,9 +2,9 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using CMDevicesManager.ViewModels;
-using CMDevicesManager.Services;
 using System.Windows.Navigation;
+using CMDevicesManager.Services;
+using CMDevicesManager.ViewModels;
 
 namespace CMDevicesManager.Pages
 {
@@ -17,47 +17,42 @@ namespace CMDevicesManager.Pages
         {
             InitializeComponent();
 
-            // Do not keep the Page alive in the navigation journal to avoid piling up timers/VMs
+            // 不缓存 Page，离开后释放，返回时重新创建 -> 计时器重新启动
             JournalEntry.SetKeepAlive(this, false);
 
-            ISystemMetricsService service = new RealSystemMetricsService();
+            // 使用单例指标服务
+            ISystemMetricsService service = RealSystemMetricsService.Instance;
             DataContext = new HomeViewModel(service);
 
-            // Swallow wheel/keyboard scrolling just in case a parent tries to scroll.
+            // 页面生命周期 -> 启动/停止刷新
+            Loaded += HomePage_Loaded;
+            Unloaded += HomePage_Unloaded;
+
+            // 防止父级滚动干扰
             PreviewMouseWheel += (_, e) => e.Handled = true;
             PreviewKeyDown += (_, e) =>
             {
                 if (e.Key is Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End)
                     e.Handled = true;
             };
+        }
 
-            // Ensure resources are released when leaving the page
-            Unloaded += (_, __) =>
+        private void HomePage_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is HomeViewModel vm)
             {
-                if (DataContext is HomeViewModel vm)
-                {
-                    vm.Dispose();
-                }
-            };
+                // 兼容两种命名
+                vm.OnNavigatedTo();
+            }
+        }
 
-            // In your ViewModel or code-behind
-            var metricsService = new RealSystemMetricsService();
-
-            // Get temperature data
-            double cpuTemp = metricsService.GetCpuTemperature();     // °C
-            double gpuTemp = metricsService.GetGpuTemperature();     // °C
-
-            // Get power consumption
-            double cpuPower = metricsService.GetCpuPower();          // Watts
-            double gpuPower = metricsService.GetGpuPower();          // Watts
-
-            // Get usage percentages
-            double cpuUsage = metricsService.GetCpuUsagePercent();   // %
-            double gpuUsage = metricsService.GetGpuUsagePercent();   // %
-
-            // Get device names
-            string cpuName = metricsService.CpuName;
-            string gpuName = metricsService.PrimaryGpuName;
+        private void HomePage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is HomeViewModel vm)
+            {
+                vm.OnNavigatedFrom();
+                vm.Dispose(); // 因为 KeepAlive = false，新页面会重新创建新的 VM
+            }
         }
     }
 }

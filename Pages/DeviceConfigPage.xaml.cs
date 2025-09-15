@@ -5,6 +5,7 @@ using CMDevicesManager.Utilities;
 using CMDevicesManager.Windows;
 using HID.DisplayController;
 using HidApi;
+using Instances;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -277,6 +278,13 @@ namespace CMDevicesManager.Pages
     // ================= Main Page =================
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
+        private const string GlobalConfigFileName = "globalconfig1.json";
+        private static string UserPrefsFilePath => System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "userprefs.json");
+        private sealed class UserPrefsModel
+        {
+            public bool SuppressPlayModePrompt { get; set; }
+        }
+        private UserPrefsModel _userPrefsCache;
         //private readonly DeviceInfo _device;
         private readonly ISystemMetricsService _metrics;
         private readonly DispatcherTimer _liveTimer;
@@ -803,13 +811,125 @@ namespace CMDevicesManager.Pages
         public HidDeviceService? HidDeviceService => _hidDeviceService;
 
         #endregion
+        // 读取用户偏好
+        private UserPrefsModel LoadUserPrefs()
+        {
+            if (_userPrefsCache != null) return _userPrefsCache;
+            try
+            {
+                if (File.Exists(UserPrefsFilePath))
+                {
+                    var json = File.ReadAllText(UserPrefsFilePath);
+                    _userPrefsCache = System.Text.Json.JsonSerializer.Deserialize<UserPrefsModel>(json) ?? new UserPrefsModel();
+                }
+                else
+                {
+                    _userPrefsCache = new UserPrefsModel();
+                }
+            }
+            catch
+            {
+                _userPrefsCache = new UserPrefsModel();
+            }
+            return _userPrefsCache;
+        }
+        // 检测 globalconfig1.json 是否“为空”
+// 判定标准：不存在 -> 空；存在且反序列化后包含可识别的 items/entries/count == 0 -> 空
+private bool IsGlobalPlayModeEmpty()
+        {
+            try
+            {
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, GlobalConfigFileName);
+                if (!File.Exists(path)) return true;
 
+                var text = File.ReadAllText(path).Trim();
+                if (string.IsNullOrWhiteSpace(text)) return true;
+
+                using var doc = System.Text.Json.JsonDocument.Parse(text);
+                var root = doc.RootElement;
+
+                // 兼容几种可能结构：
+                // 1) { "Items":[ ... ] }
+                if (root.ValueKind == System.Text.Json.JsonValueKind.Object)
+                {
+                    if (root.TryGetProperty("Items", out var itemsProp) && itemsProp.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        return itemsProp.GetArrayLength() == 0;
+
+                    if (root.TryGetProperty("Sequences", out var seqProp) && seqProp.ValueKind == System.Text.Json.JsonValueKind.Array)
+                        return seqProp.GetArrayLength() == 0;
+
+                    // 没有已知数组字段，视为空 -> 让提示更积极
+                    return true;
+                }
+                if (root.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    return root.GetArrayLength() == 0;
+                }
+                // 其它类型直接认为空
+                return true;
+            }
+            catch
+            {
+                // 解析失败，保守地认为空(给予提示)
+                return true;
+            }
+        }
+
+        // 保存后调用：如需提示，引导用户
+        private void CheckAndPromptPlayMode()
+        {
+            var prefs = LoadUserPrefs();
+            if (prefs.SuppressPlayModePrompt) return;
+
+            if (!IsGlobalPlayModeEmpty()) return;
+
+            try
+            {
+                var dlg = new Windows.PlayModePromptDialog
+                {
+                    Owner = Application.Current?.MainWindow
+                };
+                var result = dlg.ShowDialog();
+                if (dlg.SuppressFuture)
+                {
+                    prefs.SuppressPlayModePrompt = true;
+                    SaveUserPrefs();
+                }
+
+                if (result == true && dlg.GoToPlayMode)
+                {
+                    // 导航到播放模式页
+                    // 如果当前 Page 在 NavigationService 里，直接导航
+                    if (Application.Current?.MainWindow is MainWindow mw)
+                    {
+                        // 统一走主窗口封装，确保 NavList 选中同步
+                        mw.NavigateToPlayModePageAndSelectNav();
+                    }
+                   
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Info("PlayMode prompt failed: " + ex.Message);
+            }
+        }
+        private void SaveUserPrefs()
+        {
+            if (_userPrefsCache == null) return;
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Serialize(_userPrefsCache, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(UserPrefsFilePath, json);
+            }
+            catch { /* ignore */ }
+        }
         // ===== 实时发送相关字段 =====
         private DispatcherTimer? _realtimeJpegTimer;
         private const int RealtimeIntervalMs = 50; // 约 20FPS
         private const int RealtimeJpegSize = 480;
         private bool _realtimeActive;
         private FrameworkElement? _captureRoot; // 缓存要截取的可视元素
+        private bool _deviceErrorSubscribed = false;
         public DeviceConfigPage(DeviceInfo deviceInfo) : this()
         {
             DeviceInfo = deviceInfo;
@@ -820,7 +940,7 @@ namespace CMDevicesManager.Pages
             DataContext = this;
 
             _selectedInfo = Application.Current.FindResource("None")?.ToString() ?? "None";
-            _metrics = new RealSystemMetricsService();
+            _metrics = RealSystemMetricsService.Instance;
             BuildSystemInfoButtons();
 
             try
@@ -840,9 +960,63 @@ namespace CMDevicesManager.Pages
             _autoMoveTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             _autoMoveTimer.Tick += AutoMoveTimer_Tick;
 
-            Unloaded += DeviceConfigPage_Unloaded;
+            Loaded += DeviceConfigPage_Loaded;          // 新增：进入页面恢复资源
+            Unloaded += DeviceConfigPage_Unloaded;      // 退出时释放资源
         }
+        // 新增：Loaded 回调，恢复 Unloaded 中释放的内容
+        private async void DeviceConfigPage_Loaded(object? sender, RoutedEventArgs e)
+        {
+            // 1. 恢复 HID 服务（如果之前被释放或过滤移除）
+            if (DeviceInfo != null)
+            {
+                if (_hidDeviceService == null || !_isHidServiceInitialized)
+                {
+                    await InitializeHidDeviceServiceAsync();
+                }
+                else
+                {
+                    // 重新设置过滤（Unloaded 时 Remove 过）
+                    if (!string.IsNullOrEmpty(DeviceInfo.Path))
+                    {
+                        _hidDeviceService.SetDevicePathFilter(DeviceInfo.Path, enableFilter: true);
+                    }
+                    // 重新订阅 DeviceError
+                    if (!_deviceErrorSubscribed)
+                    {
+                        _hidDeviceService.DeviceError += OnHidDeviceError;
+                        _deviceErrorSubscribed = true;
+                    }
+                }
+            }
 
+            // 2. 重新启动实时使用的定时器
+            if (!_liveTimer.IsEnabled) _liveTimer.Start();
+
+            // 3. 自动移动（仅当有需要移动的元素）
+            UpdateAutoMoveTimer();
+
+            // 4. 恢复视频播放
+            if (_currentVideoFrames != null && _currentVideoFrames.Count > 0)
+            {
+                ResumeVideoPlayback();
+            }
+
+            // 5. 实时显示（发送到设备 + 本地实时 JPEG 推送）
+            Task.Run(() => StartRealTimeShowCanvas());
+            StartRealtimeJpegStreaming();
+
+            // 6. 如果当前已经加载配置，重新着色或刷新一次文本（确保 UI 立即同步）
+            foreach (var live in _liveItems)
+            {
+                if (live.DisplayStyle == UsageDisplayStyle.Gauge && live.GaugeNeedleRotate != null)
+                {
+                    // 强制一次 UI 值更新
+                    live.GaugeNeedleRotate.Angle = GaugeRotationFromPercent(0);
+                }
+            }
+            // 主动触发一次 Live 刷新文本
+            LiveTimer_Tick(null, EventArgs.Empty);
+        }
 
         #region HID Device Service Management
 
@@ -2035,7 +2209,9 @@ namespace CMDevicesManager.Pages
 
                 var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
+              
                 MessageBox.Show($"{msg}: {CurrentConfigName}", title, MessageBoxButton.OK, MessageBoxImage.Information);
+                CheckAndPromptPlayMode();
             }
             catch (Exception ex)
             {
@@ -2065,7 +2241,9 @@ namespace CMDevicesManager.Pages
 
                 var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
+                
                 MessageBox.Show($"{msg}: {newName}", title, MessageBoxButton.OK, MessageBoxImage.Information);
+                CheckAndPromptPlayMode();
             }
             catch (Exception ex)
             {
@@ -2635,10 +2813,9 @@ namespace CMDevicesManager.Pages
         // ================= Live Timer =================
         private void LiveTimer_Tick(object? sender, EventArgs e)
         {
-            //double cpu = _metrics.GetCpuUsagePercent();
-            //double gpu = _metrics.GetGpuUsagePercent();
-            double cpu = 87.0f;
-            double gpu = 88.9f;
+            double cpu = _metrics.GetCpuUsagePercent();
+            double gpu = _metrics.GetGpuUsagePercent();
+            
             DateTime now = DateTime.Now;
 
             foreach (var item in _liveItems.ToArray())
@@ -3205,14 +3382,14 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                // Unsubscribe from HID service events
                 if (_hidDeviceService != null)
                 {
-                    // Task.Run(() => StopRealTimeShowCanvas());
                     StopRealTimeShowCanvas();
-                    _hidDeviceService.DeviceError -= OnHidDeviceError;
-
-                    // Clear the device filter for this device
+                    if (_deviceErrorSubscribed)
+                    {
+                        _hidDeviceService.DeviceError -= OnHidDeviceError;
+                        _deviceErrorSubscribed = false;              // 新增：标记已解除
+                    }
                     if (_deviceInfo != null && !string.IsNullOrEmpty(_deviceInfo.Path))
                     {
                         _hidDeviceService.RemoveDevicePathFromFilter(_deviceInfo.Path);
@@ -3222,11 +3399,10 @@ namespace CMDevicesManager.Pages
             }
             catch { }
             try { _liveTimer.Stop(); } catch { }
-            try { _metrics.Dispose(); } catch { }
             try { _autoMoveTimer.Stop(); } catch { }
             StopRealtimeJpegStreaming();
             StopVideoPlayback();
-           
+            // 不再 Dispose 单例 _metrics（RealSystemMetricsService.Instance 是全局的） 
         }
         private void StartRealtimeJpegStreaming()
         {

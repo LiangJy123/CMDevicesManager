@@ -13,16 +13,22 @@ namespace CMDevicesManager.ViewModels
     public sealed class HomeViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly ISystemMetricsService _service;
-        private readonly Timer _timer;
         private readonly Dispatcher _dispatcher;
 
-        private int _isUpdating; // prevent overlapping timer ticks
-        private volatile bool _disposed;
+        private Timer? _timer;
+        private bool _isStarted;
+        private int _isUpdating;
+        private bool _disposed;
 
         public ObservableCollection<SensorCard> CoolingCards { get; } = new();
         public ObservableCollection<SensorCard> PowerCards { get; } = new();
         public ObservableCollection<SensorCard> SystemCards { get; } = new();
         public ObservableCollection<SensorCard> NetworkCards { get; } = new();
+
+        public HomeViewModel()
+            : this(RealSystemMetricsService.Instance) // convenience if you want parameterless usage
+        {
+        }
 
         public HomeViewModel(ISystemMetricsService service)
         {
@@ -42,55 +48,71 @@ namespace CMDevicesManager.ViewModels
             NetworkCards.Add(new SensorCard("Download", "KB/s", "KB/s", "\uE839"));
             NetworkCards.Add(new SensorCard("Upload", "KB/s", "KB/s", "\uE83A"));
 
-            // Issue when switch page to device page, disable timer to avoid exception
+            StartTimer(); // start initially
+        }
+
+        private void StartTimer()
+        {
+            if (_disposed || _isStarted) return;
             _timer = new Timer(_ => Update(), null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            _isStarted = true;
+        }
+
+        private void StopTimer()
+        {
+            if (!_isStarted) return;
+            try { _timer?.Change(Timeout.Infinite, Timeout.Infinite); } catch { }
+            _timer?.Dispose();
+            _timer = null;
+            _isStarted = false;
+        }
+
+        public void OnNavigatedTo()
+        {
+            _disposed = false;
+            StartTimer();
+        }
+
+        public void OnNavigatedFrom()
+        {
+            // Optionally pause to save resources while off-screen
+            StopTimer();
         }
 
         private void Update()
         {
-            if (_disposed) return;
-
-            // Ensure we don't overlap timer callbacks if a previous one is still running
+            if (_disposed || !_isStarted) return;
             if (Interlocked.Exchange(ref _isUpdating, 1) == 1) return;
 
             try
             {
-                // Collect metrics off the UI thread (Timer already runs on a ThreadPool thread)
                 double cpuTemp = _service.GetCpuTemperature();
                 double gpuTemp = _service.GetGpuTemperature();
-
                 double cpuPower = _service.GetCpuPower();
                 double gpuPower = _service.GetGpuPower();
-
                 double cpuUsage = _service.GetCpuUsagePercent();
                 double gpuUsage = _service.GetGpuUsagePercent();
                 double memUsage = _service.GetMemoryUsagePercent();
-
                 double netDown = _service.GetNetDownloadKBs();
                 double netUp = _service.GetNetUploadKBs();
 
-                // Only marshal the assignment (which raises PropertyChanged) to the UI thread
                 _dispatcher.BeginInvoke(() =>
                 {
                     if (_disposed) return;
-
                     CoolingCards[0].Value = cpuTemp;
                     CoolingCards[1].Value = gpuTemp;
-
                     PowerCards[0].Value = cpuPower;
                     PowerCards[1].Value = gpuPower;
-
                     SystemCards[0].Value = cpuUsage;
                     SystemCards[1].Value = gpuUsage;
                     SystemCards[2].Value = memUsage;
-
                     NetworkCards[0].Value = netDown;
                     NetworkCards[1].Value = netUp;
                 });
             }
             catch
             {
-                // Swallow to keep UI responsive; optionally log if you have a logger available here
+                // swallow or log
             }
             finally
             {
@@ -102,10 +124,10 @@ namespace CMDevicesManager.ViewModels
         {
             if (_disposed) return;
             _disposed = true;
-
-            try { _timer.Change(Timeout.Infinite, Timeout.Infinite); } catch { /* ignore */ }
-            _timer.Dispose();
-            _service.Dispose();
+            StopTimer();
+            // Do NOT dispose the singleton metrics service here (shared globally).
+            // If you still inject a non-singleton implementation in tests, you can optionally dispose it:
+            // _service.Dispose();
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
