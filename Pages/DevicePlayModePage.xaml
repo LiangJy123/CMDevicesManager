@@ -404,9 +404,24 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
+        <!-- NEW Back Button -->
+        <Button x:Name="BackButton"
+         Grid.Row="0"
+         Grid.Column="0"
+         Content="←"
+         Width="40"
+         Height="34"
+         Padding="0"
+         Margin="0,0,0,0"
+         HorizontalAlignment="Left"
+         VerticalAlignment="Top"
+         ToolTip="Back"
+         Click="Back_Click"
+         Style="{StaticResource MiniButton}"/>
+
         <!-- Title -->
         <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                   Text="Device Play Mode"
+                   Text="Play Mode"
                    FontSize="26" FontWeight="Bold"
                    Foreground="{StaticResource TitleBrush}"
                    HorizontalAlignment="Center"
@@ -525,69 +540,98 @@
 
                     <!-- 实时播放：配置序列区域 -->
                     <Border x:Name="ConfigsContainer"
-                Background="{StaticResource CardBgAlt}"
-                BorderBrush="{StaticResource CardBorder}"
-                BorderThickness="1"
-                CornerRadius="10"
-                Padding="6"
-                Visibility="Visible">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource ConfigListScrollViewerStyle}">
-                            <ItemsControl x:Name="ConfigSequenceListBox"
-                              ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Background="#262F3A" CornerRadius="8" Padding="8" Margin="0,0,0,8">
-                                            <DockPanel LastChildFill="False">
-                                                <StackPanel DockPanel.Dock="Left" Width="300">
-                                                    <TextBlock Text="{Binding DisplayName}"
-                                                   FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TitleBrush}"
-                                                   TextTrimming="CharacterEllipsis"/>
-                                                    <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                                        <TextBlock Text="Duration:"
-                                                       FontSize="11" Foreground="{StaticResource SubtitleBrush}"
-                                                       VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                        <TextBox Width="56"
-                                                     Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}"
-                                                     IsEnabled="{Binding IsDurationEditable}"
-                                                     HorizontalContentAlignment="Center"
-                                                     PreviewTextInput="DurationTextBox_PreviewTextInput"
-                                                     MaxLength="4">
-                                                            <TextBox.Style>
-                                                                <Style TargetType="TextBox">
-                                                                    <Setter Property="Background" Value="#1B202B"/>
-                                                                    <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
-                                                                    <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
-                                                                    <Setter Property="BorderThickness" Value="1"/>
-                                                                    <Setter Property="Padding" Value="4,2"/>
-                                                                    <Style.Triggers>
-                                                                        <Trigger Property="IsEnabled" Value="False">
-                                                                            <Setter Property="Opacity" Value="0.5"/>
-                                                                        </Trigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </TextBox.Style>
-                                                        </TextBox>
-                                                        <TextBlock Text="s"
-                                                       FontSize="11" Foreground="{StaticResource SubtitleBrush}"
-                                                       Margin="4,0,0,0" VerticalAlignment="Center"/>
+        Background="{StaticResource CardBgAlt}"
+        BorderBrush="{StaticResource CardBorder}"
+        BorderThickness="1"
+        CornerRadius="10"
+        Padding="6"
+        Visibility="Visible">
+                        <Grid>
+                            <!-- Original list -->
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource ConfigListScrollViewerStyle}">
+                                <ItemsControl x:Name="ConfigSequenceListBox"
+                          ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#262F3A" CornerRadius="8" Padding="8" Margin="0,0,0,8">
+                                                <DockPanel LastChildFill="False">
+                                                    <StackPanel DockPanel.Dock="Left" Width="300">
+                                                        <TextBlock Text="{Binding DisplayName}"
+                                               FontSize="13" FontWeight="SemiBold"
+                                               Foreground="{StaticResource TitleBrush}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                            <TextBlock Text="Duration:"
+                                                   FontSize="11" Foreground="{StaticResource SubtitleBrush}"
+                                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                            <TextBox Width="56"
+                                                 Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                                 IsEnabled="{Binding IsDurationEditable}"
+                                                 HorizontalContentAlignment="Center"
+                                                 PreviewTextInput="DurationTextBox_PreviewTextInput"
+                                                 MaxLength="4">
+                                                                <TextBox.Style>
+                                                                    <Style TargetType="TextBox">
+                                                                        <Setter Property="Background" Value="#1B202B"/>
+                                                                        <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
+                                                                        <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
+                                                                        <Setter Property="BorderThickness" Value="1"/>
+                                                                        <Setter Property="Padding" Value="4,2"/>
+                                                                        <Style.Triggers>
+                                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                                <Setter Property="Opacity" Value="0.5"/>
+                                                                            </Trigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBox.Style>
+                                                            </TextBox>
+                                                            <TextBlock Text="s"
+                                                   FontSize="11" Foreground="{StaticResource SubtitleBrush}"
+                                                   Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                        </StackPanel>
                                                     </StackPanel>
-                                                </StackPanel>
 
-                                                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                                    <Button Content="▲" Width="34" Style="{StaticResource MiniButton}"
-                                                Tag="{Binding}" Click="MoveConfigUp_Click"/>
-                                                    <Button Content="▼" Width="34" Style="{StaticResource MiniButton}"
-                                                Tag="{Binding}" Margin="4,0,0,0" Click="MoveConfigDown_Click"/>
-                                                    <Button Content="✖" Width="34" Style="{StaticResource MiniButton}"
-                                                Tag="{Binding}" Margin="4,0,0,0" Click="RemoveConfig_Click"/>
-                                                </StackPanel>
-                                            </DockPanel>
-                                        </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
+                                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                                        <Button Content="▲" Width="34" Style="{StaticResource MiniButton}"
+                                            Tag="{Binding}" Click="MoveConfigUp_Click"/>
+                                                        <Button Content="▼" Width="34" Style="{StaticResource MiniButton}"
+                                            Tag="{Binding}" Margin="4,0,0,0" Click="MoveConfigDown_Click"/>
+                                                        <Button Content="✖" Width="34" Style="{StaticResource MiniButton}"
+                                            Tag="{Binding}" Margin="4,0,0,0" Click="RemoveConfig_Click"/>
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <!-- EMPTY PLACEHOLDER -->
+                            <StackPanel x:Name="NoConfigsPlaceholder"
+                    Visibility="Collapsed"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Opacity="0.85"
+                    Margin="12"
+                    MaxWidth="340">
+                                <TextBlock Text="No configurations added."
+                       FontSize="15"
+                       FontWeight="SemiBold"
+                       Foreground="{StaticResource TitleBrush}"
+                       HorizontalAlignment="Center"/>
+                                <TextBlock Text="Click 'Add' to select a configuration file. These will loop automatically once added."
+                       TextWrapping="Wrap"
+                       Margin="0,6,0,10"
+                       FontSize="11"
+                       Foreground="{StaticResource SubtitleBrush}"
+                       HorizontalAlignment="Center"/>
+                                <Button Content="Add Config"
+                    Width="110"
+                    HorizontalAlignment="Center"
+                    Style="{StaticResource MiniButton}"
+                    Click="AddConfigButton_Click"/>
+                            </StackPanel>
+                        </Grid>
                     </Border>
 
                     <!-- 视频离线播放：视频选择 + 信息展示 -->
@@ -676,7 +720,7 @@
                             DockPanel.Dock="Left">
                         <TextBlock Text="LIVE" FontSize="10" FontWeight="Bold" Foreground="White"/>
                     </Border>
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Visibility="Collapsed">
                         <Button x:Name="SaveCanvasButton"
         Content="Save"
         Style="{StaticResource MiniButton}"

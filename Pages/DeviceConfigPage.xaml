@@ -214,12 +214,12 @@
             <TextBlock Grid.Column="1" Text="屏幕自定义编辑" FontSize="20" FontWeight="SemiBold"
                        Foreground="{StaticResource TitleBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-            <StackPanel Grid.Column="2" Orientation="Horizontal">
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Visibility="Collapsed">
                 <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
                 <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" Width="64"
                          Style="{StaticResource DarkTextBoxStyle}"/>
             </StackPanel>
-            <StackPanel Grid.Column="2" Orientation="Horizontal">
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Visibility="Collapsed">
                 <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
                 <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" Width="64"
               Style="{StaticResource DarkTextBoxStyle}"/>
