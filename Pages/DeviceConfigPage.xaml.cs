@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -290,8 +291,6 @@ namespace CMDevicesManager.Pages
         private readonly DispatcherTimer _liveTimer;
 
         private DeviceInfo? _deviceInfo;
-        private HidDeviceService? _hidDeviceService;
-        private bool _isHidServiceInitialized = false;
 
         public ObservableCollection<SystemInfoItem> SystemInfoItems { get; } = new();
 
@@ -794,21 +793,9 @@ namespace CMDevicesManager.Pages
                 {
                     _deviceInfo = value;
                     OnPropertyChanged();
-                    // Initialize HID service when device info is set
-                    _ = InitializeHidDeviceServiceAsync();
                 }
             }
         }
-
-        /// <summary>
-        /// Gets whether the HID device service is initialized and ready
-        /// </summary>
-        public bool IsHidServiceReady => _isHidServiceInitialized && _hidDeviceService?.IsInitialized == true;
-
-        /// <summary>
-        /// Gets the current HID device service instance
-        /// </summary>
-        public HidDeviceService? HidDeviceService => _hidDeviceService;
 
         #endregion
         // 读取用户偏好
@@ -969,24 +956,6 @@ private bool IsGlobalPlayModeEmpty()
             // 1. 恢复 HID 服务（如果之前被释放或过滤移除）
             if (DeviceInfo != null)
             {
-                if (_hidDeviceService == null || !_isHidServiceInitialized)
-                {
-                    await InitializeHidDeviceServiceAsync();
-                }
-                else
-                {
-                    // 重新设置过滤（Unloaded 时 Remove 过）
-                    if (!string.IsNullOrEmpty(DeviceInfo.Path))
-                    {
-                        _hidDeviceService.SetDevicePathFilter(DeviceInfo.Path, enableFilter: true);
-                    }
-                    // 重新订阅 DeviceError
-                    if (!_deviceErrorSubscribed)
-                    {
-                        _hidDeviceService.DeviceError += OnHidDeviceError;
-                        _deviceErrorSubscribed = true;
-                    }
-                }
             }
 
             // 2. 重新启动实时使用的定时器
@@ -1001,8 +970,6 @@ private bool IsGlobalPlayModeEmpty()
                 ResumeVideoPlayback();
             }
 
-            // 5. 实时显示（发送到设备 + 本地实时 JPEG 推送）
-            Task.Run(() => StartRealTimeShowCanvas());
             StartRealtimeJpegStreaming();
 
             // 6. 如果当前已经加载配置，重新着色或刷新一次文本（确保 UI 立即同步）
@@ -1017,146 +984,6 @@ private bool IsGlobalPlayModeEmpty()
             // 主动触发一次 Live 刷新文本
             LiveTimer_Tick(null, EventArgs.Empty);
         }
-
-        #region HID Device Service Management
-
-        /// <summary>
-        /// Initialize the HID device service and set up device filtering
-        /// </summary>
-        private async Task InitializeHidDeviceServiceAsync()
-        {
-            if (_deviceInfo == null || string.IsNullOrEmpty(_deviceInfo.Path))
-            {
-                Logger.Warn("Cannot initialize HID service: DeviceInfo or device path is null");
-                return;
-            }
-
-            try
-            {
-                Logger.Info($"Initializing HID Device Service for device: {_deviceInfo.ProductString} (Path: {_deviceInfo.Path})");
-
-                // Get the service from ServiceLocator
-                _hidDeviceService = ServiceLocator.HidDeviceService;
-
-                if (!_hidDeviceService.IsInitialized)
-                {
-                    Logger.Warn("HID Device Service is not initialized. Make sure it's initialized in App.xaml.cs");
-                    return;
-                }
-
-                // Set device path filter to only operate on this specific device
-                _hidDeviceService.SetDevicePathFilter(_deviceInfo.Path, enableFilter: true);
-
-                // Only subscribe to DeviceError events
-                _hidDeviceService.DeviceError += OnHidDeviceError;
-
-                _isHidServiceInitialized = true;
-                OnPropertyChanged(nameof(IsHidServiceReady));
-
-                Logger.Info($"HID Device Service initialized successfully for device: {_deviceInfo.ProductString}");
-                Logger.Info($"Device filter enabled: {_hidDeviceService.IsDevicePathFilterEnabled}");
-                Logger.Info($"Filtered device count: {_hidDeviceService.FilteredDeviceCount}");
-
-                // Verify the device is available
-                var targetDevices = _hidDeviceService.GetOperationTargetDevices();
-                if (targetDevices.Any())
-                {
-                    var targetDevice = targetDevices.First();
-                    Logger.Info($"Target device found: {targetDevice.ProductString} (Serial: {targetDevice.SerialNumber})");
-                }
-                else
-                {
-                    Logger.Warn($"Target device not found in connected devices. Device may be disconnected.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to initialize HID Device Service: {ex.Message}", ex);
-                _isHidServiceInitialized = false;
-                OnPropertyChanged(nameof(IsHidServiceReady));
-            }
-        }
-
-        /// <summary>
-        /// Enable or disable real-time display mode
-        /// </summary>
-        /// <param name="enable">True to enable real-time display mode</param>
-        private async Task SetRealTimeDisplayModeAsync(bool enable)
-        {
-            if (!IsHidServiceReady || _hidDeviceService == null)
-            {
-                Logger.Warn("HID Device Service is not ready for real-time mode control");
-                return;
-            }
-
-            try
-            {
-                Logger.Info($"Setting real-time display mode to {enable}");
-                var results = await _hidDeviceService.SetRealTimeDisplayAsync(enable);
-                var successCount = results.Values.Count(r => r);
-
-                if (successCount > 0)
-                {
-                    Logger.Info($"Real-time display mode {(enable ? "enabled" : "disabled")} successfully");
-                }
-                else
-                {
-                    Logger.Warn($"Failed to {(enable ? "enable" : "disable")} real-time display mode");
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Failed to set real-time mode: {ex.Message}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Start real-time display mode and periodically send canvas to device
-        /// </summary>
-        private async Task StartRealTimeShowCanvas()
-        {
-            // Step 1: Enable real-time display mode
-            await SetRealTimeDisplayModeAsync(true);
-            // Step 2: Start a timer to send canvas periodically
-            //_ = Task.Run(async () =>
-            //{
-            //    //Task.Delay(5000).Wait(); // Initial delay to allow device to enter real-time mode
-            //    while (IsHidServiceReady && _hidDeviceService != null && _hidDeviceService.IsRealTimeDisplayEnabled)
-            //    {
-            //        await SendConfigurationToDeviceAsync();
-            //        await Task.Delay(16); // Send every 2 seconds
-            //    }
-            ////});
-        }
-
-        /// <summary>
-        /// Stop real-time display mode
-        /// </summary>
-        private async Task StopRealTimeShowCanvas()
-        {
-            // Step 1: Disable real-time display mode
-            await SetRealTimeDisplayModeAsync(false);
-            // The sending loop will exit automatically
-        }
-
-        #endregion
-
-        #region HID Service Event Handlers
-
-        private void OnHidDeviceError(object? sender, DeviceErrorEventArgs e)
-        {
-            Dispatcher.Invoke(() =>
-            {
-                if (e.Device.Path == _deviceInfo?.Path)
-                {
-                    Logger.Error($"Device error for {e.Device.ProductString}: {e.Exception.Message}", e.Exception);
-                    // Handle device error (could update UI status, retry operations, etc.)
-                    // No MessageBox - just log the error
-                }
-            });
-        }
-
-        #endregion
 
         private static string NormalizeUsageStyleString(string raw)
         {
@@ -1184,6 +1011,8 @@ private bool IsGlobalPlayModeEmpty()
         // ================= Navigation =================
         private void Back_Click(object sender, RoutedEventArgs e)
         {
+            var currentData = DateTime.Now.ToString("HH:mm:ss.fff");
+            Debug.WriteLine($"Back button clicked at {currentData}, NavigationService.CanGoBack={NavigationService?.CanGoBack}");
             if (NavigationService?.CanGoBack == true) NavigationService.GoBack();
             else NavigationService?.Navigate(new DevicePage());
         }
@@ -3245,24 +3074,6 @@ private bool IsGlobalPlayModeEmpty()
         // ================= Cleanup =================
         private void DeviceConfigPage_Unloaded(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                if (_hidDeviceService != null)
-                {
-                    //StopRealTimeShowCanvas();
-                    if (_deviceErrorSubscribed)
-                    {
-                        _hidDeviceService.DeviceError -= OnHidDeviceError;
-                        _deviceErrorSubscribed = false;              // 新增：标记已解除
-                    }
-                    if (_deviceInfo != null && !string.IsNullOrEmpty(_deviceInfo.Path))
-                    {
-                        _hidDeviceService.RemoveDevicePathFromFilter(_deviceInfo.Path);
-                        Logger.Info($"Removed device path filter for: {_deviceInfo.Path}");
-                    }
-                }
-            }
-            catch { }
             try { _liveTimer.Stop(); } catch { }
             try { _autoMoveTimer.Stop(); } catch { }
             StopRealtimeJpegStreaming();
@@ -3309,54 +3120,14 @@ private bool IsGlobalPlayModeEmpty()
             var jpeg = CaptureElementToJpegFixedSquare(_captureRoot, RealtimeJpegSize);
             if (jpeg == null || jpeg.Length == 0) return;
 
-            //try
-            //{
-            //    var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
-            //    // lock copy
-
-            //    // priority 可按需调整，tag 可自定义
-            //    bool queued = realtimeService.QueueJpegData(jpeg, priority: 2, "DeviceConfigPreview");
-            //    // 可加简单失败统计或日志（此处不写 Logger 避免你的文件截断区未展示 Logger 引用）
-            //    if (!queued)
-            //    {
-            //        // 若需要，可在此添加重试或降低频率逻辑
-            //    }
-            //}
-            //catch
-            //{
-            //    // 避免异常打断后续 tick
-            //}
-
-
             try
             {
-                if(_hidDeviceService == null)
-                {
-                    return;
-                }
-                // Transfer file to device, use transferId as unique identifier if needed
-                byte transferId = 0x01; // Example transfer ID, transferId in(0,59).
-                                        // try transferId to unique.
-                transferId = (byte)(new Random().Next(1, 60));
-                //var results = await _hidDeviceService.TransferFileAsync(tempFile, transferId);
-                 var results = await _hidDeviceService.TransferDataAsync(jpeg, transferId);
-
-                var successCount = results.Values.Count(r => r);
-                var totalCount = results.Count;
-
-                if (successCount > 0)
-                {
-                    Logger.Info($"Configuration sent successfully to {successCount}/{totalCount} devices");
-                }
-                else
-                {
-                    Logger.Warn("Failed to send configuration to any devices");
-                }
+                var realtimeService = ServiceLocator.RealtimeJpegTransmissionService;
+                realtimeService?.QueueJpegData(jpeg, "MainPreview");
             }
-            finally
+            catch
             {
-                // Clean up temp file
-                //try { File.Delete(tempFile); } catch { }
+                // swallow to keep timer running
             }
         }
 
@@ -3608,8 +3379,6 @@ private bool IsGlobalPlayModeEmpty()
 
         private void Page_Loaded(object sender, RoutedEventArgs e)
         {
-            // Call StartRealTimeShowCanvas(); with Task.Run to avoid blocking UI
-            Task.Run(() => StartRealTimeShowCanvas());
             StartRealtimeJpegStreaming();
         }
 

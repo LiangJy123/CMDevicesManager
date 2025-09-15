@@ -26,7 +26,8 @@ using Panel = System.Windows.Controls.Panel;
 using Control = System.Windows.Controls.Control; // << 新增
 using System.Text.RegularExpressions;
 using Microsoft.VisualBasic;
-using MessageBox = System.Windows.MessageBox; // add if not present
+using MessageBox = System.Windows.MessageBox;
+using CMDevicesManager.Helper; // add if not present
 
 namespace CMDevicesManager.Services
 {
@@ -71,7 +72,7 @@ namespace CMDevicesManager.Services
         public void EnableForceDebugVisual(bool enable)
         {
             _forceDebugVisualForMoving = enable;
-            Debug.WriteLine($"[MoveDbg] ForceDebugVisual {(enable ? "ON" : "OFF")}");
+            Logger.Info($"[MoveDbg] ForceDebugVisual {(enable ? "ON" : "OFF")}");
         }
 
         private GlobalMirrorCanvasService()
@@ -93,7 +94,7 @@ namespace CMDevicesManager.Services
         public void EnableMovementDebugLogging(bool enable)
         {
             _movementDebugLogging = enable;
-            Debug.WriteLine($"[MoveDbg] Movement debug logging {(enable ? "ENABLED" : "DISABLED")}");
+            Logger.Info($"[MoveDbg] Movement debug logging {(enable ? "ENABLED" : "DISABLED")}");
         }
 
         private void ApplyDebugVisual(Border border)
@@ -613,7 +614,7 @@ namespace CMDevicesManager.Services
                     overlayHost.IsHitTestVisible = prevHostHitTest;
                 }
 
-                Debug.WriteLine($"[MoveDbg] Snapshot saved: {filePath} mode={_snapshotScaleMode} logical=({logicalW}x{logicalH}) px=({pixelW}x{pixelH}) dpi=({dpiX:0.#},{dpiY:0.#})");
+                Logger.Info($"[MoveDbg] Snapshot saved: {filePath} mode={_snapshotScaleMode} logical=({logicalW}x{logicalH}) px=({pixelW}x{pixelH}) dpi=({dpiX:0.#},{dpiY:0.#})");
                 return true;
             }
             catch (Exception ex)
@@ -702,7 +703,7 @@ namespace CMDevicesManager.Services
                     parent = parent.Parent as FrameworkElement;
                 }
 
-                Debug.WriteLine($"[MoveDbg] Snapshot saved: {filePath}");
+                Logger.Info($"[MoveDbg] Snapshot saved: {filePath}");
                 return true;
             }
             catch (Exception ex)
@@ -721,7 +722,7 @@ namespace CMDevicesManager.Services
             try
             {
                 int idx = 0;
-                Debug.WriteLine($"[MoveDbg] ---- {origin} | count={_lastResult.MovingDirections.Count} time={DateTime.Now:HH:mm:ss.fff} ----");
+                Logger.Info($"[MoveDbg] ---- {origin} | count={_lastResult.MovingDirections.Count} time={DateTime.Now:HH:mm:ss.fff} ----");
                 foreach (var kv in _lastResult.MovingDirections)
                 {
                     var border = kv.Key;
@@ -750,13 +751,13 @@ namespace CMDevicesManager.Services
                     else if (border.Child != null)
                         childCount = 1;
 
-                    Debug.WriteLine(
+                    Logger.Info(
                         $"[MoveDbg] #{idx++} name={name} pos=({tx:0.##},{ty:0.##}) size=({border.ActualWidth:0.##}x{border.ActualHeight:0.##}) vel=({vx:0.##},{vy:0.##}) bg={brushHex} opacity={border.Opacity:0.##} vis={border.Visibility} childCount={childCount} inView={partlyVisible}");
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("[MoveDbg] Log error: " + ex.Message);
+                Logger.Info("[MoveDbg] Log error: " + ex.Message);
             }
         }
 
@@ -783,7 +784,7 @@ namespace CMDevicesManager.Services
             if (!_movementDebugLogging || !_deepVisualDebug) return;
             if (_lastResult == null) return;
 
-            Debug.WriteLine($"[MoveDbg-Deep] ==== {origin} DeepProbe count={_lastResult.MovingDirections.Count} ====");
+            Logger.Info($"[MoveDbg-Deep] ==== {origin} DeepProbe count={_lastResult.MovingDirections.Count} ====");
             foreach (var kv in _lastResult.MovingDirections)
             {
                 var border = kv.Key;
@@ -823,14 +824,14 @@ namespace CMDevicesManager.Services
                     ctrl.Background = new SolidColorBrush(Color.FromArgb(120, 0, 255, 0));
                 }
 
-                Debug.WriteLine($"[MoveDbg-Deep] BorderChild type={childType} vis={childVis} size=({childW:0.##}x{childH:0.##}) opacity={childOpacity:0.##} scale=({scaleX:0.##},{scaleY:0.##}) rot={rot:0.##}");
+                Logger.Info($"[MoveDbg-Deep] BorderChild type={childType} vis={childVis} size=({childW:0.##}x{childH:0.##}) opacity={childOpacity:0.##} scale=({scaleX:0.##},{scaleY:0.##}) rot={rot:0.##}");
 
                 // 如果是 Image，输出像素源信息
                 if (feChild is Image img && img.Source != null)
                 {
                     try
                     {
-                        Debug.WriteLine($"[MoveDbg-Deep]   ImageSource={img.Source} size=({img.Source.Width}x{img.Source.Height})");
+                        Logger.Info($"[MoveDbg-Deep]   ImageSource={img.Source} size=({img.Source.Width}x{img.Source.Height})");
                     }
                     catch { }
                 }
@@ -852,7 +853,7 @@ namespace CMDevicesManager.Services
                     for (int i = 0; i < children; i++)
                     {
                         if (i >= maxPerLevel) { 
-                            Debug.WriteLine($"[MoveDbg-Deep]   (depth {depth}) more children truncated...");
+                            Logger.Info($"[MoveDbg-Deep]   (depth {depth}) more children truncated...");
                             break;
                         }
                         var child = VisualTreeHelper.GetChild(v, i);
@@ -863,7 +864,7 @@ namespace CMDevicesManager.Services
                         if (!string.IsNullOrEmpty(name)) info += $"(Name={name})";
                         if (fe != null)
                             info += $" Vis={fe.Visibility} Sz=({fe.ActualWidth:0.#}x{fe.ActualHeight:0.#}) Op={fe.Opacity:0.##}";
-                        Debug.WriteLine($"[MoveDbg-Deep]     {(new string(' ', depth * 2))}{info}");
+                        Logger.Info($"[MoveDbg-Deep]     {(new string(' ', depth * 2))}{info}");
                         Walk(child, depth + 1, ref siblingCount);
                     }
                 }
@@ -872,7 +873,7 @@ namespace CMDevicesManager.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("[MoveDbg-Deep] DumpDescendants error: " + ex.Message);
+                Logger.Info("[MoveDbg-Deep] DumpDescendants error: " + ex.Message);
             }
         }
 
@@ -902,7 +903,7 @@ namespace CMDevicesManager.Services
         public void SetAutoSnapshotPhase(bool captureBeforeMove)
         {
             _captureBeforeMove = captureBeforeMove;
-            Debug.WriteLine($"[AutoSnap] CaptureBeforeMove={_captureBeforeMove}");
+            Logger.Info($"[AutoSnap] CaptureBeforeMove={_captureBeforeMove}");
         }
 
         // 强制刷新 designCanvas 及其子元素（文字）
@@ -934,12 +935,12 @@ namespace CMDevicesManager.Services
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
                 using var fs = File.Create(filePath);
                 encoder.Save(fs);
-                Debug.WriteLine("[SnapDbg] Canvas-only snapshot saved: " + filePath);
+                Logger.Info("[SnapDbg] Canvas-only snapshot saved: " + filePath);
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("[SnapDbg] Canvas-only snapshot failed: " + ex.Message);
+                Logger.Info("[SnapDbg] Canvas-only snapshot failed: " + ex.Message);
                 return false;
             }
         }
@@ -965,7 +966,7 @@ namespace CMDevicesManager.Services
                 UnhookRendering();
                 StartTimers(); // 回到原先 timer 逻辑
             }
-            Debug.WriteLine($"[MoveDbg] UseCompositionRendering={_useCompositionRendering}");
+            Logger.Info($"[MoveDbg] UseCompositionRendering={_useCompositionRendering}");
         }
 
         // ===== Hook / Unhook =====
@@ -1115,12 +1116,12 @@ namespace CMDevicesManager.Services
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
                 using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
                 encoder.Save(fs);
-                Debug.WriteLine($"[MoveDbg] Canvas snapshot saved: {filePath}");
+                Logger.Info($"[MoveDbg] Canvas snapshot saved: {filePath}");
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("[MoveDbg] Canvas snapshot failed: " + ex.Message);
+                Logger.Info("[MoveDbg] Canvas snapshot failed: " + ex.Message);
                 return false;
             }
         }
