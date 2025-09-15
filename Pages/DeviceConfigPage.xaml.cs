@@ -3249,7 +3249,7 @@ private bool IsGlobalPlayModeEmpty()
             {
                 if (_hidDeviceService != null)
                 {
-                    StopRealTimeShowCanvas();
+                    //StopRealTimeShowCanvas();
                     if (_deviceErrorSubscribed)
                     {
                         _hidDeviceService.DeviceError -= OnHidDeviceError;
