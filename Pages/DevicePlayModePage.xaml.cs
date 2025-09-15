@@ -205,30 +205,7 @@ namespace CMDevicesManager.Pages
         // Base folder (same logic as DeviceConfigPage)
         private readonly string _outputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager");
 
-        public DevicePlayModePage()
-        {
-            InitializeComponent();
-            InitializeDisplayControls();
-            InitConfigSequence();
-            _currentPlayMode = PlayMode.RealtimeConfig;
-            UpdatePlayModeUI();
-
-            // NEW: live timer
-            _liveUpdateTimer = new System.Windows.Threading.DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(1)
-            };
-            _liveUpdateTimer.Tick += LiveUpdateTimer_Tick;
-            _liveUpdateTimer.Start();
-            _autoMoveTimer.Tick += AutoMoveTimer_Tick;
-            _globalSequencePath = Path.Combine(_outputFolder, "globalconfig1.json");
-            TryLoadGlobalSequence();   // 进入页面尝试恢复
-            UpdateDurationEditableStates();
-            if (ConfigSequence.Count > 0 && !_isConfigSequenceRunning)
-            {
-                StartConfigSequence();
-            }
-        }
+     
         private void AttachConfigItemEvents(PlayConfigItem item)
         {
             item.PropertyChanged += OnConfigItemPropertyChanged;
@@ -246,38 +223,7 @@ namespace CMDevicesManager.Pages
                 SaveGlobalSequence(); // Duration 改变即保存
             }
         }
-        private void TryLoadGlobalSequence()
-        {
-            try
-            {
-                if (!File.Exists(_globalSequencePath)) return;
-                string json = File.ReadAllText(_globalSequencePath);
-                var data = JsonSerializer.Deserialize<GlobalConfigSequence>(json, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-                if (data?.Items == null) return;
-
-                ConfigSequence.Clear();
-                foreach (var entry in data.Items)
-                {
-                    if (string.IsNullOrWhiteSpace(entry.FilePath)) continue;
-                    // 可选择：若文件缺失仍恢复（或跳过）。这里允许缺失（用户可手工移除）。
-                    var item = new PlayConfigItem
-                    {
-                        FilePath = entry.FilePath,
-                        DisplayName = Path.GetFileNameWithoutExtension(entry.FilePath),
-                        DurationSeconds = entry.DurationSeconds > 0 ? entry.DurationSeconds : 5
-                    };
-                    AttachConfigItemEvents(item);
-                    ConfigSequence.Add(item);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[PlayMode] Load global sequence failed: {ex.Message}");
-            }
-        }
+      
 
         private void SaveGlobalSequence()
         {
@@ -309,10 +255,10 @@ namespace CMDevicesManager.Pages
 
         private void LiveUpdateTimer_Tick(object? sender, EventArgs e)
         {
-            //double cpu = _metrics.GetCpuUsagePercent();
-            //double gpu = _metrics.GetGpuUsagePercent();
-            double cpu = 4.9f;
-            double gpu = 56.0f;
+            double cpu = _metrics.GetCpuUsagePercent();
+            double gpu = _metrics.GetGpuUsagePercent();
+            //double cpu = 4.9f;
+            //double gpu = 56.0f;
             DateTime now = DateTime.Now;
 
             // 纯文本/日期（无样式）
@@ -650,20 +596,7 @@ namespace CMDevicesManager.Pages
             CurrentRotationText.Text = $"Current: {_currentRotation}°";
             UpdateRotationButtonAppearance(_currentRotation);
         }
-        private void InitConfigSequence()
-        {
-            DataContext = this;
-            ConfigSequence.CollectionChanged += (_, __) =>
-            {
-                Raise(nameof(IsMultiConfig));
-                if (ConfigSequence.Count == 1)
-                {
-                    var item = ConfigSequence[0];
-                    if (item.DurationSeconds <= 0) item.DurationSeconds = 5;
-                }
-                UpdateDurationEditableStates();
-            };
-        }
+      
         private void UpdateDurationEditableStates()
         {
             bool editable = ConfigSequence.Count > 1;
@@ -672,26 +605,7 @@ namespace CMDevicesManager.Pages
                 item.IsDurationEditable = editable;
             }
         }
-        private void ClearCanvasForNoConfigs()
-        {
-            _configSequenceCts?.Cancel();
-
-            DesignCanvas.Children.Clear();
-            _liveDynamicItems.Clear();
-            _usageVisualItems.Clear();
-            _movingDirections.Clear();
-            UpdateAutoMoveTimer();
-
-            // 广播一个空白配置（供隐藏全局 Canvas 清空显示）
-            var blank = new CanvasConfiguration { CanvasSize = 512 };
-            GlobalConfigRendered?.Invoke(blank);
-            _lastAppliedConfig = blank;
-           
-
-            CurrentImageName.Text = "No config";
-            ImageDimensions.Text = "";
-            SaveGlobalSequence();
-        }
+       
 
 
         // 在构造函数结尾处调用
@@ -871,6 +785,110 @@ namespace CMDevicesManager.Pages
                 if (idx >= 0 && idx < ConfigSequence.Count - 1)
                     ConfigSequence.Move(idx, idx + 1);
             }
+        }
+        private void UpdateEmptyConfigsPlaceholder()
+        {
+            if (NoConfigsPlaceholder == null) return;
+            NoConfigsPlaceholder.Visibility = ConfigSequence.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        // In constructor (after InitializeComponent(), after TryLoadGlobalSequence()):
+        public DevicePlayModePage()
+        {
+            InitializeComponent();
+            InitializeDisplayControls();
+            InitConfigSequence();
+            _currentPlayMode = PlayMode.RealtimeConfig;
+            UpdatePlayModeUI();
+
+            _liveUpdateTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _liveUpdateTimer.Tick += LiveUpdateTimer_Tick;
+            _liveUpdateTimer.Start();
+            _autoMoveTimer.Tick += AutoMoveTimer_Tick;
+            _globalSequencePath = Path.Combine(_outputFolder, "globalconfig1.json");
+            TryLoadGlobalSequence();
+            UpdateDurationEditableStates();
+            UpdateEmptyConfigsPlaceholder(); // NEW
+
+            if (ConfigSequence.Count > 0 && !_isConfigSequenceRunning)
+            {
+                StartConfigSequence();
+            }
+        }
+
+        // In InitConfigSequence(), inside CollectionChanged handler add:
+        private void InitConfigSequence()
+        {
+            DataContext = this;
+            ConfigSequence.CollectionChanged += (_, __) =>
+            {
+                Raise(nameof(IsMultiConfig));
+                if (ConfigSequence.Count == 1)
+                {
+                    var item = ConfigSequence[0];
+                    if (item.DurationSeconds <= 0) item.DurationSeconds = 5;
+                }
+                UpdateDurationEditableStates();
+                UpdateEmptyConfigsPlaceholder(); // NEW
+            };
+        }
+
+        // After TryLoadGlobalSequence() finishes loading list, ensure:
+        private void TryLoadGlobalSequence()
+        {
+            try
+            {
+                if (!File.Exists(_globalSequencePath)) return;
+                string json = File.ReadAllText(_globalSequencePath);
+                var data = JsonSerializer.Deserialize<GlobalConfigSequence>(json, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                if (data?.Items == null) return;
+
+                ConfigSequence.Clear();
+                foreach (var entry in data.Items)
+                {
+                    if (string.IsNullOrWhiteSpace(entry.FilePath)) continue;
+                    var item = new PlayConfigItem
+                    {
+                        FilePath = entry.FilePath,
+                        DisplayName = Path.GetFileNameWithoutExtension(entry.FilePath),
+                        DurationSeconds = entry.DurationSeconds > 0 ? entry.DurationSeconds : 5
+                    };
+                    AttachConfigItemEvents(item);
+                    ConfigSequence.Add(item);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PlayMode] Load global sequence failed: {ex.Message}");
+            }
+            finally
+            {
+                UpdateEmptyConfigsPlaceholder(); // NEW
+            }
+        }
+
+        // In ClearCanvasForNoConfigs():
+        private void ClearCanvasForNoConfigs()
+        {
+            _configSequenceCts?.Cancel();
+
+            DesignCanvas.Children.Clear();
+            _liveDynamicItems.Clear();
+            _usageVisualItems.Clear();
+            _movingDirections.Clear();
+            UpdateAutoMoveTimer();
+
+            var blank = new CanvasConfiguration { CanvasSize = 512 };
+            GlobalConfigRendered?.Invoke(blank);
+            _lastAppliedConfig = blank;
+
+            CurrentImageName.Text = "No config";
+            ImageDimensions.Text = "";
+            SaveGlobalSequence();
+            UpdateEmptyConfigsPlaceholder(); // NEW
         }
 
         private async void StartSequenceButton_Click(object sender, RoutedEventArgs e)
@@ -2133,6 +2151,21 @@ namespace CMDevicesManager.Pages
             catch (Exception ex)
             {
                 MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void Back_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (NavigationService?.CanGoBack == true)
+                    NavigationService.GoBack();
+                else
+                    NavigationService?.Navigate(new DevicePage());
+            }
+            catch
+            {
+                // Swallow navigation exceptions silently
             }
         }
     }

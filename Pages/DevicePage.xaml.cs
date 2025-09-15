@@ -270,5 +270,22 @@ namespace CMDevicesManager.Pages
                 ShowStatusMessage($"Failed to set brightness: {ex.Message}", true);
             }
         }
+
+        private void DisplayModeButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is Button btn && btn.DataContext is DeviceViewModel deviceViewModel)
+                {
+                    NavigationService?.Navigate(new DevicePlayModePage());
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Navigation to PlaymodePage failed: {ex}");
+                ShowStatusMessage("Failed to open device configuration.", true);
+            }
+
+        }
     }
 }

@@ -173,9 +173,13 @@
                         <ColumnDefinition Width="90"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
-
-                    <!-- 导航 -->
-                    <ListBox x:Name="NavList"
+                    <Grid Grid.Column="0" Background="#FF1E1E1E">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <!-- 导航 -->
+                    <ListBox x:Name="NavList"  Grid.Row="0"
                              SelectionChanged="NavList_SelectionChanged"
                              Background="#FF1E1E1E"
                              Foreground="White"
@@ -193,7 +197,7 @@
                                 <TextBlock Text="{DynamicResource DeviceText}" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
-                        <ListBoxItem Tag="Pages/DeviceConfigPage.xaml">
+                        <ListBoxItem  x:Name="ConfigNavItem" Tag="Pages/DeviceConfigPage.xaml">
                             <StackPanel Orientation="Vertical">
                                 <TextBlock FontFamily="Segoe MDL2 Assets"
                     Text="&#xE8D7;"  FontSize="22"
@@ -203,26 +207,26 @@
                     TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
-                        <ListBoxItem Tag="Pages/DevicePageDemo.xaml">
+                        <ListBoxItem x:Name="DemoNavItem" Tag="Pages/DevicePageDemo.xaml">
                             <StackPanel Orientation="Vertical">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
                                 <TextBlock Text="Demo" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
-                        <ListBoxItem Tag="Pages/RenderDemoPage.xaml">
+                        <ListBoxItem x:Name="RenderNavItem" Tag="Pages/RenderDemoPage.xaml">
                             <StackPanel Orientation="Vertical">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
                                 <TextBlock Text="Render" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
-                        <ListBoxItem Tag="Pages/DevicePlayModePage.xaml">
+                        <ListBoxItem x:Name="PlaymodeNavItem" Tag="Pages/DevicePlayModePage.xaml">
                             <StackPanel Orientation="Vertical">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE770;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
                                 <TextBlock Text="Playmode" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
                             </StackPanel>
                         </ListBoxItem>
 
-                        <ListBoxItem x:Name="SaveImageItem" Tag="__MirrorSaveImage">
+                        <ListBoxItem x:Name="SaveImageItem"  Tag="__MirrorSaveImage">
                             <StackPanel Orientation="Vertical">
                                 <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74E;" FontSize="22" TextAlignment="Center" HorizontalAlignment="Center"/>
                                 <TextBlock Text="Save" Margin="0,8,0,0" FontSize="14" TextAlignment="Center" HorizontalAlignment="Center"/>
@@ -249,7 +253,16 @@
                             </StackPanel>
                         </ListBoxItem>
                     </ListBox>
-
+                        <!-- VERSION / BUILD LABEL -->
+                        <TextBlock Grid.Row="1"
+               Text="未公开版本，仅用于内部测试-beta0.0.1"
+               FontSize="10"
+               Foreground="#66FFFFFF"
+               TextAlignment="Center"
+               TextWrapping="Wrap"
+               Margin="6,0,6,8"
+               Opacity="0.85"/>
+                    </Grid>
                     <!-- 内容 -->
                     <Grid Grid.Column="1">
                         <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" Background="Transparent"/>

@@ -29,6 +29,11 @@ using System.Linq; // 若文件顶部尚未有
 
 namespace CMDevicesManager
 {
+    internal static class UIDebugFlags
+    {
+        // 为 false 时隐藏指定的导航按钮
+        public const bool UI_Debug_without_deivce = false;
+    }
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -55,10 +60,12 @@ namespace CMDevicesManager
         private const int MainRealtimeIntervalMs = 50;   // 50ms ≈ 20FPS
         private const int MainRealtimeSize = 480;        // 输出 480x480
         private FrameworkElement? _mainCaptureRoot;       // MirrorRoot
-
+         
         public MainWindow()
         {
             InitializeComponent();
+
+            ApplyUIDebugFlag();
 
             GlobalMirrorCanvasService.Instance.Initialize(
                 MirrorRoot,
@@ -84,7 +91,29 @@ namespace CMDevicesManager
                                "Navigation Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
+        private void ApplyUIDebugFlag()
+        {
+            if (!UIDebugFlags.UI_Debug_without_deivce)
+            {
+                HideNavItem(ConfigNavItem);
+                HideNavItem(DemoNavItem);
+                HideNavItem(RenderNavItem);
+                HideNavItem(PlaymodeNavItem);
+                HideNavItem(SaveImageItem);
+                HideNavItem(MirrorToggleItem);
 
+                // 若当前选中的是被隐藏项，切回首页
+                if (NavList.SelectedItem is ListBoxItem li && li.Visibility != Visibility.Visible)
+                {
+                    NavList.SelectedIndex = 0;
+                }
+            }
+        }
+
+        private static void HideNavItem(ListBoxItem? item)
+        {
+            if (item != null) item.Visibility = Visibility.Collapsed;
+        }
         private void MainFrame_Navigated(object sender, NavigationEventArgs e)
         {
             var name = e.Content?.GetType().Name;
