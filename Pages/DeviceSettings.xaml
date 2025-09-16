@@ -7,62 +7,105 @@
       xmlns:local="clr-namespace:CMDevicesManager.Pages"
       mc:Ignorable="d" 
       d:DesignHeight="800" d:DesignWidth="1000"
+      Height="900" Width="1000"
       FontFamily="{DynamicResource AppFontFamily}"
       Title="Device Settings"
-      Background="Transparent">
+      Background="#111114">  <!-- 修改: 不再透明，而是深色背景 -->
 
     <Page.Resources>
-        <!-- Toggle Switch Base Style -->
+        <!-- Core Palette aligned with MainWindow -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#BC41E9"/>
+        <SolidColorBrush x:Key="AccentBrushLight" Color="#D671FF"/>
+        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="SubPanelBackgroundBrush" Color="#111114"/>
+        <SolidColorBrush x:Key="SubPanelAltBackgroundBrush" Color="#161618"/>
+        <SolidColorBrush x:Key="ElevatedPanelBrush" Color="#242428"/>
+        <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#111114"/>
+        <SolidColorBrush x:Key="DividerBrush" Color="#333333"/>
+        <SolidColorBrush x:Key="ToggleOffBrush" Color="#333333"/>
+        <SolidColorBrush x:Key="ToggleThumbBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="OverlayMaskBrush" Color="#80000000"/>
+
+        <!-- Typography / Foregrounds -->
+        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#CCCCCC"/>
+        <SolidColorBrush x:Key="HintTextBrush" Color="#888888"/>
+
+        <!-- Shadow helper -->
+        <DropShadowEffect x:Key="PanelShadow" Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.30"/>
+        <DropShadowEffect x:Key="SmallShadow" Color="#000000" BlurRadius="6" ShadowDepth="2" Opacity="0.40"/>
+
+        <!-- 关闭按钮样式（局部） -->
+        <Style x:Key="HeaderIconButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="6" Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#33FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Toggle Base Style -->
         <Style x:Key="BaseToggleSwitchStyle" TargetType="ToggleButton">
             <Setter Property="Width" Value="60"/>
             <Setter Property="Height" Value="30"/>
-            <Setter Property="Background" Value="#444444"/>
+            <Setter Property="Background" Value="{StaticResource ToggleOffBrush}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ToggleButton">
                         <Grid>
-                            <!-- Track -->
                             <Border x:Name="TrackBorder"
-                                    Width="60"
-                                    Height="30"
+                                    Width="60" Height="30"
                                     CornerRadius="15"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                    Background="{TemplateBinding Background}">
                                 <Border.Effect>
-                                    <DropShadowEffect Color="#000000" BlurRadius="4" ShadowDepth="1" Opacity="0.3"/>
+                                    <DropShadowEffect Color="#000000" BlurRadius="4" ShadowDepth="1" Opacity="0.25"/>
                                 </Border.Effect>
                             </Border>
-                            
-                            <!-- Thumb -->
                             <Border x:Name="ThumbBorder"
-                                    Width="26"
-                                    Height="26"
+                                    Width="26" Height="26"
                                     CornerRadius="13"
-                                    Background="White"
+                                    Background="{StaticResource ToggleThumbBrush}"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center"
                                     Margin="2,0,0,0">
                                 <Border.Effect>
-                                    <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="2" Opacity="0.4"/>
+                                    <DropShadowEffect Color="#000000" BlurRadius="6" ShadowDepth="2" Opacity="0.45"/>
                                 </Border.Effect>
                                 <Border.RenderTransform>
                                     <TranslateTransform x:Name="ThumbTransform" X="0"/>
                                 </Border.RenderTransform>
                             </Border>
                         </Grid>
-                        
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
                                 <Trigger.EnterActions>
                                     <BeginStoryboard>
                                         <Storyboard>
                                             <DoubleAnimation Storyboard.TargetName="ThumbTransform"
-                                                           Storyboard.TargetProperty="X"
-                                                           To="30"
-                                                           Duration="0:0:0.2">
+                                                             Storyboard.TargetProperty="X"
+                                                             To="30" Duration="0:0:0.2">
                                                 <DoubleAnimation.EasingFunction>
                                                     <QuadraticEase EasingMode="EaseOut"/>
                                                 </DoubleAnimation.EasingFunction>
@@ -74,9 +117,8 @@
                                     <BeginStoryboard>
                                         <Storyboard>
                                             <DoubleAnimation Storyboard.TargetName="ThumbTransform"
-                                                           Storyboard.TargetProperty="X"
-                                                           To="0"
-                                                           Duration="0:0:0.2">
+                                                             Storyboard.TargetProperty="X"
+                                                             To="0" Duration="0:0:0.2">
                                                 <DoubleAnimation.EasingFunction>
                                                     <QuadraticEase EasingMode="EaseOut"/>
                                                 </DoubleAnimation.EasingFunction>
@@ -85,11 +127,9 @@
                                     </BeginStoryboard>
                                 </Trigger.ExitActions>
                             </Trigger>
-                            
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="TrackBorder" Property="Opacity" Value="0.9"/>
                             </Trigger>
-                            
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.5"/>
                             </Trigger>
@@ -99,22 +139,20 @@
             </Setter>
         </Style>
 
-        <!-- Sleep Mode Toggle Style -->
         <Style x:Key="SleepModeToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource BaseToggleSwitchStyle}">
-            <Setter Property="Background" Value="#666666"/>
+            <Setter Property="Background" Value="{StaticResource ToggleOffBrush}"/>
             <Style.Triggers>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Background" Value="#FF5722"/>
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- Suspend Mode Toggle Style -->
         <Style x:Key="SuspendModeToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource BaseToggleSwitchStyle}">
-            <Setter Property="Background" Value="#666666"/>
+            <Setter Property="Background" Value="{StaticResource ToggleOffBrush}"/>
             <Style.Triggers>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Background" Value="#673AB7"/>
+                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -128,14 +166,16 @@
 
         <!-- Header -->
         <Border Grid.Row="0" 
-                Background="#1A1A1A" 
+                Background="{StaticResource HeaderBackgroundBrush}" 
                 CornerRadius="12" 
                 Padding="24,16" 
                 Margin="0,0,0,16">
             <Grid>
+                <!-- 增加一列用于关闭按钮 -->
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
@@ -143,7 +183,7 @@
                            Text="&#xE115;"
                            FontFamily="Segoe MDL2 Assets"
                            FontSize="24"
-                           Foreground="#2196F3"
+                           Foreground="{StaticResource AccentBrush}"
                            VerticalAlignment="Center"
                            Margin="0,0,16,0"/>
 
@@ -152,13 +192,13 @@
                                Text="Device Settings"
                                FontSize="20"
                                FontWeight="Bold"
-                               Foreground="White"/>
+                               Foreground="{StaticResource PrimaryTextBrush}"/>
                     <TextBlock x:Name="DevicePathText"
-                           Text="No device selected"
-                           FontSize="12"
-                           Foreground="#AAFFFFFF"
-                           Margin="0,2,0,0"
-							   Visibility="Collapsed"/>
+                               Text="No device selected"
+                               FontSize="12"
+                               Foreground="#AAFFFFFF"
+                               Margin="0,2,0,0"
+                               Visibility="Collapsed"/>
                 </StackPanel>
 
                 <Border Grid.Column="2"
@@ -166,11 +206,24 @@
                         Width="12" Height="12"
                         CornerRadius="6"
                         Background="#4CAF50"
-                        VerticalAlignment="Center">
+                        VerticalAlignment="Center"
+                        Margin="0,0,12,0">
                     <Border.Effect>
                         <DropShadowEffect Color="#4CAF50" BlurRadius="8" ShadowDepth="0" Opacity="0.6"/>
                     </Border.Effect>
                 </Border>
+
+                <!-- 新增关闭按钮 -->
+                <Button Grid.Column="3"
+                        x:Name="CloseWindowButton"
+                        Style="{StaticResource HeaderIconButtonStyle}"
+                        Click="CloseWindowButton_Click"
+                        ToolTip="关闭窗口 / Close">
+                    <TextBlock Text="&#xE8BB;"
+                               FontFamily="Segoe MDL2 Assets"
+                               FontSize="14"
+                               Foreground="#FFFFFF"/>
+                </Button>
             </Grid>
         </Border>
 
@@ -189,30 +242,27 @@
 
                 <!-- Device Information Panel -->
                 <Border Grid.Column="0" Grid.Row="0"
-                        Background="#121212" 
+                        Background="{StaticResource PanelBackgroundBrush}" 
                         CornerRadius="16" 
                         Padding="20" 
-                        Margin="0,0,12,16">
-                    <Border.Effect>
-                        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.3"/>
-                    </Border.Effect>
-                    
+                        Margin="0,0,12,16"
+                        Effect="{StaticResource PanelShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                             <TextBlock Text="&#xE7F4;"
                                        FontFamily="Segoe MDL2 Assets"
                                        FontSize="18"
-                                       Foreground="#2196F3"
+                                       Foreground="{StaticResource AccentBrush}"
                                        VerticalAlignment="Center"
                                        Margin="0,0,8,0"/>
                             <TextBlock Text="Device Information"
                                        FontSize="16"
                                        FontWeight="SemiBold"
-                                       Foreground="#2196F3"/>
+                                       Foreground="{StaticResource AccentBrush}"/>
                         </StackPanel>
 
                         <!-- Hardware Version -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -229,7 +279,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="Hardware Version:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="120"/>
                                 <TextBlock Grid.Column="2"
@@ -237,13 +287,13 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
                         <!-- Firmware Version -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -260,7 +310,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="Firmware Version:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="120"/>
                                 <TextBlock Grid.Column="2"
@@ -268,13 +318,13 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
                         <!-- Serial Number -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -291,7 +341,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="Serial Number:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="120"/>
                                 <TextBlock Grid.Column="2"
@@ -299,13 +349,13 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
                         <!-- Manufacturer -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -316,13 +366,13 @@
                                            Text="&#xE7EE;"
                                            FontFamily="Segoe MDL2 Assets"
                                            FontSize="14"
-                                           Foreground="#2196F3"
+                                           Foreground="{StaticResource AccentBrush}"
                                            VerticalAlignment="Center"
                                            Margin="0,0,8,0"/>
                                 <TextBlock Grid.Column="1"
                                            Text="Manufacturer:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="120"/>
                                 <TextBlock Grid.Column="2"
@@ -330,13 +380,13 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
                         <!-- Product Name -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -353,7 +403,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="Product:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="120"/>
                                 <TextBlock Grid.Column="2"
@@ -361,7 +411,7 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
@@ -370,14 +420,11 @@
 
                 <!-- Device Status Panel -->
                 <Border Grid.Column="1" Grid.Row="0"
-                        Background="#121212" 
+                        Background="{StaticResource PanelBackgroundBrush}" 
                         CornerRadius="16" 
                         Padding="20" 
-                        Margin="12,0,0,16">
-                    <Border.Effect>
-                        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.3"/>
-                    </Border.Effect>
-                    
+                        Margin="12,0,0,16"
+                        Effect="{StaticResource PanelShadow}">
                     <StackPanel>
                         <Grid Margin="0,0,0,16">
                             <Grid.ColumnDefinitions>
@@ -389,14 +436,14 @@
                                        Text="&#xE7C4;"
                                        FontFamily="Segoe MDL2 Assets"
                                        FontSize="18"
-                                       Foreground="#2196F3"
+                                       Foreground="{StaticResource AccentBrush}"
                                        VerticalAlignment="Center"
                                        Margin="0,0,8,0"/>
                             <TextBlock Grid.Column="1"
                                        Text="Device Status"
                                        FontSize="16"
                                        FontWeight="SemiBold"
-                                       Foreground="#2196F3"
+                                       Foreground="{StaticResource AccentBrush}"
                                        VerticalAlignment="Center"/>
                             <Button Grid.Column="2"
                                     x:Name="RefreshStatusButton"
@@ -409,12 +456,12 @@
                                 <TextBlock Text="&#xE72C;"
                                            FontFamily="Segoe MDL2 Assets"
                                            FontSize="14"
-                                           Foreground="#2196F3"/>
+                                           Foreground="{StaticResource AccentBrush}"/>
                             </Button>
                         </Grid>
 
                         <!-- Brightness -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -431,7 +478,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="Brightness:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="100"/>
                                 <TextBlock Grid.Column="2"
@@ -439,13 +486,13 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
                         <!-- Rotation -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -462,7 +509,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="Rotation:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="100"/>
                                 <TextBlock Grid.Column="2"
@@ -470,13 +517,13 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
                         <!-- OSD State -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -493,7 +540,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="OSD State:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="100"/>
                                 <TextBlock Grid.Column="2"
@@ -501,13 +548,13 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
                         <!-- Keep Alive Timeout -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -524,7 +571,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="Keep Alive:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="100"/>
                                 <TextBlock Grid.Column="2"
@@ -532,13 +579,13 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
                         <!-- Display In Sleep -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -555,7 +602,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="Display Sleep:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="100"/>
                                 <TextBlock Grid.Column="2"
@@ -563,13 +610,13 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
 
                         <!-- Suspend Mode Status -->
-                        <Border Background="#1A1A1A" CornerRadius="8" Padding="12,8" Visibility="Collapsed">
+                        <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Visibility="Collapsed">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -586,7 +633,7 @@
                                 <TextBlock Grid.Column="1"
                                            Text="Suspend Mode:"
                                            FontSize="12"
-                                           Foreground="#CCCCCC"
+                                           Foreground="{StaticResource SecondaryTextBrush}"
                                            VerticalAlignment="Center"
                                            Width="100"/>
                                 <TextBlock Grid.Column="2"
@@ -594,7 +641,7 @@
                                            Text="N/A"
                                            FontSize="12"
                                            FontWeight="SemiBold"
-                                           Foreground="White"
+                                           Foreground="{StaticResource PrimaryTextBrush}"
                                            VerticalAlignment="Center"/>
                             </Grid>
                         </Border>
@@ -603,14 +650,11 @@
 
                 <!-- Device Management Panel -->
                 <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1"
-                        Background="#121212" 
+                        Background="{StaticResource PanelBackgroundBrush}" 
                         CornerRadius="16" 
                         Padding="20" 
-                        Margin="0,0,0,16">
-                    <Border.Effect>
-                        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.3"/>
-                    </Border.Effect>
-                    
+                        Margin="0,0,0,16"
+                        Effect="{StaticResource PanelShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                             <TextBlock Text="&#xE8B7;"
@@ -757,14 +801,11 @@
 
                 <!-- Display Control Settings Panel -->
                 <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2"
-                        Background="#121212" 
+                        Background="{StaticResource PanelBackgroundBrush}" 
                         CornerRadius="16" 
                         Padding="20" 
-                        Margin="0,0,0,16">
-                    <Border.Effect>
-                        <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.3"/>
-                    </Border.Effect>
-                    
+                        Margin="0,0,0,16"
+                        Effect="{StaticResource PanelShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                             <TextBlock Text="&#xE770;"
@@ -787,7 +828,7 @@
 
                             <!-- Sleep Mode Controls -->
                             <Border Grid.Row="0" 
-                                    Background="#1A1A1A" 
+                                    Background="{StaticResource SubPanelBackgroundBrush}" 
                                     CornerRadius="8" 
                                     Padding="16" 
                                     Margin="0,0,0,12">
@@ -796,30 +837,28 @@
                                         <TextBlock Text="&#xE708;"
                                                    FontFamily="Segoe MDL2 Assets"
                                                    FontSize="16"
-                                                   Foreground="#FF5722"
+                                                   Foreground="{StaticResource AccentBrush}"
                                                    VerticalAlignment="Center"
                                                    Margin="0,0,8,0"/>
                                         <TextBlock Text="Sleep Mode"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
-                                                   Foreground="White"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
 
                                     <TextBlock Text="Configure the LCD ON/OFF when system enter to sleep state."
                                                FontSize="11"
-                                               Foreground="#AAAAAA"
+                                               Foreground="{StaticResource HintTextBrush}"
                                                Margin="0,0,0,12"
                                                TextWrapping="Wrap"/>
                                     
-                                    <!-- Sleep Mode Toggle Switch -->
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>                                       
-                                        
                                         <ToggleButton x:Name="SleepModeToggle"
                                                       Grid.Column="1"
                                                       HorizontalAlignment="Left"
@@ -846,7 +885,7 @@
 
                             <!-- Suspend Mode Controls -->
                             <Border Grid.Row="1" 
-                                    Background="#1A1A1A" 
+                                    Background="{StaticResource SubPanelBackgroundBrush}" 
                                     CornerRadius="8" 
                                     Padding="16">
                                 <StackPanel>
@@ -854,23 +893,22 @@
                                         <TextBlock Text="&#xE7C4;"
                                                    FontFamily="Segoe MDL2 Assets"
                                                    FontSize="16"
-                                                   Foreground="#3F51B5"
+                                                   Foreground="{StaticResource AccentBrush}"
                                                    VerticalAlignment="Center"
                                                    Margin="0,0,8,0"/>
                                         <TextBlock Text="Suspend Mode"
                                                    FontSize="14"
                                                    FontWeight="SemiBold"
-                                                   Foreground="White"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
                                     
                                     <TextBlock Text="Setting customized style when MasterCTRL exit."
                                                FontSize="11"
-                                               Foreground="#AAAAAA"
+                                               Foreground="{StaticResource HintTextBrush}"
                                                Margin="0,0,0,12"
                                                TextWrapping="Wrap"/>
                                     
-                                    <!-- Suspend Mode Toggle Switch -->
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
@@ -882,9 +920,9 @@
                                                       HorizontalAlignment="Left"
                                                       Click="SuspendModeToggle_Click"
                                                       Style="{StaticResource SuspendModeToggleStyle}"
-													  ToolTipService.ToolTip="OFF: Play the device build-in animation.  ON: Play the below imported image or animation."
-													  ToolTipService.Placement="MousePoint"
-													  ToolTipService.InitialShowDelay="100">
+                                                      ToolTipService.ToolTip="OFF: Play the device build-in animation.  ON: Play the below imported image or animation."
+                                                      ToolTipService.Placement="MousePoint"
+                                                      ToolTipService.InitialShowDelay="100">
                                             <ToggleButton.ToolTip>
                                                 <ToolTip MaxWidth="320">
                                                     <StackPanel>
@@ -900,19 +938,15 @@
                                                 </ToolTip>
                                             </ToggleButton.ToolTip>
                                         </ToggleButton>
-                                        
-                                        
                                     </Grid>
                                     
-                                    <!-- Dynamic Content Area - Shows either suspend media files or add button -->
+                                    <!-- Dynamic Content Area -->
                                     <Border x:Name="SuspendModeContentArea"
-                                            Background="#242424"
+                                            Background="{StaticResource SubPanelAltBackgroundBrush}"
                                             CornerRadius="6"
                                             Padding="12"
                                             Margin="0,12,0,0">
-                                        
                                         <Grid>
-                                            <!-- Suspend Media Grid Display -->
                                             <StackPanel x:Name="SuspendMediaPanel">
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                                     <TextBlock Text="&#xE8FD;"
@@ -924,23 +958,21 @@
                                                     <TextBlock Text="Suspend Media Files"
                                                                FontSize="12"
                                                                FontWeight="SemiBold"
-                                                               Foreground="#CCCCCC"/>
+                                                               Foreground="{StaticResource SecondaryTextBrush}"/>
                                                     <TextBlock Text="(Click empty slot to add media)"
                                                                FontSize="10"
-                                                               Foreground="#888888"
+                                                               Foreground="{StaticResource HintTextBrush}"
                                                                Margin="8,0,0,0"
                                                                VerticalAlignment="Center"/>
                                                 </StackPanel>
                                                 
-                                                <!-- Media Grid - 5 slots in a horizontal layout -->
                                                 <UniformGrid x:Name="SuspendMediaGrid" 
-                                                           Rows="1" 
-                                                           Columns="5"
-                                                           Margin="0,8,0,0">
-                                                    
-                                                    <!-- Media Slot 1 -->
+                                                             Rows="1" 
+                                                             Columns="5"
+                                                             Margin="0,8,0,0">
+                                                    <!-- Media Slots -->
                                                     <Border x:Name="MediaSlot1"
-                                                            Background="#1A1A1A"
+                                                            Background="{StaticResource SubPanelBackgroundBrush}"
                                                             BorderBrush="#444444"
                                                             BorderThickness="2"
                                                             CornerRadius="8"
@@ -951,12 +983,9 @@
                                                             MouseLeftButtonUp="MediaSlot_Click"
                                                             Tag="0">
                                                         <Grid>
-                                                            <!-- Thumbnail Image -->
                                                             <Image x:Name="MediaThumbnail1"
                                                                    Stretch="UniformToFill"
                                                                    Visibility="Collapsed"/>
-                                                            
-                                                            <!-- Add Media Placeholder -->
                                                             <StackPanel x:Name="AddMediaPlaceholder1"
                                                                        HorizontalAlignment="Center"
                                                                        VerticalAlignment="Center">
@@ -971,8 +1000,6 @@
                                                                           HorizontalAlignment="Center"
                                                                           Margin="0,2,0,0"/>
                                                             </StackPanel>
-                                                            
-                                                            <!-- Media Info Overlay -->
                                                             <Border x:Name="MediaInfoOverlay1"
                                                                    Background="#80000000"
                                                                    VerticalAlignment="Bottom"
@@ -989,8 +1016,6 @@
                                                                               Foreground="#4CAF50"/>
                                                                 </StackPanel>
                                                             </Border>
-                                                            
-                                                            <!-- Remove Button -->
                                                             <Button x:Name="RemoveMediaButton1"
                                                                    Width="16" Height="16"
                                                                    HorizontalAlignment="Right"
@@ -1009,10 +1034,9 @@
                                                             </Button>
                                                         </Grid>
                                                     </Border>
-                                                    
-                                                    <!-- Media Slot 2 -->
+
                                                     <Border x:Name="MediaSlot2"
-                                                            Background="#1A1A1A"
+                                                            Background="{StaticResource SubPanelBackgroundBrush}"
                                                             BorderBrush="#444444"
                                                             BorderThickness="2"
                                                             CornerRadius="8"
@@ -1074,10 +1098,9 @@
                                                             </Button>
                                                         </Grid>
                                                     </Border>
-                                                    
-                                                    <!-- Media Slot 3 -->
+
                                                     <Border x:Name="MediaSlot3"
-                                                            Background="#1A1A1A"
+                                                            Background="{StaticResource SubPanelBackgroundBrush}"
                                                             BorderBrush="#444444"
                                                             BorderThickness="2"
                                                             CornerRadius="8"
@@ -1139,10 +1162,9 @@
                                                             </Button>
                                                         </Grid>
                                                     </Border>
-                                                    
-                                                    <!-- Media Slot 4 -->
+
                                                     <Border x:Name="MediaSlot4"
-                                                            Background="#1A1A1A"
+                                                            Background="{StaticResource SubPanelBackgroundBrush}"
                                                             BorderBrush="#444444"
                                                             BorderThickness="2"
                                                             CornerRadius="8"
@@ -1204,10 +1226,9 @@
                                                             </Button>
                                                         </Grid>
                                                     </Border>
-                                                    
-                                                    <!-- Media Slot 5 -->
+
                                                     <Border x:Name="MediaSlot5"
-                                                            Background="#1A1A1A"
+                                                            Background="{StaticResource SubPanelBackgroundBrush}"
                                                             BorderBrush="#444444"
                                                             BorderThickness="2"
                                                             CornerRadius="8"
@@ -1269,10 +1290,8 @@
                                                             </Button>
                                                         </Grid>
                                                     </Border>
-                                                    
                                                 </UniformGrid>
                                                 
-                                                <!-- Bulk Actions -->
                                                 <StackPanel Orientation="Horizontal" 
                                                            HorizontalAlignment="Right" 
                                                            Margin="0,8,0,0">
@@ -1293,7 +1312,6 @@
                                                                       FontSize="10"/>
                                                         </StackPanel>
                                                     </Button>
-                                                    
                                                     <Button x:Name="ClearAllMediaButton"
                                                            Background="#F44336"
                                                            Foreground="White"
@@ -1310,9 +1328,7 @@
                                                         </StackPanel>
                                                     </Button>
                                                 </StackPanel>
-                                                
                                             </StackPanel>
-                                            
                                         </Grid>
                                     </Border>
                                 </StackPanel>
@@ -1326,20 +1342,20 @@
         <!-- Loading Overlay -->
         <Border x:Name="LoadingOverlay"
                 Grid.Row="0" Grid.RowSpan="2"
-                Background="#80000000"
+                Background="{StaticResource OverlayMaskBrush}"
                 CornerRadius="16"
                 Visibility="Collapsed">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ProgressBar IsIndeterminate="True"
                              Width="100"
                              Height="4"
-                             Foreground="#2196F3"
+                             Foreground="{StaticResource AccentBrush}"
                              Background="Transparent"
                              BorderBrush="Transparent"/>
                 <TextBlock x:Name="LoadingText"
                            Text="Loading device information..."
                            FontSize="14"
-                           Foreground="White"
+                           Foreground="{StaticResource PrimaryTextBrush}"
                            HorizontalAlignment="Center"
                            Margin="0,16,0,0"/>
             </StackPanel>
@@ -1351,8 +1367,8 @@
                 VerticalAlignment="Top"
                 HorizontalAlignment="Center"
                 Margin="24"
-                Background="#1A1A1A"
-                BorderBrush="#444444"
+                Background="{StaticResource SubPanelBackgroundBrush}"
+                BorderBrush="{StaticResource DividerBrush}"
                 BorderThickness="1"
                 CornerRadius="8"
                 Padding="16,12"
@@ -1361,15 +1377,12 @@
             <Border.Effect>
                 <DropShadowEffect Color="#000000" BlurRadius="20" ShadowDepth="5" Opacity="0.5"/>
             </Border.Effect>
-            
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
-                <!-- Icon -->
                 <TextBlock x:Name="NotificationIcon"
                            Grid.Column="0"
                            Text="&#xE7BA;"
@@ -1378,18 +1391,14 @@
                            Foreground="#4CAF50"
                            VerticalAlignment="Center"
                            Margin="0,0,12,0"/>
-                
-                <!-- Message -->
                 <TextBlock x:Name="NotificationMessage"
                            Grid.Column="1"
                            Text="Operation completed successfully"
                            FontSize="14"
-                           Foreground="White"
+                           Foreground="{StaticResource PrimaryTextBrush}"
                            VerticalAlignment="Center"
                            TextWrapping="Wrap"
                            MaxWidth="400"/>
-                
-                <!-- Close Button -->
                 <Button x:Name="NotificationCloseButton"
                         Grid.Column="2"
                         Click="NotificationCloseButton_Click"
@@ -1409,11 +1418,11 @@
         <!-- Confirmation Dialog -->
         <Border x:Name="ConfirmationDialog"
                 Grid.Row="0" Grid.RowSpan="2"
-                Background="#80000000"
+                Background="{StaticResource OverlayMaskBrush}"
                 Visibility="Collapsed"
                 Panel.ZIndex="999">
-            <Border Background="#1A1A1A"
-                    BorderBrush="#444444"
+            <Border Background="{StaticResource SubPanelBackgroundBrush}"
+                    BorderBrush="{StaticResource DividerBrush}"
                     BorderThickness="1"
                     CornerRadius="12"
                     Padding="24"
@@ -1423,9 +1432,7 @@
                 <Border.Effect>
                     <DropShadowEffect Color="#000000" BlurRadius="25" ShadowDepth="8" Opacity="0.6"/>
                 </Border.Effect>
-                
                 <StackPanel>
-                    <!-- Dialog Icon and Title -->
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
                         <TextBlock x:Name="ConfirmationIcon"
                                    Text="&#xE7BA;"
@@ -1438,27 +1445,21 @@
                                    Text="Confirm Action"
                                    FontSize="18"
                                    FontWeight="SemiBold"
-                                   Foreground="White"
+                                   Foreground="{StaticResource PrimaryTextBrush}"
                                    VerticalAlignment="Center"/>
                     </StackPanel>
-                    
-                    <!-- Dialog Message -->
                     <TextBlock x:Name="ConfirmationMessage"
                                Text="Are you sure you want to proceed?"
                                FontSize="14"
-                               Foreground="#CCCCCC"
+                               Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap"
                                Margin="0,0,0,20"/>
-                    
-                    <!-- Dialog Buttons -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="12"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        
-                        <!-- Cancel Button -->
                         <Border Grid.Column="0"
                                 Background="#555555"
                                 CornerRadius="6">
@@ -1475,11 +1476,9 @@
                                            HorizontalAlignment="Center"/>
                             </Button>
                         </Border>
-                        
-                        <!-- Confirm Button -->
                         <Border Grid.Column="2"
                                 x:Name="ConfirmationButtonBorder"
-                                Background="#2196F3"
+                                Background="{StaticResource AccentBrush}"
                                 CornerRadius="6">
                             <Button x:Name="ConfirmationConfirmButton"
                                     Click="ConfirmationConfirmButton_Click"

@@ -4,11 +4,13 @@
                  xmlns:mica="clr-namespace:MicaWPF.Controls;assembly=MicaWPF"
                  Title="Device Settings"
                  Width="1000"
-                 Height="800"
+                 Height="900"
                  WindowStartupLocation="CenterOwner"
-                 ResizeMode="CanResize"
+                 WindowStyle="None"
+                 ResizeMode="NoResize"
                  ShowInTaskbar="False"
-                 FontFamily="{DynamicResource AppFontFamily}">
+                 FontFamily="{DynamicResource AppFontFamily}"
+                 Background="Transparent">
     <Grid>
         <Frame x:Name="PopupFrame" 
                NavigationUIVisibility="Hidden"
