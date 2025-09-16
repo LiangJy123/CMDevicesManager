@@ -93,6 +93,7 @@ namespace CMDevicesManager.Pages
         // Video
         public string? VideoPath { get; set; }
 
+        public string? VideoFramesCacheFolder { get; set; }   // NEW
         // DateTime format
         public string? DateFormat { get; set; }
 
@@ -1804,7 +1805,85 @@ private bool IsGlobalPlayModeEmpty()
                     UpdateVideoFrame(_currentVideoImage, _currentVideoFrames[_currentFrameIndex]);
             }
         }
+        private string? SaveVideoFramesCache(VideoElementInfo videoInfo, List<VideoFrameData> frames)
+        {
+            try
+            {
+                if (frames == null || frames.Count == 0) return null;
+                var framesRoot = Path.Combine(ResourcesFolder, "VideoFrames");
+                Directory.CreateDirectory(framesRoot);
 
+                var baseName = Path.GetFileNameWithoutExtension(videoInfo.FilePath);
+                var targetFolder = Path.Combine(framesRoot, baseName + "_frames");
+
+                bool needWrite = true;
+                if (Directory.Exists(targetFolder))
+                {
+                    var existing = Directory.GetFiles(targetFolder, "frame_*.jpg").Length;
+                    if (existing == frames.Count) needWrite = false;
+                }
+
+                if (needWrite)
+                {
+                    Directory.CreateDirectory(targetFolder);
+                    for (int i = 0; i < frames.Count; i++)
+                    {
+                        var framePath = Path.Combine(targetFolder, $"frame_{i:D5}.jpg");
+                        if (!File.Exists(framePath))
+                            File.WriteAllBytes(framePath, frames[i].JpegData);
+                    }
+                }
+
+                return GetRelativePath(targetFolder);
+            }
+            catch (Exception ex)
+            {
+                Logger.Info("SaveVideoFramesCache failed: " + ex.Message);
+                return null;
+            }
+        }
+
+        // VIDEO CACHE: load previously saved frames
+        private List<VideoFrameData>? LoadCachedVideoFrames(string relativeOrFullFolder)
+        {
+            try
+            {
+                string full = relativeOrFullFolder;
+                if (!Path.IsPathRooted(full))
+                {
+                    full = Path.Combine(OutputFolder, relativeOrFullFolder);
+                    if (!Directory.Exists(full))
+                        full = Path.Combine(ResourcesFolder, relativeOrFullFolder);
+                }
+                if (!Directory.Exists(full)) return null;
+
+                var files = Directory.GetFiles(full, "frame_*.jpg")
+                    .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                if (files.Count == 0) return null;
+
+                var list = new List<VideoFrameData>(files.Count);
+                for (int i = 0; i < files.Count; i++)
+                {
+                    var data = File.ReadAllBytes(files[i]);
+                    list.Add(new VideoFrameData
+                    {
+                        FrameIndex = i,
+                        JpegData = data,
+                        TimeStampMs = i,
+                        DurationMs = 0,
+                        Width = 0,
+                        Height = 0
+                    });
+                }
+                return list;
+            }
+            catch (Exception ex)
+            {
+                Logger.Info("LoadCachedVideoFrames failed: " + ex.Message);
+                return null;
+            }
+        }
         // ================= Resource Copy Helpers =================
         private string CopyResourceToAppFolder(string sourcePath, string resourceType)
         {
@@ -2054,6 +2133,13 @@ private bool IsGlobalPlayModeEmpty()
                         {
                             elemConfig.Type = "Video";
                             elemConfig.VideoPath = GetRelativePath(videoInfo.FilePath);
+                            // VIDEO CACHE: save frames if this border is the active video and frames exist
+                            if (_currentVideoBorder == border && _currentVideoFrames != null && _currentVideoFrames.Count > 0)
+                            {
+                                var cacheRel = SaveVideoFramesCache(videoInfo, _currentVideoFrames);
+                                if (!string.IsNullOrEmpty(cacheRel))
+                                    elemConfig.VideoFramesCacheFolder = cacheRel;
+                            }
                         }
                         else if (img2.Source is BitmapImage bitmapImg)
                         {
@@ -2312,26 +2398,49 @@ private bool IsGlobalPlayModeEmpty()
                                     var resolvedPath = ResolveRelativePath(elemConfig.VideoPath);
                                     if (File.Exists(resolvedPath))
                                     {
-                                        var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedPath);
-                                        if (videoInfo != null)
+                                        List<VideoFrameData>? frames = null;
+
+                                        // VIDEO CACHE: try load cached frames first
+                                        if (!string.IsNullOrEmpty(elemConfig.VideoFramesCacheFolder))
+                                            frames = LoadCachedVideoFrames(elemConfig.VideoFramesCacheFolder);
+
+                                        if (frames != null && frames.Count > 0)
                                         {
-                                            Mouse.OverrideCursor = Cursors.Wait;
-                                            var frames = await ExtractMp4FramesToMemory(resolvedPath);
-                                            Mouse.OverrideCursor = null;
+                                            _currentVideoFrames = frames;
+                                            _currentFrameIndex = 0;
 
-                                            if (frames != null && frames.Count > 0)
+                                            var videoImage = new Image
                                             {
-                                                _currentVideoFrames = frames;
-                                                _currentFrameIndex = 0;
+                                                Stretch = Stretch.Uniform,
+                                                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                                                VerticalAlignment = VerticalAlignment.Top
+                                            };
+                                            UpdateVideoFrame(videoImage, frames[0]);
+                                            element = videoImage;
+                                        }
+                                        else
+                                        {
+                                            var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedPath);
+                                            if (videoInfo != null)
+                                            {
+                                                Mouse.OverrideCursor = Cursors.Wait;
+                                                var extracted = await ExtractMp4FramesToMemory(resolvedPath);
+                                                Mouse.OverrideCursor = null;
 
-                                                var videoImage = new Image
+                                                if (extracted != null && extracted.Count > 0)
                                                 {
-                                                    Stretch = Stretch.Uniform,
-                                                    HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                                                    VerticalAlignment = System.Windows.VerticalAlignment.Top
-                                                };
-                                                UpdateVideoFrame(videoImage, frames[0]);
-                                                element = videoImage;
+                                                    _currentVideoFrames = extracted;
+                                                    _currentFrameIndex = 0;
+
+                                                    var videoImage = new Image
+                                                    {
+                                                        Stretch = Stretch.Uniform,
+                                                        HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                                                        VerticalAlignment = VerticalAlignment.Top
+                                                    };
+                                                    UpdateVideoFrame(videoImage, extracted[0]);
+                                                    element = videoImage;
+                                                }
                                             }
                                         }
                                     }
@@ -2456,6 +2565,7 @@ private bool IsGlobalPlayModeEmpty()
                                     FilePath = resolvedVideoPath,
                                     TotalFrames = _currentVideoFrames?.Count ?? 0
                                 };
+                                // VIDEO CACHE: if frames loaded from cache, still start playback using metadata frame rate
                                 StartVideoPlayback(videoInfo.FrameRate);
                             }
                         }
