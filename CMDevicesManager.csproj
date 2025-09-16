@@ -157,6 +157,12 @@
     </Resource>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="exe\ffmpeg-6.1-win-64.zip">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy &quot;$(ProjectDir)hidapidll\hidapi.dll&quot; &quot;$(TargetDir)&quot; /Y /I" ContinueOnError="false" IgnoreExitCode="false" />
   </Target>
