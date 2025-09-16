@@ -74,8 +74,10 @@ namespace CMDevicesManager.Services
         private DateTime _lastAutoSnapshot = DateTime.MinValue;
         private TimeSpan _autoSnapshotInterval = TimeSpan.FromMilliseconds(50); // 50ms
 
+        private bool _hasActiveContent;
+        public bool HasActiveContent => _hasActiveContent;
         // ====== 移动调试日志控制 ======
-        private bool _movementDebugLogging = true; // 默认关闭
+        private bool _movementDebugLogging = false; // 默认关闭
         // 调试选项：强制为移动元素加可见背景/边框
         private bool _forceDebugVisualForMoving = false;
         public void EnableForceDebugVisual(bool enable)
@@ -150,6 +152,7 @@ namespace CMDevicesManager.Services
                 var seqPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager", "globalconfig1.json");
                 if (!File.Exists(seqPath))
                 {
+                    _hasActiveContent = false;         // NEW
                     ClearToBlank();
                     return;
                 }
@@ -162,6 +165,7 @@ namespace CMDevicesManager.Services
                 var first = seq?.Items?.FirstOrDefault();
                 if (first == null || string.IsNullOrWhiteSpace(first.FilePath) || !File.Exists(first.FilePath))
                 {
+                    _hasActiveContent = false;         // NEW
                     ClearToBlank();
                     return;
                 }
@@ -179,6 +183,7 @@ namespace CMDevicesManager.Services
 
                 if (cfg == null)
                 {
+                    _hasActiveContent = false;         // NEW
                     ClearToBlank();
                     return;
                 }
@@ -188,6 +193,7 @@ namespace CMDevicesManager.Services
             }
             catch
             {
+                _hasActiveContent = false;             // NEW
                 ClearToBlank();
             }
         }
@@ -222,9 +228,9 @@ namespace CMDevicesManager.Services
             _moveSpeed = _lastResult.MoveSpeed;
             _lastMoveTick = DateTime.Now;
 
-            StartTimers();
+            _hasActiveContent = (cfg.Elements?.Count ?? 0) > 0;   // NEW
 
-            // NEW: handle video element playback
+            StartTimers();
             SetupVideoElements(cfg);
         }
 
@@ -243,6 +249,7 @@ namespace CMDevicesManager.Services
             _bgImage.Source = null;
             _lastResult = null;
             _lastConfig = null;
+            _hasActiveContent = false;   // NEW
         }
 
         private void StopVideoPlayback(bool disposeState = false)

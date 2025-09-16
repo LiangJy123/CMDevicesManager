@@ -415,6 +415,7 @@ namespace CMDevicesManager
             if (_mainCaptureRoot == null ||
                 _mainCaptureRoot.ActualWidth < 1 ||
                 _mainCaptureRoot.ActualHeight < 1) return;
+            if (!GlobalMirrorCanvasService.Instance.HasActiveContent) return;
 
             var jpeg = CaptureElementToJpegFixedSquare(_mainCaptureRoot, MainRealtimeSize);
             if (jpeg == null || jpeg.Length == 0) return;

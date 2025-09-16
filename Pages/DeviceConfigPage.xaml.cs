@@ -280,6 +280,9 @@ namespace CMDevicesManager.Pages
     // ================= Main Page =================
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
     {
+
+        private const long MaxMp4FileBytes = 10 * 1024 * 1024; // 10MB size limit
+
         private const string GlobalConfigFileName = "globalconfig1.json";
         private static string UserPrefsFilePath => System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "userprefs.json");
         private sealed class UserPrefsModel
@@ -1650,7 +1653,29 @@ private bool IsGlobalPlayModeEmpty()
 
             if (dlg.ShowDialog() != true)
                 return;
-
+            try
+            {
+                var fi = new FileInfo(dlg.FileName);
+                if (!fi.Exists)
+                {
+                    MessageBox.Show("Selected file does not exist.", "File Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                if (fi.Length > MaxMp4FileBytes)
+                {
+                    MessageBox.Show(
+                        $"Video file exceeds 10MB limit.\nSize: {fi.Length / 1024.0 / 1024.0:F2} MB",
+                        "File Too Large",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to validate file size: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             try
             {
                 Mouse.OverrideCursor = Cursors.Wait;
@@ -1984,7 +2009,8 @@ private bool IsGlobalPlayModeEmpty()
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
               
                 MessageBox.Show($"{msg}: {CurrentConfigName}", title, MessageBoxButton.OK, MessageBoxImage.Information);
-                CheckAndPromptPlayMode();
+                if (IsGlobalPlayModeEmpty())
+                    CheckAndPromptPlayMode();
             }
             catch (Exception ex)
             {
@@ -2016,7 +2042,8 @@ private bool IsGlobalPlayModeEmpty()
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
                 
                 MessageBox.Show($"{msg}: {newName}", title, MessageBoxButton.OK, MessageBoxImage.Information);
-                CheckAndPromptPlayMode();
+                if (IsGlobalPlayModeEmpty())
+                    CheckAndPromptPlayMode();
             }
             catch (Exception ex)
             {
@@ -2027,8 +2054,17 @@ private bool IsGlobalPlayModeEmpty()
 
         private string SaveConfigCore(string configName, bool deletePreviousLoaded)
         {
-            // 删除之前 load 的旧配置文件（仅当指定删除且文件仍存在且不是我们即将写入的名字）
-            if (deletePreviousLoaded && _loadedConfigFilePath != null)
+            var configFolder = Path.Combine(OutputFolder, "Configs");
+            Directory.CreateDirectory(configFolder);
+
+            string safeName = MakeSafeFileBase(configName);
+            string baseFileName = safeName + ".json";
+            string targetPath = Path.Combine(configFolder, baseFileName);
+
+            // If previous loaded file should be deleted AND it's different from target (old timestamped behavior)
+            if (deletePreviousLoaded &&
+                _loadedConfigFilePath != null &&
+                !string.Equals(Path.GetFullPath(_loadedConfigFilePath), Path.GetFullPath(targetPath), StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
@@ -2041,6 +2077,53 @@ private bool IsGlobalPlayModeEmpty()
                 }
             }
 
+            // Handle name collision (if not the same file already loaded)
+            if (File.Exists(targetPath) )
+            {
+                // Ask user overwrite / rename / cancel
+                var overwriteResult = MessageBox.Show(
+                    $"配置文件 \"{baseFileName}\" 已存在。\n\n是: 覆盖\n否: 重新命名\n取消: 中止保存",
+                    "文件已存在",
+                    MessageBoxButton.YesNoCancel,
+                    MessageBoxImage.Question);
+
+                if (overwriteResult == MessageBoxResult.Cancel)
+                    throw new OperationCanceledException("用户取消保存。");
+
+                if (overwriteResult == MessageBoxResult.No)
+                {
+                    // Rename loop
+                    bool gotUnique = false;
+                    while (!gotUnique)
+                    {
+                        var renameDialog = new ConfigNameDialog(safeName + "_Copy");
+                        if (Application.Current.MainWindow != null)
+                            renameDialog.Owner = Application.Current.MainWindow;
+
+                        if (renameDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(renameDialog.ConfigName))
+                            throw new OperationCanceledException("用户取消重命名。");
+
+                        safeName = MakeSafeFileBase(renameDialog.ConfigName.Trim());
+                        baseFileName = safeName + ".json";
+                        targetPath = Path.Combine(configFolder, baseFileName);
+
+                        if (!File.Exists(targetPath))
+                        {
+                            // Update outward visible ConfigName if user chose new name
+                            CurrentConfigName = renameDialog.ConfigName.Trim();
+                            configName = CurrentConfigName;
+                            gotUnique = true;
+                        }
+                        else
+                        {
+                            MessageBox.Show($"名称 \"{baseFileName}\" 仍已存在，请重新输入。", "命名冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
+                    }
+                }
+                // If Yes -> overwrite: continue
+            }
+
+            // Build config object
             var config = new CanvasConfiguration
             {
                 ConfigName = configName,
@@ -2133,7 +2216,6 @@ private bool IsGlobalPlayModeEmpty()
                         {
                             elemConfig.Type = "Video";
                             elemConfig.VideoPath = GetRelativePath(videoInfo.FilePath);
-                            // VIDEO CACHE: save frames if this border is the active video and frames exist
                             if (_currentVideoBorder == border && _currentVideoFrames != null && _currentVideoFrames.Count > 0)
                             {
                                 var cacheRel = SaveVideoFramesCache(videoInfo, _currentVideoFrames);
@@ -2164,21 +2246,16 @@ private bool IsGlobalPlayModeEmpty()
                 }
             }
 
-            var configFolder = Path.Combine(OutputFolder, "Configs");
-            Directory.CreateDirectory(configFolder);
-            var safeName = MakeSafeFileBase(configName);
-            var fileName = $"{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.json";
-            var filePath = Path.Combine(configFolder, fileName);
-
+            // Serialize & write (overwrite if chosen)
             var json = JsonSerializer.Serialize(config, new JsonSerializerOptions
             {
                 WriteIndented = true,
                 Converters = { new JsonStringEnumConverter() }
             });
-            File.WriteAllText(filePath, json);
+            File.WriteAllText(targetPath, json);
 
-            _loadedConfigFilePath = filePath; // 记录当前最新文件
-            return filePath;
+            _loadedConfigFilePath = targetPath;
+            return targetPath;
         }
 
         private static string MakeSafeFileBase(string name)
