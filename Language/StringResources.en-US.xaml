@@ -77,4 +77,35 @@ Click 'Cancel' to return to the application</sys:String>
     <sys:String x:Key="Notice" xmlns:sys="clr-namespace:System;assembly=mscorlib">Notice</sys:String>
     <sys:String x:Key="OpenSettingsPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">Open settings window here</sys:String>
     <sys:String x:Key="SaveAsButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save As</sys:String>
+    
+    <!-- MessageBox Messages -->
+    <sys:String x:Key="Warning" xmlns:sys="clr-namespace:System;assembly=mscorlib">Warning</sys:String>
+    <sys:String x:Key="Info" xmlns:sys="clr-namespace:System;assembly=mscorlib">Information</sys:String>
+    <sys:String x:Key="Success" xmlns:sys="clr-namespace:System;assembly=mscorlib">Success</sys:String>
+    <sys:String x:Key="HomePageLoadFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Warning: Failed to load home page. Some features may not work correctly.</sys:String>
+    <sys:String x:Key="CanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">Canvas is not ready yet.</sys:String>
+    <sys:String x:Key="SaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save failed: {0}</sys:String>
+    <sys:String x:Key="ScreenshotSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">Screenshot saved:
+{0}</sys:String>
+    <sys:String x:Key="ScreenshotFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Screenshot failed: {0}</sys:String>
+    <sys:String x:Key="ConfigSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to save configuration: {0}</sys:String>
+    <sys:String x:Key="SaveAsFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save As failed: {0}</sys:String>
+    <sys:String x:Key="NameConflict" xmlns:sys="clr-namespace:System;assembly=mscorlib">Name Conflict</sys:String>
+    <sys:String x:Key="NameAlreadyExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">Name "{0}" already exists, please enter a different name.</sys:String>
+    <sys:String x:Key="FileError" xmlns:sys="clr-namespace:System;assembly=mscorlib">File Error</sys:String>
+    <sys:String x:Key="FileNotExist" xmlns:sys="clr-namespace:System;assembly=mscorlib">Selected file does not exist.</sys:String>
+    <sys:String x:Key="FileSizeValidationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to validate file size: {0}</sys:String>
+    <sys:String x:Key="ReadVideoInfoFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to read video information</sys:String>
+    <sys:String x:Key="ExtractVideoFramesFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to extract video frames</sys:String>
+    <sys:String x:Key="LoadMp4Failed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to load MP4: {0}</sys:String>
+    <sys:String x:Key="ConfigurationLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">Configuration loaded: {0}</sys:String>
+    <sys:String x:Key="AddConfigFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to add configuration: {0}</sys:String>
+    <sys:String x:Key="LoadConfigurationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to load configuration: {0}</sys:String>
+    <sys:String x:Key="InitializationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to initialize: {0}</sys:String>
+    <sys:String x:Key="NoConfigFolderFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">No configuration folder found.</sys:String>
+    <sys:String x:Key="NoValidConfigFilesLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">No valid configuration files could be loaded.</sys:String>
+    <sys:String x:Key="UnableToOpenWebsite" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unable to open the website.</sys:String>
+    <sys:String x:Key="CurrentCanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">Current canvas is not ready yet.</sys:String>
+    <sys:String x:Key="FileSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">Saved:
+{0}</sys:String>
 </ResourceDictionary>

@@ -87,8 +87,7 @@ namespace CMDevicesManager
             catch (Exception ex)
             {
                 Logger.Error("Failed to navigate to HomePage", ex);
-                MessageBox.Show("Warning: Failed to load home page. Some features may not work correctly.",
-                               "Navigation Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                LocalizedMessageBox.Show("HomePageLoadFailed", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
         private void ApplyUIDebugFlag()
@@ -247,7 +246,7 @@ namespace CMDevicesManager
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
                 {
-                    MessageBox.Show("画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("CanvasNotReady", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -274,11 +273,11 @@ namespace CMDevicesManager
                 using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
                     encoder.Save(fs);
 
-                MessageBox.Show($"已保存:\n{file}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("FileSaved")?.ToString() ?? "已保存:\n{0}", file), "Success", MessageBoxButton.OK, MessageBoxImage.Information, true);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("SaveFailed")?.ToString() ?? "保存失败: {0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
 
@@ -289,7 +288,7 @@ namespace CMDevicesManager
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
                 {
-                    MessageBox.Show("画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("CanvasNotReady", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -319,11 +318,11 @@ namespace CMDevicesManager
                 using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
                     encoder.Save(fs);
 
-                MessageBox.Show($"已保存:\n{file}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("FileSaved")?.ToString() ?? "已保存:\n{0}", file), "Success", MessageBoxButton.OK, MessageBoxImage.Information, true);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("SaveFailed")?.ToString() ?? "保存失败: {0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
 

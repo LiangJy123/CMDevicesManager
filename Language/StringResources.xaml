@@ -77,4 +77,35 @@
     <sys:String x:Key="Notice" xmlns:sys="clr-namespace:System;assembly=mscorlib">提示</sys:String>
     <sys:String x:Key="OpenSettingsPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">这里打开设置窗口</sys:String>
     <sys:String x:Key="SaveAsButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">另存为</sys:String>
+    
+    <!-- MessageBox Messages -->
+    <sys:String x:Key="Warning" xmlns:sys="clr-namespace:System;assembly=mscorlib">警告</sys:String>
+    <sys:String x:Key="Info" xmlns:sys="clr-namespace:System;assembly=mscorlib">信息</sys:String>
+    <sys:String x:Key="Success" xmlns:sys="clr-namespace:System;assembly=mscorlib">成功</sys:String>
+    <sys:String x:Key="HomePageLoadFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">警告：无法加载主页。某些功能可能无法正常工作。</sys:String>
+    <sys:String x:Key="CanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">画布尚未准备好。</sys:String>
+    <sys:String x:Key="SaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存失败：{0}</sys:String>
+    <sys:String x:Key="ScreenshotSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">截图已保存：
+{0}</sys:String>
+    <sys:String x:Key="ScreenshotFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">截图失败：{0}</sys:String>
+    <sys:String x:Key="ConfigSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存配置失败：{0}</sys:String>
+    <sys:String x:Key="SaveAsFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">另存为失败：{0}</sys:String>
+    <sys:String x:Key="NameConflict" xmlns:sys="clr-namespace:System;assembly=mscorlib">命名冲突</sys:String>
+    <sys:String x:Key="NameAlreadyExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">名称 "{0}" 仍已存在，请重新输入。</sys:String>
+    <sys:String x:Key="FileError" xmlns:sys="clr-namespace:System;assembly=mscorlib">文件错误</sys:String>
+    <sys:String x:Key="FileNotExist" xmlns:sys="clr-namespace:System;assembly=mscorlib">所选文件不存在。</sys:String>
+    <sys:String x:Key="FileSizeValidationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">文件大小验证失败：{0}</sys:String>
+    <sys:String x:Key="ReadVideoInfoFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">读取视频信息失败</sys:String>
+    <sys:String x:Key="ExtractVideoFramesFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">提取视频帧失败</sys:String>
+    <sys:String x:Key="LoadMp4Failed" xmlns:sys="clr-namespace:System;assembly=mscorlib">加载MP4失败：{0}</sys:String>
+    <sys:String x:Key="ConfigurationLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置已加载：{0}</sys:String>
+    <sys:String x:Key="AddConfigFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加配置失败：{0}</sys:String>
+    <sys:String x:Key="LoadConfigurationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">加载配置失败：{0}</sys:String>
+    <sys:String x:Key="InitializationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">初始化失败：{0}</sys:String>
+    <sys:String x:Key="NoConfigFolderFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">未找到配置文件夹。</sys:String>
+    <sys:String x:Key="NoValidConfigFilesLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">无法加载有效的配置文件。</sys:String>
+    <sys:String x:Key="UnableToOpenWebsite" xmlns:sys="clr-namespace:System;assembly=mscorlib">无法打开网站。</sys:String>
+    <sys:String x:Key="CurrentCanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">当前画布尚未准备好。</sys:String>
+    <sys:String x:Key="FileSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">已保存：
+{0}</sys:String>
 </ResourceDictionary>
