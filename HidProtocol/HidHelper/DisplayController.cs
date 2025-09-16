@@ -242,6 +242,9 @@ namespace HID.DisplayController
     public class DisplayController
     {
         private readonly Device _device;
+        private readonly SemaphoreSlim _writeSemaphore; // Add this for write synchronization
+        private readonly object _writeLock = new object(); // Additional lock for critical sections
+
         private const byte StartEndMarker5A = 0x5A;
         // display-ctrl-ssr-command report ID 0x1E.
         private const byte DisplayCtrlSsrCommandReportID = 0x1E;
@@ -275,6 +278,7 @@ namespace HID.DisplayController
         {
             StopResponseListener();
             _cancellationTokenSource?.Dispose();
+            _writeSemaphore?.Dispose(); // Dispose the semaphore
             _device?.Dispose();
         }
 
@@ -283,6 +287,7 @@ namespace HID.DisplayController
             try
             {
                 _device = new Device(vendorId, productId, serialNumber);
+                _writeSemaphore = new SemaphoreSlim(1, 1); // Allow only one write at a time
                 // Initialize device info and capabilities during construction
                 InitializeDeviceProperties();
             }
@@ -302,6 +307,7 @@ namespace HID.DisplayController
             try
             {
                 _device = new Device(devicePath);
+                _writeSemaphore = new SemaphoreSlim(1, 1); // Allow only one write at a time
                 // Initialize device info and capabilities during construction
                 InitializeDeviceProperties();
             }
@@ -350,6 +356,43 @@ namespace HID.DisplayController
         public void RefreshDeviceProperties()
         {
             InitializeDeviceProperties();
+        }
+
+
+        // Wrap all write operations with synchronization
+        private async Task WriteAsync(byte[] buffer)
+        {
+            await _writeSemaphore.WaitAsync();
+            try
+            {
+                await Task.Run(() =>
+                {
+                    lock (_writeLock)
+                    {
+                        _device.Write(buffer.AsSpan(0, buffer.Length));
+                    }
+                });
+            }
+            finally
+            {
+                _writeSemaphore.Release();
+            }
+        }
+
+        private void WriteSync(byte[] buffer)
+        {
+            _writeSemaphore.Wait();
+            try
+            {
+                lock (_writeLock)
+                {
+                    _device.Write(buffer.AsSpan(0, buffer.Length));
+                }
+            }
+            finally
+            {
+                _writeSemaphore.Release();
+            }
         }
 
         /// <summary>
@@ -626,7 +669,9 @@ namespace HID.DisplayController
                 byte[] buffer = new byte[3];
                 buffer[0] = 0x02; // Report ID for device-subcommand
                 buffer[1] = subcommandId;
-                _device.Write(buffer.AsSpan(0, buffer.Length));
+                //_device.Write(buffer.AsSpan(0, buffer.Length));
+                // Use synchronous version for this simple operation
+                WriteSync(buffer);
             }
             catch (Exception ex)
             {
@@ -648,7 +693,7 @@ namespace HID.DisplayController
         }
 
         // Software Screen Rendering-Command (display-ctrl-ssr-command)
-        private void SendDisplayCtrlSsrCommandCommand(string jsonPayload)
+        private async void SendDisplayCtrlSsrCommandCommand(string jsonPayload)
         {
             try
             {
@@ -702,7 +747,9 @@ namespace HID.DisplayController
                 buffer[buffer.Length - 1] = StartEndMarker5A;
 
                 // Send the command
-                _device.Write(buffer.AsSpan(0, commandLen));
+                //_device.Write(buffer.AsSpan(0, commandLen));
+                // Replace direct _device.Write call with synchronized version
+                await WriteAsync(buffer);
             }
             catch (Exception ex)
             {
@@ -955,7 +1002,7 @@ namespace HID.DisplayController
         /// Send file transfer data via HID report
         /// </summary>
         /// <param name="payload">Complete payload to send</param>
-        private void SendFileTransferReport(byte[] payload)
+        private async void SendFileTransferReport(byte[] payload)
         {
             try
             {
@@ -964,7 +1011,9 @@ namespace HID.DisplayController
                 report[0] = FileTransferReportID; // Report ID 31 (0x1F)
                 Array.Copy(payload, 0, report, 1, payload.Length);
                 // Send the report
-                _device.Write(report.AsSpan());
+                //_device.Write(report.AsSpan());
+                // Send the report with synchronization
+                await WriteAsync(report);
             }
             catch (Exception ex)
             {
@@ -1471,7 +1520,9 @@ namespace HID.DisplayController
                 // debug log
                 Debug.WriteLine($"=======-> Sending command, SeqNumber: {sequenceNumber}. jsonPayload: \n{jsonPayload} \n================================================================\n\n");
                 // Send the command
-                SendDisplayCtrlSsrCommandCommand(jsonPayload);
+                //SendDisplayCtrlSsrCommandCommand(jsonPayload);
+                // Use synchronized send method
+                await SendDisplayCtrlSsrCommandCommandAsync(jsonPayload);
 
                 // Wait for response
                 await Task.Run(() =>
@@ -1485,6 +1536,44 @@ namespace HID.DisplayController
             {
                 ResponseReceived -= handler;
                 waitHandle.Dispose();
+            }
+        }
+
+        // Create async version of the command sender
+        private async Task SendDisplayCtrlSsrCommandCommandAsync(string jsonPayload)
+        {
+            try
+            {
+                // [existing payload preparation code...]
+                int jsonPayloadLen = Encoding.ASCII.GetByteCount(jsonPayload);
+                byte[] tempBuffer = new byte[2 + jsonPayloadLen + 1];
+
+                tempBuffer[0] = 0x00;
+                tempBuffer[1] = (byte)(jsonPayloadLen + 3 + 2);
+                Encoding.ASCII.GetBytes(jsonPayload, 0, jsonPayloadLen, tempBuffer, 2);
+
+                byte checksum = 0;
+                for (int i = 0; i < tempBuffer.Length - 1; i++)
+                {
+                    unchecked { checksum += tempBuffer[i]; }
+                }
+                tempBuffer[tempBuffer.Length - 1] = checksum;
+
+                var translatedData = TranslatePayload(tempBuffer);
+                int commandLen = 1 + 1 + translatedData.Length + 1;
+                byte[] buffer = new byte[commandLen];
+
+                buffer[0] = DisplayCtrlSsrCommandReportID;
+                buffer[1] = StartEndMarker5A;
+                Array.Copy(translatedData, 0, buffer, 2, translatedData.Length);
+                buffer[buffer.Length - 1] = StartEndMarker5A;
+
+                // Use synchronized write
+                await WriteAsync(buffer);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[DisplayController] Error sending display control SSR command: {ex.Message}");
             }
         }
 
