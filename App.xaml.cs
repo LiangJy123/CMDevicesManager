@@ -1,7 +1,9 @@
 ﻿using CMDevicesManager.Helper;
 using CMDevicesManager.Services;
+using FFMpegCore;
 using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 using Application = System.Windows.Application; // Ensure this using directive is present
@@ -51,6 +53,14 @@ namespace CMDevicesManager
                 // Initialize font based on user configuration
                 Logger.Info("Initializing font settings");
                 CMDevicesManager.Language.FontSwitch.ChangeFont(UserConfigManager.Current.FontFamily);
+
+                var ffDir = Path.Combine(AppContext.BaseDirectory, "exe");
+                GlobalFFOptions.Configure(new FFOptions
+                {
+                    BinaryFolder = ffDir,
+                    TemporaryFilesFolder = Path.GetTempPath(),
+                    UseCache = true
+                });
 
                 // Initialize services
                 InitializeServices();

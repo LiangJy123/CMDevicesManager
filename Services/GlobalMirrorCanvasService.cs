@@ -1,10 +1,14 @@
-﻿using CMDevicesManager.Pages;
+﻿using CMDevicesManager.Helper; // add if not present
+using CMDevicesManager.Pages;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -13,21 +17,20 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using static CMDevicesManager.Pages.DeviceConfigPage;
 using Application = System.Windows.Application;
+using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
+using Control = System.Windows.Controls.Control; // << 新增
 using Image = System.Windows.Controls.Image;
+using MessageBox = System.Windows.MessageBox;
+using Panel = System.Windows.Controls.Panel;
 using Path = System.IO.Path;
+using Point = System.Windows.Point;
 using Rectangle = System.Windows.Shapes.Rectangle;
 using Size = System.Windows.Size;
-using System.Diagnostics;
-using Brush = System.Windows.Media.Brush;
-using Point = System.Windows.Point;
-using Panel = System.Windows.Controls.Panel;
-using Control = System.Windows.Controls.Control; // << 新增
-using System.Text.RegularExpressions;
-using Microsoft.VisualBasic;
-using MessageBox = System.Windows.MessageBox;
-using CMDevicesManager.Helper; // add if not present
+using System.Threading;
+using System.Threading.Tasks;
+using CMDevicesManager.Utilities;   // for VideoConverter / VideoFrameData
 
 namespace CMDevicesManager.Services
 {
@@ -53,6 +56,12 @@ namespace CMDevicesManager.Services
         private int _canvasSize = 512;
         private DateTime _lastMoveTick = DateTime.Now;
 
+        private DispatcherTimer? _videoTimer;
+        private List<VideoFrameData>? _videoFrames;
+        private int _videoFrameIndex;
+        private Image? _videoImage;
+        private Border? _videoBorder;
+        private CancellationTokenSource? _videoLoadCts;
         private bool _initialized;
         private bool _disposed;
         private string _outputRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager");
@@ -65,8 +74,10 @@ namespace CMDevicesManager.Services
         private DateTime _lastAutoSnapshot = DateTime.MinValue;
         private TimeSpan _autoSnapshotInterval = TimeSpan.FromMilliseconds(50); // 50ms
 
+        private bool _hasActiveContent;
+        public bool HasActiveContent => _hasActiveContent;
         // ====== 移动调试日志控制 ======
-        private bool _movementDebugLogging = true; // 默认关闭
+        private bool _movementDebugLogging = false; // 默认关闭
         // 调试选项：强制为移动元素加可见背景/边框
         private bool _forceDebugVisualForMoving = false;
         public void EnableForceDebugVisual(bool enable)
@@ -141,6 +152,7 @@ namespace CMDevicesManager.Services
                 var seqPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager", "globalconfig1.json");
                 if (!File.Exists(seqPath))
                 {
+                    _hasActiveContent = false;         // NEW
                     ClearToBlank();
                     return;
                 }
@@ -153,6 +165,7 @@ namespace CMDevicesManager.Services
                 var first = seq?.Items?.FirstOrDefault();
                 if (first == null || string.IsNullOrWhiteSpace(first.FilePath) || !File.Exists(first.FilePath))
                 {
+                    _hasActiveContent = false;         // NEW
                     ClearToBlank();
                     return;
                 }
@@ -170,6 +183,7 @@ namespace CMDevicesManager.Services
 
                 if (cfg == null)
                 {
+                    _hasActiveContent = false;         // NEW
                     ClearToBlank();
                     return;
                 }
@@ -179,6 +193,7 @@ namespace CMDevicesManager.Services
             }
             catch
             {
+                _hasActiveContent = false;             // NEW
                 ClearToBlank();
             }
         }
@@ -213,7 +228,10 @@ namespace CMDevicesManager.Services
             _moveSpeed = _lastResult.MoveSpeed;
             _lastMoveTick = DateTime.Now;
 
+            _hasActiveContent = (cfg.Elements?.Count ?? 0) > 0;   // NEW
+
             StartTimers();
+            SetupVideoElements(cfg);
         }
 
         public void ReapplyLast()
@@ -225,14 +243,260 @@ namespace CMDevicesManager.Services
         public void ClearToBlank()
         {
             if (_designCanvas == null || _bgRect == null || _bgImage == null) return;
+            StopVideoPlayback(disposeState: true);
             _designCanvas.Children.Clear();
             _bgRect.Fill = Brushes.White;
             _bgImage.Source = null;
             _lastResult = null;
             _lastConfig = null;
+            _hasActiveContent = false;   // NEW
         }
 
-    
+        private void StopVideoPlayback(bool disposeState = false)
+        {
+            if (_videoTimer != null)
+            {
+                _videoTimer.Stop();
+                _videoTimer.Tick -= VideoTimer_Tick;
+                _videoTimer = null;
+            }
+            if (disposeState)
+            {
+                _videoFrames = null;
+                _videoImage = null;
+                _videoBorder = null;
+                _videoFrameIndex = 0;
+            }
+        }
+
+        private void StartVideoPlayback(double frameRate)
+        {
+            if (_videoFrames == null || _videoFrames.Count == 0 || _videoImage == null)
+                return;
+
+            StopVideoPlayback(disposeState: false); // only restart timer
+            int interval = frameRate > 2 ? (int)(1000.0 / frameRate) : 33;
+            _videoTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(interval) };
+            _videoTimer.Tick += VideoTimer_Tick;
+            _videoTimer.Start();
+        }
+
+        private void VideoTimer_Tick(object? sender, EventArgs e)
+        {
+            if (_videoFrames == null || _videoFrames.Count == 0 || _videoImage == null)
+            {
+                StopVideoPlayback();
+                return;
+            }
+            _videoFrameIndex = (_videoFrameIndex + 1) % _videoFrames.Count;
+            UpdateVideoImageSource(_videoFrames[_videoFrameIndex]);
+        }
+
+        private void UpdateVideoImageSource(VideoFrameData frame)
+        {
+            try
+            {
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                using (var ms = new MemoryStream(frame.JpegData))
+                {
+                    bmp.StreamSource = ms;
+                    bmp.EndInit();
+                }
+                bmp.Freeze();
+                _videoImage!.Source = bmp;
+            }
+            catch { }
+        }
+
+        private List<VideoFrameData>? LoadCachedVideoFramesFolder(string relativeOrFull)
+        {
+            try
+            {
+                string full = relativeOrFull;
+                if (!Path.IsPathRooted(full))
+                {
+                    full = Path.Combine(_outputRoot, relativeOrFull);
+                    if (!Directory.Exists(full))
+                        full = Path.Combine(_outputRoot, "Resources", relativeOrFull);
+                }
+                if (!Directory.Exists(full)) return null;
+
+                var files = Directory.GetFiles(full, "frame_*.jpg")
+                                     .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+                                     .ToList();
+                if (files.Count == 0) return null;
+
+                var list = new List<VideoFrameData>(files.Count);
+                for (int i = 0; i < files.Count; i++)
+                {
+                    var data = File.ReadAllBytes(files[i]);
+                    list.Add(new VideoFrameData
+                    {
+                        FrameIndex = i,
+                        JpegData = data,
+                        TimeStampMs = i,
+                        DurationMs = 0,
+                        Width = 0,
+                        Height = 0
+                    });
+                }
+                return list;
+            }
+            catch { return null; }
+        }
+
+        private string ResolveRelativePath(string relativePath)
+        {
+            try
+            {
+                if (Path.IsPathRooted(relativePath) && File.Exists(relativePath))
+                    return relativePath;
+
+                string candidate = Path.Combine(_outputRoot, relativePath);
+                if (File.Exists(candidate)) return candidate;
+
+                candidate = Path.Combine(_outputRoot, "Resources", relativePath);
+                if (File.Exists(candidate)) return candidate;
+
+                foreach (var sub in new[] { "Images", "Backgrounds", "Videos" })
+                {
+                    candidate = Path.Combine(_outputRoot, "Resources", sub, relativePath);
+                    if (File.Exists(candidate)) return candidate;
+                }
+                return relativePath;
+            }
+            catch { return relativePath; }
+        }
+
+        private void ApplyVideoElementTransform(Border host, ElementConfiguration elem)
+        {
+            var tg = new TransformGroup();
+            var scale = new ScaleTransform(elem.Scale <= 0 ? 1.0 : elem.Scale, elem.Scale <= 0 ? 1.0 : elem.Scale);
+            tg.Children.Add(scale);
+
+            if (elem.MirroredX == true)
+                tg.Children.Add(new ScaleTransform(-1, 1));
+            if (elem.Rotation.HasValue && Math.Abs(elem.Rotation.Value) > 0.01)
+                tg.Children.Add(new RotateTransform(elem.Rotation.Value));
+            tg.Children.Add(new TranslateTransform(elem.X, elem.Y));
+            host.RenderTransform = tg;
+        }
+
+        private async void SetupVideoElements(CanvasConfiguration cfg)
+        {
+            // Only handle a single video element for now
+            var videoElem = cfg.Elements.FirstOrDefault(e => e.Type == "Video" && !string.IsNullOrEmpty(e.VideoPath));
+            StopVideoPlayback(disposeState: true);
+            _videoLoadCts?.Cancel();
+            _videoLoadCts = new CancellationTokenSource();
+
+            if (videoElem == null || _designCanvas == null) return;
+
+            // Placeholder border
+            var placeholder = new TextBlock
+            {
+                Text = "Loading Video...",
+                FontSize = 20,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromArgb(80, 0, 0, 0)),
+                Padding = new Thickness(8),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top
+            };
+            placeholder.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+
+            var host = new Border
+            {
+                Child = placeholder,
+                Opacity = videoElem.Opacity <= 0 ? 1.0 : videoElem.Opacity,
+                RenderTransformOrigin = new Point(0.5, 0.5)
+            };
+            ApplyVideoElementTransform(host, videoElem);
+            Canvas.SetZIndex(host, videoElem.ZIndex);
+            _designCanvas.Children.Add(host);
+            _videoBorder = host;
+
+            // Try cache first
+            List<VideoFrameData>? frames = null;
+            if (!string.IsNullOrEmpty(videoElem.VideoFramesCacheFolder))
+                frames = LoadCachedVideoFramesFolder(videoElem.VideoFramesCacheFolder);
+
+            if (frames != null && frames.Count > 0)
+            {
+                _videoFrames = frames;
+                _videoFrameIndex = 0;
+                _videoImage = new Image { Stretch = Stretch.Uniform };
+                host.Child = _videoImage;
+                UpdateVideoImageSource(frames[0]);
+
+                double frameRate = 30;
+                if (!string.IsNullOrEmpty(videoElem.VideoPath))
+                {
+                    var resolvedForInfo = ResolveRelativePath(videoElem.VideoPath);
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var info = await VideoConverter.GetMp4InfoAsync(resolvedForInfo);
+                            if (info != null && info.FrameRate > 1) frameRate = info.FrameRate;
+                        }
+                        catch { }
+                        Application.Current.Dispatcher.Invoke(() => StartVideoPlayback(frameRate));
+                    });
+                }
+                else
+                {
+                    StartVideoPlayback(frameRate);
+                }
+                return;
+            }
+
+            // Decode frames asynchronously
+            if (!string.IsNullOrEmpty(videoElem.VideoPath))
+            {
+                var resolvedPath = ResolveRelativePath(videoElem.VideoPath);
+                if (!File.Exists(resolvedPath)) return;
+
+                try
+                {
+                    var token = _videoLoadCts.Token;
+                    var collected = new List<VideoFrameData>();
+                    double frameRate = 30;
+
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await foreach (var frame in VideoConverter.ExtractMp4FramesToJpegRealTimeAsync(resolvedPath, 85, token))
+                            {
+                                collected.Add(frame);
+                            }
+                            if (collected.Count > 0 && !token.IsCancellationRequested)
+                            {
+                                var info = await VideoConverter.GetMp4InfoAsync(resolvedPath);
+                                if (info != null && info.FrameRate > 1) frameRate = info.FrameRate;
+
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    if (_videoBorder != host) return; // config changed
+                                    _videoFrames = collected;
+                                    _videoFrameIndex = 0;
+                                    _videoImage = new Image { Stretch = Stretch.Uniform };
+                                    host.Child = _videoImage;
+                                    UpdateVideoImageSource(collected[0]);
+                                    StartVideoPlayback(frameRate);
+                                });
+                            }
+                        }
+                        catch { /* swallow */ }
+                    }, token);
+                }
+                catch { }
+            }
+        }
 
         private void MetricsTimer_Tick(object? sender, EventArgs e) => UpdateMetricsOnce();
 
@@ -1221,6 +1485,8 @@ namespace CMDevicesManager.Services
             _disposed = true;
             try { _metricsTimer.Stop(); } catch { }
             try { _moveTimer.Stop(); } catch { }
+            StopVideoPlayback(disposeState: true);
+            _videoLoadCts?.Cancel();
             UnhookRendering();
             _metrics.Dispose();
         }
