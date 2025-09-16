@@ -1126,7 +1126,7 @@ namespace HID.DisplayController
                     catch (Exception ex)
                     {
                         Debug.WriteLine($"Response listener error: {ex.Message}");
-                        await Task.Delay(1000); // Wait before retrying
+                        //await Task.Delay(100); // Wait before retrying
                     }
                 }
             });

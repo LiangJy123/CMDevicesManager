@@ -1,6 +1,7 @@
 ﻿using HID.DisplayController;
 using HidApi;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace HID.DisplayController
 {
@@ -62,7 +63,7 @@ namespace HID.DisplayController
         /// </summary>
         public void StopMonitoring()
         {
-            Console.WriteLine("[MultiDeviceManager] Stopping multi-device monitoring...");
+            Debug.WriteLine("[MultiDeviceManager] Stopping multi-device monitoring...");
 
             _deviceMonitor.StopMonitoring();
 

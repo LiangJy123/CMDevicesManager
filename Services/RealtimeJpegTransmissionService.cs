@@ -23,7 +23,7 @@ namespace CMDevicesManager.Services
         
         private volatile bool _disposed = false;
         private volatile bool _isProcessing = false;
-        private volatile bool _isRealTimeEnabled = false;
+        //private volatile bool _isRealTimeEnabled = false;
         private byte _currentTransferId = 1;
         
         // Configuration
@@ -44,7 +44,7 @@ namespace CMDevicesManager.Services
         public event EventHandler<RealtimeServiceErrorEventArgs>? ServiceError;
         
         // Properties
-        public bool IsRealTimeModeEnabled => _isRealTimeEnabled;
+        public bool IsRealTimeModeEnabled => _hidDeviceService.IsRealTimeDisplayEnabled;
         public int QueueSize => _frameQueue.Count;
         public int MaxQueueSize => _maxQueueSize;
         public bool IsProcessing => _isProcessing;
@@ -55,7 +55,7 @@ namespace CMDevicesManager.Services
             TotalSent = Interlocked.Read(ref _totalSent),
             TotalDropped = Interlocked.Read(ref _totalDropped),
             CurrentQueueSize = QueueSize,
-            IsRealTimeModeEnabled = _isRealTimeEnabled,
+            //IsRealTimeModeEnabled = _hidDeviceService.IsRealTimeDisplayEnabled,
             LastActivity = _lastActivity
         };
         
@@ -121,7 +121,7 @@ namespace CMDevicesManager.Services
                 _frameQueue.Enqueue(frame);
                 Interlocked.Increment(ref _totalQueued);
                 
-                Debug.WriteLine($"Frame queued: {jpegData.Length} bytes, queue size: {_frameQueue.Count}");
+                //Debug.WriteLine($"Frame queued: {jpegData.Length} bytes, queue size: {_frameQueue.Count}");
                 
                 // Start processing if not already running
                 _ = Task.Run(StartProcessingAsync);
@@ -164,7 +164,7 @@ namespace CMDevicesManager.Services
                 // Start timer
                 _processTimer.Change(_processingIntervalMs, _processingIntervalMs);
                 
-                Debug.WriteLine("Processing started");
+                //Debug.WriteLine("Processing started");
             }
             finally
             {
@@ -184,7 +184,7 @@ namespace CMDevicesManager.Services
             }
             
             _processTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            Debug.WriteLine("Processing stopped");
+            //Debug.WriteLine("Processing stopped");
         }
         
         /// <summary>
@@ -204,10 +204,10 @@ namespace CMDevicesManager.Services
                 }
                 
                 // Ensure real-time mode is enabled
-                if (!_isRealTimeEnabled)
+                if (!_hidDeviceService.IsRealTimeDisplayEnabled)
                 {
                     await EnsureRealTimeModeAsync();
-                    if (!_isRealTimeEnabled)
+                    if (!_hidDeviceService.IsRealTimeDisplayEnabled)
                     {
                         Logger.Warn("Cannot process - real-time mode not enabled");
                         return;
@@ -237,7 +237,7 @@ namespace CMDevicesManager.Services
             {
                 var transferId = GetNextTransferId();
                 
-                Debug.WriteLine($"Sending frame: {frame.Data.Length} bytes, transferId={transferId}");
+                //Debug.WriteLine($"Sending frame: {frame.Data.Length} bytes, transferId={transferId}");
                 
                 // Send to HID devices
                 var results = await _hidDeviceService.TransferDataAsync(frame.Data, transferId);
@@ -276,7 +276,7 @@ namespace CMDevicesManager.Services
             
             // Check if we should disable real-time mode
             var timeSinceActivity = DateTime.Now - _lastActivity;
-            if (_isRealTimeEnabled && timeSinceActivity.TotalMilliseconds > _realTimeTimeoutMs)
+            if (_hidDeviceService.IsRealTimeDisplayEnabled && timeSinceActivity.TotalMilliseconds > _realTimeTimeoutMs)
             {
                 await DisableRealTimeModeAsync();
             }
@@ -287,7 +287,7 @@ namespace CMDevicesManager.Services
         /// </summary>
         private async Task EnsureRealTimeModeAsync()
         {
-            if (_isRealTimeEnabled) return;
+            if (_hidDeviceService.IsRealTimeDisplayEnabled) return;
             
             try
             {
@@ -302,7 +302,7 @@ namespace CMDevicesManager.Services
                 
                 if (successCount > 0)
                 {
-                    _isRealTimeEnabled = true;
+                    //_hidDeviceService.IsRealTimeDisplayEnabled = true;
                     Debug.WriteLine($"Real-time mode enabled on {successCount} devices");
                     OnRealTimeModeChanged(true, successCount, results.Count);
                 }
@@ -323,7 +323,7 @@ namespace CMDevicesManager.Services
         /// </summary>
         private async Task DisableRealTimeModeAsync()
         {
-            if (!_isRealTimeEnabled) return;
+            if (!_hidDeviceService.IsRealTimeDisplayEnabled) return;
             
             try
             {
@@ -336,7 +336,7 @@ namespace CMDevicesManager.Services
                     if (result.Value) successCount++;
                 }
                 
-                _isRealTimeEnabled = false;
+                //_hidDeviceService.IsRealTimeDisplayEnabled = false;
                 Debug.WriteLine($"Real-time mode disabled on {successCount} devices");
                 OnRealTimeModeChanged(false, successCount, results.Count);
             }
@@ -418,7 +418,7 @@ namespace CMDevicesManager.Services
                 StopProcessing();
                 
                 // Disable real-time mode
-                if (_isRealTimeEnabled)
+                if (_hidDeviceService.IsRealTimeDisplayEnabled)
                 {
                     var task = DisableRealTimeModeAsync();
                     if (!task.Wait(TimeSpan.FromSeconds(3)))
