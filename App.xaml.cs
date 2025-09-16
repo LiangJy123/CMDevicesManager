@@ -132,6 +132,7 @@ namespace CMDevicesManager
                 _realtimeJpegTransmissionService.FrameDropped += OnRealtimeJpegFrameDropped;
                 _realtimeJpegTransmissionService.RealTimeModeChanged += OnRealtimeJpegRealTimeModeChanged;
                 _realtimeJpegTransmissionService.ServiceError += OnRealtimeJpegServiceError;
+                _realtimeJpegTransmissionService.DeviceConnectionChanged += OnRealtimeJpegDeviceConnectionChanged;
 
                 Logger.Info("Realtime JPEG Transmission Service initialized successfully");
 
@@ -445,6 +446,29 @@ namespace CMDevicesManager
             catch (Exception ex)
             {
                 Logger.Error($"Error handling realtime JPEG service error: {ex.Message}", ex);
+            }
+        }
+
+        private void OnRealtimeJpegDeviceConnectionChanged(object? sender, DeviceConnectionChangedEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"JPEG Transmission Service: Device {(e.IsConnected ? "connected" : "disconnected")} - " +
+                          $"{e.Device.ProductString} (Serial: {e.Device.SerialNumber}). " +
+                          $"Total connected devices: {e.TotalConnectedDevices}");
+                
+                if (!e.IsConnected && e.TotalConnectedDevices == 0)
+                {
+                    Logger.Info("JPEG Transmission Service paused - no devices connected");
+                }
+                else if (e.IsConnected && e.TotalConnectedDevices == 1)
+                {
+                    Logger.Info("JPEG Transmission Service resumed - first device connected");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling realtime JPEG device connection change: {ex.Message}", ex);
             }
         }
 

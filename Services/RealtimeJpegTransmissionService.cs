@@ -10,7 +10,7 @@ namespace CMDevicesManager.Services
 {
     /// <summary>
     /// Simple and reliable service for real-time JPEG transmission to HID devices.
-    /// Features automatic queue management and real-time mode handling.
+    /// Features automatic queue management, real-time mode handling, and device disconnection detection.
     /// </summary>
     public class RealtimeJpegTransmissionService : IDisposable
     {
@@ -26,6 +26,7 @@ namespace CMDevicesManager.Services
         // State
         private volatile bool _isRunning = false;
         private volatile bool _disposed = false;
+        private volatile bool _isPaused = false; // New: pause state for device disconnection
         private byte _currentTransferId = 1;
         private DateTime _lastActivity = DateTime.Now;
         
@@ -39,12 +40,15 @@ namespace CMDevicesManager.Services
         public event EventHandler<JpegFrameDroppedEventArgs>? FrameDropped;
         public event EventHandler<RealtimeModeChangedEventArgs>? RealTimeModeChanged;
         public event EventHandler<RealtimeServiceErrorEventArgs>? ServiceError;
+        public event EventHandler<DeviceConnectionChangedEventArgs>? DeviceConnectionChanged;
         
         // Properties
-        public bool IsRunning => _isRunning && !_disposed;
+        public bool IsRunning => _isRunning && !_disposed && !_isPaused;
         public int QueueSize => _frameQueue.Count;
         public int MaxQueueSize => _maxQueueSize;
         public bool IsRealTimeModeEnabled => _hidDeviceService.IsRealTimeDisplayEnabled;
+        public bool IsPaused => _isPaused;
+        public int ConnectedDeviceCount => _hidDeviceService.ConnectedDeviceCount;
         
         public TransmissionStats Statistics => new TransmissionStats
         {
@@ -53,7 +57,9 @@ namespace CMDevicesManager.Services
             TotalDropped = Interlocked.Read(ref _totalDropped),
             CurrentQueueSize = QueueSize,
             IsRealTimeModeEnabled = IsRealTimeModeEnabled,
-            LastActivity = _lastActivity
+            LastActivity = _lastActivity,
+            IsPaused = _isPaused,
+            ConnectedDeviceCount = ConnectedDeviceCount
         };
         
         public RealtimeJpegTransmissionService(
@@ -69,6 +75,13 @@ namespace CMDevicesManager.Services
             
             _frameQueue = new ConcurrentQueue<JpegFrame>();
             _cancellationTokenSource = new CancellationTokenSource();
+            
+            // Subscribe to device connection events
+            _hidDeviceService.DeviceConnected += OnDeviceConnected;
+            _hidDeviceService.DeviceDisconnected += OnDeviceDisconnected;
+            
+            // Check initial device state
+            UpdatePauseState();
             
             // Start the processing task
             _ = Task.Run(ProcessingLoop, _cancellationTokenSource.Token);
@@ -91,6 +104,15 @@ namespace CMDevicesManager.Services
         {
             if (_disposed || jpegData == null || jpegData.Length == 0)
                 return false;
+            
+            // If no devices are connected, drop the frame immediately
+            if (ConnectedDeviceCount == 0)
+            {
+                Logger.Warn("No devices connected, dropping frame");
+                Interlocked.Increment(ref _totalDropped);
+                OnFrameDropped(new JpegFrame { Data = jpegData, Metadata = metadata, QueueTime = DateTime.Now }, "No devices connected");
+                return false;
+            }
             
             try
             {
@@ -149,6 +171,62 @@ namespace CMDevicesManager.Services
         }
         
         /// <summary>
+        /// Handle device connected event
+        /// </summary>
+        private void OnDeviceConnected(object? sender, DeviceEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"JPEG Transmission Service: Device connected - {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
+                UpdatePauseState();
+                OnDeviceConnectionChanged(true, e.Device);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling device connection in JPEG service: {ex.Message}", ex);
+            }
+        }
+        
+        /// <summary>
+        /// Handle device disconnected event
+        /// </summary>
+        private void OnDeviceDisconnected(object? sender, DeviceEventArgs e)
+        {
+            try
+            {
+                Logger.Info($"JPEG Transmission Service: Device disconnected - {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
+                
+                // Clear queue when devices disconnect to prevent sending stale data
+                var clearedCount = ClearQueue();
+                if (clearedCount > 0)
+                {
+                    Logger.Info($"Cleared {clearedCount} frames from queue due to device disconnection");
+                }
+                
+                UpdatePauseState();
+                OnDeviceConnectionChanged(false, e.Device);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Error handling device disconnection in JPEG service: {ex.Message}", ex);
+            }
+        }
+        
+        /// <summary>
+        /// Update pause state based on device connectivity
+        /// </summary>
+        private void UpdatePauseState()
+        {
+            var shouldPause = ConnectedDeviceCount == 0;
+            
+            if (_isPaused != shouldPause)
+            {
+                _isPaused = shouldPause;
+                Logger.Info($"JPEG Transmission Service {(shouldPause ? "paused" : "resumed")} due to device connectivity (Connected devices: {ConnectedDeviceCount})");
+            }
+        }
+        
+        /// <summary>
         /// Main processing loop
         /// </summary>
         private async Task ProcessingLoop()
@@ -164,17 +242,46 @@ namespace CMDevicesManager.Services
                 {
                     var now = DateTime.Now;
                     
+                    // Check if we should pause processing due to no devices
+                    if (_isPaused || ConnectedDeviceCount == 0)
+                    {
+                        _isRunning = false;
+                        
+                        // If real-time mode is still enabled but no devices, disable it
+                        if (IsRealTimeModeEnabled)
+                        {
+                            await EnsureRealtimeMode(false);
+                        }
+                        
+                        // Wait a bit before checking again
+                        await Task.Delay(100, _cancellationTokenSource.Token);
+                        continue;
+                    }
+                    
                     // Check if we have frames to process
                     if (_frameQueue.TryDequeue(out var frame))
                     {
                         _isRunning = true;
                         _lastActivity = now;
                         
-                        // Ensure real-time mode is enabled
-                        await EnsureRealtimeMode(true);
-                        
-                        // Process the frame
-                        await ProcessFrame(frame);
+                        // Double-check device connectivity before processing
+                        if (ConnectedDeviceCount > 0)
+                        {
+                            // Ensure real-time mode is enabled
+                            await EnsureRealtimeMode(true);
+
+                            // wait 10s
+                            //await Task.Delay(10000, _cancellationTokenSource.Token);
+
+                            // Process the frame
+                            await ProcessFrame(frame);
+                        }
+                        else
+                        {
+                            // Device disconnected while processing, drop the frame
+                            Interlocked.Increment(ref _totalDropped);
+                            OnFrameDropped(frame, "Device disconnected during processing");
+                        }
                         
                         lastFrameTime = now;
                     }
@@ -225,6 +332,14 @@ namespace CMDevicesManager.Services
         {
             try
             {
+                // Final check for device connectivity
+                if (ConnectedDeviceCount == 0)
+                {
+                    Interlocked.Increment(ref _totalDropped);
+                    OnFrameDropped(frame, "No devices connected");
+                    return;
+                }
+                
                 var transferId = GetNextTransferId();
                 var results = await _hidDeviceService.TransferDataAsync(frame.Data, transferId);
                 
@@ -258,10 +373,18 @@ namespace CMDevicesManager.Services
         /// </summary>
         private async Task EnsureRealtimeMode(bool enabled)
         {
+            // Don't enable real-time mode if no devices are connected
+            if (enabled && ConnectedDeviceCount == 0)
+            {
+                Logger.Warn("Cannot enable real-time mode: no devices connected");
+                return;
+            }
+            
             if (IsRealTimeModeEnabled == enabled) return;
             
             try
             {
+                await Task.Delay(10000); // Small delay to allow devices to stabilize
                 var results = await _hidDeviceService.SetRealTimeDisplayAsync(enabled);
                 
                 int successCount = 0;
@@ -274,6 +397,7 @@ namespace CMDevicesManager.Services
                 {
                     OnRealTimeModeChanged(enabled, successCount, results.Count);
                     Logger.Info($"Real-time mode {(enabled ? "enabled" : "disabled")} on {successCount}/{results.Count} devices");
+                    
                 }
                 else
                 {
@@ -318,6 +442,11 @@ namespace CMDevicesManager.Services
             ServiceError?.Invoke(this, new RealtimeServiceErrorEventArgs(exception, context));
         }
         
+        private void OnDeviceConnectionChanged(bool connected, HidApi.DeviceInfo device)
+        {
+            DeviceConnectionChanged?.Invoke(this, new DeviceConnectionChangedEventArgs(connected, device, ConnectedDeviceCount));
+        }
+        
         public void Dispose()
         {
             if (_disposed) return;
@@ -327,11 +456,15 @@ namespace CMDevicesManager.Services
             
             try
             {
+                // Unsubscribe from device events
+                _hidDeviceService.DeviceConnected -= OnDeviceConnected;
+                _hidDeviceService.DeviceDisconnected -= OnDeviceDisconnected;
+                
                 // Stop processing
                 _cancellationTokenSource.Cancel();
                 
-                // Disable real-time mode
-                if (IsRealTimeModeEnabled)
+                // Disable real-time mode if there are still devices connected
+                if (IsRealTimeModeEnabled && ConnectedDeviceCount > 0)
                 {
                     var task = EnsureRealtimeMode(false);
                     if (!task.Wait(TimeSpan.FromSeconds(2)))
@@ -381,6 +514,8 @@ namespace CMDevicesManager.Services
         public int CurrentQueueSize { get; set; }
         public bool IsRealTimeModeEnabled { get; set; }
         public DateTime LastActivity { get; set; }
+        public bool IsPaused { get; set; }
+        public int ConnectedDeviceCount { get; set; }
         
         public double SuccessRate => TotalQueued > 0 ? (double)TotalSent / TotalQueued * 100 : 0;
         public double DropRate => TotalQueued > 0 ? (double)TotalDropped / TotalQueued * 100 : 0;
@@ -388,7 +523,8 @@ namespace CMDevicesManager.Services
         public override string ToString()
         {
             return $"Queued: {TotalQueued}, Sent: {TotalSent}, Dropped: {TotalDropped}, " +
-                   $"Success: {SuccessRate:F1}%, Queue: {CurrentQueueSize}, RealTime: {IsRealTimeModeEnabled}";
+                   $"Success: {SuccessRate:F1}%, Queue: {CurrentQueueSize}, RealTime: {IsRealTimeModeEnabled}, " +
+                   $"Paused: {IsPaused}, Devices: {ConnectedDeviceCount}";
         }
     }
     
@@ -466,35 +602,72 @@ namespace CMDevicesManager.Services
         }
     }
     
+    /// <summary>
+    /// Event arguments for device connection changed events
+    /// </summary>
+    public class DeviceConnectionChangedEventArgs : EventArgs
+    {
+        public bool IsConnected { get; }
+        public HidApi.DeviceInfo Device { get; }
+        public int TotalConnectedDevices { get; }
+        public DateTime Timestamp { get; }
+        
+        public DeviceConnectionChangedEventArgs(bool isConnected, HidApi.DeviceInfo device, int totalConnectedDevices)
+        {
+            IsConnected = isConnected;
+            Device = device;
+            TotalConnectedDevices = totalConnectedDevices;
+            Timestamp = DateTime.Now;
+        }
+    }
+    
     #endregion
 }
 
 /* 
 Usage Examples:
 
-// Basic usage (compatible with existing code)
+// Basic usage (unchanged - fully backward compatible)
 var service = new RealtimeJpegTransmissionService(hidDeviceService);
 service.QueueJpegData(jpegBytes, "MyFrame");
 
-// Advanced usage with custom settings  
+// Advanced usage with device disconnection monitoring
 var service = new RealtimeJpegTransmissionService(
     hidDeviceService, 
-    targetFps: 25,           // 25 FPS for smooth performance
-    maxQueueSize: 3,         // Small queue for low latency
-    realtimeTimeoutSeconds: 5 // 5 second timeout
+    targetFps: 25,                   // 25 FPS for smooth performance
+    maxQueueSize: 3,                 // Small queue for low latency
+    realtimeTimeoutSeconds: 5        // 5 second timeout
 );
 
-// Monitor events
+// Monitor device connection changes
+service.DeviceConnectionChanged += (s, e) => 
+{
+    Console.WriteLine($"Device {(e.IsConnected ? "connected" : "disconnected")}: " +
+                     $"{e.Device.ProductString} (Total devices: {e.TotalConnectedDevices})");
+    
+    if (!e.IsConnected && e.TotalConnectedDevices == 0)
+    {
+        Console.WriteLine("All devices disconnected - service is paused");
+    }
+};
+
+// Monitor other events
 service.FrameProcessed += (s, e) => 
     Console.WriteLine($"Frame sent: {e.SuccessfulDevices}/{e.TotalDevices} devices");
     
 service.FrameDropped += (s, e) => 
     Console.WriteLine($"Frame dropped: {e.Reason}");
 
-// Check statistics
+// Check enhanced statistics
 var stats = service.Statistics;
-Console.WriteLine($"Success rate: {stats.SuccessRate:F1}%");
+Console.WriteLine($"Service status: {stats}");
+Console.WriteLine($"Is paused: {stats.IsPaused}");
+Console.WriteLine($"Connected devices: {stats.ConnectedDeviceCount}");
 
-// Clean up
-service.Dispose();
+// The service automatically:
+// - Pauses transmission when no devices are connected
+// - Clears queue when devices disconnect (prevents stale data)
+// - Resumes transmission when devices reconnect
+// - Prevents enabling real-time mode with no devices
+// - Monitors device connectivity in real-time
 */

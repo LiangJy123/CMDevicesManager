@@ -276,7 +276,7 @@ namespace HID.DisplayController
         /// </summary>
         public void Dispose()
         {
-            StopResponseListener();
+            //StopResponseListener();
             //_cancellationTokenSource?.Dispose();
             _writeSemaphore?.Dispose(); // Dispose the semaphore
             _device?.Dispose();
@@ -373,6 +373,11 @@ namespace HID.DisplayController
                     }
                 });
             }
+            catch(Exception ex)
+            {
+                Debug.WriteLine($"[DisplayController] Error during WriteAsync: {ex.Message}");
+                throw;
+            }
             finally
             {
                 _writeSemaphore.Release();
@@ -388,6 +393,11 @@ namespace HID.DisplayController
                 {
                     _device.Write(buffer.AsSpan(0, buffer.Length));
                 }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[DisplayController] Error during WriteAsync: {ex.Message}");
+                throw;
             }
             finally
             {
