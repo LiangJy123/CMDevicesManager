@@ -1255,6 +1255,11 @@ namespace CMDevicesManager.Pages
             }
         }
 
+        private void CloseWindowButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 关闭承载此 Page 的窗口
+            Window.GetWindow(this)?.Close();
+        }
         /// <summary>
         /// Update media slot UI to show media or empty state
         /// </summary>
