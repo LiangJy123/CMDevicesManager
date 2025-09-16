@@ -122,9 +122,9 @@ namespace CMDevicesManager
                 Logger.Info("Initializing Realtime JPEG Transmission Service");
                 _realtimeJpegTransmissionService = new RealtimeJpegTransmissionService(
                     _hidDeviceService,
-                    processingIntervalMs: 33,    // ~30 FPS for balanced performance
-                    maxQueueSize: 8,             // Moderate queue size for smooth operation
-                    realTimeTimeoutMs: 5000      // 5 second timeout for real-time mode
+                    targetFps: 30,                   // ~30 FPS for balanced performance
+                    maxQueueSize: 8,                 // Moderate queue size for smooth operation
+                    realtimeTimeoutSeconds: 5        // 5 second timeout for real-time mode
                 );
 
                 // Set up event handlers for the simplified service

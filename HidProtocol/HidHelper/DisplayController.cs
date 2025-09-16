@@ -277,7 +277,7 @@ namespace HID.DisplayController
         public void Dispose()
         {
             StopResponseListener();
-            _cancellationTokenSource?.Dispose();
+            //_cancellationTokenSource?.Dispose();
             _writeSemaphore?.Dispose(); // Dispose the semaphore
             _device?.Dispose();
         }

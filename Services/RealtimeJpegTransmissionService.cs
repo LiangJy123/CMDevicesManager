@@ -2,7 +2,6 @@ using CMDevicesManager.Helper;
 using CMDevicesManager.Services;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,32 +9,30 @@ using System.Threading.Tasks;
 namespace CMDevicesManager.Services
 {
     /// <summary>
-    /// Simplified service for handling real-time JPEG data transmission to HID devices.
-    /// Uses a queue system with automatic real-time mode management.
+    /// Simple and reliable service for real-time JPEG transmission to HID devices.
+    /// Features automatic queue management and real-time mode handling.
     /// </summary>
     public class RealtimeJpegTransmissionService : IDisposable
     {
-        private readonly ConcurrentQueue<JpegFrame> _frameQueue;
         private readonly HidDeviceService _hidDeviceService;
-        private readonly System.Threading.Timer _processTimer;
-        private readonly SemaphoreSlim _processingLock;
-        private readonly object _stateLock = new object();
-        
-        private volatile bool _disposed = false;
-        private volatile bool _isProcessing = false;
-        //private volatile bool _isRealTimeEnabled = false;
-        private byte _currentTransferId = 1;
+        private readonly ConcurrentQueue<JpegFrame> _frameQueue;
+        private readonly CancellationTokenSource _cancellationTokenSource;
         
         // Configuration
-        private readonly int _processingIntervalMs;
+        private readonly int _targetFps;
         private readonly int _maxQueueSize;
-        private readonly int _realTimeTimeoutMs;
+        private readonly TimeSpan _realtimeTimeout;
         
-        // Statistics (using Interlocked for thread safety)
+        // State
+        private volatile bool _isRunning = false;
+        private volatile bool _disposed = false;
+        private byte _currentTransferId = 1;
+        private DateTime _lastActivity = DateTime.Now;
+        
+        // Statistics 
         private long _totalQueued = 0;
         private long _totalSent = 0;
         private long _totalDropped = 0;
-        private DateTime _lastActivity = DateTime.Now;
         
         // Events
         public event EventHandler<JpegFrameProcessedEventArgs>? FrameProcessed;
@@ -44,10 +41,10 @@ namespace CMDevicesManager.Services
         public event EventHandler<RealtimeServiceErrorEventArgs>? ServiceError;
         
         // Properties
-        public bool IsRealTimeModeEnabled => _hidDeviceService.IsRealTimeDisplayEnabled;
+        public bool IsRunning => _isRunning && !_disposed;
         public int QueueSize => _frameQueue.Count;
         public int MaxQueueSize => _maxQueueSize;
-        public bool IsProcessing => _isProcessing;
+        public bool IsRealTimeModeEnabled => _hidDeviceService.IsRealTimeDisplayEnabled;
         
         public TransmissionStats Statistics => new TransmissionStats
         {
@@ -55,52 +52,51 @@ namespace CMDevicesManager.Services
             TotalSent = Interlocked.Read(ref _totalSent),
             TotalDropped = Interlocked.Read(ref _totalDropped),
             CurrentQueueSize = QueueSize,
-            //IsRealTimeModeEnabled = _hidDeviceService.IsRealTimeDisplayEnabled,
+            IsRealTimeModeEnabled = IsRealTimeModeEnabled,
             LastActivity = _lastActivity
         };
         
         public RealtimeJpegTransmissionService(
             HidDeviceService hidDeviceService,
-            int processingIntervalMs = 33, // ~30 FPS
-            int maxQueueSize = 10,
-            int realTimeTimeoutMs = 5000)
+            int targetFps = 30,
+            int maxQueueSize = 5,
+            int realtimeTimeoutSeconds = 3)
         {
             _hidDeviceService = hidDeviceService ?? throw new ArgumentNullException(nameof(hidDeviceService));
-            _processingIntervalMs = Math.Max(16, processingIntervalMs); // Min 16ms (~60 FPS max)
+            _targetFps = Math.Clamp(targetFps, 1, 60);
             _maxQueueSize = Math.Max(1, maxQueueSize);
-            _realTimeTimeoutMs = Math.Max(1000, realTimeTimeoutMs);
+            _realtimeTimeout = TimeSpan.FromSeconds(Math.Max(1, realtimeTimeoutSeconds));
             
             _frameQueue = new ConcurrentQueue<JpegFrame>();
-            _processingLock = new SemaphoreSlim(1, 1);
-            _processTimer = new System.Threading.Timer(ProcessQueueCallback, null, Timeout.Infinite, Timeout.Infinite);
+            _cancellationTokenSource = new CancellationTokenSource();
             
-            Debug.WriteLine($"RealtimeJpegTransmissionService initialized: " +
-                          $"Interval={_processingIntervalMs}ms, MaxQueue={_maxQueueSize}, Timeout={_realTimeTimeoutMs}ms");
+            // Start the processing task
+            _ = Task.Run(ProcessingLoop, _cancellationTokenSource.Token);
+            
+            Logger.Info($"RealtimeJpegTransmissionService initialized: FPS={_targetFps}, MaxQueue={_maxQueueSize}, Timeout={_realtimeTimeout.TotalSeconds}s");
+        }
+        
+        /// <summary>
+        /// Queue JPEG data for transmission (keeping original method name for compatibility)
+        /// </summary>
+        public bool QueueJpegData(byte[] jpegData, string? metadata = null)
+        {
+            return QueueFrame(jpegData, metadata);
         }
         
         /// <summary>
         /// Queue JPEG data for transmission
         /// </summary>
-        public bool QueueJpegData(byte[] jpegData, string? metadata = null)
+        public bool QueueFrame(byte[] jpegData, string? metadata = null)
         {
-            if (_disposed)
-            {
-                Logger.Warn("Service is disposed");
+            if (_disposed || jpegData == null || jpegData.Length == 0)
                 return false;
-            }
-            
-            if (jpegData == null || jpegData.Length == 0)
-            {
-                Logger.Warn("Invalid JPEG data");
-                return false;
-            }
             
             try
             {
-                // Update activity time
                 _lastActivity = DateTime.Now;
                 
-                // Handle queue overflow - drop oldest frame
+                // Drop oldest frames if queue is full
                 while (_frameQueue.Count >= _maxQueueSize)
                 {
                     if (_frameQueue.TryDequeue(out var droppedFrame))
@@ -110,7 +106,7 @@ namespace CMDevicesManager.Services
                     }
                 }
                 
-                // Create and enqueue new frame
+                // Add new frame
                 var frame = new JpegFrame
                 {
                     Data = jpegData,
@@ -120,11 +116,6 @@ namespace CMDevicesManager.Services
                 
                 _frameQueue.Enqueue(frame);
                 Interlocked.Increment(ref _totalQueued);
-                
-                //Debug.WriteLine($"Frame queued: {jpegData.Length} bytes, queue size: {_frameQueue.Count}");
-                
-                // Start processing if not already running
-                _ = Task.Run(StartProcessingAsync);
                 
                 return true;
             }
@@ -137,109 +128,104 @@ namespace CMDevicesManager.Services
         }
         
         /// <summary>
-        /// Start processing if needed
+        /// Clear all queued frames
         /// </summary>
-        private async Task StartProcessingAsync()
+        public int ClearQueue()
         {
-            if (_disposed || _isProcessing || _frameQueue.IsEmpty) 
-                return;
-            
-            if (!await _processingLock.WaitAsync(100))
-                return;
-            
-            try
+            int cleared = 0;
+            while (_frameQueue.TryDequeue(out var frame))
             {
-                if (_isProcessing || _frameQueue.IsEmpty)
-                    return;
-                
-                lock (_stateLock)
-                {
-                    if (_isProcessing) return;
-                    _isProcessing = true;
-                }
-                
-                // Enable real-time mode if needed
-                await EnsureRealTimeModeAsync();
-                
-                // Start timer
-                _processTimer.Change(_processingIntervalMs, _processingIntervalMs);
-                
-                //Debug.WriteLine("Processing started");
+                cleared++;
+                OnFrameDropped(frame, "Queue cleared");
             }
-            finally
+            
+            if (cleared > 0)
             {
-                _processingLock.Release();
+                Interlocked.Add(ref _totalDropped, cleared);
+                Logger.Info($"Cleared {cleared} frames from queue");
             }
+            
+            return cleared;
         }
         
         /// <summary>
-        /// Stop processing
+        /// Main processing loop
         /// </summary>
-        private void StopProcessing()
+        private async Task ProcessingLoop()
         {
-            lock (_stateLock)
-            {
-                if (!_isProcessing) return;
-                _isProcessing = false;
-            }
+            var frameInterval = TimeSpan.FromMilliseconds(1000.0 / _targetFps);
+            var lastFrameTime = DateTime.Now;
             
-            _processTimer.Change(Timeout.Infinite, Timeout.Infinite);
-            //Debug.WriteLine("Processing stopped");
-        }
-        
-        /// <summary>
-        /// Timer callback for processing frames
-        /// </summary>
-        private async void ProcessQueueCallback(object? state)
-        {
-            if (_disposed) return;
+            Logger.Info("Processing loop started");
             
             try
             {
-                // Check if queue is empty
-                if (_frameQueue.IsEmpty)
+                while (!_cancellationTokenSource.Token.IsCancellationRequested)
                 {
-                    await HandleEmptyQueueAsync();
-                    return;
-                }
-                
-                // Ensure real-time mode is enabled
-                if (!_hidDeviceService.IsRealTimeDisplayEnabled)
-                {
-                    await EnsureRealTimeModeAsync();
-                    if (!_hidDeviceService.IsRealTimeDisplayEnabled)
+                    var now = DateTime.Now;
+                    
+                    // Check if we have frames to process
+                    if (_frameQueue.TryDequeue(out var frame))
                     {
-                        Logger.Warn("Cannot process - real-time mode not enabled");
-                        return;
+                        _isRunning = true;
+                        _lastActivity = now;
+                        
+                        // Ensure real-time mode is enabled
+                        await EnsureRealtimeMode(true);
+                        
+                        // Process the frame
+                        await ProcessFrame(frame);
+                        
+                        lastFrameTime = now;
+                    }
+                    else
+                    {
+                        _isRunning = false;
+                        
+                        // Check if we should disable real-time mode
+                        if (IsRealTimeModeEnabled && (now - _lastActivity) > _realtimeTimeout)
+                        {
+                            await EnsureRealtimeMode(false);
+                        }
+                    }
+                    
+                    // Frame rate limiting
+                    var elapsed = DateTime.Now - lastFrameTime;
+                    var delay = frameInterval - elapsed;
+                    if (delay > TimeSpan.Zero)
+                    {
+                        await Task.Delay(delay, _cancellationTokenSource.Token);
+                    }
+                    else
+                    {
+                        // Yield control to prevent busy waiting
+                        await Task.Delay(1, _cancellationTokenSource.Token);
                     }
                 }
-                
-                // Process next frame
-                if (_frameQueue.TryDequeue(out var frame))
-                {
-                    _lastActivity = DateTime.Now;
-                    await ProcessFrameAsync(frame);
-                }
+            }
+            catch (OperationCanceledException)
+            {
+                Logger.Info("Processing loop cancelled");
             }
             catch (Exception ex)
             {
-                Logger.Error($"Error in processing callback: {ex.Message}", ex);
-                OnServiceError(ex, "Processing error");
+                Logger.Error($"Processing loop error: {ex.Message}", ex);
+                OnServiceError(ex, "Processing loop error");
+            }
+            finally
+            {
+                Logger.Info("Processing loop stopped");
             }
         }
         
         /// <summary>
         /// Process a single frame
         /// </summary>
-        private async Task ProcessFrameAsync(JpegFrame frame)
+        private async Task ProcessFrame(JpegFrame frame)
         {
             try
             {
                 var transferId = GetNextTransferId();
-                
-                //Debug.WriteLine($"Sending frame: {frame.Data.Length} bytes, transferId={transferId}");
-                
-                // Send to HID devices
                 var results = await _hidDeviceService.TransferDataAsync(frame.Data, transferId);
                 
                 int successCount = 0;
@@ -256,43 +242,27 @@ namespace CMDevicesManager.Services
                 else
                 {
                     Interlocked.Increment(ref _totalDropped);
-                    OnFrameDropped(frame, "All device transmissions failed");
+                    OnFrameDropped(frame, "All transmissions failed");
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error($"Error processing frame: {ex.Message}", ex);
+                Logger.Error($"Frame processing error: {ex.Message}", ex);
                 Interlocked.Increment(ref _totalDropped);
                 OnFrameDropped(frame, ex.Message);
             }
         }
         
         /// <summary>
-        /// Handle empty queue - stop processing and manage real-time mode
+        /// Manage real-time mode
         /// </summary>
-        private async Task HandleEmptyQueueAsync()
+        private async Task EnsureRealtimeMode(bool enabled)
         {
-            StopProcessing();
-            
-            // Check if we should disable real-time mode
-            var timeSinceActivity = DateTime.Now - _lastActivity;
-            if (_hidDeviceService.IsRealTimeDisplayEnabled && timeSinceActivity.TotalMilliseconds > _realTimeTimeoutMs)
-            {
-                await DisableRealTimeModeAsync();
-            }
-        }
-        
-        /// <summary>
-        /// Ensure real-time mode is enabled
-        /// </summary>
-        private async Task EnsureRealTimeModeAsync()
-        {
-            if (_hidDeviceService.IsRealTimeDisplayEnabled) return;
+            if (IsRealTimeModeEnabled == enabled) return;
             
             try
             {
-                Debug.WriteLine("Enabling real-time mode");
-                var results = await _hidDeviceService.SetRealTimeDisplayAsync(true);
+                var results = await _hidDeviceService.SetRealTimeDisplayAsync(enabled);
                 
                 int successCount = 0;
                 foreach (var result in results)
@@ -302,48 +272,18 @@ namespace CMDevicesManager.Services
                 
                 if (successCount > 0)
                 {
-                    //_hidDeviceService.IsRealTimeDisplayEnabled = true;
-                    Debug.WriteLine($"Real-time mode enabled on {successCount} devices");
-                    OnRealTimeModeChanged(true, successCount, results.Count);
+                    OnRealTimeModeChanged(enabled, successCount, results.Count);
+                    Logger.Info($"Real-time mode {(enabled ? "enabled" : "disabled")} on {successCount}/{results.Count} devices");
                 }
                 else
                 {
-                    Logger.Warn("Failed to enable real-time mode on any devices");
+                    Logger.Warn($"Failed to {(enabled ? "enable" : "disable")} real-time mode on any devices");
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error($"Error enabling real-time mode: {ex.Message}", ex);
-                OnServiceError(ex, "Enable real-time mode failed");
-            }
-        }
-        
-        /// <summary>
-        /// Disable real-time mode
-        /// </summary>
-        private async Task DisableRealTimeModeAsync()
-        {
-            if (!_hidDeviceService.IsRealTimeDisplayEnabled) return;
-            
-            try
-            {
-                Debug.WriteLine("Disabling real-time mode");
-                var results = await _hidDeviceService.SetRealTimeDisplayAsync(false);
-                
-                int successCount = 0;
-                foreach (var result in results)
-                {
-                    if (result.Value) successCount++;
-                }
-                
-                //_hidDeviceService.IsRealTimeDisplayEnabled = false;
-                Debug.WriteLine($"Real-time mode disabled on {successCount} devices");
-                OnRealTimeModeChanged(false, successCount, results.Count);
-            }
-            catch (Exception ex)
-            {
-                Logger.Error($"Error disabling real-time mode: {ex.Message}", ex);
-                OnServiceError(ex, "Disable real-time mode failed");
+                Logger.Error($"Error managing real-time mode: {ex.Message}", ex);
+                OnServiceError(ex, $"{(enabled ? "Enable" : "Disable")} real-time mode failed");
             }
         }
         
@@ -357,34 +297,7 @@ namespace CMDevicesManager.Services
             return id;
         }
         
-        /// <summary>
-        /// Clear all queued frames
-        /// </summary>
-        public void ClearQueue()
-        {
-            var droppedCount = 0;
-            while (_frameQueue.TryDequeue(out var frame))
-            {
-                droppedCount++;
-                OnFrameDropped(frame, "Queue cleared");
-            }
-            
-            if (droppedCount > 0)
-            {
-                Interlocked.Add(ref _totalDropped, droppedCount);
-                Debug.WriteLine($"Cleared {droppedCount} frames from queue");
-            }
-        }
-        
-        /// <summary>
-        /// Manually disable real-time mode
-        /// </summary>
-        public async Task ManualDisableRealTimeModeAsync()
-        {
-            await DisableRealTimeModeAsync();
-        }
-        
-        // Event handlers
+        // Event triggers
         private void OnFrameProcessed(JpegFrame frame, byte transferId, int successCount, int totalDevices)
         {
             FrameProcessed?.Invoke(this, new JpegFrameProcessedEventArgs(frame, transferId, successCount, totalDevices));
@@ -410,37 +323,37 @@ namespace CMDevicesManager.Services
             if (_disposed) return;
             _disposed = true;
             
-            Debug.WriteLine("Disposing RealtimeJpegTransmissionService");
+            Logger.Info("Disposing RealtimeJpegTransmissionService");
             
             try
             {
                 // Stop processing
-                StopProcessing();
+                _cancellationTokenSource.Cancel();
                 
                 // Disable real-time mode
-                if (_hidDeviceService.IsRealTimeDisplayEnabled)
+                if (IsRealTimeModeEnabled)
                 {
-                    var task = DisableRealTimeModeAsync();
-                    if (!task.Wait(TimeSpan.FromSeconds(3)))
+                    var task = EnsureRealtimeMode(false);
+                    if (!task.Wait(TimeSpan.FromSeconds(2)))
                     {
                         Logger.Warn("Timeout disabling real-time mode during disposal");
                     }
                 }
                 
-                // Clear queue
-                ClearQueue();
+                // Clear remaining frames
+                var clearedCount = ClearQueue();
                 
-                // Dispose resources
-                _processTimer?.Dispose();
-                _processingLock?.Dispose();
-                
+                // Log final statistics
                 var stats = Statistics;
-                Debug.WriteLine($"Service disposed. Stats: Queued={stats.TotalQueued}, " +
-                              $"Sent={stats.TotalSent}, Dropped={stats.TotalDropped}");
+                Logger.Info($"Service disposed. Final stats: Queued={stats.TotalQueued}, Sent={stats.TotalSent}, Dropped={stats.TotalDropped}");
             }
             catch (Exception ex)
             {
                 Logger.Error($"Error during disposal: {ex.Message}", ex);
+            }
+            finally
+            {
+                _cancellationTokenSource.Dispose();
             }
         }
     }
@@ -556,18 +469,32 @@ namespace CMDevicesManager.Services
     #endregion
 }
 
+/* 
+Usage Examples:
 
-//// Get the service from ServiceLocator (after proper initialization)
-//var realtimeJpegService = ServiceLocator.TryGetRealtimeJpegTransmissionService();
+// Basic usage (compatible with existing code)
+var service = new RealtimeJpegTransmissionService(hidDeviceService);
+service.QueueJpegData(jpegBytes, "MyFrame");
 
-//if (realtimeJpegService != null)
-//{
-//    // Queue your JPEG data
-//    var success = realtimeJpegService.QueueJpegData(yourJpegBytes, priority: 1);
+// Advanced usage with custom settings  
+var service = new RealtimeJpegTransmissionService(
+    hidDeviceService, 
+    targetFps: 25,           // 25 FPS for smooth performance
+    maxQueueSize: 3,         // Small queue for low latency
+    realtimeTimeoutSeconds: 5 // 5 second timeout
+);
 
-//    // The service automatically:
-//    // - Enables HID real-time mode when queue has data
-//    // - Processes queue at ~30 FPS
-//    // - Handles transmission errors and retries
-//    // - Provides comprehensive statistics and events
-//}
+// Monitor events
+service.FrameProcessed += (s, e) => 
+    Console.WriteLine($"Frame sent: {e.SuccessfulDevices}/{e.TotalDevices} devices");
+    
+service.FrameDropped += (s, e) => 
+    Console.WriteLine($"Frame dropped: {e.Reason}");
+
+// Check statistics
+var stats = service.Statistics;
+Console.WriteLine($"Success rate: {stats.SuccessRate:F1}%");
+
+// Clean up
+service.Dispose();
+*/
