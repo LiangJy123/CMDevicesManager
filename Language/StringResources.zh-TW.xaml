@@ -114,4 +114,20 @@
     <sys:String x:Key="CurrentCanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">當前畫布尚未準備好。</sys:String>
     <sys:String x:Key="FileSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">已保存：
 {0}</sys:String>
+    
+    <!-- Additional MessageBox Messages -->
+    <sys:String x:Key="FileTooLarge" xmlns:sys="clr-namespace:System;assembly=mscorlib">檔案過大</sys:String>
+    <sys:String x:Key="VideoFileExceedsLimit" xmlns:sys="clr-namespace:System;assembly=mscorlib">影片檔案超過10MB限制。
+大小：{0} MB</sys:String>
+    <sys:String x:Key="NoConfigFolderFoundDetail" xmlns:sys="clr-namespace:System;assembly=mscorlib">未找到配置檔案夾。</sys:String>
+    
+    <!-- File Overwrite Dialog -->
+    <sys:String x:Key="FileExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">檔案已存在</sys:String>
+    <sys:String x:Key="ConfigFileExistsPrompt" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置檔案 "{0}" 已存在。
+
+是: 覆蓋
+否: 重新命名
+取消: 中止保存</sys:String>
+    <sys:String x:Key="UserCancelledSave" xmlns:sys="clr-namespace:System;assembly=mscorlib">使用者取消保存。</sys:String>
+    <sys:String x:Key="UserCancelledRename" xmlns:sys="clr-namespace:System;assembly=mscorlib">使用者取消重新命名。</sys:String>
 </ResourceDictionary>

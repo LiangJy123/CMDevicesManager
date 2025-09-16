@@ -1658,22 +1658,23 @@ private bool IsGlobalPlayModeEmpty()
                 var fi = new FileInfo(dlg.FileName);
                 if (!fi.Exists)
                 {
-                    MessageBox.Show("Selected file does not exist.", "File Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    LocalizedMessageBox.Show("FileNotExist", "FileError", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
                 if (fi.Length > MaxMp4FileBytes)
                 {
-                    MessageBox.Show(
-                        $"Video file exceeds 10MB limit.\nSize: {fi.Length / 1024.0 / 1024.0:F2} MB",
-                        "File Too Large",
+                    LocalizedMessageBox.Show(
+                        string.Format(Application.Current.FindResource("VideoFileExceedsLimit")?.ToString() ?? "视频文件超过10MB限制。\n大小：{0} MB", (fi.Length / 1024.0 / 1024.0).ToString("F2")),
+                        "FileTooLarge",
                         MessageBoxButton.OK,
-                        MessageBoxImage.Warning);
+                        MessageBoxImage.Warning,
+                        true);
                     return;
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to validate file size: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("FileSizeValidationFailed")?.ToString() ?? "文件大小验证失败：{0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
                 return;
             }
             try
@@ -1684,14 +1685,14 @@ private bool IsGlobalPlayModeEmpty()
                 var videoInfo = await VideoConverter.GetMp4InfoAsync(copiedPath);
                 if (videoInfo == null)
                 {
-                    MessageBox.Show("Failed to read video information", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    LocalizedMessageBox.Show("ReadVideoInfoFailed", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 var frames = await ExtractMp4FramesToMemory(copiedPath);
                 if (frames == null || frames.Count == 0)
                 {
-                    MessageBox.Show("Failed to extract video frames", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    LocalizedMessageBox.Show("ExtractVideoFramesFailed", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -1727,7 +1728,7 @@ private bool IsGlobalPlayModeEmpty()
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to load MP4: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("LoadMp4Failed")?.ToString() ?? "加载MP4失败：{0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
             finally
             {
@@ -2008,14 +2009,13 @@ private bool IsGlobalPlayModeEmpty()
                 var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
               
-                MessageBox.Show($"{msg}: {CurrentConfigName}", title, MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format("{0}: {1}", msg, CurrentConfigName), title, MessageBoxButton.OK, MessageBoxImage.Information, true);
                 if (IsGlobalPlayModeEmpty())
                     CheckAndPromptPlayMode();
             }
             catch (Exception ex)
             {
-                var errorMsg = Application.Current.FindResource("Error")?.ToString() ?? "Error";
-                MessageBox.Show($"保存配置失败: {ex.Message}", errorMsg, MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("ConfigSaveFailed")?.ToString() ?? "保存配置失败：{0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
 
@@ -2041,14 +2041,13 @@ private bool IsGlobalPlayModeEmpty()
                 var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
                 
-                MessageBox.Show($"{msg}: {newName}", title, MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format("{0}: {1}", msg, newName), title, MessageBoxButton.OK, MessageBoxImage.Information, true);
                 if (IsGlobalPlayModeEmpty())
                     CheckAndPromptPlayMode();
             }
             catch (Exception ex)
             {
-                var errorMsg = Application.Current.FindResource("Error")?.ToString() ?? "Error";
-                MessageBox.Show($"另存为失败: {ex.Message}", errorMsg, MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("SaveAsFailed")?.ToString() ?? "另存为失败：{0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
 
@@ -2081,14 +2080,15 @@ private bool IsGlobalPlayModeEmpty()
             if (File.Exists(targetPath) )
             {
                 // Ask user overwrite / rename / cancel
-                var overwriteResult = MessageBox.Show(
-                    $"配置文件 \"{baseFileName}\" 已存在。\n\n是: 覆盖\n否: 重新命名\n取消: 中止保存",
-                    "文件已存在",
+                var overwriteResult = LocalizedMessageBox.Show(
+                    string.Format(Application.Current.FindResource("ConfigFileExistsPrompt")?.ToString() ?? "配置文件 \"{0}\" 已存在。\n\n是: 覆盖\n否: 重新命名\n取消: 中止保存", baseFileName),
+                    "FileExists",
                     MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Question);
+                    MessageBoxImage.Question,
+                    true);
 
                 if (overwriteResult == MessageBoxResult.Cancel)
-                    throw new OperationCanceledException("用户取消保存。");
+                    throw new OperationCanceledException(Application.Current.FindResource("UserCancelledSave")?.ToString() ?? "用户取消保存。");
 
                 if (overwriteResult == MessageBoxResult.No)
                 {
@@ -2101,7 +2101,7 @@ private bool IsGlobalPlayModeEmpty()
                             renameDialog.Owner = Application.Current.MainWindow;
 
                         if (renameDialog.ShowDialog() != true || string.IsNullOrWhiteSpace(renameDialog.ConfigName))
-                            throw new OperationCanceledException("用户取消重命名。");
+                            throw new OperationCanceledException(Application.Current.FindResource("UserCancelledRename")?.ToString() ?? "用户取消重命名。");
 
                         safeName = MakeSafeFileBase(renameDialog.ConfigName.Trim());
                         baseFileName = safeName + ".json";
@@ -2116,7 +2116,7 @@ private bool IsGlobalPlayModeEmpty()
                         }
                         else
                         {
-                            MessageBox.Show($"名称 \"{baseFileName}\" 仍已存在，请重新输入。", "命名冲突", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("NameAlreadyExists")?.ToString() ?? "名称 \"{0}\" 仍已存在，请重新输入。", baseFileName), "NameConflict", MessageBoxButton.OK, MessageBoxImage.Warning, true);
                         }
                     }
                 }
@@ -2280,7 +2280,7 @@ private bool IsGlobalPlayModeEmpty()
                 var configFiles = Directory.GetFiles(configFolder, "*.json");
                 if (configFiles.Length == 0)
                 {
-                    MessageBox.Show("No configuration files found", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("NoConfigFilesFound", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -2305,7 +2305,7 @@ private bool IsGlobalPlayModeEmpty()
 
                 if (configs.Count == 0)
                 {
-                    MessageBox.Show("No valid configuration files found", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("NoValidConfigFilesFound", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -2660,11 +2660,11 @@ private bool IsGlobalPlayModeEmpty()
                 UpdateAutoMoveTimer(); // ensure timer runs if any moving text restored
                 LoadedFromConfigFile = true;
                 _loadedConfigFilePath = selectionDialog.SelectedConfigPath;
-                MessageBox.Show($"Configuration loaded: {config.ConfigName}", "Load Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("ConfigurationLoaded")?.ToString() ?? "配置已加载：{0}", config.ConfigName), "LoadSuccessful", MessageBoxButton.OK, MessageBoxImage.Information, true);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to load configuration: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("LoadConfigurationFailed")?.ToString() ?? "加载配置失败：{0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
 
@@ -3516,7 +3516,7 @@ private bool IsGlobalPlayModeEmpty()
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
                 {
-                    MessageBox.Show("当前画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("CurrentCanvasNotReady", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -3556,11 +3556,11 @@ private bool IsGlobalPlayModeEmpty()
                     encoder.Save(fs);
                 }
 
-                MessageBox.Show($"截图已保存:\n{fullPath}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("ScreenshotSaved")?.ToString() ?? "截图已保存:\n{0}", fullPath), "Success", MessageBoxButton.OK, MessageBoxImage.Information, true);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"截图失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("ScreenshotFailed")?.ToString() ?? "截图失败: {0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
 

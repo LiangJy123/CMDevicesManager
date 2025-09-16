@@ -108,4 +108,20 @@ Click 'Cancel' to return to the application</sys:String>
     <sys:String x:Key="CurrentCanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">Current canvas is not ready yet.</sys:String>
     <sys:String x:Key="FileSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">Saved:
 {0}</sys:String>
+    
+    <!-- Additional MessageBox Messages -->
+    <sys:String x:Key="FileTooLarge" xmlns:sys="clr-namespace:System;assembly=mscorlib">File Too Large</sys:String>
+    <sys:String x:Key="VideoFileExceedsLimit" xmlns:sys="clr-namespace:System;assembly=mscorlib">Video file exceeds 10MB limit.
+Size: {0} MB</sys:String>
+    <sys:String x:Key="NoConfigFolderFoundDetail" xmlns:sys="clr-namespace:System;assembly=mscorlib">No configuration folder found.</sys:String>
+    
+    <!-- File Overwrite Dialog -->
+    <sys:String x:Key="FileExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">File Exists</sys:String>
+    <sys:String x:Key="ConfigFileExistsPrompt" xmlns:sys="clr-namespace:System;assembly=mscorlib">Configuration file "{0}" already exists.
+
+Yes: Overwrite
+No: Rename
+Cancel: Abort save</sys:String>
+    <sys:String x:Key="UserCancelledSave" xmlns:sys="clr-namespace:System;assembly=mscorlib">User cancelled save.</sys:String>
+    <sys:String x:Key="UserCancelledRename" xmlns:sys="clr-namespace:System;assembly=mscorlib">User cancelled rename.</sys:String>
 </ResourceDictionary>
