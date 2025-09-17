@@ -80,7 +80,7 @@ namespace CMDevicesManager.Pages
             catch (System.Exception ex)
             {
                 Logger.Error("Failed to open update URL", ex);
-                MessageBox.Show("Unable to open the website.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show("UnableToOpenWebsite", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

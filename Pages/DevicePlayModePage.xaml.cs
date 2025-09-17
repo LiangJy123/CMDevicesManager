@@ -1,6 +1,7 @@
 ﻿// NEW: bring in config models + enum alias
 using CMDevicesManager.Helper;
 using CMDevicesManager.Models;
+using CMDevicesManager.Helper;
 using CMDevicesManager.Pages; // contains CanvasConfiguration / ElementConfiguration
 using CMDevicesManager.Services;
 using CMDevicesManager.Utilities;
@@ -605,14 +606,14 @@ namespace CMDevicesManager.Pages
                 var configFolder = Path.Combine(_outputFolder, "Configs");
                 if (!Directory.Exists(configFolder))
                 {
-                    MessageBox.Show("No configuration folder found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("NoConfigFolderFoundDetail", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
                 var files = Directory.GetFiles(configFolder, "*.json");
                 if (files.Length == 0)
                 {
-                    MessageBox.Show("No configuration files found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("NoConfigFilesFound", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -637,7 +638,7 @@ namespace CMDevicesManager.Pages
 
                 if (list.Count == 0)
                 {
-                    MessageBox.Show("No valid configuration files could be loaded.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("NoValidConfigFilesLoaded", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -670,7 +671,7 @@ namespace CMDevicesManager.Pages
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to add configuration: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("AddConfigFailed")?.ToString() ?? "添加配置失败：{0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
         // 提取原 StartSequenceButton_Click 逻辑，供按钮和自动触发共同使用
@@ -2298,7 +2299,7 @@ namespace CMDevicesManager.Pages
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
                 {
-                    MessageBox.Show("画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("CanvasNotReady", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -2327,11 +2328,11 @@ namespace CMDevicesManager.Pages
                 using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
                     encoder.Save(fs);
 
-                MessageBox.Show($"已保存:\n{file}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("FileSaved")?.ToString() ?? "已保存:\n{0}", file), "Success", MessageBoxButton.OK, MessageBoxImage.Information, true);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("SaveFailed")?.ToString() ?? "保存失败: {0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
 

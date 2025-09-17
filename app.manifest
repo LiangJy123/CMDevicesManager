@@ -2,8 +2,7 @@
 <assembly manifestVersion="1.0"
           xmlns="urn:schemas-microsoft-com:asm.v1"
           xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
-  <assemblyIdentity version="1.0.0.0"
-                    name="CMDevicesManager.app"/>
+  <assemblyIdentity version="1.0.0.0" name="LCDMaster.app"/>
 
   <!-- 需要管理员权限 -->
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v2">

@@ -26,6 +26,8 @@ using System.Threading;      // (optional, future cancellation)
 using System.Windows.Threading;
 using Brushes = System.Windows.Media.Brushes; // ADDED for DispatcherTimer
 using System.Linq; // 若文件顶部尚未有
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 
 namespace CMDevicesManager
 {
@@ -87,8 +89,7 @@ namespace CMDevicesManager
             catch (Exception ex)
             {
                 Logger.Error("Failed to navigate to HomePage", ex);
-                MessageBox.Show("Warning: Failed to load home page. Some features may not work correctly.",
-                               "Navigation Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                LocalizedMessageBox.Show("HomePageLoadFailed", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
         private void ApplyUIDebugFlag()
@@ -247,7 +248,7 @@ namespace CMDevicesManager
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
                 {
-                    MessageBox.Show("画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("CanvasNotReady", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -274,11 +275,11 @@ namespace CMDevicesManager
                 using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
                     encoder.Save(fs);
 
-                MessageBox.Show($"已保存:\n{file}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("FileSaved")?.ToString() ?? "已保存:\n{0}", file), "Success", MessageBoxButton.OK, MessageBoxImage.Information, true);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("SaveFailed")?.ToString() ?? "保存失败: {0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
 
@@ -289,7 +290,7 @@ namespace CMDevicesManager
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
                 {
-                    MessageBox.Show("画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("CanvasNotReady", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
@@ -319,11 +320,11 @@ namespace CMDevicesManager
                 using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write))
                     encoder.Save(fs);
 
-                MessageBox.Show($"已保存:\n{file}", "保存成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("FileSaved")?.ToString() ?? "已保存:\n{0}", file), "Success", MessageBoxButton.OK, MessageBoxImage.Information, true);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("保存失败: " + ex.Message, "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("SaveFailed")?.ToString() ?? "保存失败: {0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
         }
 
@@ -522,5 +523,185 @@ namespace CMDevicesManager
             StopMainRealtimeStreaming();
             base.OnClosed(e);
         }
+        #region Maximize WorkArea Fix
+
+        // Win32 常量
+        private const int WM_GETMINMAXINFO = 0x0024;
+        private const int WM_DPICHANGED = 0x02E0;
+        private const int MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+
+       
+
+   
+
+        // Win32 结构定义
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT { public int x; public int y; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MINMAXINFO
+        {
+            public POINT ptReserved;
+            public POINT ptMaxSize;
+            public POINT ptMaxPosition;
+            public POINT ptMinTrackSize;
+            public POINT ptMaxTrackSize;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MONITORINFO
+        {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public int dwFlags;
+        }
+
+        // P/Invoke
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, int dwFlags);
+
+        #endregion
+
+        #region Anti White Border Enhancement
+
+        // 额外消息
+        private const int WM_NCCALCSIZE = 0x0083;
+        private const int DWMWA_BORDER_COLOR = 34;                 // Windows 11
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        private const int DWMWA_CAPTION_COLOR = 35;
+        private const int DWMWA_TEXT_COLOR = 36;
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref uint attrValue, int attrSize);
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+            var hwnd = new WindowInteropHelper(this).Handle;
+            HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
+
+            ApplyDwmAttributes(hwnd);
+
+            // 绑定 StateChanged 以在最大化时移除内边框 & 圆角
+            StateChanged += (_, __) => AdjustOuterBorderForState();
+            Loaded += (_, __) => AdjustOuterBorderForState();
+        }
+
+        private void ApplyDwmAttributes(IntPtr hwnd)
+        {
+            // 使用深色模式（可选）
+            uint useDark = 1;
+            DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(uint));
+
+            // 设置边框颜色为透明(0) -> 去除白边
+            uint transparent = 0x00000000;
+            DwmSetWindowAttribute(hwnd, DWMWA_BORDER_COLOR, ref transparent, sizeof(uint));
+
+            // (可选) 标题/文本颜色，虽然无原生标题栏，设置不影响也不出错
+            // uint caption = 0x00000000; DwmSetWindowAttribute(hwnd, DWMWA_CAPTION_COLOR, ref caption, sizeof(uint));
+            // uint text = 0x00FFFFFF;   DwmSetWindowAttribute(hwnd, DWMWA_TEXT_COLOR, ref text, sizeof(uint));
+        }
+
+        // 调整内边框和圆角
+        private void AdjustOuterBorderForState()
+        {
+            if (RootOuterBorder == null) return;
+            if (WindowState == WindowState.Maximized)
+            {
+                // 去掉你自己的 5px 内边 & 圆角，避免出现背景“框线”
+                RootOuterBorder.BorderThickness = new Thickness(0);
+                RootOuterBorder.CornerRadius = new CornerRadius(0);
+            }
+            else
+            {
+                RootOuterBorder.BorderThickness = new Thickness(5);
+                RootOuterBorder.CornerRadius = new CornerRadius(8);
+            }
+        }
+
+        // 修改现有 WndProc（整合新增 WM_NCCALCSIZE）
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            switch (msg)
+            {
+                case WM_GETMINMAXINFO:
+                    AdjustMaximizedBounds(hwnd, lParam);
+                    // 不吞消息
+                    break;
+
+                case WM_NCCALCSIZE:
+                    // 去掉系统 1px 非客户区：仅在最大化时处理（也可全部处理）
+                    if (wParam != IntPtr.Zero)
+                    {
+                        handled = true;
+                        return IntPtr.Zero;
+                    }
+                    break;
+
+                case WM_DPICHANGED:
+                    Dispatcher.BeginInvoke(() =>
+                    {
+                        if (WindowState == WindowState.Maximized)
+                        {
+                            WindowState = WindowState.Normal;
+                            WindowState = WindowState.Maximized;
+                        }
+                    });
+                    break;
+            }
+            return IntPtr.Zero;
+        }
+
+        // 如果仍有 1px 亮线，可启用“微过画” (off-by-one) 调整：
+        // 在 AdjustMaximizedBounds 末尾添加注释所示的 +2/-1 逻辑（按需取消注释）
+        private void AdjustMaximizedBounds(IntPtr hwnd, IntPtr lParam)
+        {
+            if (lParam == IntPtr.Zero) return;
+            var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+            IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            if (monitor != IntPtr.Zero)
+            {
+                MONITORINFO mi = new() { cbSize = Marshal.SizeOf<MONITORINFO>() };
+                if (GetMonitorInfo(monitor, ref mi))
+                {
+                    var work = mi.rcWork;
+                    var monitorArea = mi.rcMonitor;
+
+                    mmi.ptMaxPosition.x = work.Left - monitorArea.Left;
+                    mmi.ptMaxPosition.y = work.Top - monitorArea.Top;
+                    mmi.ptMaxSize.x = work.Right - work.Left;
+                    mmi.ptMaxSize.y = work.Bottom - work.Top;
+
+                    int minW = (int)Math.Min(mmi.ptMaxSize.x, Math.Max(0, (int)MinWidth));
+                    int minH = (int)Math.Min(mmi.ptMaxSize.y, Math.Max(0, (int)MinHeight));
+                    if (minW > 0) mmi.ptMinTrackSize.x = minW;
+                    if (minH > 0) mmi.ptMinTrackSize.y = minH;
+
+                    // 微过画补偿 (仅当仍看到细白线时启用)
+                    // mmi.ptMaxPosition.x -= 1;
+                    // mmi.ptMaxPosition.y -= 1;
+                    // mmi.ptMaxSize.x += 2;
+                    // mmi.ptMaxSize.y += 2;
+
+                    Marshal.StructureToPtr(mmi, lParam, true);
+                }
+            }
+        }
+
+        #endregion
     }
 }

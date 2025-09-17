@@ -8,6 +8,8 @@
 	<UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+	  <AssemblyName>LCDMaster</AssemblyName>
+	  <Product>LCDMaster</Product>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -39,8 +41,10 @@
   <ItemGroup>
     <None Remove="exe\ffprobe.exe" />
     <None Remove="ffmpeg.exe" />
+    <None Remove="Fonts\CascadiaMono.ttf" />
     <None Remove="Fonts\FangZheng.ttf" />
     <None Remove="Fonts\FangZhengFangSongJianTi-1.ttf" />
+    <None Remove="Fonts\LICENSE.txt" />
     <None Remove="Fonts\NotoSans-Regular.ttf" />
     <None Remove="Fonts\NotoSansCJK-Regular.ttc" />
     <None Remove="Fonts\NotoSansTC-Bold.ttf" />
@@ -69,12 +73,12 @@
     <Content Include="exe\ffprobe.exe">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Resource Include="Fonts\FangZheng.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\NotoSansTC-Bold.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
+    <Content Include="Fonts\CascadiaMono.ttf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Fonts\LICENSE.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -95,42 +99,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Fonts\NotoSans-Regular.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\NotoSansCJK-Regular.ttc">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\OpenSans-Regular.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\OpenSans-SemiBold.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\Raleway-Medium.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\Raleway-SemiBold.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\Roboto-Medium.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\Roboto-Regular.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\Rubik-Regular.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\Rubik-Bold.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\Saira-Regular.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Fonts\Saira-SemiBold.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Resource>
     <Resource Include="Resources\ColorWheelPicker.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>

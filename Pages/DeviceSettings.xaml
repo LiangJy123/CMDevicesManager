@@ -9,8 +9,8 @@
       d:DesignHeight="800" d:DesignWidth="1000"
       Height="900" Width="1000"
       FontFamily="{DynamicResource AppFontFamily}"
-      Title="Device Settings"
-      Background="#111114">  <!-- 修改: 不再透明，而是深色背景 -->
+      Title="{DynamicResource DeviceSettingsPageTitle}"
+      Background="#111114">
 
     <Page.Resources>
         <!-- Core Palette aligned with MainWindow -->
@@ -165,10 +165,10 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Border Grid.Row="0" 
-                Background="{StaticResource HeaderBackgroundBrush}" 
-                CornerRadius="12" 
-                Padding="24,16" 
+        <Border Grid.Row="0"
+                Background="{StaticResource HeaderBackgroundBrush}"
+                CornerRadius="12"
+                Padding="24,16"
                 Margin="0,0,0,16">
             <Grid>
                 <!-- 增加一列用于关闭按钮 -->
@@ -189,12 +189,12 @@
 
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock x:Name="DeviceNameText"
-                               Text="Device Settings"
+                               Text="{DynamicResource DeviceSettingsHeader}"
                                FontSize="20"
                                FontWeight="Bold"
                                Foreground="{StaticResource PrimaryTextBrush}"/>
                     <TextBlock x:Name="DevicePathText"
-                               Text="No device selected"
+                               Text="{DynamicResource NoDeviceSelected}"
                                FontSize="12"
                                Foreground="#AAFFFFFF"
                                Margin="0,2,0,0"
@@ -218,7 +218,7 @@
                         x:Name="CloseWindowButton"
                         Style="{StaticResource HeaderIconButtonStyle}"
                         Click="CloseWindowButton_Click"
-                        ToolTip="关闭窗口 / Close">
+                        ToolTip="{DynamicResource CloseTooltip}">
                     <TextBlock Text="&#xE8BB;"
                                FontFamily="Segoe MDL2 Assets"
                                FontSize="14"
@@ -242,22 +242,17 @@
 
                 <!-- Device Information Panel -->
                 <Border Grid.Column="0" Grid.Row="0"
-                        Background="{StaticResource PanelBackgroundBrush}" 
-                        CornerRadius="16" 
-                        Padding="20" 
+                        Background="{StaticResource PanelBackgroundBrush}"
+                        CornerRadius="16"
+                        Padding="20"
                         Margin="0,0,12,16"
                         Effect="{StaticResource PanelShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <TextBlock Text="&#xE7F4;"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="18"
-                                       Foreground="{StaticResource AccentBrush}"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
-                            <TextBlock Text="Device Information"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
+                            <TextBlock Text="&#xE7F4;" FontFamily="Segoe MDL2 Assets" FontSize="18"
+                                       Foreground="{StaticResource AccentBrush}" Margin="0,0,8,0"/>
+                            <TextBlock Text="{DynamicResource DeviceInformationHeader}"
+                                       FontSize="16" FontWeight="SemiBold"
                                        Foreground="{StaticResource AccentBrush}"/>
                         </StackPanel>
 
@@ -269,26 +264,13 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE950;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#FF9800"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Hardware Version:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="120"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="HardwareVersionText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE950;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#FF9800" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource HardwareVersionLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="120"/>
+                                <TextBlock Grid.Column="2" x:Name="HardwareVersionText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
 
@@ -300,26 +282,13 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE8AD;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#4CAF50"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Firmware Version:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="120"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="FirmwareVersionText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE8AD;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#4CAF50" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource FirmwareVersionLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="120"/>
+                                <TextBlock Grid.Column="2" x:Name="FirmwareVersionText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
 
@@ -331,26 +300,13 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE8D7;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#9C27B0"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Serial Number:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="120"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="SerialNumberText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE8D7;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#9C27B0" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource SerialNumberLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="120"/>
+                                <TextBlock Grid.Column="2" x:Name="SerialNumberText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
 
@@ -362,30 +318,17 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE7EE;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="{StaticResource AccentBrush}"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Manufacturer:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="120"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="ManufacturerText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE7EE;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="{StaticResource AccentBrush}" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource ManufacturerLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="120"/>
+                                <TextBlock Grid.Column="2" x:Name="ManufacturerText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
 
-                        <!-- Product Name -->
+                        <!-- Product -->
                         <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -393,26 +336,13 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE7C3;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#FF5722"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Product:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="120"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="ProductNameText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE7C3;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#FF5722" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource ProductLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="120"/>
+                                <TextBlock Grid.Column="2" x:Name="ProductNameText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
                     </StackPanel>
@@ -420,9 +350,9 @@
 
                 <!-- Device Status Panel -->
                 <Border Grid.Column="1" Grid.Row="0"
-                        Background="{StaticResource PanelBackgroundBrush}" 
-                        CornerRadius="16" 
-                        Padding="20" 
+                        Background="{StaticResource PanelBackgroundBrush}"
+                        CornerRadius="16"
+                        Padding="20"
                         Margin="12,0,0,16"
                         Effect="{StaticResource PanelShadow}">
                     <StackPanel>
@@ -432,19 +362,11 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="&#xE7C4;"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="18"
-                                       Foreground="{StaticResource AccentBrush}"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
-                            <TextBlock Grid.Column="1"
-                                       Text="Device Status"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Foreground="{StaticResource AccentBrush}"
-                                       VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="0" Text="&#xE7C4;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18" Foreground="{StaticResource AccentBrush}" Margin="0,0,8,0"/>
+                            <TextBlock Grid.Column="1" Text="{DynamicResource DeviceStatusHeader}"
+                                       FontSize="16" FontWeight="SemiBold"
+                                       Foreground="{StaticResource AccentBrush}"/>
                             <Button Grid.Column="2"
                                     x:Name="RefreshStatusButton"
                                     Click="RefreshStatusButton_Click"
@@ -452,9 +374,8 @@
                                     BorderBrush="Transparent"
                                     Padding="8"
                                     Cursor="Hand"
-                                    ToolTip="Refresh Status">
-                                <TextBlock Text="&#xE72C;"
-                                           FontFamily="Segoe MDL2 Assets"
+                                    ToolTip="{DynamicResource RefreshStatusTooltip}">
+                                <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets"
                                            FontSize="14"
                                            Foreground="{StaticResource AccentBrush}"/>
                             </Button>
@@ -468,26 +389,13 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE706;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#FFC107"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Brightness:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="100"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="BrightnessText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE706;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#FFC107" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource BrightnessLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="100"/>
+                                <TextBlock Grid.Column="2" x:Name="BrightnessText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
 
@@ -499,30 +407,17 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE7AD;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#00BCD4"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Rotation:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="100"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="RotationText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE7AD;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#00BCD4" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource RotationLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="100"/>
+                                <TextBlock Grid.Column="2" x:Name="RotationText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
 
-                        <!-- OSD State -->
+                        <!-- OSD -->
                         <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -530,30 +425,17 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE7F8;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#9C27B0"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="OSD State:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="100"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="OsdStateText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE7F8;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#9C27B0" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource OsdStateLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="100"/>
+                                <TextBlock Grid.Column="2" x:Name="OsdStateText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
 
-                        <!-- Keep Alive Timeout -->
+                        <!-- KeepAlive -->
                         <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -561,30 +443,17 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE916;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#4CAF50"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Keep Alive:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="100"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="KeepAliveText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE916;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#4CAF50" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource KeepAliveLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="100"/>
+                                <TextBlock Grid.Column="2" x:Name="KeepAliveText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
 
-                        <!-- Display In Sleep -->
+                        <!-- Display Sleep -->
                         <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -592,30 +461,17 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE708;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#FF5722"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Display Sleep:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="100"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="DisplaySleepText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE708;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#FF5722" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource DisplaySleepLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="100"/>
+                                <TextBlock Grid.Column="2" x:Name="DisplaySleepText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
 
-                        <!-- Suspend Mode Status -->
+                        <!-- Suspend Mode (hidden initially) -->
                         <Border Background="{StaticResource SubPanelBackgroundBrush}" CornerRadius="8" Padding="12,8" Visibility="Collapsed">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -623,26 +479,13 @@
                                     <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="&#xE769;"
-                                           FontFamily="Segoe MDL2 Assets"
-                                           FontSize="14"
-                                           Foreground="#673AB7"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
-                                <TextBlock Grid.Column="1"
-                                           Text="Suspend Mode:"
-                                           FontSize="12"
-                                           Foreground="{StaticResource SecondaryTextBrush}"
-                                           VerticalAlignment="Center"
-                                           Width="100"/>
-                                <TextBlock Grid.Column="2"
-                                           x:Name="SuspendModeText"
-                                           Text="N/A"
-                                           FontSize="12"
-                                           FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryTextBrush}"
-                                           VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="&#xE769;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="14" Foreground="#673AB7" Margin="0,0,8,0"/>
+                                <TextBlock Grid.Column="1" Text="{DynamicResource SuspendModeLabel}"
+                                           FontSize="12" Foreground="{StaticResource SecondaryTextBrush}" Width="100"/>
+                                <TextBlock Grid.Column="2" x:Name="SuspendModeText" Text="N/A"
+                                           FontSize="12" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryTextBrush}"/>
                             </Grid>
                         </Border>
                     </StackPanel>
@@ -650,23 +493,17 @@
 
                 <!-- Device Management Panel -->
                 <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="1"
-                        Background="{StaticResource PanelBackgroundBrush}" 
-                        CornerRadius="16" 
-                        Padding="20" 
+                        Background="{StaticResource PanelBackgroundBrush}"
+                        CornerRadius="16"
+                        Padding="20"
                         Margin="0,0,0,16"
                         Effect="{StaticResource PanelShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <TextBlock Text="&#xE8B7;"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="18"
-                                       Foreground="#FF9800"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
-                            <TextBlock Text="Device Management"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Foreground="#FF9800"/>
+                            <TextBlock Text="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="18"
+                                       Foreground="#FF9800" Margin="0,0,8,0"/>
+                            <TextBlock Text="{DynamicResource DeviceManagementHeader}"
+                                       FontSize="16" FontWeight="SemiBold" Foreground="#FF9800"/>
                         </StackPanel>
 
                         <Grid>
@@ -676,122 +513,73 @@
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- Reboot Button -->
-                            <Border Grid.Column="0" 
-                                    Background="#FF9800" 
-                                    CornerRadius="8"
-                                    Margin="0,0,8,0">
-                                <Button x:Name="RebootButton"
-                                        Click="RebootButton_Click"
-                                        Background="Transparent"
-                                        Foreground="White"
-                                        BorderBrush="Transparent"
-                                        Padding="12,10"
-                                        Cursor="Hand">
+                            <!-- Reboot -->
+                            <Border Grid.Column="0" Background="#FF9800" CornerRadius="8" Margin="0,0,8,0">
+                                <Button x:Name="RebootButton" Click="RebootButton_Click"
+                                        Background="Transparent" Foreground="White"
+                                        BorderBrush="Transparent" Padding="12,10" Cursor="Hand">
                                     <Button.ToolTip>
                                         <ToolTip MaxWidth="300">
                                             <StackPanel>
-                                                <TextBlock Text="Reboot Device" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
-                                                <TextBlock TextWrapping="Wrap" FontSize="12">
-                                                    Restart the device immediately. The device will disconnect temporarily and reconnect automatically after rebooting.
-                                                </TextBlock>
-                                                <TextBlock Text="⚠ Device will become temporarily unavailable" 
-                                                           FontSize="11" Foreground="Orange" Margin="0,4,0,0"/>
+                                                <TextBlock Text="{DynamicResource RebootTooltipTitle}" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                <TextBlock TextWrapping="Wrap" FontSize="12" Text="{DynamicResource RebootTooltipBody}"/>
+                                                <TextBlock Text="{DynamicResource RebootTooltipWarn}" FontSize="11" Foreground="Orange" Margin="0,4,0,0"/>
                                             </StackPanel>
                                         </ToolTip>
                                     </Button.ToolTip>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE7E8;"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16"
-                                                   Margin="0,0,8,0"/>
-                                        <TextBlock Text="Reboot Device"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"/>
+                                        <TextBlock Text="&#xE7E8;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{DynamicResource RebootDeviceButton}" FontSize="14" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Button>
                             </Border>
 
-                            <!-- Factory Reset Button -->
-                            <Border Grid.Column="1" 
-                                    Background="#F44336" 
-                                    CornerRadius="8"
-                                    Margin="4,0,4,0">
-                                <Button x:Name="FactoryResetButton"
-                                        Click="FactoryResetButton_Click"
-                                        Background="Transparent"
-                                        Foreground="White"
-                                        BorderBrush="Transparent"
-                                        Padding="12,10"
-                                        Cursor="Hand">
+                            <!-- Factory Reset -->
+                            <Border Grid.Column="1" Background="#F44336" CornerRadius="8" Margin="4,0,4,0">
+                                <Button x:Name="FactoryResetButton" Click="FactoryResetButton_Click"
+                                        Background="Transparent" Foreground="White"
+                                        BorderBrush="Transparent" Padding="12,10" Cursor="Hand">
                                     <Button.ToolTip>
                                         <ToolTip MaxWidth="350">
                                             <StackPanel>
-                                                <TextBlock Text="Factory Reset" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
-                                                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
-                                                    Reset the device to factory defaults. This will permanently erase all settings, configurations, and stored data.
-                                                </TextBlock>
-                                                <TextBlock Text="⚠ WARNING: This action cannot be undone!" 
-                                                           FontSize="11" FontWeight="Bold" Foreground="Red" Margin="0,4,0,0"/>
-                                                <TextBlock Text="• All device settings will be lost" 
-                                                           FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
-                                                <TextBlock Text="• All media files will be deleted" 
-                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
-                                                <TextBlock Text="• Device will restart automatically" 
-                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                                <TextBlock Text="{DynamicResource FactoryResetTooltipTitle}" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4"
+                                                           Text="{DynamicResource FactoryResetTooltipBody}"/>
+                                                <TextBlock Text="{DynamicResource FactoryResetTooltipWarn}" FontSize="11" FontWeight="Bold" Foreground="Red" Margin="0,4,0,0"/>
+                                                <TextBlock Text="{DynamicResource FactoryResetPoint1}" FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{DynamicResource FactoryResetPoint2}" FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                                <TextBlock Text="{DynamicResource FactoryResetPoint3}" FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
                                             </StackPanel>
                                         </ToolTip>
                                     </Button.ToolTip>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE7AD;"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16"
-                                                   Margin="0,0,8,0"/>
-                                        <TextBlock Text="Factory Reset"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"/>
+                                        <TextBlock Text="&#xE7AD;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{DynamicResource FactoryResetButton}" FontSize="14" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Button>
                             </Border>
 
-                            <!-- Update Firmware Button -->
-                            <Border Grid.Column="2" 
-                                    Background="#9C27B0" 
-                                    CornerRadius="8"
-                                    Margin="8,0,0,0">
-                                <Button x:Name="UpdateFirmwareButton"
-                                        Click="UpdateFirmwareButton_Click"
-                                        Background="Transparent"
-                                        Foreground="White"
-                                        BorderBrush="Transparent"
-                                        Padding="12,10"
-                                        Cursor="Hand">
+                            <!-- Update Firmware -->
+                            <Border Grid.Column="2" Background="#9C27B0" CornerRadius="8" Margin="8,0,0,0">
+                                <Button x:Name="UpdateFirmwareButton" Click="UpdateFirmwareButton_Click"
+                                        Background="Transparent" Foreground="White"
+                                        BorderBrush="Transparent" Padding="12,10" Cursor="Hand">
                                     <Button.ToolTip>
                                         <ToolTip MaxWidth="350">
                                             <StackPanel>
-                                                <TextBlock Text="Update Firmware" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
-                                                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
-                                                    Update the device firmware with a new firmware file. Select a .bin, .hex, or .fw file to upload.
-                                                </TextBlock>
-                                                <TextBlock Text="⚠ CRITICAL: Do not disconnect during update!" 
-                                                           FontSize="11" FontWeight="Bold" Foreground="Red" Margin="0,4,0,0"/>
-                                                <TextBlock Text="• Interrupting may permanently damage device" 
-                                                           FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
-                                                <TextBlock Text="• Process may take several minutes" 
-                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
-                                                <TextBlock Text="• Device will restart after completion" 
-                                                           FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                                <TextBlock Text="{DynamicResource UpdateFwTooltipTitle}" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4"
+                                                           Text="{DynamicResource UpdateFwTooltipBody}"/>
+                                                <TextBlock Text="{DynamicResource UpdateFwTooltipWarn}" FontSize="11" FontWeight="Bold" Foreground="Red" Margin="0,4,0,0"/>
+                                                <TextBlock Text="{DynamicResource UpdateFwPoint1}" FontSize="10" Foreground="Gray" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{DynamicResource UpdateFwPoint2}" FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
+                                                <TextBlock Text="{DynamicResource UpdateFwPoint3}" FontSize="10" Foreground="Gray" Margin="0,1,0,0"/>
                                             </StackPanel>
                                         </ToolTip>
                                     </Button.ToolTip>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="&#xE896;"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16"
-                                                   Margin="0,0,8,0"/>
-                                        <TextBlock Text="Update Firmware"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"/>
+                                        <TextBlock Text="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="16" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{DynamicResource UpdateFirmwareButton}" FontSize="14" FontWeight="SemiBold"/>
                                     </StackPanel>
                                 </Button>
                             </Border>
@@ -799,25 +587,19 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Display Control Settings Panel -->
+                <!-- Display Control Settings -->
                 <Border Grid.Column="0" Grid.ColumnSpan="2" Grid.Row="2"
-                        Background="{StaticResource PanelBackgroundBrush}" 
-                        CornerRadius="16" 
-                        Padding="20" 
+                        Background="{StaticResource PanelBackgroundBrush}"
+                        CornerRadius="16"
+                        Padding="20"
                         Margin="0,0,0,16"
                         Effect="{StaticResource PanelShadow}">
                     <StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,16">
-                            <TextBlock Text="&#xE770;"
-                                       FontFamily="Segoe MDL2 Assets"
-                                       FontSize="18"
-                                       Foreground="#607D8B"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
-                            <TextBlock Text="Display Control Settings"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Foreground="#607D8B"/>
+                            <TextBlock Text="&#xE770;" FontFamily="Segoe MDL2 Assets" FontSize="18"
+                                       Foreground="#607D8B" Margin="0,0,8,0"/>
+                            <TextBlock Text="{DynamicResource DisplayControlSettingsHeader}"
+                                       FontSize="16" FontWeight="SemiBold" Foreground="#607D8B"/>
                         </StackPanel>
 
                         <Grid>
@@ -826,39 +608,28 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <!-- Sleep Mode Controls -->
-                            <Border Grid.Row="0" 
-                                    Background="{StaticResource SubPanelBackgroundBrush}" 
-                                    CornerRadius="8" 
-                                    Padding="16" 
-                                    Margin="0,0,0,12">
+                            <!-- Sleep Mode -->
+                            <Border Grid.Row="0" Background="{StaticResource SubPanelBackgroundBrush}"
+                                    CornerRadius="8" Padding="16" Margin="0,0,0,12">
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                        <TextBlock Text="&#xE708;"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16"
-                                                   Foreground="{StaticResource AccentBrush}"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,8,0"/>
-                                        <TextBlock Text="Sleep Mode"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource PrimaryTextBrush}"
-                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE708;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                                   Foreground="{StaticResource AccentBrush}" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{DynamicResource SleepModeHeader}"
+                                                   FontSize="14" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"/>
                                     </StackPanel>
 
-                                    <TextBlock Text="Configure the LCD ON/OFF when system enter to sleep state."
-                                               FontSize="11"
-                                               Foreground="{StaticResource HintTextBrush}"
-                                               Margin="0,0,0,12"
+                                    <TextBlock Text="{DynamicResource SleepModeDescription}" FontSize="11"
+                                               Foreground="{StaticResource HintTextBrush}" Margin="0,0,0,12"
                                                TextWrapping="Wrap"/>
-                                    
+
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="Auto"/>
-                                        </Grid.ColumnDefinitions>                                       
+                                        </Grid.ColumnDefinitions>
                                         <ToggleButton x:Name="SleepModeToggle"
                                                       Grid.Column="1"
                                                       HorizontalAlignment="Left"
@@ -867,14 +638,11 @@
                                             <ToggleButton.ToolTip>
                                                 <ToolTip MaxWidth="280">
                                                     <StackPanel>
-                                                        <TextBlock Text="Sleep Mode Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
-                                                        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
-                                                            Toggle sleep mode on or off. When enabled, the device LCD keeps on when system sleeps.
-                                                        </TextBlock>
-                                                        <TextBlock Text="ON: LCD off when system in sleep state." 
-                                                                   FontSize="11" Foreground="LightGreen" Margin="0,2,0,0"/>
-                                                        <TextBlock Text="OFF: LCD on when system in sleep state." 
-                                                                   FontSize="11" Foreground="LightCoral" Margin="0,1,0,0"/>
+                                                        <TextBlock Text="{DynamicResource SleepToggleTitle}" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4"
+                                                                   Text="{DynamicResource SleepToggleBody}"/>
+                                                        <TextBlock Text="{DynamicResource SleepToggleOn}" FontSize="11" Foreground="LightGreen" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="{DynamicResource SleepToggleOff}" FontSize="11" Foreground="LightCoral" Margin="0,1,0,0"/>
                                                     </StackPanel>
                                                 </ToolTip>
                                             </ToggleButton.ToolTip>
@@ -883,32 +651,22 @@
                                 </StackPanel>
                             </Border>
 
-                            <!-- Suspend Mode Controls -->
-                            <Border Grid.Row="1" 
-                                    Background="{StaticResource SubPanelBackgroundBrush}" 
-                                    CornerRadius="8" 
-                                    Padding="16">
+                            <!-- Suspend Mode -->
+                            <Border Grid.Row="1" Background="{StaticResource SubPanelBackgroundBrush}"
+                                    CornerRadius="8" Padding="16">
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                        <TextBlock Text="&#xE7C4;"
-                                                   FontFamily="Segoe MDL2 Assets"
-                                                   FontSize="16"
-                                                   Foreground="{StaticResource AccentBrush}"
-                                                   VerticalAlignment="Center"
-                                                   Margin="0,0,8,0"/>
-                                        <TextBlock Text="Suspend Mode"
-                                                   FontSize="14"
-                                                   FontWeight="SemiBold"
-                                                   Foreground="{StaticResource PrimaryTextBrush}"
-                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="&#xE7C4;" FontFamily="Segoe MDL2 Assets" FontSize="16"
+                                                   Foreground="{StaticResource AccentBrush}" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{DynamicResource SuspendModeHeader}"
+                                                   FontSize="14" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"/>
                                     </StackPanel>
-                                    
-                                    <TextBlock Text="Setting customized style when MasterCTRL exit."
-                                               FontSize="11"
-                                               Foreground="{StaticResource HintTextBrush}"
-                                               Margin="0,0,0,12"
+
+                                    <TextBlock Text="{DynamicResource SuspendModeDescription}" FontSize="11"
+                                               Foreground="{StaticResource HintTextBrush}" Margin="0,0,0,12"
                                                TextWrapping="Wrap"/>
-                                    
+
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto"/>
@@ -919,28 +677,22 @@
                                                       Grid.Column="1"
                                                       HorizontalAlignment="Left"
                                                       Click="SuspendModeToggle_Click"
-                                                      Style="{StaticResource SuspendModeToggleStyle}"
-                                                      ToolTipService.ToolTip="OFF: Play the device build-in animation.  ON: Play the below imported image or animation."
-                                                      ToolTipService.Placement="MousePoint"
-                                                      ToolTipService.InitialShowDelay="100">
+                                                      Style="{StaticResource SuspendModeToggleStyle}">
                                             <ToggleButton.ToolTip>
                                                 <ToolTip MaxWidth="320">
                                                     <StackPanel>
-                                                        <TextBlock Text="Suspend Mode Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
-                                                        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
-                                                            Toggle suspend mode for offline media playback. When activated, the device enters suspend mode to play stored media files.
-                                                        </TextBlock>
-                                                        <TextBlock Text="ON: Device plays suspend media offline" 
-                                                                   FontSize="11" Foreground="LightBlue" Margin="0,2,0,0"/>
-                                                        <TextBlock Text="OFF: Real-Time mode" 
-                                                                   FontSize="11" Foreground="Orange" Margin="0,1,0,0"/>
+                                                        <TextBlock Text="{DynamicResource SuspendToggleTitle}" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4"
+                                                                   Text="{DynamicResource SuspendToggleBody}"/>
+                                                        <TextBlock Text="{DynamicResource SuspendToggleOn}" FontSize="11" Foreground="LightBlue" Margin="0,2,0,0"/>
+                                                        <TextBlock Text="{DynamicResource SuspendToggleOff}" FontSize="11" Foreground="Orange" Margin="0,1,0,0"/>
                                                     </StackPanel>
                                                 </ToolTip>
                                             </ToggleButton.ToolTip>
                                         </ToggleButton>
                                     </Grid>
-                                    
-                                    <!-- Dynamic Content Area -->
+
+                                    <!-- Media Area -->
                                     <Border x:Name="SuspendModeContentArea"
                                             Background="{StaticResource SubPanelAltBackgroundBrush}"
                                             CornerRadius="6"
@@ -949,382 +701,184 @@
                                         <Grid>
                                             <StackPanel x:Name="SuspendMediaPanel">
                                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                                    <TextBlock Text="&#xE8FD;"
-                                                               FontFamily="Segoe MDL2 Assets"
-                                                               FontSize="14"
-                                                               Foreground="#4CAF50"
-                                                               VerticalAlignment="Center"
-                                                               Margin="0,0,6,0"/>
-                                                    <TextBlock Text="Suspend Media Files"
-                                                               FontSize="12"
-                                                               FontWeight="SemiBold"
+                                                    <TextBlock Text="&#xE8FD;" FontFamily="Segoe MDL2 Assets"
+                                                               FontSize="14" Foreground="#4CAF50" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="{DynamicResource SuspendMediaFilesHeader}"
+                                                               FontSize="12" FontWeight="SemiBold"
                                                                Foreground="{StaticResource SecondaryTextBrush}"/>
-                                                    <TextBlock Text="(Click empty slot to add media)"
-                                                               FontSize="10"
-                                                               Foreground="{StaticResource HintTextBrush}"
-                                                               Margin="8,0,0,0"
-                                                               VerticalAlignment="Center"/>
+                                                    <TextBlock Text="{DynamicResource SuspendMediaHint}"
+                                                               FontSize="10" Foreground="{StaticResource HintTextBrush}"
+                                                               Margin="8,0,0,0" VerticalAlignment="Center"/>
                                                 </StackPanel>
-                                                
-                                                <UniformGrid x:Name="SuspendMediaGrid" 
-                                                             Rows="1" 
-                                                             Columns="5"
+
+                                                <UniformGrid x:Name="SuspendMediaGrid"
+                                                             Rows="1" Columns="5"
                                                              Margin="0,8,0,0">
-                                                    <!-- Media Slots -->
-                                                    <Border x:Name="MediaSlot1"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="0">
+                                                    <!-- Media slots (repeat pattern) -->
+                                                    <!-- Slot 1 -->
+                                                    <Border x:Name="MediaSlot1" Background="{StaticResource SubPanelBackgroundBrush}"
+                                                            BorderBrush="#444444" BorderThickness="2"
+                                                            CornerRadius="8" Margin="2" Height="80" Width="80"
+                                                            Cursor="Hand" MouseLeftButtonUp="MediaSlot_Click" Tag="0">
                                                         <Grid>
-                                                            <Image x:Name="MediaThumbnail1"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                                            <StackPanel x:Name="AddMediaPlaceholder1"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Add Media"
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
+                                                            <Image x:Name="MediaThumbnail1" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder1" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#666666"/>
+                                                                <TextBlock Text="{DynamicResource AddMediaText}" FontSize="9" Foreground="#666666" Margin="0,2,0,0"/>
                                                             </StackPanel>
-                                                            <Border x:Name="MediaInfoOverlay1"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
+                                                            <Border x:Name="MediaInfoOverlay1" Background="#80000000"
+                                                                    VerticalAlignment="Bottom" CornerRadius="0,0,6,6"
+                                                                    Visibility="Collapsed">
                                                                 <StackPanel Margin="4,2">
-                                                                    <TextBlock x:Name="MediaFileName1"
-                                                                              Text="media1.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                                    <TextBlock Text="Active"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
+                                                                    <TextBlock x:Name="MediaFileName1" Text="media1.mp4" FontSize="8" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="{DynamicResource ActiveStatusText}" FontSize="7" Foreground="#4CAF50"/>
                                                                 </StackPanel>
                                                             </Border>
-                                                            <Button x:Name="RemoveMediaButton1"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="0">
-                                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
+                                                            <Button x:Name="RemoveMediaButton1" Width="16" Height="16"
+                                                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                                    Margin="2" Background="#F44336" BorderBrush="Transparent"
+                                                                    Padding="0" Visibility="Collapsed" Click="RemoveMedia_Click" Tag="0">
+                                                                <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="8" Foreground="White"/>
                                                             </Button>
                                                         </Grid>
                                                     </Border>
 
-                                                    <Border x:Name="MediaSlot2"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="1">
+                                                    <!-- Slot 2 -->
+                                                    <Border x:Name="MediaSlot2" Background="{StaticResource SubPanelBackgroundBrush}"
+                                                            BorderBrush="#444444" BorderThickness="2"
+                                                            CornerRadius="8" Margin="2" Height="80" Width="80"
+                                                            Cursor="Hand" MouseLeftButtonUp="MediaSlot_Click" Tag="1">
                                                         <Grid>
-                                                            <Image x:Name="MediaThumbnail2"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                                            <StackPanel x:Name="AddMediaPlaceholder2"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Add Media"
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
+                                                            <Image x:Name="MediaThumbnail2" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder2" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#666666"/>
+                                                                <TextBlock Text="{DynamicResource AddMediaText}" FontSize="9" Foreground="#666666" Margin="0,2,0,0"/>
                                                             </StackPanel>
-                                                            <Border x:Name="MediaInfoOverlay2"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
+                                                            <Border x:Name="MediaInfoOverlay2" Background="#80000000"
+                                                                    VerticalAlignment="Bottom" CornerRadius="0,0,6,6"
+                                                                    Visibility="Collapsed">
                                                                 <StackPanel Margin="4,2">
-                                                                    <TextBlock x:Name="MediaFileName2"
-                                                                              Text="media2.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                                    <TextBlock Text="Active"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
+                                                                    <TextBlock x:Name="MediaFileName2" Text="media2.mp4" FontSize="8" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="{DynamicResource ActiveStatusText}" FontSize="7" Foreground="#4CAF50"/>
                                                                 </StackPanel>
                                                             </Border>
-                                                            <Button x:Name="RemoveMediaButton2"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="1">
-                                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
+                                                            <Button x:Name="RemoveMediaButton2" Width="16" Height="16"
+                                                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                                    Margin="2" Background="#F44336" BorderBrush="Transparent"
+                                                                    Padding="0" Visibility="Collapsed" Click="RemoveMedia_Click" Tag="1">
+                                                                <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="8" Foreground="White"/>
                                                             </Button>
                                                         </Grid>
                                                     </Border>
 
-                                                    <Border x:Name="MediaSlot3"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="2">
+                                                    <!-- Slot 3 -->
+                                                    <Border x:Name="MediaSlot3" Background="{StaticResource SubPanelBackgroundBrush}"
+                                                            BorderBrush="#444444" BorderThickness="2"
+                                                            CornerRadius="8" Margin="2" Height="80" Width="80"
+                                                            Cursor="Hand" MouseLeftButtonUp="MediaSlot_Click" Tag="2">
                                                         <Grid>
-                                                            <Image x:Name="MediaThumbnail3"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                                            <StackPanel x:Name="AddMediaPlaceholder3"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Add Media"
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
+                                                            <Image x:Name="MediaThumbnail3" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder3" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#666666"/>
+                                                                <TextBlock Text="{DynamicResource AddMediaText}" FontSize="9" Foreground="#666666" Margin="0,2,0,0"/>
                                                             </StackPanel>
-                                                            <Border x:Name="MediaInfoOverlay3"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
+                                                            <Border x:Name="MediaInfoOverlay3" Background="#80000000"
+                                                                    VerticalAlignment="Bottom" CornerRadius="0,0,6,6"
+                                                                    Visibility="Collapsed">
                                                                 <StackPanel Margin="4,2">
-                                                                    <TextBlock x:Name="MediaFileName3"
-                                                                              Text="media3.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                                    <TextBlock Text="Active"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
+                                                                    <TextBlock x:Name="MediaFileName3" Text="media3.mp4" FontSize="8" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="{DynamicResource ActiveStatusText}" FontSize="7" Foreground="#4CAF50"/>
                                                                 </StackPanel>
                                                             </Border>
-                                                            <Button x:Name="RemoveMediaButton3"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="2">
-                                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
+                                                            <Button x:Name="RemoveMediaButton3" Width="16" Height="16"
+                                                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                                    Margin="2" Background="#F44336" BorderBrush="Transparent"
+                                                                    Padding="0" Visibility="Collapsed" Click="RemoveMedia_Click" Tag="2">
+                                                                <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="8" Foreground="White"/>
                                                             </Button>
                                                         </Grid>
                                                     </Border>
 
-                                                    <Border x:Name="MediaSlot4"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="3">
+                                                    <!-- Slot 4 -->
+                                                    <Border x:Name="MediaSlot4" Background="{StaticResource SubPanelBackgroundBrush}"
+                                                            BorderBrush="#444444" BorderThickness="2"
+                                                            CornerRadius="8" Margin="2" Height="80" Width="80"
+                                                            Cursor="Hand" MouseLeftButtonUp="MediaSlot_Click" Tag="3">
                                                         <Grid>
-                                                            <Image x:Name="MediaThumbnail4"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                                            <StackPanel x:Name="AddMediaPlaceholder4"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Add Media"
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
+                                                            <Image x:Name="MediaThumbnail4" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#666666"/>
+                                                                <TextBlock Text="{DynamicResource AddMediaText}" FontSize="9" Foreground="#666666" Margin="0,2,0,0"/>
                                                             </StackPanel>
-                                                            <Border x:Name="MediaInfoOverlay4"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
+                                                            <Border x:Name="MediaInfoOverlay4" Background="#80000000"
+                                                                    VerticalAlignment="Bottom" CornerRadius="0,0,6,6"
+                                                                    Visibility="Collapsed">
                                                                 <StackPanel Margin="4,2">
-                                                                    <TextBlock x:Name="MediaFileName4"
-                                                                              Text="media4.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                                    <TextBlock Text="Active"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
+                                                                    <TextBlock x:Name="MediaFileName4" Text="media4.mp4" FontSize="8" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="{DynamicResource ActiveStatusText}" FontSize="7" Foreground="#4CAF50"/>
                                                                 </StackPanel>
                                                             </Border>
-                                                            <Button x:Name="RemoveMediaButton4"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="3">
-                                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
+                                                            <Button x:Name="RemoveMediaButton4" Width="16" Height="16"
+                                                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                                    Margin="2" Background="#F44336" BorderBrush="Transparent"
+                                                                    Padding="0" Visibility="Collapsed" Click="RemoveMedia_Click" Tag="3">
+                                                                <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="8" Foreground="White"/>
                                                             </Button>
                                                         </Grid>
                                                     </Border>
 
-                                                    <Border x:Name="MediaSlot5"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="4">
+                                                    <!-- Slot 5 -->
+                                                    <Border x:Name="MediaSlot5" Background="{StaticResource SubPanelBackgroundBrush}"
+                                                            BorderBrush="#444444" BorderThickness="2"
+                                                            CornerRadius="8" Margin="2" Height="80" Width="80"
+                                                            Cursor="Hand" MouseLeftButtonUp="MediaSlot_Click" Tag="4">
                                                         <Grid>
-                                                            <Image x:Name="MediaThumbnail5"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                                            <StackPanel x:Name="AddMediaPlaceholder5"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Add Media"
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
+                                                            <Image x:Name="MediaThumbnail5" Stretch="UniformToFill" Visibility="Collapsed"/>
+                                                            <StackPanel x:Name="AddMediaPlaceholder5" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                                <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#666666"/>
+                                                                <TextBlock Text="{DynamicResource AddMediaText}" FontSize="9" Foreground="#666666" Margin="0,2,0,0"/>
                                                             </StackPanel>
-                                                            <Border x:Name="MediaInfoOverlay5"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
+                                                            <Border x:Name="MediaInfoOverlay5" Background="#80000000"
+                                                                    VerticalAlignment="Bottom" CornerRadius="0,0,6,6"
+                                                                    Visibility="Collapsed">
                                                                 <StackPanel Margin="4,2">
-                                                                    <TextBlock x:Name="MediaFileName5"
-                                                                              Text="media5.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                                    <TextBlock Text="Active"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
+                                                                    <TextBlock x:Name="MediaFileName5" Text="media5.mp4" FontSize="8" Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="{DynamicResource ActiveStatusText}" FontSize="7" Foreground="#4CAF50"/>
                                                                 </StackPanel>
                                                             </Border>
-                                                            <Button x:Name="RemoveMediaButton5"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="4">
-                                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
+                                                            <Button x:Name="RemoveMediaButton5" Width="16" Height="16"
+                                                                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                                    Margin="2" Background="#F44336" BorderBrush="Transparent"
+                                                                    Padding="0" Visibility="Collapsed" Click="RemoveMedia_Click" Tag="4">
+                                                                <TextBlock Text="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="8" Foreground="White"/>
                                                             </Button>
                                                         </Grid>
                                                     </Border>
                                                 </UniformGrid>
-                                                
-                                                <StackPanel Orientation="Horizontal" 
-                                                           HorizontalAlignment="Right" 
-                                                           Margin="0,8,0,0">
+
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                                                     <Button x:Name="AddAllMediaButton"
-                                                           Background="#4CAF50"
-                                                           Foreground="White"
-                                                           BorderBrush="Transparent"
-                                                           Visibility="Collapsed"
-                                                           Padding="8,4"
-                                                           Margin="0,0,4,0"
-                                                           Click="AddAllMedia_Click">
+                                                            Background="#4CAF50"
+                                                            Foreground="White"
+                                                            BorderBrush="Transparent"
+                                                            Visibility="Collapsed"
+                                                            Padding="8,4"
+                                                            Margin="0,0,4,0"
+                                                            Click="AddAllMedia_Click">
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="&#xE710;"
-                                                                      FontFamily="Segoe MDL2 Assets"
-                                                                      FontSize="12"
-                                                                      Margin="0,0,4,0"/>
-                                                            <TextBlock Text="Add Multiple"
-                                                                      FontSize="10"/>
+                                                            <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,4,0"/>
+                                                            <TextBlock Text="{DynamicResource AddMultipleButton}" FontSize="10"/>
                                                         </StackPanel>
                                                     </Button>
                                                     <Button x:Name="ClearAllMediaButton"
-                                                           Background="#F44336"
-                                                           Foreground="White"
-                                                           BorderBrush="Transparent"
-                                                           Padding="8,4"
-                                                           Click="ClearAllMedia_Click">
+                                                            Background="#F44336"
+                                                            Foreground="White"
+                                                            BorderBrush="Transparent"
+                                                            Padding="8,4"
+                                                            Click="ClearAllMedia_Click">
                                                         <StackPanel Orientation="Horizontal">
-                                                            <TextBlock Text="&#xE74D;"
-                                                                      FontFamily="Segoe MDL2 Assets"
-                                                                      FontSize="12"
-                                                                      Margin="0,0,4,0"/>
-                                                            <TextBlock Text="Clear All"
-                                                                      FontSize="10"/>
+                                                            <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="0,0,4,0"/>
+                                                            <TextBlock Text="{DynamicResource ClearAllButtonText}" FontSize="10"/>
                                                         </StackPanel>
                                                     </Button>
                                                 </StackPanel>
@@ -1347,13 +901,11 @@
                 Visibility="Collapsed">
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                 <ProgressBar IsIndeterminate="True"
-                             Width="100"
-                             Height="4"
+                             Width="100" Height="4"
                              Foreground="{StaticResource AccentBrush}"
-                             Background="Transparent"
-                             BorderBrush="Transparent"/>
+                             Background="Transparent" BorderBrush="Transparent"/>
                 <TextBlock x:Name="LoadingText"
-                           Text="Loading device information..."
+                           Text="{DynamicResource LoadingDeviceInfoText}"
                            FontSize="14"
                            Foreground="{StaticResource PrimaryTextBrush}"
                            HorizontalAlignment="Center"
@@ -1393,7 +945,7 @@
                            Margin="0,0,12,0"/>
                 <TextBlock x:Name="NotificationMessage"
                            Grid.Column="1"
-                           Text="Operation completed successfully"
+                           Text="{DynamicResource OperationSuccessMessage}"
                            FontSize="14"
                            Foreground="{StaticResource PrimaryTextBrush}"
                            VerticalAlignment="Center"
@@ -1406,7 +958,8 @@
                         BorderBrush="Transparent"
                         Padding="4"
                         Cursor="Hand"
-                        Margin="8,0,0,0">
+                        Margin="8,0,0,0"
+                        ToolTip="{DynamicResource CloseTooltip}">
                     <TextBlock Text="&#xE8BB;"
                                FontFamily="Segoe MDL2 Assets"
                                FontSize="12"
@@ -1439,17 +992,16 @@
                                    FontFamily="Segoe MDL2 Assets"
                                    FontSize="20"
                                    Foreground="#FF9800"
-                                   VerticalAlignment="Center"
                                    Margin="0,0,12,0"/>
                         <TextBlock x:Name="ConfirmationTitle"
-                                   Text="Confirm Action"
+                                   Text="{DynamicResource ConfirmActionTitle}"
                                    FontSize="18"
                                    FontWeight="SemiBold"
                                    Foreground="{StaticResource PrimaryTextBrush}"
-                                   VerticalAlignment="Center"/>
+                                   Margin="0,0,0,4"/>
                     </StackPanel>
                     <TextBlock x:Name="ConfirmationMessage"
-                               Text="Are you sure you want to proceed?"
+                               Text="{DynamicResource ConfirmActionMessage}"
                                FontSize="14"
                                Foreground="{StaticResource SecondaryTextBrush}"
                                TextWrapping="Wrap"
@@ -1460,9 +1012,7 @@
                             <ColumnDefinition Width="12"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0"
-                                Background="#555555"
-                                CornerRadius="6">
+                        <Border Grid.Column="0" Background="#555555" CornerRadius="6">
                             <Button x:Name="ConfirmationCancelButton"
                                     Click="ConfirmationCancelButton_Click"
                                     Background="Transparent"
@@ -1470,16 +1020,10 @@
                                     BorderBrush="Transparent"
                                     Padding="12,8"
                                     Cursor="Hand">
-                                <TextBlock Text="Cancel"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource CancelButton}" FontSize="14" FontWeight="SemiBold"/>
                             </Button>
                         </Border>
-                        <Border Grid.Column="2"
-                                x:Name="ConfirmationButtonBorder"
-                                Background="{StaticResource AccentBrush}"
-                                CornerRadius="6">
+                        <Border Grid.Column="2" x:Name="ConfirmationButtonBorder" Background="{StaticResource AccentBrush}" CornerRadius="6">
                             <Button x:Name="ConfirmationConfirmButton"
                                     Click="ConfirmationConfirmButton_Click"
                                     Background="Transparent"
@@ -1488,10 +1032,9 @@
                                     Padding="12,8"
                                     Cursor="Hand">
                                 <TextBlock x:Name="ConfirmationConfirmText"
-                                           Text="Confirm"
+                                           Text="{DynamicResource ConfirmButton}"
                                            FontSize="14"
-                                           FontWeight="SemiBold"
-                                           HorizontalAlignment="Center"/>
+                                           FontWeight="SemiBold"/>
                             </Button>
                         </Border>
                     </Grid>

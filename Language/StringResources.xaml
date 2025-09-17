@@ -6,7 +6,7 @@
     <sys:String x:Key="SettingsText" xmlns:sys="clr-namespace:System;assembly=mscorlib">设置</sys:String>
     
     <!-- Main Window -->
-    <sys:String x:Key="AppTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cooler Master</sys:String>
+    <sys:String x:Key="AppTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">LCD Master</sys:String>
     
     <!-- Pages -->
     <sys:String x:Key="HomePageTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">主页</sys:String>
@@ -59,7 +59,7 @@
     <sys:String x:Key="LiveText" xmlns:sys="clr-namespace:System;assembly=mscorlib">实时文本</sys:String>
     
     <!-- System Tray -->
-    <sys:String x:Key="TrayTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">CMDevicesManager - 硬件监控工具</sys:String>
+    <sys:String x:Key="TrayTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">LCD Master</sys:String>
     <sys:String x:Key="ShowMainWindow" xmlns:sys="clr-namespace:System;assembly=mscorlib">显示主窗口</sys:String>
     <sys:String x:Key="ExitApplication" xmlns:sys="clr-namespace:System;assembly=mscorlib">退出应用程序</sys:String>
     <sys:String x:Key="AppRunningInTray" xmlns:sys="clr-namespace:System;assembly=mscorlib">应用程序正在系统托盘中运行。双击打开或右键查看选项。</sys:String>
@@ -77,4 +77,194 @@
     <sys:String x:Key="Notice" xmlns:sys="clr-namespace:System;assembly=mscorlib">提示</sys:String>
     <sys:String x:Key="OpenSettingsPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">这里打开设置窗口</sys:String>
     <sys:String x:Key="SaveAsButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">另存为</sys:String>
+    
+    <!-- MessageBox Messages -->
+    <sys:String x:Key="Warning" xmlns:sys="clr-namespace:System;assembly=mscorlib">警告</sys:String>
+    <sys:String x:Key="Info" xmlns:sys="clr-namespace:System;assembly=mscorlib">信息</sys:String>
+    <sys:String x:Key="Success" xmlns:sys="clr-namespace:System;assembly=mscorlib">成功</sys:String>
+    <sys:String x:Key="HomePageLoadFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">警告：无法加载主页。某些功能可能无法正常工作。</sys:String>
+    <sys:String x:Key="CanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">画布尚未准备好。</sys:String>
+    <sys:String x:Key="SaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存失败：{0}</sys:String>
+    <sys:String x:Key="ScreenshotSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">截图已保存：
+{0}</sys:String>
+    <sys:String x:Key="ScreenshotFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">截图失败：{0}</sys:String>
+    <sys:String x:Key="ConfigSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存配置失败：{0}</sys:String>
+    <sys:String x:Key="SaveAsFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">另存为失败：{0}</sys:String>
+    <sys:String x:Key="NameConflict" xmlns:sys="clr-namespace:System;assembly=mscorlib">命名冲突</sys:String>
+    <sys:String x:Key="NameAlreadyExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">名称 "{0}" 仍已存在，请重新输入。</sys:String>
+    <sys:String x:Key="FileError" xmlns:sys="clr-namespace:System;assembly=mscorlib">文件错误</sys:String>
+    <sys:String x:Key="FileNotExist" xmlns:sys="clr-namespace:System;assembly=mscorlib">所选文件不存在。</sys:String>
+    <sys:String x:Key="FileSizeValidationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">文件大小验证失败：{0}</sys:String>
+    <sys:String x:Key="ReadVideoInfoFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">读取视频信息失败</sys:String>
+    <sys:String x:Key="ExtractVideoFramesFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">提取视频帧失败</sys:String>
+    <sys:String x:Key="LoadMp4Failed" xmlns:sys="clr-namespace:System;assembly=mscorlib">加载MP4失败：{0}</sys:String>
+    <sys:String x:Key="ConfigurationLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置已加载：{0}</sys:String>
+    <sys:String x:Key="AddConfigFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加配置失败：{0}</sys:String>
+    <sys:String x:Key="LoadConfigurationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">加载配置失败：{0}</sys:String>
+    <sys:String x:Key="InitializationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">初始化失败：{0}</sys:String>
+    <sys:String x:Key="NoConfigFolderFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">未找到配置文件夹。</sys:String>
+    <sys:String x:Key="NoValidConfigFilesLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">无法加载有效的配置文件。</sys:String>
+    <sys:String x:Key="UnableToOpenWebsite" xmlns:sys="clr-namespace:System;assembly=mscorlib">无法打开网站。</sys:String>
+    <sys:String x:Key="CurrentCanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">当前画布尚未准备好。</sys:String>
+    <sys:String x:Key="FileSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">已保存：
+{0}</sys:String>
+    
+    <!-- Additional MessageBox Messages -->
+    <sys:String x:Key="FileTooLarge" xmlns:sys="clr-namespace:System;assembly=mscorlib">文件过大</sys:String>
+    <sys:String x:Key="VideoFileExceedsLimit" xmlns:sys="clr-namespace:System;assembly=mscorlib">视频文件超过10MB限制。
+大小：{0} MB</sys:String>
+    <sys:String x:Key="NoConfigFolderFoundDetail" xmlns:sys="clr-namespace:System;assembly=mscorlib">未找到配置文件夹。</sys:String>
+    
+    <!-- File Overwrite Dialog -->
+    <sys:String x:Key="FileExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">文件已存在</sys:String>
+    <sys:String x:Key="ConfigFileExistsPrompt" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置文件 "{0}" 已存在。
+
+是: 覆盖
+否: 重新命名
+取消: 中止保存</sys:String>
+    <sys:String x:Key="UserCancelledSave" xmlns:sys="clr-namespace:System;assembly=mscorlib">用户取消保存。</sys:String>
+    <sys:String x:Key="UserCancelledRename" xmlns:sys="clr-namespace:System;assembly=mscorlib">用户取消重命名。</sys:String>
+    <sys:String x:Key="CoolingHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">散热</sys:String>
+    <sys:String x:Key="PowerHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">电源</sys:String>
+    <sys:String x:Key="SystemHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">系统</sys:String>
+    <sys:String x:Key="NetworkHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">网络</sys:String>
+    <sys:String x:Key="NetworkCardTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">网络</sys:String>
+    <sys:String x:Key="DownloadText" xmlns:sys="clr-namespace:System;assembly=mscorlib">下载</sys:String>
+    <sys:String x:Key="UploadText" xmlns:sys="clr-namespace:System;assembly=mscorlib">上传</sys:String>
+    <sys:String x:Key="KbpsUnit" xmlns:sys="clr-namespace:System;assembly=mscorlib">KB/s</sys:String>
+    <sys:String x:Key="StatusMessagePlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">状态信息</sys:String>
+    <sys:String x:Key="NoConnectedDevices" xmlns:sys="clr-namespace:System;assembly=mscorlib">未连接任何设备</sys:String>
+    <sys:String x:Key="ConnectDeviceTip" xmlns:sys="clr-namespace:System;assembly=mscorlib">连接兼容的设备以开始</sys:String>
+    <sys:String x:Key="DevicePlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备</sys:String>
+    <sys:String x:Key="ScreenCustomize" xmlns:sys="clr-namespace:System;assembly=mscorlib">屏幕自定义</sys:String>
+    <sys:String x:Key="PlayMode" xmlns:sys="clr-namespace:System;assembly=mscorlib">播放模式</sys:String>
+    <sys:String x:Key="FirmwareInfo" xmlns:sys="clr-namespace:System;assembly=mscorlib">固件信息</sys:String>
+    <sys:String x:Key="DeviceConfigPageTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备配置</sys:String>
+    <sys:String x:Key="DeviceConfigPageHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">屏幕自定义编辑</sys:String>
+    <sys:String x:Key="BackButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">返回</sys:String>
+    <sys:String x:Key="SizeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">尺寸:</sys:String>
+    <sys:String x:Key="ScreenshotButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">截图</sys:String>
+
+    <sys:String x:Key="CommonGroup" xmlns:sys="clr-namespace:System;assembly=mscorlib">常用</sys:String>
+    <sys:String x:Key="AddTextButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加文本</sys:String>
+    <sys:String x:Key="AddImageButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加图片</sys:String>
+    <sys:String x:Key="AddDateButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加日期</sys:String>
+    <sys:String x:Key="AddMp4Button" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加 MP4</sys:String>
+
+    <sys:String x:Key="SystemInfoGroup" xmlns:sys="clr-namespace:System;assembly=mscorlib">系统信息</sys:String>
+    <sys:String x:Key="OperatorGroup" xmlns:sys="clr-namespace:System;assembly=mscorlib">操作</sys:String>
+    <sys:String x:Key="ClearAllButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">清空</sys:String>
+    <sys:String x:Key="ImportButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">导入</sys:String>
+    <sys:String x:Key="SaveButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存</sys:String>
+
+    <sys:String x:Key="SelectedElementTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">已选择元素</sys:String>
+    <sys:String x:Key="TextLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">文本</sys:String>
+    <sys:String x:Key="FontSizeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">字体大小</sys:String>
+    <sys:String x:Key="UseGradientLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">使用渐变</sys:String>
+    <sys:String x:Key="ColorLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">颜色 #</sys:String>
+    <sys:String x:Key="PickButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">拾取</sys:String>
+    <sys:String x:Key="StartColorLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">起始颜色 #</sys:String>
+    <sys:String x:Key="EndColorLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">结束颜色 #</sys:String>
+    <sys:String x:Key="PreviewLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">预览</sys:String>
+    <sys:String x:Key="GradientSampleText" xmlns:sys="clr-namespace:System;assembly=mscorlib">渐变文本示例</sys:String>
+    <sys:String x:Key="DateFormatLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">日期格式</sys:String>
+
+    <sys:String x:Key="UsageStyleLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">展示样式</sys:String>
+    <sys:String x:Key="UsageTextStyleOption" xmlns:sys="clr-namespace:System;assembly=mscorlib">文本</sys:String>
+    <sys:String x:Key="UsageProgressBarStyleOption" xmlns:sys="clr-namespace:System;assembly=mscorlib">进度条</sys:String>
+    <sys:String x:Key="UsageGaugeStyleOption" xmlns:sys="clr-namespace:System;assembly=mscorlib">仪表</sys:String>
+    <sys:String x:Key="UsageThemeTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">使用率主题</sys:String>
+    <sys:String x:Key="StartLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">起始 #</sys:String>
+    <sys:String x:Key="EndLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">结束 #</sys:String>
+    <sys:String x:Key="BackgroundLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">背景 #</sys:String>
+    <sys:String x:Key="NeedleLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">指针 #</sys:String>
+
+    <sys:String x:Key="ScaleLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">缩放</sys:String>
+    <sys:String x:Key="RotateMirrorLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">旋转/镜像</sys:String>
+    <sys:String x:Key="RotateLeftTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">左旋90°</sys:String>
+    <sys:String x:Key="RotateRightTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">右旋90°</sys:String>
+    <sys:String x:Key="MirrorHorizontalTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">水平镜像</sys:String>
+    <sys:String x:Key="OpacityLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">透明度</sys:String>
+    <sys:String x:Key="BringToFrontButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">置顶</sys:String>
+    <sys:String x:Key="SendToBackButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">置底</sys:String>
+    <sys:String x:Key="DeleteButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">删除</sys:String>
+    <sys:String x:Key="TipScale" xmlns:sys="clr-namespace:System;assembly=mscorlib">提示: 拖动移动，Ctrl + 鼠标滚轮缩放。</sys:String>
+    <sys:String x:Key="TipMove" xmlns:sys="clr-namespace:System;assembly=mscorlib">提示: 拖动移动。</sys:String>
+
+    <sys:String x:Key="AutoMoveTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">自动移动</sys:String>
+    <sys:String x:Key="SpeedLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">速度</sys:String>
+    <sys:String x:Key="DirectionLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">方向</sys:String>
+    <sys:String x:Key="CenterButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">居中</sys:String>
+    <sys:String x:Key="DeviceSettingsPageTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备设置</sys:String>
+    <sys:String x:Key="DeviceSettingsHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备设置</sys:String>
+    <sys:String x:Key="NoDeviceSelected" xmlns:sys="clr-namespace:System;assembly=mscorlib">未选择设备</sys:String>
+    <sys:String x:Key="CloseTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭</sys:String>
+
+    <sys:String x:Key="DeviceInformationHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备信息</sys:String>
+    <sys:String x:Key="HardwareVersionLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">硬件版本:</sys:String>
+    <sys:String x:Key="FirmwareVersionLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">固件版本:</sys:String>
+    <sys:String x:Key="SerialNumberLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">序列号:</sys:String>
+    <sys:String x:Key="ManufacturerLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">制造商:</sys:String>
+    <sys:String x:Key="ProductLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">产品:</sys:String>
+
+    <sys:String x:Key="DeviceStatusHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备状态</sys:String>
+    <sys:String x:Key="BrightnessLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">亮度:</sys:String>
+    <sys:String x:Key="RotationLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">旋转:</sys:String>
+    <sys:String x:Key="OsdStateLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">OSD 状态:</sys:String>
+    <sys:String x:Key="KeepAliveLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">保活:</sys:String>
+    <sys:String x:Key="DisplaySleepLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">睡眠显示:</sys:String>
+    <sys:String x:Key="SuspendModeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">挂起模式:</sys:String>
+    <sys:String x:Key="RefreshStatusTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">刷新状态</sys:String>
+
+    <sys:String x:Key="DeviceManagementHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备管理</sys:String>
+    <sys:String x:Key="RebootDeviceButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">重启设备</sys:String>
+    <sys:String x:Key="FactoryResetButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">恢复出厂</sys:String>
+    <sys:String x:Key="UpdateFirmwareButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">更新固件</sys:String>
+
+    <sys:String x:Key="RebootTooltipTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">重启设备</sys:String>
+    <sys:String x:Key="RebootTooltipBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">立即重新启动设备，过程会短暂断开并自动重新连接。</sys:String>
+    <sys:String x:Key="RebootTooltipWarn" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备将短暂不可用</sys:String>
+
+    <sys:String x:Key="FactoryResetTooltipTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">恢复出厂设置</sys:String>
+    <sys:String x:Key="FactoryResetTooltipBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">将设备恢复到出厂状态，所有设置与数据将永久删除。</sys:String>
+    <sys:String x:Key="FactoryResetTooltipWarn" xmlns:sys="clr-namespace:System;assembly=mscorlib">警告：该操作不可撤销！</sys:String>
+    <sys:String x:Key="FactoryResetPoint1" xmlns:sys="clr-namespace:System;assembly=mscorlib">• 所有设置将丢失</sys:String>
+    <sys:String x:Key="FactoryResetPoint2" xmlns:sys="clr-namespace:System;assembly=mscorlib">• 所有媒体文件将删除</sys:String>
+    <sys:String x:Key="FactoryResetPoint3" xmlns:sys="clr-namespace:System;assembly=mscorlib">• 设备将自动重启</sys:String>
+
+    <sys:String x:Key="UpdateFwTooltipTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">更新固件</sys:String>
+    <sys:String x:Key="UpdateFwTooltipBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">上传新的固件文件 (.bin/.hex/.fw)。</sys:String>
+    <sys:String x:Key="UpdateFwTooltipWarn" xmlns:sys="clr-namespace:System;assembly=mscorlib">重要：更新过程中请勿断开！</sys:String>
+    <sys:String x:Key="UpdateFwPoint1" xmlns:sys="clr-namespace:System;assembly=mscorlib">• 中断可能损坏设备</sys:String>
+    <sys:String x:Key="UpdateFwPoint2" xmlns:sys="clr-namespace:System;assembly=mscorlib">• 过程可能持续数分钟</sys:String>
+    <sys:String x:Key="UpdateFwPoint3" xmlns:sys="clr-namespace:System;assembly=mscorlib">• 完成后设备将重启</sys:String>
+
+    <sys:String x:Key="DisplayControlSettingsHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">显示控制设置</sys:String>
+    <sys:String x:Key="SleepModeHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">睡眠模式</sys:String>
+    <sys:String x:Key="SleepModeDescription" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置系统进入睡眠时 LCD 的行为。</sys:String>
+    <sys:String x:Key="SleepToggleTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">睡眠模式控制</sys:String>
+    <sys:String x:Key="SleepToggleBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">切换系统睡眠时 LCD 是否关闭。</sys:String>
+    <sys:String x:Key="SleepToggleOn" xmlns:sys="clr-namespace:System;assembly=mscorlib">开启：睡眠时关闭 LCD</sys:String>
+    <sys:String x:Key="SleepToggleOff" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭：睡眠时保持亮屏</sys:String>
+
+    <sys:String x:Key="SuspendModeHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">挂起模式</sys:String>
+    <sys:String x:Key="SuspendModeDescription" xmlns:sys="clr-namespace:System;assembly=mscorlib">设置程序退出后的自定义播放样式。</sys:String>
+    <sys:String x:Key="SuspendToggleTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">挂起模式控制</sys:String>
+    <sys:String x:Key="SuspendToggleBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">启用离线媒体播放。</sys:String>
+    <sys:String x:Key="SuspendToggleOn" xmlns:sys="clr-namespace:System;assembly=mscorlib">开启：播放本地媒体</sys:String>
+    <sys:String x:Key="SuspendToggleOff" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭：实时模式</sys:String>
+
+    <sys:String x:Key="SuspendMediaFilesHeader" xmlns:sys="clr-namespace:System;assembly=mscorlib">挂起媒体文件</sys:String>
+    <sys:String x:Key="SuspendMediaHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">(点击空槽添加媒体)</sys:String>
+    <sys:String x:Key="AddMediaText" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加媒体</sys:String>
+    <sys:String x:Key="ActiveStatusText" xmlns:sys="clr-namespace:System;assembly=mscorlib">激活</sys:String>
+    <sys:String x:Key="AddMultipleButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">批量添加</sys:String>
+    <sys:String x:Key="ClearAllButtonText" xmlns:sys="clr-namespace:System;assembly=mscorlib">清空</sys:String>
+
+    <sys:String x:Key="LoadingDeviceInfoText" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在加载设备信息...</sys:String>
+    <sys:String x:Key="OperationSuccessMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">操作成功完成</sys:String>
+
+    <sys:String x:Key="ConfirmActionTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">确认操作</sys:String>
+    <sys:String x:Key="ConfirmActionMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">确定要继续吗？</sys:String>
+    <sys:String x:Key="ConfirmButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">确定</sys:String>
 </ResourceDictionary>
