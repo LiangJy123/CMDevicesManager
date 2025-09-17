@@ -82,4 +82,52 @@
     <sys:String x:Key="NoValidConfigFilesFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">沒有找到有效的配置文件</sys:String>
     <sys:String x:Key="Notice" xmlns:sys="clr-namespace:System;assembly=mscorlib">提示</sys:String>
     <sys:String x:Key="OpenSettingsPlaceholder" xmlns:sys="clr-namespace:System;assembly=mscorlib">這裡打開設定視窗</sys:String>
+    <sys:String x:Key="SaveAsButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">另存為</sys:String>
+    
+    <!-- MessageBox Messages -->
+    <sys:String x:Key="Warning" xmlns:sys="clr-namespace:System;assembly=mscorlib">警告</sys:String>
+    <sys:String x:Key="Info" xmlns:sys="clr-namespace:System;assembly=mscorlib">資訊</sys:String>
+    <sys:String x:Key="Success" xmlns:sys="clr-namespace:System;assembly=mscorlib">成功</sys:String>
+    <sys:String x:Key="HomePageLoadFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">警告：無法載入首頁。某些功能可能無法正常運作。</sys:String>
+    <sys:String x:Key="CanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">畫布尚未準備好。</sys:String>
+    <sys:String x:Key="SaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存失敗：{0}</sys:String>
+    <sys:String x:Key="ScreenshotSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">螢幕截圖已保存：
+{0}</sys:String>
+    <sys:String x:Key="ScreenshotFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">螢幕截圖失敗：{0}</sys:String>
+    <sys:String x:Key="ConfigSaveFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存配置失敗：{0}</sys:String>
+    <sys:String x:Key="SaveAsFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">另存為失敗：{0}</sys:String>
+    <sys:String x:Key="NameConflict" xmlns:sys="clr-namespace:System;assembly=mscorlib">名稱衝突</sys:String>
+    <sys:String x:Key="NameAlreadyExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">名稱 "{0}" 仍已存在，請重新輸入。</sys:String>
+    <sys:String x:Key="FileError" xmlns:sys="clr-namespace:System;assembly=mscorlib">檔案錯誤</sys:String>
+    <sys:String x:Key="FileNotExist" xmlns:sys="clr-namespace:System;assembly=mscorlib">所選檔案不存在。</sys:String>
+    <sys:String x:Key="FileSizeValidationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">檔案大小驗證失敗：{0}</sys:String>
+    <sys:String x:Key="ReadVideoInfoFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">讀取影片資訊失敗</sys:String>
+    <sys:String x:Key="ExtractVideoFramesFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">提取影片幀失敗</sys:String>
+    <sys:String x:Key="LoadMp4Failed" xmlns:sys="clr-namespace:System;assembly=mscorlib">載入MP4失敗：{0}</sys:String>
+    <sys:String x:Key="ConfigurationLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置已載入：{0}</sys:String>
+    <sys:String x:Key="AddConfigFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">新增配置失敗：{0}</sys:String>
+    <sys:String x:Key="LoadConfigurationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">載入配置失敗：{0}</sys:String>
+    <sys:String x:Key="InitializationFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">初始化失敗：{0}</sys:String>
+    <sys:String x:Key="NoConfigFolderFound" xmlns:sys="clr-namespace:System;assembly=mscorlib">未找到配置檔案夾。</sys:String>
+    <sys:String x:Key="NoValidConfigFilesLoaded" xmlns:sys="clr-namespace:System;assembly=mscorlib">無法載入有效的配置檔案。</sys:String>
+    <sys:String x:Key="UnableToOpenWebsite" xmlns:sys="clr-namespace:System;assembly=mscorlib">無法開啟網站。</sys:String>
+    <sys:String x:Key="CurrentCanvasNotReady" xmlns:sys="clr-namespace:System;assembly=mscorlib">當前畫布尚未準備好。</sys:String>
+    <sys:String x:Key="FileSaved" xmlns:sys="clr-namespace:System;assembly=mscorlib">已保存：
+{0}</sys:String>
+    
+    <!-- Additional MessageBox Messages -->
+    <sys:String x:Key="FileTooLarge" xmlns:sys="clr-namespace:System;assembly=mscorlib">檔案過大</sys:String>
+    <sys:String x:Key="VideoFileExceedsLimit" xmlns:sys="clr-namespace:System;assembly=mscorlib">影片檔案超過10MB限制。
+大小：{0} MB</sys:String>
+    <sys:String x:Key="NoConfigFolderFoundDetail" xmlns:sys="clr-namespace:System;assembly=mscorlib">未找到配置檔案夾。</sys:String>
+    
+    <!-- File Overwrite Dialog -->
+    <sys:String x:Key="FileExists" xmlns:sys="clr-namespace:System;assembly=mscorlib">檔案已存在</sys:String>
+    <sys:String x:Key="ConfigFileExistsPrompt" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置檔案 "{0}" 已存在。
+
+是: 覆蓋
+否: 重新命名
+取消: 中止保存</sys:String>
+    <sys:String x:Key="UserCancelledSave" xmlns:sys="clr-namespace:System;assembly=mscorlib">使用者取消保存。</sys:String>
+    <sys:String x:Key="UserCancelledRename" xmlns:sys="clr-namespace:System;assembly=mscorlib">使用者取消重新命名。</sys:String>
 </ResourceDictionary>

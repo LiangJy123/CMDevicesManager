@@ -1395,7 +1395,7 @@ namespace CMDevicesManager.Services
             {
                 if (DesignRoot == null || DesignRoot.ActualWidth <= 0 || DesignRoot.ActualHeight <= 0)
                 {
-                    MessageBox.Show("当前画布尚未准备好。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("CurrentCanvasNotReady", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
                     return null;
                 }
 
@@ -1427,11 +1427,11 @@ namespace CMDevicesManager.Services
                     encoder.Save(fs);
                 }
 
-                MessageBox.Show($"截图已保存:\n{fullPath}", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("ScreenshotSaved")?.ToString() ?? "截图已保存:\n{0}", fullPath), "Success", MessageBoxButton.OK, MessageBoxImage.Information, true);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"截图失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("ScreenshotFailed")?.ToString() ?? "截图失败: {0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
             }
             return null;
         }

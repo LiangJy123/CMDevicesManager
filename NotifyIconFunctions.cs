@@ -85,8 +85,7 @@ namespace CMDevicesManager
 
         private void ShowSettings()
         {
-            var settingsPlaceholder = Application.Current.FindResource("OpenSettingsPlaceholder")?.ToString() ?? "Open settings window here";
-            System.Windows.MessageBox.Show(settingsPlaceholder);
+            LocalizedMessageBox.Show("OpenSettingsPlaceholder");
         }
 
         private void ExitApp()
@@ -102,17 +101,7 @@ namespace CMDevicesManager
             if (!_isExit)
             {
                 // Ask user for confirmation before minimizing to tray
-                var confirmationMsg = Application.Current.FindResource("CloseConfirmationMessage")?.ToString() ?? 
-                    "Do you want to minimize to system tray or exit the application?\n\n" +
-                    "Click 'Yes' to minimize to tray (app keeps running)\n" +
-                    "Click 'No' to exit completely\n" +
-                    "Click 'Cancel' to return to the application";
-                var confirmationTitle = Application.Current.FindResource("CloseConfirmation")?.ToString() ?? "Close Confirmation";
-                var result = MessageBox.Show(
-                    confirmationMsg,
-                    confirmationTitle,
-                    MessageBoxButton.YesNoCancel,
-                    MessageBoxImage.Question);
+                var result = LocalizedMessageBox.Show("CloseConfirmationMessage", "CloseConfirmation", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
 
                 switch (result)
                 {
