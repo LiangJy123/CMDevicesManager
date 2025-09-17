@@ -1,10 +1,11 @@
 ﻿<Page x:Class="CMDevicesManager.Pages.DeviceConfigPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:converters="clr-namespace:CMDevicesManager.Converters"
       FontFamily="{DynamicResource AppFontFamily}"
       Background="Transparent"
-      Title="Device Configuration" Loaded="Page_Loaded">
+      Title="{DynamicResource DeviceConfigPageTitle}"
+      Loaded="Page_Loaded">
     <Page.Resources>
         <ResourceDictionary>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -207,29 +208,28 @@
             <Button Grid.Column="0" Click="Back_Click" Margin="0,0,8,0" Style="{StaticResource SmallButtonStyle}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="&#xE72B;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                    <TextBlock Text="Back"/>
+                    <TextBlock Text="{DynamicResource BackButton}"/>
                 </StackPanel>
             </Button>
 
-            <TextBlock Grid.Column="1" Text="屏幕自定义编辑" FontSize="20" FontWeight="SemiBold"
+            <TextBlock Grid.Column="1" Text="{DynamicResource DeviceConfigPageHeader}" FontSize="20" FontWeight="SemiBold"
                        Foreground="{StaticResource TitleBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Visibility="Collapsed">
-                <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
+                <TextBlock Text="{DynamicResource SizeLabel}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
                 <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" Width="64"
                          Style="{StaticResource DarkTextBoxStyle}"/>
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" Visibility="Collapsed">
-                <TextBlock Text="Size:" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
+                <TextBlock Text="{DynamicResource SizeLabel}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
                 <TextBox Text="{Binding CanvasSize, UpdateSourceTrigger=PropertyChanged}" Width="64"
-              Style="{StaticResource DarkTextBoxStyle}"/>
-                <!-- 新增截图按钮 -->
+                         Style="{StaticResource DarkTextBoxStyle}"/>
                 <Button Margin="12,0,0,0"
-             Style="{StaticResource SmallButtonStyle}"
-             Click="CaptureCanvas_Click">
+                        Style="{StaticResource SmallButtonStyle}"
+                        Click="CaptureCanvas_Click">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="&#xE114;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                        <TextBlock Text="截图"/>
+                        <TextBlock Text="{DynamicResource ScreenshotButton}"/>
                     </StackPanel>
                 </Button>
             </StackPanel>
@@ -247,35 +247,35 @@
             <!-- Left panel -->
             <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}">
                 <StackPanel>
-                    <TextBlock Text="Common" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{StaticResource TitleBrush}" FontSize="16"/>
+                    <TextBlock Text="{DynamicResource CommonGroup}" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{StaticResource TitleBrush}" FontSize="16"/>
                     <Button Style="{StaticResource ActionButtonStyle}" Click="AddText_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE8D2;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="Add Text"/>
+                            <TextBlock Text="{DynamicResource AddTextButton}"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource ActionButtonStyle}" Click="AddImage_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE8B9;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="Add Image"/>
+                            <TextBlock Text="{DynamicResource AddImageButton}"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource ActionButtonStyle}" Click="AddClock_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE121;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="Add Date"/>
+                            <TextBlock Text="{DynamicResource AddDateButton}"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource ActionButtonStyle}" Click="AddMp4_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="Add MP4"/>
+                            <TextBlock Text="{DynamicResource AddMp4Button}"/>
                         </StackPanel>
                     </Button>
 
                     <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,12,0,12"/>
 
-                    <TextBlock Text="System Info" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{StaticResource TitleBrush}" FontSize="16"/>
+                    <TextBlock Text="{DynamicResource SystemInfoGroup}" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{StaticResource TitleBrush}" FontSize="16"/>
                     <ItemsControl ItemsSource="{Binding SystemInfoItems}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -289,31 +289,31 @@
 
                     <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,12,0,12"/>
 
-                    <TextBlock Text="Operator" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{StaticResource TitleBrush}" FontSize="16"/>
+                    <TextBlock Text="{DynamicResource OperatorGroup}" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{StaticResource TitleBrush}" FontSize="16"/>
                     <Button Style="{StaticResource ActionButtonStyle}" Background="#CC4444" Click="ClearCanvas_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="Clear All"/>
+                            <TextBlock Text="{DynamicResource ClearAllButton}"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC" Click="LoadConfig_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE118;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="导入"/>
+                            <TextBlock Text="{DynamicResource ImportButton}"/>
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC" Click="SaveConfig_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE105;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="保存"/>
+                            <TextBlock Text="{DynamicResource SaveButton}"/>
                         </StackPanel>
                     </Button>
-                    <Button   Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC"
-         Click="SaveAsConfig_Click"
-         Visibility="{Binding LoadedFromConfigFile, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Button Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC"
+                            Click="SaveAsConfig_Click"
+                            Visibility="{Binding LoadedFromConfigFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE8C8;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
-                            <TextBlock Text="另存为"/>
+                            <TextBlock Text="{DynamicResource SaveAsButton}"/>
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -352,89 +352,89 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel>
 
-                        <TextBlock Text="Selected Element" FontWeight="SemiBold" Margin="0,0,0,8"
+                        <TextBlock Text="{DynamicResource SelectedElementTitle}" FontWeight="SemiBold" Margin="0,0,0,8"
                                    Foreground="{StaticResource TitleBrush}" FontSize="16"/>
                         <TextBlock Text="{Binding SelectedInfo}" Margin="0,0,0,8" Foreground="{StaticResource SubtitleBrush}"/>
 
                         <!-- Text props -->
-                        <StackPanel x:Name="TextProps" 
+                        <StackPanel x:Name="TextProps"
                                     Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Text" Foreground="{StaticResource SubtitleBrush}"/>
-                            <TextBox Text="{Binding SelectedText, UpdateSourceTrigger=PropertyChanged}" 
+                            <TextBlock Text="{DynamicResource TextLabel}" Foreground="{StaticResource SubtitleBrush}"/>
+                            <TextBox Text="{Binding SelectedText, UpdateSourceTrigger=PropertyChanged}"
                                      IsReadOnly="{Binding IsSelectedTextReadOnly}"
                                      Margin="0,4,0,8"
                                      Style="{StaticResource DarkTextBoxStyle}"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="Font Size" Width="100" VerticalAlignment="Center" 
+                                <TextBlock Text="{DynamicResource FontSizeLabel}" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
-                                <Slider Minimum="8" Maximum="120" Value="{Binding SelectedFontSize}" 
+                                <Slider Minimum="8" Maximum="120" Value="{Binding SelectedFontSize}"
                                         Width="160" Style="{StaticResource DarkSliderStyle}"/>
-                                <TextBlock Text="{Binding SelectedFontSize}" Margin="8,0,0,0" 
+                                <TextBlock Text="{Binding SelectedFontSize}" Margin="8,0,0,0"
                                            VerticalAlignment="Center" Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <CheckBox x:Name="UseGradientCheckBox" 
-                                          IsChecked="{Binding UseTextGradient}" 
-                                          Content="Use Gradient" 
+                                <CheckBox x:Name="UseGradientCheckBox"
+                                          IsChecked="{Binding UseTextGradient}"
+                                          Content="{DynamicResource UseGradientLabel}"
                                           Foreground="{StaticResource TitleBrush}"
                                           VerticalAlignment="Center"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
                                         Visibility="{Binding UseTextGradient, Converter={StaticResource InverseBoolToVis}}">
-                                <TextBlock Text="Color #" VerticalAlignment="Center" Width="100" 
+                                <TextBlock Text="{DynamicResource ColorLabel}" VerticalAlignment="Center" Width="100"
                                            Foreground="{StaticResource SubtitleBrush}"/>
-                                <TextBox Text="{Binding SelectedTextHex, UpdateSourceTrigger=PropertyChanged}" 
+                                <TextBox Text="{Binding SelectedTextHex, UpdateSourceTrigger=PropertyChanged}"
                                          Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
-                                <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4" 
+                                <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
                                         BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding SelectedTextColor}"/>
                                     </Border.Background>
                                 </Border>
-                                <Button Click="PickSelectedTextColor_Click" Margin="8,0,0,0" 
-                                        Style="{StaticResource SmallButtonStyle}">Pick</Button>
+                                <Button Click="PickSelectedTextColor_Click" Margin="8,0,0,0"
+                                        Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
 
                             <StackPanel Visibility="{Binding UseTextGradient, Converter={StaticResource BoolToVis}}">
 
                                 <!-- Start color -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <TextBlock Text="Start Color #" Width="100" VerticalAlignment="Center"
+                                    <TextBlock Text="{DynamicResource StartColorLabel}" Width="100" VerticalAlignment="Center"
                                                Foreground="{StaticResource SubtitleBrush}"/>
-                                    <TextBox Text="{Binding SelectedTextHex, UpdateSourceTrigger=PropertyChanged}" 
+                                    <TextBox Text="{Binding SelectedTextHex, UpdateSourceTrigger=PropertyChanged}"
                                              Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
-                                    <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4" 
+                                    <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
                                             BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                         <Border.Background>
                                             <SolidColorBrush Color="{Binding SelectedTextColor}"/>
                                         </Border.Background>
                                     </Border>
-                                    <Button Click="PickSelectedTextColor_Click" Margin="8,0,0,0" 
-                                            Style="{StaticResource SmallButtonStyle}">Pick</Button>
+                                    <Button Click="PickSelectedTextColor_Click" Margin="8,0,0,0"
+                                            Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
                                 </StackPanel>
 
                                 <!-- End color -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <TextBlock Text="End Color #" Width="100" VerticalAlignment="Center"
+                                    <TextBlock Text="{DynamicResource EndColorLabel}" Width="100" VerticalAlignment="Center"
                                                Foreground="{StaticResource SubtitleBrush}"/>
-                                    <TextBox Text="{Binding SelectedTextHex2, UpdateSourceTrigger=PropertyChanged}" 
+                                    <TextBox Text="{Binding SelectedTextHex2, UpdateSourceTrigger=PropertyChanged}"
                                              Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
-                                    <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4" 
+                                    <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
                                             BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                         <Border.Background>
                                             <SolidColorBrush Color="{Binding SelectedTextColor2}"/>
                                         </Border.Background>
                                     </Border>
-                                    <Button Click="PickSelectedTextColor2_Click" Margin="8,0,0,0" 
-                                            Style="{StaticResource SmallButtonStyle}">Pick</Button>
+                                    <Button Click="PickSelectedTextColor2_Click" Margin="8,0,0,0"
+                                            Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
                                 </StackPanel>
 
                                 <!-- Preview -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <TextBlock Text="Preview" Width="100" VerticalAlignment="Center" 
+                                    <TextBlock Text="{DynamicResource PreviewLabel}" Width="100" VerticalAlignment="Center"
                                                Foreground="{StaticResource SubtitleBrush}"/>
                                     <Border Width="200" Height="30" CornerRadius="4" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                         <Border.Background>
@@ -443,8 +443,8 @@
                                                 <GradientStop Color="{Binding SelectedTextColor2}" Offset="1"/>
                                             </LinearGradientBrush>
                                         </Border.Background>
-                                        <TextBlock Text="Gradient Text Sample" 
-                                                  HorizontalAlignment="Center" 
+                                        <TextBlock Text="{DynamicResource GradientSampleText}"
+                                                  HorizontalAlignment="Center"
                                                   VerticalAlignment="Center"
                                                   FontWeight="Bold"/>
                                     </Border>
@@ -453,7 +453,7 @@
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
                                         Visibility="{Binding IsDateTimeSelected, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="Date Format" Width="100" VerticalAlignment="Center"
+                                <TextBlock Text="{DynamicResource DateFormatLabel}" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
                                 <ComboBox Width="180"
                                           ItemsSource="{Binding DateFormats}"
@@ -466,25 +466,25 @@
                         <!-- Usage style selector -->
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,8"
                                     Visibility="{Binding IsUsageSelected, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Usage Style"  Width="100" VerticalAlignment="Center"
+                            <TextBlock Text="{DynamicResource UsageStyleLabel}"  Width="100" VerticalAlignment="Center"
                                        Foreground="{StaticResource SubtitleBrush}"/>
                             <ComboBox Width="180"
                                       SelectedValue="{Binding SelectedUsageDisplayStyle, UpdateSourceTrigger=PropertyChanged}"
                                       SelectedValuePath="Content"
                                       Style="{StaticResource DarkComboBoxStyle}">
-                                <ComboBoxItem Content="Text"/>
-                                <ComboBoxItem Content="ProgressBar"/>
-                                <ComboBoxItem Content="Gauge"/>
+                                <ComboBoxItem Content="{DynamicResource UsageTextStyleOption}"/>
+                                <ComboBoxItem Content="{DynamicResource UsageProgressBarStyleOption}"/>
+                                <ComboBoxItem Content="{DynamicResource UsageGaugeStyleOption}"/>
                             </ComboBox>
                         </StackPanel>
 
-                        <!-- Usage theme (only when ProgressBar / Gauge) -->
+                        <!-- Usage theme -->
                         <StackPanel Margin="0,0,0,8"
                                     Visibility="{Binding IsUsageVisualSelected, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Usage Theme" FontWeight="SemiBold" Margin="0,0,0,8"
+                            <TextBlock Text="{DynamicResource UsageThemeTitle}" FontWeight="SemiBold" Margin="0,0,0,8"
                                        Foreground="{StaticResource TitleBrush}" FontSize="14"/>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="Start #" Width="100" VerticalAlignment="Center"
+                                <TextBlock Text="{DynamicResource StartLabel}" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageStartHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
                                          Style="{StaticResource DarkTextBoxStyle}"/>
@@ -495,10 +495,10 @@
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                                        Click="PickUsageStartColor_Click">Pick</Button>
+                                        Click="PickUsageStartColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="End #" Width="100" VerticalAlignment="Center"
+                                <TextBlock Text="{DynamicResource EndLabel}" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageEndHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
                                          Style="{StaticResource DarkTextBoxStyle}"/>
@@ -509,26 +509,26 @@
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                                        Click="PickUsageEndColor_Click">Pick</Button>
+                                        Click="PickUsageEndColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
-             Visibility="{Binding IsGaugeSelected, Converter={StaticResource InverseBoolToVis}}">
-                                <TextBlock Text="Background #" Width="100" VerticalAlignment="Center"
-                Foreground="{StaticResource SubtitleBrush}"/>
+                                        Visibility="{Binding IsGaugeSelected, Converter={StaticResource InverseBoolToVis}}">
+                                <TextBlock Text="{DynamicResource BackgroundLabel}" Width="100" VerticalAlignment="Center"
+                                           Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageBarBackgroundHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-              Style="{StaticResource DarkTextBoxStyle}"/>
+                                         Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-             BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageBarBackgroundColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-             Click="PickUsageBarBackgroundColor_Click">Pick</Button>
+                                        Click="PickUsageBarBackgroundColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
                                         Visibility="{Binding IsGaugeSelected, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="Needle #" Width="100" VerticalAlignment="Center"
+                                <TextBlock Text="{DynamicResource NeedleLabel}" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageNeedleHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
                                          Style="{StaticResource DarkTextBoxStyle}"/>
@@ -539,10 +539,10 @@
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                                        Click="PickUsageNeedleColor_Click">Pick</Button>
+                                        Click="PickUsageNeedleColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <TextBlock Text="Preview" Width="100" VerticalAlignment="Center" 
+                                <TextBlock Text="{DynamicResource PreviewLabel}" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
                                 <Border Width="200" Height="30" CornerRadius="4" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
@@ -561,7 +561,7 @@
                             <StackPanel x:Name="ScaleRow"
                                         Orientation="Horizontal" Margin="0,0,0,8"
                                         Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}">
-                                <TextBlock Text="Scale" Width="100" VerticalAlignment="Center"
+                                <TextBlock Text="{DynamicResource ScaleLabel}" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
                                 <Slider Minimum="0.1" Maximum="5" Value="{Binding SelectedScale}"
                                         Width="160" Style="{StaticResource DarkSliderStyle}"/>
@@ -572,54 +572,52 @@
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
                                         Visibility="{Binding IsImageSelected, Converter={StaticResource BoolToVis}}">
-                                <TextBlock Text="Rotate/Mirror" Width="100" VerticalAlignment="Center"
+                                <TextBlock Text="{DynamicResource RotateMirrorLabel}" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource SmallButtonStyle}" Width="40"
                                             Click="RotateImageLeft_Click"
-                                            ToolTip="左旋90°">⟲</Button>
+                                            ToolTip="{DynamicResource RotateLeftTooltip}">⟲</Button>
                                     <Button Style="{StaticResource SmallButtonStyle}" Width="40" Margin="8,0,0,0"
                                             Click="RotateImageRight_Click"
-                                            ToolTip="右旋90°">⟳</Button>
+                                            ToolTip="{DynamicResource RotateRightTooltip}">⟳</Button>
                                     <Button Style="{StaticResource SmallButtonStyle}" Width="40" Margin="8,0,0,0"
                                             Click="MirrorImageHorizontal_Click"
-                                            ToolTip="水平镜像">⇋</Button>
+                                            ToolTip="{DynamicResource MirrorHorizontalTooltip}">⇋</Button>
                                 </StackPanel>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="Opacity" Width="100" VerticalAlignment="Center" 
+                                <TextBlock Text="{DynamicResource OpacityLabel}" Width="100" VerticalAlignment="Center"
                                            Foreground="{StaticResource SubtitleBrush}"/>
-                                <Slider Minimum="0.1" Maximum="1" Value="{Binding SelectedOpacity}" 
+                                <Slider Minimum="0.1" Maximum="1" Value="{Binding SelectedOpacity}"
                                         Width="160" Style="{StaticResource DarkSliderStyle}"/>
-                                <TextBlock Text="{Binding SelectedOpacity, StringFormat={}{0:P0}}" 
-                                           Margin="8,0,0,0" VerticalAlignment="Center" 
+                                <TextBlock Text="{Binding SelectedOpacity, StringFormat={}{0:P0}}"
+                                           Margin="8,0,0,0" VerticalAlignment="Center"
                                            Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <Button Click="BringToFront_Click" Style="{StaticResource SmallButtonStyle}">Bring To Front</Button>
-                                <Button Click="SendToBack_Click" Margin="8,0,0,0" Style="{StaticResource SmallButtonStyle}">Send To Back</Button>
-                                <Button Click="DeleteSelected_Click" Margin="8,0,0,0" Style="{StaticResource SmallButtonStyle}">Delete</Button>
+                                <Button Click="BringToFront_Click" Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource BringToFrontButton}"/>
+                                <Button Click="SendToBack_Click" Margin="8,0,0,0" Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource SendToBackButton}"/>
+                                <Button Click="DeleteSelected_Click" Margin="8,0,0,0" Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource DeleteButton}"/>
                             </StackPanel>
 
-                            <TextBlock Text="Tip: Drag to move. Ctrl + Mouse Wheel to scale."
-                                       Foreground="{StaticResource SubtitleBrush}" FontSize="12"
+                            <TextBlock Text="{DynamicResource TipScale}" Foreground="{StaticResource SubtitleBrush}" FontSize="12"
                                        Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}"/>
-                            <TextBlock Text="Tip: Drag to move."
-                                       Foreground="{StaticResource SubtitleBrush}" FontSize="12"
+                            <TextBlock Text="{DynamicResource TipMove}" Foreground="{StaticResource SubtitleBrush}" FontSize="12"
                                        Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
 
                         <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,16,0,16"/>
 
-                        <!-- Auto Move (only for plain text items) -->
+                        <!-- Auto Move -->
                         <StackPanel Margin="0,0,0,0" Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="Auto Move" FontWeight="SemiBold" Margin="0,0,0,8"
+                            <TextBlock Text="{DynamicResource AutoMoveTitle}" FontWeight="SemiBold" Margin="0,0,0,8"
                                        Foreground="{StaticResource TitleBrush}" FontSize="16"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="Speed" Width="100" VerticalAlignment="Center" Foreground="{StaticResource SubtitleBrush}"/>
+                                <TextBlock Text="{DynamicResource SpeedLabel}" Width="100" VerticalAlignment="Center" Foreground="{StaticResource SubtitleBrush}"/>
                                 <Slider Minimum="0" Maximum="400" Value="{Binding MoveSpeed}" Width="160"
                                         Style="{StaticResource DarkSliderStyle}"/>
                                 <TextBlock Text="{Binding MoveSpeed, StringFormat={}{0:0}}" Margin="8,0,0,0"
@@ -627,7 +625,7 @@
                             </StackPanel>
 
                             <StackPanel>
-                                <TextBlock Text="Direction" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{DynamicResource DirectionLabel}" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
                                 <Grid Width="120" Height="120"
                                       x:Name="JoystickBase"
                                       MouseLeftButtonDown="JoystickBase_MouseDown"
@@ -666,7 +664,7 @@
                                         </Ellipse.RenderTransform>
                                     </Ellipse>
                                 </Grid>
-                                <Button Content="Center"
+                                <Button Content="{DynamicResource CenterButton}"
                                         Width="80"
                                         Margin="0,8,0,0"
                                         Click="JoystickCenter_Click"

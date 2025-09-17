@@ -327,7 +327,7 @@
             </Grid.RowDefinitions>
 
             <!-- Cooling -->
-            <TextBlock Grid.Row="1" Text="Cooling" Style="{StaticResource SectionHeader}" />
+            <TextBlock Grid.Row="1" Text="{DynamicResource CoolingHeader}" Style="{StaticResource SectionHeader}" />
             <ItemsControl Grid.Row="2" ItemsSource="{Binding CoolingCards}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -337,7 +337,7 @@
             </ItemsControl>
 
             <!-- Power -->
-            <TextBlock Grid.Row="3" Text="Power" Style="{StaticResource SectionHeader}" />
+            <TextBlock Grid.Row="3" Text="{DynamicResource PowerHeader}" Style="{StaticResource SectionHeader}" />
             <ItemsControl Grid.Row="4" ItemsSource="{Binding PowerCards}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -347,7 +347,7 @@
             </ItemsControl>
 
             <!-- System -->
-            <TextBlock Grid.Row="5" Text="System" Style="{StaticResource SectionHeader}" />
+            <TextBlock Grid.Row="5" Text="{DynamicResource SystemHeader}" Style="{StaticResource SectionHeader}" />
             <ItemsControl Grid.Row="6" ItemsSource="{Binding SystemCards}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -357,7 +357,7 @@
             </ItemsControl>
 
             <!-- Network -->
-            <TextBlock Grid.Row="7" Text="Network" Style="{StaticResource SectionHeader}" />
+            <TextBlock Grid.Row="7" Text="{DynamicResource NetworkHeader}" Style="{StaticResource SectionHeader}" />
             <Border Grid.Row="8" Style="{StaticResource CardBorderStyle}" HorizontalAlignment="Left">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -365,7 +365,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="NETWORK"
+                    <TextBlock Text="{DynamicResource NetworkCardTitle}"
                                Foreground="{StaticResource SubtitleBrush}"
                                FontWeight="SemiBold" FontSize="14"
                                Margin="0,0,0,10"/>
@@ -395,7 +395,7 @@
                                                               Opacity="0.6"/>
                                         </Ellipse.Effect>
                                     </Ellipse>
-                                    <TextBlock Text="Download" Margin="8,2,0,0"
+                                    <TextBlock Text="{DynamicResource DownloadText}" Margin="8,2,0,0"
                                                Foreground="{StaticResource SubtitleBrush}" FontSize="14"/>
                                 </StackPanel>
 
@@ -410,7 +410,7 @@
                                                Foreground="{StaticResource ValueBrush}"
                                                FontSize="28" FontWeight="SemiBold"
                                                VerticalAlignment="Bottom"/>
-                                    <TextBlock Grid.Column="1" Text=" KB/s"
+                                    <TextBlock Grid.Column="1" Text="{DynamicResource KbpsUnit}"
                                                Foreground="{StaticResource SubtitleBrush}" FontSize="12"
                                                Margin="6,0,0,2" VerticalAlignment="Bottom"/>
                                 </Grid>
@@ -435,7 +435,7 @@
                                                               Opacity="0.6"/>
                                         </Ellipse.Effect>
                                     </Ellipse>
-                                    <TextBlock Text="Upload" Margin="8,2,0,0"
+                                    <TextBlock Text="{DynamicResource UploadText}" Margin="8,2,0,0"
                                                Foreground="{StaticResource SubtitleBrush}" FontSize="14"/>
                                 </StackPanel>
 
@@ -450,7 +450,7 @@
                                                Foreground="{StaticResource ValueBrush}"
                                                FontSize="28" FontWeight="SemiBold"
                                                VerticalAlignment="Bottom"/>
-                                    <TextBlock Grid.Column="1" Text=" KB/s"
+                                    <TextBlock Grid.Column="1" Text="{DynamicResource KbpsUnit}"
                                                Foreground="{StaticResource SubtitleBrush}" FontSize="12"
                                                Margin="6,0,0,2" VerticalAlignment="Bottom"/>
                                 </Grid>

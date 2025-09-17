@@ -5,9 +5,9 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       mc:Ignorable="d"
       FontFamily="{DynamicResource AppFontFamily}"
-      Title="Devices" 
-      Loaded="Page_Loaded" 
-      Unloaded="Page_Unloaded" 
+      Title="{DynamicResource DevicePageTitle}"
+      Loaded="Page_Loaded"
+      Unloaded="Page_Unloaded"
       Background="Transparent">
 
     <Grid>
@@ -23,7 +23,7 @@
             <TextBlock x:Name="StatusText"
                        Foreground="White"
                        FontWeight="SemiBold"
-                       Text="Status message"/>
+                       Text="{DynamicResource StatusMessagePlaceholder}"/>
         </Border>
 
         <!-- Main content -->
@@ -45,13 +45,13 @@
                                    Foreground="#666666"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,16"/>
-                        <TextBlock Text="No Connected Devices"
+                        <TextBlock Text="{DynamicResource NoConnectedDevices}"
                                    FontSize="24"
                                    FontWeight="SemiBold"
                                    Foreground="#CCCCCC"
                                    HorizontalAlignment="Center"
                                    Margin="0,0,0,8"/>
-                        <TextBlock Text="Connect a compatible device to get started"
+                        <TextBlock Text="{DynamicResource ConnectDeviceTip}"
                                    FontSize="14"
                                    Foreground="#888888"
                                    HorizontalAlignment="Center"/>
@@ -82,7 +82,7 @@
                                 <Border.RenderTransform>
                                     <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1"/>
                                 </Border.RenderTransform>
-                                
+
                                 <Grid>
                                     <!-- Device image or placeholder -->
                                     <Border CornerRadius="16" ClipToBounds="True">
@@ -94,7 +94,7 @@
                                                            FontSize="72"
                                                            Foreground="#666666"
                                                            HorizontalAlignment="Center"/>
-                                                <TextBlock Text="Device"
+                                                <TextBlock Text="{DynamicResource DevicePlaceholder}"
                                                            FontSize="14"
                                                            Foreground="#888888"
                                                            HorizontalAlignment="Center"
@@ -148,12 +148,12 @@
 
                                     <!-- Action buttons at bottom -->
                                     <StackPanel x:Name="ActionButtonsPanel"
-                                                Orientation="Vertical" 
+                                                Orientation="Vertical"
                                                 HorizontalAlignment="Center"
                                                 VerticalAlignment="Bottom"
                                                 Margin="12,0,12,16"
                                                 Opacity="0">
-                                        
+
                                         <!-- Config Button -->
                                         <Button x:Name="ConfigButton"
                                                 Click="ConfigButton_Click"
@@ -177,7 +177,7 @@
                                                                        Foreground="{TemplateBinding Foreground}"
                                                                        HorizontalAlignment="Center"
                                                                        Margin="0,0,10,0"/>
-                                                            <TextBlock Text="屏幕自定义"
+                                                            <TextBlock Text="{DynamicResource ScreenCustomize}"
                                                                        FontSize="11"
                                                                        FontWeight="{TemplateBinding FontWeight}"
                                                                        Foreground="{TemplateBinding Foreground}"
@@ -205,8 +205,7 @@
                                                 Margin="0,6,0,0"
                                                 Cursor="Hand"
                                                 Width="200"
-                                                Click="DisplayModeButton_Click"
-                                                >
+                                                Click="DisplayModeButton_Click">
                                             <Button.Template>
                                                 <ControlTemplate TargetType="Button">
                                                     <Border x:Name="border"
@@ -220,7 +219,7 @@
                                                                        Foreground="{TemplateBinding Foreground}"
                                                                        HorizontalAlignment="Center"
                                                                        Margin="0,0,10,0"/>
-                                                            <TextBlock Text="播放模式"
+                                                            <TextBlock Text="{DynamicResource PlayMode}"
                                                                        FontSize="11"
                                                                        FontWeight="{TemplateBinding FontWeight}"
                                                                        Foreground="{TemplateBinding Foreground}"
@@ -262,7 +261,7 @@
                                                                        Foreground="{TemplateBinding Foreground}"
                                                                        HorizontalAlignment="Center"
                                                                        Margin="0,0,10,0"/>
-                                                            <TextBlock Text="固件信息"
+                                                            <TextBlock Text="{DynamicResource FirmwareInfo}"
                                                                        FontSize="11"
                                                                        FontWeight="{TemplateBinding FontWeight}"
                                                                        Foreground="{TemplateBinding Foreground}"
@@ -288,14 +287,14 @@
                                     <EventTrigger RoutedEvent="MouseEnter">
                                         <BeginStoryboard>
                                             <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                <DoubleAnimation Storyboard.TargetName="CardScale"
                                                                  Storyboard.TargetProperty="ScaleX"
                                                                  To="1.02" Duration="0:0:0.2">
                                                     <DoubleAnimation.EasingFunction>
                                                         <CubicEase EasingMode="EaseOut"/>
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                <DoubleAnimation Storyboard.TargetName="CardScale"
                                                                  Storyboard.TargetProperty="ScaleY"
                                                                  To="1.02" Duration="0:0:0.2">
                                                     <DoubleAnimation.EasingFunction>
@@ -303,7 +302,7 @@
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
                                                 <!-- Show buttons on hover -->
-                                                <DoubleAnimation Storyboard.TargetName="ActionButtonsPanel" 
+                                                <DoubleAnimation Storyboard.TargetName="ActionButtonsPanel"
                                                                  Storyboard.TargetProperty="Opacity"
                                                                  To="1" Duration="0:0:0.25">
                                                     <DoubleAnimation.EasingFunction>
@@ -316,14 +315,14 @@
                                     <EventTrigger RoutedEvent="MouseLeave">
                                         <BeginStoryboard>
                                             <Storyboard>
-                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                <DoubleAnimation Storyboard.TargetName="CardScale"
                                                                  Storyboard.TargetProperty="ScaleX"
                                                                  To="1" Duration="0:0:0.15">
                                                     <DoubleAnimation.EasingFunction>
                                                         <CubicEase EasingMode="EaseIn"/>
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
-                                                <DoubleAnimation Storyboard.TargetName="CardScale" 
+                                                <DoubleAnimation Storyboard.TargetName="CardScale"
                                                                  Storyboard.TargetProperty="ScaleY"
                                                                  To="1" Duration="0:0:0.15">
                                                     <DoubleAnimation.EasingFunction>
@@ -331,7 +330,7 @@
                                                     </DoubleAnimation.EasingFunction>
                                                 </DoubleAnimation>
                                                 <!-- Hide buttons when not hovering -->
-                                                <DoubleAnimation Storyboard.TargetName="ActionButtonsPanel" 
+                                                <DoubleAnimation Storyboard.TargetName="ActionButtonsPanel"
                                                                  Storyboard.TargetProperty="Opacity"
                                                                  To="0" Duration="0:0:0.2">
                                                     <DoubleAnimation.EasingFunction>

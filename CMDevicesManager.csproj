@@ -8,6 +8,8 @@
 	<UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+	  <AssemblyName>LCDMaster</AssemblyName>
+	  <Product>LCDMaster</Product>
   </PropertyGroup>
 
   <PropertyGroup>

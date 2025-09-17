@@ -13,50 +13,54 @@ using MessageBox = System.Windows.MessageBox;
 namespace CMDevicesManager
 {
     /// <summary>
-    /// Interaction logic for App.xaml
+    /// Partial App class – system tray (NotifyIcon) localization adapted for zh-CN / zh-TW / en-US.
     /// </summary>
     public partial class App : Application
     {
         private NotifyIcon _notifyIcon;
         private bool _isExit;
+
         private void StartNotifyIcon()
         {
             try
             {
                 using var stream = Application.GetResourceStream(new Uri("pack://application:,,,/Resources/icon/icon.ico")).Stream;
-                
+
+                string appTitle = L("AppTitle", "LCDMaster");
+                string trayTooltip = L("TrayTooltip", appTitle);
+
                 _notifyIcon = new NotifyIcon
                 {
                     Icon = new Icon(stream),
                     Visible = true,
-                    Text = Application.Current.FindResource("TrayTooltip")?.ToString() ?? "CMDevicesManager - Hardware Monitoring Tool"
+                    Text = trayTooltip
                 };
-                
-                // 托盘菜单 with clearer descriptions
+
+                // Context menu (localized)
                 var contextMenu = new ContextMenuStrip();
-                var showWindowText = Application.Current.FindResource("ShowMainWindow")?.ToString() ?? "Show Main Window";
-                var exitAppText = Application.Current.FindResource("ExitApplication")?.ToString() ?? "Exit Application";
+                var showWindowText = L("ShowMainWindow", "Show Main Window");
+                var exitAppText = L("ExitApplication", "Exit Application");
                 contextMenu.Items.Add(showWindowText, null, (s, ev) => ShowMainWindow());
                 contextMenu.Items.Add("-"); // Separator
                 contextMenu.Items.Add(exitAppText, null, (s, ev) => ExitApp());
                 _notifyIcon.ContextMenuStrip = contextMenu;
 
-                // 双击托盘图标 → 显示主界面
+                // Double-click shows main window
                 _notifyIcon.DoubleClick += (s, ev) => ShowMainWindow();
 
-                // Show balloon tip to inform user about system tray functionality
-                _notifyIcon.BalloonTipTitle = "CMDevicesManager";
-                var trayBalloonMsg = Application.Current.FindResource("AppRunningInTray")?.ToString() ?? "Application is running in system tray. Double-click to open or right-click for options.";
-                _notifyIcon.BalloonTipText = trayBalloonMsg;
+                // Initial balloon tip
+                _notifyIcon.BalloonTipTitle = appTitle;
+                _notifyIcon.BalloonTipText = L("AppRunningInTray",
+                    "Application is running in system tray. Double-click to open or right-click for options.");
                 _notifyIcon.BalloonTipIcon = ToolTipIcon.Info;
-                _notifyIcon.ShowBalloonTip(3000); // Show for 3 seconds
+                _notifyIcon.ShowBalloonTip(3000);
             }
             catch (Exception ex)
             {
                 Logger.Error("Failed to initialize system tray icon", ex);
-                // Continue without system tray if it fails
             }
         }
+
         private void ShowMainWindow()
         {
             if (MainWindow == null)
@@ -64,7 +68,6 @@ namespace CMDevicesManager
                 MainWindow = new MainWindow();
                 MainWindow.Closing += MainWindow_Closing;
             }
-
             MainWindow.Show();
             MainWindow.WindowState = WindowState.Normal;
             MainWindow.Activate();
@@ -73,59 +76,67 @@ namespace CMDevicesManager
         private void ShowFirstMainWindow()
         {
             if (MainWindow == null)
-            {
                 MainWindow = new MainWindow();
-                
-            }
+
             MainWindow.Closing += MainWindow_Closing;
             MainWindow.Show();
             MainWindow.WindowState = WindowState.Normal;
             MainWindow.Activate();
         }
 
-        private void ShowSettings()
-        {
-            LocalizedMessageBox.Show("OpenSettingsPlaceholder");
-        }
+        private void ShowSettings() => LocalizedMessageBox.Show("OpenSettingsPlaceholder");
 
         private void ExitApp()
         {
             _isExit = true;
-            _notifyIcon.Visible = false;
+            if (_notifyIcon != null) _notifyIcon.Visible = false;
             MainWindow?.Close();
             Shutdown();
         }
-        // Update the MainWindow_Closing method signature to match the expected nullability
+
         private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (!_isExit)
-            {
-                // Ask user for confirmation before minimizing to tray
-                var result = LocalizedMessageBox.Show("CloseConfirmationMessage", "CloseConfirmation", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            if (_isExit) return;
 
-                switch (result)
-                {
-                    case MessageBoxResult.Yes:
-                        e.Cancel = true; // 阻止关闭
-                        MainWindow.Hide(); // 隐藏到托盘
-                        
-                        // Show balloon tip to remind user
-                        if (_notifyIcon != null)
-                        {
-                            _notifyIcon.BalloonTipTitle = "CMDevicesManager";
-                            var minimizedMsg = Application.Current.FindResource("AppMinimizedToTray")?.ToString() ?? "Application minimized to system tray. Double-click the tray icon to restore.";
-                            _notifyIcon.BalloonTipText = minimizedMsg;
-                            _notifyIcon.ShowBalloonTip(2000);
-                        }
-                        break;
-                    case MessageBoxResult.No:
-                        _isExit = true;
-                        // Let the application close normally
-                        break;
-                    case MessageBoxResult.Cancel:
-                        e.Cancel = true; // Stay in the application
-                        break;
-                }
+            var result = LocalizedMessageBox.Show("CloseConfirmationMessage", "CloseConfirmation",
+                MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    e.Cancel = true;
+                    MainWindow.Hide();
+                    if (_notifyIcon != null)
+                    {
+                        _notifyIcon.BalloonTipTitle = L("AppTitle", "LCDMaster");
+                        _notifyIcon.BalloonTipText = L("AppMinimizedToTray",
+                            "Application minimized to system tray. Double-click the tray icon to restore.");
+                        _notifyIcon.ShowBalloonTip(2000);
+                    }
+                    break;
+                case MessageBoxResult.No:
+                    _isExit = true; // allow close
+                    break;
+                case MessageBoxResult.Cancel:
+                    e.Cancel = true;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Helper to get localized string with fallback.
+        /// </summary>
+        private static string L(string key, string fallback)
+        {
+            try
+            {
+                var v = Application.Current.FindResource(key)?.ToString();
+                if (string.IsNullOrWhiteSpace(v)) return fallback;
+                return v;
+            }
+            catch
+            {
+                return fallback;
             }
         }
     }
