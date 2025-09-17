@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Height="800" Width="1200"
         WindowStyle="None"
-        AllowsTransparency="True"
+     
         ResizeMode="CanResize"
         MinWidth="1500" MinHeight="800"
         WindowStartupLocation="CenterScreen"
@@ -131,8 +131,8 @@
     </controls:MicaWindow.Resources>
     
     <Grid>
-       
-        <Border Background="#FF111114" BorderBrush="#FF111114" BorderThickness="5" CornerRadius="8">
+
+        <Border x:Name="RootOuterBorder" Background="#FF111114" BorderBrush="#FF111114" BorderThickness="5" CornerRadius="8">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="35"/>
