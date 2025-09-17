@@ -244,6 +244,7 @@ namespace HID.DisplayController
         private readonly Device _device;
         private readonly SemaphoreSlim _writeSemaphore; // Add this for write synchronization
         private readonly object _writeLock = new object(); // Additional lock for critical sections
+        private volatile bool _isDisposing = false;  // Simple flag approach
 
         private const byte StartEndMarker5A = 0x5A;
         // display-ctrl-ssr-command report ID 0x1E.
@@ -272,14 +273,45 @@ namespace HID.DisplayController
         public DeviceInfo DeviceInfo => _device.GetDeviceInfo();
 
         /// <summary>
-        /// Enhanced dispose method
+        /// Enhanced dispose method - stops all write operations before disposing
         /// </summary>
         public void Dispose()
         {
-            //StopResponseListener();
-            //_cancellationTokenSource?.Dispose();
-            _writeSemaphore?.Dispose(); // Dispose the semaphore
-            _device?.Dispose();
+            if (_isDisposing) return;
+
+            try
+            {
+                // Set flag to signal all operations to stop
+                _isDisposing = true;
+
+                // Stop the response listener first
+                //StopResponseListener();
+
+                // Brief wait for operations to see the flag and exit naturally
+                Thread.Sleep(500);
+
+                // Try to acquire semaphore with short timeout
+                bool acquired = _writeSemaphore?.Wait(TimeSpan.FromSeconds(1)) ?? false;
+
+                if (acquired)
+                {
+                    _writeSemaphore?.Release();
+                    Debug.WriteLine("[DisplayController] All write operations stopped during disposal");
+                }
+                else
+                {
+                    Debug.WriteLine("[DisplayController] Warning: Timeout waiting for write operations to complete");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[DisplayController] Error during disposal: {ex.Message}");
+            }
+            finally
+            {
+                _writeSemaphore?.Dispose();
+                _device?.Dispose();
+            }
         }
 
         public DisplayController(ushort vendorId, ushort productId, string serialNumber)
@@ -362,18 +394,31 @@ namespace HID.DisplayController
         // Wrap all write operations with synchronization
         private async Task WriteAsync(byte[] buffer)
         {
+            if (_isDisposing)
+            {
+                Debug.WriteLine("[DisplayController] Write operation skipped - controller is disposing");
+                return;
+            }
+
             await _writeSemaphore.WaitAsync();
             try
             {
+                if (_isDisposing)  // Check again after acquiring semaphore
+                {
+                    Debug.WriteLine("[DisplayController] Write operation cancelled - controller is disposing");
+                    return;
+                }
+
                 await Task.Run(() =>
                 {
                     lock (_writeLock)
                     {
+                        if (_isDisposing) return;  // Final check before actual write
                         _device.Write(buffer.AsSpan(0, buffer.Length));
                     }
                 });
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Debug.WriteLine($"[DisplayController] Error during WriteAsync: {ex.Message}");
                 throw;
@@ -386,17 +431,30 @@ namespace HID.DisplayController
 
         private void WriteSync(byte[] buffer)
         {
+            if (_isDisposing)
+            {
+                Debug.WriteLine("[DisplayController] Sync write operation skipped - controller is disposing");
+                return;
+            }
+
             _writeSemaphore.Wait();
             try
             {
+                if (_isDisposing)
+                {
+                    Debug.WriteLine("[DisplayController] Sync write operation cancelled - controller is disposing");
+                    return;
+                }
+
                 lock (_writeLock)
                 {
+                    if (_isDisposing) return;
                     _device.Write(buffer.AsSpan(0, buffer.Length));
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[DisplayController] Error during WriteAsync: {ex.Message}");
+                Debug.WriteLine($"[DisplayController] Error during WriteSync: {ex.Message}");
                 throw;
             }
             finally
