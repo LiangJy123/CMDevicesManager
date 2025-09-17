@@ -1,4 +1,5 @@
 ﻿using CMDevicesManager.Helper;
+using CMDevicesManager.Models;
 using CMDevicesManager.Services;
 using FFMpegCore;
 using System.Configuration;
@@ -258,13 +259,17 @@ namespace CMDevicesManager
                     
                     // Sync media files from local storage for this device
                     _offlineMediaDataService.SyncMediaFilesFromLocal(e.Device.SerialNumber);
-                    
-                    // Get device controller and update firmware info if available
-                    var controller = _hidDeviceService?.GetController(e.Device.Path);
-                    if (controller?.DeviceFWInfo != null)
+
+                    // Get device GetDevicePlaybackMode
+                    var playbackMode = _offlineMediaDataService.GetDevicePlaybackMode(e.Device.SerialNumber);
+                    // if is offline mode, switch to online mode
+                    if (playbackMode == PlaybackMode.OfflineVideo)
                     {
-                        _offlineMediaDataService.UpdateDeviceFirmwareInfo(e.Device.SerialNumber, controller.DeviceFWInfo);
+                        await Task.Delay(10000); // Wait a moment for device to stabilize
+                        Logger.Info($"Switching device {e.Device.SerialNumber} to Online mode");
+                        await _hidDeviceService.SetRealTimeDisplayAsync(false); // Disable real-time mode
                     }
+
                 }
 
                 // Notify Interactive Rendering Service about device connection
@@ -484,33 +489,6 @@ namespace CMDevicesManager
 
         #endregion
 
-        private async void InitializeHidDeviceService()
-        {
-            try
-            {
-                Logger.Info("Initializing HID Device Service");
-                
-                _hidDeviceService = new HidDeviceService();
-                
-                // Initialize the service locator
-                ServiceLocator.Initialize(_hidDeviceService);
-                
-                // Initialize the service with default VID/PID values
-                // You can customize these values based on your devices
-                await _hidDeviceService.InitializeAsync(
-                    vendorId: 0x2516,   // Your device's vendor ID
-                    productId: 0x0228,  // Your device's product ID
-                    usagePage: 0xFFFF   // Your device's usage page
-                );
-                
-                Logger.Info("HID Device Service initialized successfully");
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Failed to initialize HID Device Service", ex);
-                // Don't throw here - let the app continue without HID functionality
-            }
-        }
     }
 
 }

@@ -292,7 +292,7 @@ namespace CMDevicesManager.Services
                         // Check if we should disable real-time mode
                         if (IsRealTimeModeEnabled && (now - _lastActivity) > _realtimeTimeout)
                         {
-                            await EnsureRealtimeMode(false);
+                            //await EnsureRealtimeMode(false);
                         }
                     }
                     

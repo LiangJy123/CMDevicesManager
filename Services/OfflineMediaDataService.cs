@@ -54,7 +54,7 @@ namespace CMDevicesManager.Services
             // Ensure data directory exists
             Directory.CreateDirectory(baseDirectory);
             
-            _dataFilePath = Path.Combine(baseDirectory, "offline_media_data.json");
+            _dataFilePath = Path.Combine(baseDirectory, "status_offline_media_data.json");
             _backupDirectoryPath = Path.Combine(baseDirectory, "backups");
             _mediasDirectoryPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias");
 
@@ -688,12 +688,44 @@ namespace CMDevicesManager.Services
                     case "autosyncenabled":
                         if (value is bool autoSync) device.Settings.AutoSyncEnabled = autoSync;
                         break;
+                    case "playbackmode":
+                        if (value is PlaybackMode playbackMode) device.Settings.PlaybackMode = playbackMode;
+                        break;
                 }
                 
                 device.Touch();
                 _hasUnsavedChanges = true;
                 
                 DeviceDataChanged?.Invoke(this, new DeviceDataChangedEventArgs(device, $"Setting:{settingName}"));
+            }
+        }
+
+        /// <summary>
+        /// Updates device playback mode
+        /// </summary>
+        public void UpdateDevicePlaybackMode(string deviceSerial, PlaybackMode playbackMode)
+        {
+            lock (_lockObject)
+            {
+                var device = _database.GetOrCreateDevice(deviceSerial);
+                device.Settings.PlaybackMode = playbackMode;
+                device.Touch();
+                _hasUnsavedChanges = true;
+                
+                DeviceDataChanged?.Invoke(this, new DeviceDataChangedEventArgs(device, "PlaybackMode"));
+                Logger.Info($"Updated playback mode for device {deviceSerial} to {playbackMode}");
+            }
+        }
+
+        /// <summary>
+        /// Gets device playback mode
+        /// </summary>
+        public PlaybackMode GetDevicePlaybackMode(string deviceSerial)
+        {
+            lock (_lockObject)
+            {
+                var device = GetDevice(deviceSerial);
+                return device?.Settings.PlaybackMode ?? PlaybackMode.RealtimeConfig;
             }
         }
 

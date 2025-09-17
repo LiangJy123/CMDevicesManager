@@ -4,30 +4,32 @@
 // Source code available for transparency and security review.
 
 using CMDevicesManager.Helper;
+using CMDevicesManager.Models;
 using CMDevicesManager.Pages;
 using CMDevicesManager.Services;
 using MicaWPF.Controls;
+using System.Diagnostics;
+using System.IO;
+using System.Linq; // 若文件顶部尚未有
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;      // (optional, future cancellation)
+using System.Threading.Tasks; // ADDED
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using Application = System.Windows.Application;
-using MessageBox = System.Windows.MessageBox;
-using System.IO;
-using Path = System.IO.Path;
-using System.Threading.Tasks; // ADDED
-using System.Threading;      // (optional, future cancellation)
 using System.Windows.Threading;
+using Application = System.Windows.Application;
 using Brushes = System.Windows.Media.Brushes; // ADDED for DispatcherTimer
-using System.Linq; // 若文件顶部尚未有
-using System.Runtime.InteropServices;
-using System.Windows.Interop;
+using MessageBox = System.Windows.MessageBox;
+using Path = System.IO.Path;
 
 namespace CMDevicesManager
 {
@@ -62,7 +64,7 @@ namespace CMDevicesManager
         private const int MainRealtimeIntervalMs = 50;   // 50ms ≈ 20FPS
         private const int MainRealtimeSize = 480;        // 输出 480x480
         private FrameworkElement? _mainCaptureRoot;       // MirrorRoot
-         
+
         public MainWindow()
         {
             InitializeComponent();
@@ -417,6 +419,12 @@ namespace CMDevicesManager
                 _mainCaptureRoot.ActualWidth < 1 ||
                 _mainCaptureRoot.ActualHeight < 1) return;
             if (!GlobalMirrorCanvasService.Instance.HasActiveContent) return;
+            
+            if(!GetHidDeviceStatus())
+            {
+                // 没有连接的设备时不发送
+                return;
+            }
 
             var jpeg = CaptureElementToJpegFixedSquare(_mainCaptureRoot, MainRealtimeSize);
             if (jpeg == null || jpeg.Length == 0) return;
@@ -515,6 +523,54 @@ namespace CMDevicesManager
                 NavList.SelectedItem = target;
                 _lastNavContentItem = target;
                 NavList.SelectionChanged += NavList_SelectionChanged;
+            }
+        }
+
+        private bool GetHidDeviceStatus()
+        {
+            try
+            {
+                var hidService = ServiceLocator.HidDeviceService;
+                if(hidService.ConnectedDeviceCount == 0)
+                {
+                    return false;
+                }
+                var connectedDevices = hidService?.ConnectedDevices;
+                foreach(var dev in connectedDevices)
+                {
+                    if(dev != null)
+                    {
+                        return GetStoreRealTimeDisplayEnabled(dev.SerialNumber);
+                    }
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("GetHidDeviceStatus failed", ex);
+                return false;
+            }
+        }
+
+        private bool GetStoreRealTimeDisplayEnabled(string deviceSerialNumber)
+        {
+            try
+            {
+                var offlineService = ServiceLocator.OfflineMediaDataService;
+                var data = offlineService.GetDevicePlaybackMode(deviceSerialNumber);
+                if(data == PlaybackMode.RealtimeConfig)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("GetHidDeviceCount failed", ex);
+                return false;
             }
         }
 

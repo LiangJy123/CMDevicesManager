@@ -549,23 +549,23 @@
                                       HorizontalAlignment="Right"
                                       Click="SuspendModeToggle_Click"
                                       Style="{StaticResource SuspendModeToggleStyle}"
-                                      ToolTipService.ToolTip="OFF: Play the device build-in animation.  ON: Play the below imported image or animation."
+                                      ToolTipService.ToolTip="OFF: Play the app build realtime.  ON: Play the below imported image or animation."
                                       ToolTipService.Placement="MousePoint"
                                       ToolTipService.InitialShowDelay="100">
-                            <ToggleButton.ToolTip>
-                                <ToolTip MaxWidth="320">
-                                    <StackPanel>
-                                        <TextBlock Text="Suspend Mode Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
-                                        <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
-                    Toggle suspend mode for offline media playback. When activated, the device enters suspend mode to play stored media files.
-                                        </TextBlock>
-                                        <TextBlock Text="ON: Device plays suspend media offline" 
-                           FontSize="11" Foreground="LightBlue" Margin="0,2,0,0"/>
-                                        <TextBlock Text="OFF: Real-Time mode" 
-                           FontSize="11" Foreground="Orange" Margin="0,1,0,0"/>
-                                    </StackPanel>
-                                </ToolTip>
-                            </ToggleButton.ToolTip>
+                                      <ToggleButton.ToolTip>
+                                            <ToolTip MaxWidth="320">
+                                                <StackPanel>
+                                                    <TextBlock Text="Playback Modes Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
+                                                    <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
+                                Toggle suspend mode for offline media playback. When activated, the device enters suspend mode to play stored media files.
+                                                    </TextBlock>
+                                                    <TextBlock Text="ON: Device plays suspend media offline" 
+                                                                FontSize="11" Foreground="LightBlue" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="OFF: Real-Time mode" 
+                                                                FontSize="11" Foreground="Orange" Margin="0,1,0,0"/>
+                                                </StackPanel>
+                                            </ToolTip>
+                                      </ToggleButton.ToolTip>
                         </ToggleButton>
                     </UniformGrid>
                 </StackPanel>

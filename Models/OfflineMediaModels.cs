@@ -278,12 +278,15 @@ namespace CMDevicesManager.Models
         [JsonPropertyName("autoSyncEnabled")]
         public bool AutoSyncEnabled { get; set; } = true;
 
+        [JsonPropertyName("playbackMode")]
+        public PlaybackMode PlaybackMode { get; set; } = PlaybackMode.RealtimeConfig;
+
         [JsonPropertyName("lastSyncDateTime")]
         public DateTime? LastSyncDateTime { get; set; }
 
         public override string ToString()
         {
-            return $"Brightness: {Brightness}%, Rotation: {Rotation}°, KeepAlive: {KeepAliveTimeout}s";
+            return $"Brightness: {Brightness}%, Rotation: {Rotation}°, KeepAlive: {KeepAliveTimeout}s, PlaybackMode: {PlaybackMode}";
         }
     }
 
@@ -411,6 +414,18 @@ namespace CMDevicesManager.Models
 
         [JsonPropertyName("lastBackupDateTime")]
         public DateTime? LastBackupDateTime { get; set; }
+    }
+
+    /// <summary>
+    /// Playback mode enumeration for device play mode page
+    /// </summary>
+    public enum PlaybackMode
+    {
+        [Description("Realtime Config")]
+        RealtimeConfig = 0,
+
+        [Description("Offline Video")]
+        OfflineVideo = 1
     }
 
     /// <summary>
