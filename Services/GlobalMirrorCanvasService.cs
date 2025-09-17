@@ -76,6 +76,24 @@ namespace CMDevicesManager.Services
 
         private bool _hasActiveContent;
         public bool HasActiveContent => _hasActiveContent;
+
+        private List<SequenceRuntimeItem>? _sequenceItems;
+        private int _currentSequenceIndex = -1;
+        private DispatcherTimer? _sequenceSequentialTimer;
+        private DispatcherTimer? _sequencePollingTimer;
+        private DateTime _sequenceStartUtc;
+        private bool _sequenceUsingAbsoluteTimes;
+        private bool _sequenceModeActive;
+
+        private sealed class SequenceRuntimeItem
+        {
+            public string FilePath { get; set; } = "";
+            public CanvasConfiguration? Config { get; set; }
+            public TimeSpan Start { get; set; }
+            public TimeSpan End { get; set; }          // 仅绝对模式使用
+            public TimeSpan Duration { get; set; }     // 顺序模式或备用
+            public override string ToString() => $"{Path.GetFileName(FilePath)} Start={Start} Dur={Duration} End={End}";
+        }
         // ====== 移动调试日志控制 ======
         private bool _movementDebugLogging = false; // 默认关闭
         // 调试选项：强制为移动元素加可见背景/边框
@@ -147,12 +165,15 @@ namespace CMDevicesManager.Services
         public void LoadInitialFromGlobalSequence()
         {
             if (!_initialized) return;
+            StopSequencePlayback();  // 先停掉旧的
+
             try
             {
-                var seqPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager", "globalconfig1.json");
+                var seqPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                                           "CMDevicesManager", "globalconfig1.json");
                 if (!File.Exists(seqPath))
                 {
-                    _hasActiveContent = false;         // NEW
+                    _hasActiveContent = false;
                     ClearToBlank();
                     return;
                 }
@@ -162,38 +183,39 @@ namespace CMDevicesManager.Services
                 {
                     PropertyNameCaseInsensitive = true
                 });
-                var first = seq?.Items?.FirstOrDefault();
-                if (first == null || string.IsNullOrWhiteSpace(first.FilePath) || !File.Exists(first.FilePath))
+
+                if (seq?.Items == null || seq.Items.Count == 0)
                 {
-                    _hasActiveContent = false;         // NEW
+                    _hasActiveContent = false;
                     ClearToBlank();
                     return;
                 }
 
-                CanvasConfiguration? cfg = null;
-                try
+                // 新：构建序列
+                BuildSequence(seq.Items);
+                if (_sequenceItems == null || _sequenceItems.Count == 0)
                 {
-                    var cfgJson = File.ReadAllText(first.FilePath);
-                    cfg = JsonSerializer.Deserialize<CanvasConfiguration>(cfgJson, new JsonSerializerOptions
-                    {
-                        Converters = { new JsonStringEnumConverter() }
-                    });
-                }
-                catch { }
-
-                if (cfg == null)
-                {
-                    _hasActiveContent = false;         // NEW
+                    _hasActiveContent = false;
                     ClearToBlank();
                     return;
                 }
 
-                cfg.BackgroundColor = NormalizeColorOrWhite(cfg.BackgroundColor);
-                ApplyConfig(cfg);
+                if (_sequenceItems.Count == 1)
+                {
+                    // 单一配置仍走原逻辑
+                    var only = _sequenceItems[0];
+                    ApplyConfig(only.Config!);
+                    _sequenceModeActive = false;
+                    return;
+                }
+
+                // 启动序列播放
+                StartSequencePlayback();
             }
-            catch
+            catch (Exception ex)
             {
-                _hasActiveContent = false;             // NEW
+                Logger.Error("LoadInitialFromGlobalSequence failed", ex);
+                _hasActiveContent = false;
                 ClearToBlank();
             }
         }
@@ -205,7 +227,195 @@ namespace CMDevicesManager.Services
         private sealed class GlobalConfigEntry
         {
             public string FilePath { get; set; } = "";
+
+            // 可选：绝对开始秒（相对于序列开始）。若任一条目提供 StartSeconds，则进入绝对时间模式。
+            public double? StartSeconds { get; set; }
+
+            // 可选：持续秒数。绝对模式下用于计算 End（若未给，推断为直到下一个 Start 或默认值）。
+            public double? DurationSeconds { get; set; }
+
+            // 备用：支持 Duration / Start 其它命名（兼容可能的不同写法）
+            public double? Start { get; set; }
+            public double? Duration { get; set; }
         }
+        private void BuildSequence(List<GlobalConfigEntry> rawItems)
+        {
+            _sequenceItems = null;
+            if (rawItems == null || rawItems.Count == 0) return;
+
+            bool anyStart = rawItems.Any(i => (i.StartSeconds ?? i.Start).HasValue);
+            var list = new List<SequenceRuntimeItem>();
+
+            // 预加载配置
+            foreach (var entry in rawItems)
+            {
+                if (string.IsNullOrWhiteSpace(entry.FilePath)) continue;
+                if (!File.Exists(entry.FilePath)) continue;
+
+                CanvasConfiguration? cfg = null;
+                try
+                {
+                    var cfgJson = File.ReadAllText(entry.FilePath);
+                    cfg = JsonSerializer.Deserialize<CanvasConfiguration>(cfgJson, new JsonSerializerOptions
+                    {
+                        Converters = { new JsonStringEnumConverter() }
+                    });
+                }
+                catch
+                {
+                    continue;
+                }
+
+                if (cfg == null) continue;
+                cfg.BackgroundColor = NormalizeColorOrWhite(cfg.BackgroundColor);
+
+                double? startRaw = entry.StartSeconds ?? entry.Start;
+                double? durRaw = entry.DurationSeconds ?? entry.Duration;
+
+                list.Add(new SequenceRuntimeItem
+                {
+                    FilePath = entry.FilePath,
+                    Config = cfg,
+                    Start = anyStart
+                        ? TimeSpan.FromSeconds(startRaw ?? 0)
+                        : TimeSpan.Zero, // 顺序模式中稍后再计算
+                    Duration = TimeSpan.FromSeconds(durRaw.HasValue && durRaw.Value > 0 ? durRaw.Value : 5) // 默认 5 秒
+                });
+            }
+
+            if (list.Count == 0) return;
+
+            if (anyStart)
+            {
+                // 绝对模式：按 Start 排序
+                list = list.OrderBy(i => i.Start).ToList();
+                for (int i = 0; i < list.Count; i++)
+                {
+                    var cur = list[i];
+                    if (i < list.Count - 1)
+                    {
+                        var next = list[i + 1];
+                        // 如果显式 Duration 给出则用，未给出则使用直到下一个 start 的差
+                        if (cur.Duration.TotalSeconds <= 0.1)
+                            cur.Duration = next.Start - cur.Start;
+                        cur.End = cur.Start + cur.Duration;
+                    }
+                    else
+                    {
+                        // 最后一段：如果没有显式 Duration 且下一个不存在 -> 使用已有 Duration 或默认 5
+                        if (cur.End == TimeSpan.Zero)
+                            cur.End = cur.Start + (cur.Duration.TotalSeconds > 0.1 ? cur.Duration : TimeSpan.FromSeconds(5));
+                    }
+                }
+                _sequenceUsingAbsoluteTimes = true;
+            }
+            else
+            {
+                // 顺序模式：依次累加
+                TimeSpan cursor = TimeSpan.Zero;
+                foreach (var item in list)
+                {
+                    item.Start = cursor;
+                    item.End = cursor + item.Duration;
+                    cursor = item.End;
+                }
+                _sequenceUsingAbsoluteTimes = false;
+            }
+
+            _sequenceItems = list;
+            Logger.Info($"[Sequence] Built sequence items={_sequenceItems.Count} Mode={(_sequenceUsingAbsoluteTimes ? "Absolute" : "Sequential")}");
+            foreach (var it in _sequenceItems)
+                Logger.Info($"[Sequence] {it}");
+        }
+        private void StartSequencePlayback()
+        {
+            if (_sequenceItems == null || _sequenceItems.Count == 0) return;
+            _sequenceModeActive = true;
+            _currentSequenceIndex = -1;
+            _sequenceStartUtc = DateTime.UtcNow;
+
+            if (_sequenceUsingAbsoluteTimes)
+            {
+                // 轮询模式：500ms 检查当前该显示哪个
+                _sequencePollingTimer?.Stop();
+                _sequencePollingTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+                _sequencePollingTimer.Tick += SequencePollingTimer_Tick;
+                _sequencePollingTimer.Start();
+            }
+            else
+            {
+                // 顺序模式：使用逐段定时
+                PlayNextSequential();
+            }
+        }
+
+        private void StopSequencePlayback()
+        {
+            _sequenceModeActive = false;
+            _sequencePollingTimer?.Stop();
+            _sequencePollingTimer = null;
+            _sequenceSequentialTimer?.Stop();
+            _sequenceSequentialTimer = null;
+            _currentSequenceIndex = -1;
+        }
+
+        private void SequencePollingTimer_Tick(object? sender, EventArgs e)
+        {
+            if (!_sequenceModeActive || !_sequenceUsingAbsoluteTimes || _sequenceItems == null) return;
+
+            var elapsed = DateTime.UtcNow - _sequenceStartUtc;
+            // 找到最后一个 Start <= elapsed < End
+            var idx = _sequenceItems
+                .Select((v, i) => new { v, i })
+                .Where(x => elapsed >= x.v.Start && elapsed < x.v.End)
+                .Select(x => x.i)
+                .DefaultIfEmpty(-1)
+                .Last();
+
+            if (idx >= 0 && idx != _currentSequenceIndex)
+                ApplySequenceIndex(idx);
+
+            // 如果超过最后一个，循环（可按需求改为停止）
+            if (elapsed > _sequenceItems.Last().End)
+            {
+                _sequenceStartUtc = DateTime.UtcNow;
+                _currentSequenceIndex = -1;
+            }
+        }
+
+        private void PlayNextSequential()
+        {
+            if (!_sequenceModeActive || _sequenceUsingAbsoluteTimes) return;
+            if (_sequenceItems == null || _sequenceItems.Count == 0) return;
+
+            int next = _currentSequenceIndex + 1;
+            if (next >= _sequenceItems.Count)
+            {
+                // 循环播放
+                next = 0;
+            }
+
+            ApplySequenceIndex(next);
+
+            var dur = _sequenceItems[next].Duration;
+            _sequenceSequentialTimer?.Stop();
+            _sequenceSequentialTimer = new DispatcherTimer { Interval = dur <= TimeSpan.Zero ? TimeSpan.FromSeconds(5) : dur };
+            _sequenceSequentialTimer.Tick += (s, e) => PlayNextSequential();
+            _sequenceSequentialTimer.Start();
+        }
+
+        private void ApplySequenceIndex(int idx)
+        {
+            if (_sequenceItems == null || idx < 0 || idx >= _sequenceItems.Count) return;
+            _currentSequenceIndex = idx;
+            var item = _sequenceItems[idx];
+            if (item.Config != null)
+            {
+                Logger.Info($"[Sequence] Apply index={idx} file={Path.GetFileName(item.FilePath)} Start={item.Start} Dur={item.Duration}");
+                ApplyConfig(item.Config);
+            }
+        }
+
 
         public void ApplyConfig(CanvasConfiguration cfg)
         {
@@ -242,6 +452,7 @@ namespace CMDevicesManager.Services
 
         public void ClearToBlank()
         {
+            StopSequencePlayback();
             if (_designCanvas == null || _bgRect == null || _bgImage == null) return;
             StopVideoPlayback(disposeState: true);
             _designCanvas.Children.Clear();
@@ -1483,6 +1694,7 @@ namespace CMDevicesManager.Services
         {
             if (_disposed) return;
             _disposed = true;
+            StopSequencePlayback();
             try { _metricsTimer.Stop(); } catch { }
             try { _moveTimer.Stop(); } catch { }
             StopVideoPlayback(disposeState: true);
