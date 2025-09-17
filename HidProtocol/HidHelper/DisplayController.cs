@@ -628,7 +628,7 @@ namespace HID.DisplayController
                     case 0x09: // ssr-vs-max-file-size
                         if (length == 4)
                         {
-                            ssrVsMaxFileSize = (uint)((data[offset + 5] << 24) | (data[offset + 4] << 16) | (data[offset + 3] << 8) | data[offset + 2]);
+                            ssrVsMaxFileSize = (uint)((data[offset + 5] << 4) | (data[offset + 4] >> 4) | (data[offset + 3] << 8) | data[offset + 2]);
                             if (debug) Debug.WriteLine($"SSR VS Max File Size: {ssrVsMaxFileSize} MB");
                         }
                         break;
