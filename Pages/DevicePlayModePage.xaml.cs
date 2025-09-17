@@ -1,14 +1,18 @@
 ﻿// NEW: bring in config models + enum alias
+using CMDevicesManager.Helper;
+using CMDevicesManager.Models;
 using CMDevicesManager.Pages; // contains CanvasConfiguration / ElementConfiguration
 using CMDevicesManager.Services;
 using CMDevicesManager.Utilities;
 using HID.DisplayController;
 using HidApi;
+//using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -19,6 +23,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -52,6 +57,15 @@ namespace CMDevicesManager.Pages
         private List<VideoFrameData>? _currentVideoFrames;
         private int _videoFrameIndex;
         private Image? _videoImage;
+
+
+        private DeviceInfo? _deviceInfo;
+        private HidDeviceService? _hidDeviceService;
+        private bool _isHidServiceInitialized = false;
+        private bool _isLoading = false;
+        // Video thumbnail cache to avoid regenerating thumbnails
+        private Dictionary<string, BitmapImage> _videoThumbnailCache = new();
+
         private sealed class GlobalConfigSequence
         {
             public List<GlobalConfigEntry> Items { get; set; } = new();
@@ -209,7 +223,36 @@ namespace CMDevicesManager.Pages
         // Base folder (same logic as DeviceConfigPage)
         private readonly string _outputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CMDevicesManager");
 
-     
+
+        #region Properties
+
+        public DeviceInfo? DeviceInfo
+        {
+            get => _deviceInfo;
+            set
+            {
+                if (_deviceInfo != value)
+                {
+                    _deviceInfo = value;
+                    // Initialize HID service when device info is set
+                    _ = InitializeHidDeviceServiceAsync();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the HID device service is initialized and ready
+        /// </summary>
+        public bool IsHidServiceReady => _isHidServiceInitialized && _hidDeviceService?.IsInitialized == true;
+
+        /// <summary>
+        /// Gets the current HID device service instance
+        /// </summary>
+        public HidDeviceService? HidDeviceService => _hidDeviceService;
+
+        #endregion
+
+
         private void AttachConfigItemEvents(PlayConfigItem item)
         {
             item.PropertyChanged += OnConfigItemPropertyChanged;
@@ -227,7 +270,7 @@ namespace CMDevicesManager.Pages
                 SaveGlobalSequence(); // Duration 改变即保存
             }
         }
-      
+
 
         private void SaveGlobalSequence()
         {
@@ -346,18 +389,17 @@ namespace CMDevicesManager.Pages
             bool isRealtime = _currentPlayMode == PlayMode.RealtimeConfig;
 
             ConfigsContainer.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
-            VideoContainer.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
+            SuspendModeContentArea.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
 
             // 原来的 ConfigActionButtons / VideoActionButtons 如果只包含 Start/Stop，可在 XAML 中移除或设置 Visibility=Collapsed
             ConfigActionButtons.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
-            VideoActionButtons.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
+            //VideoActionButtons.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
 
             PlayContentTitleText.Text = isRealtime ? "Play Content" : "Video Playback";
             PlayContentHintText.Text = isRealtime
                 ? "Add configs to auto play (loop). Remove all to stop automatically."
                 : "Select an MP4 file to auto start playback. Clear to stop.";
 
-            UpdateModeSelectionVisuals();
         }
 
         // 修改播放模式按钮事件（只做模式切换 + 停止当前模式）
@@ -376,15 +418,35 @@ namespace CMDevicesManager.Pages
             if (!_isConfigSequenceRunning && ConfigSequence.Count > 0)
                 StartConfigSequence();
         }
-        private void UpdateModeSelectionVisuals()
+
+        private void RealtimeStreamingEnabled()
         {
-            if (RealtimeStreamingButton == null || Mp4StreamingButton == null) return;
-            RealtimeStreamingButton.IsChecked = _currentPlayMode == PlayMode.RealtimeConfig;
-            Mp4StreamingButton.IsChecked = _currentPlayMode == PlayMode.OfflineVideo;
+            if (_currentPlayMode == PlayMode.RealtimeConfig) return;
+
+            if (_isVideoStreaming)
+            {
+                _streamingCancellationSource?.Cancel();
+                _isVideoStreaming = false;
+            }
+
+            if (!_isConfigSequenceRunning && ConfigSequence.Count > 0)
+                StartConfigSequence();
         }
+        private  void SuspendModeEnabled()
+        {
+            if (_currentPlayMode == PlayMode.OfflineVideo) return;
 
+            if (_isConfigSequenceRunning)
+            {
+                _configSequenceCts?.Cancel();
+                _isConfigSequenceRunning = false;
+            }
 
-        private void Mp4StreamingButton_Click(object sender, RoutedEventArgs e)
+            //if (!_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath))
+            //    _ = StartVideoPlaybackInternalAsync();
+        }
+        
+        private async void Mp4StreamingButton_Click(object sender, RoutedEventArgs e)
         {
             if (_currentPlayMode == PlayMode.OfflineVideo) return;
 
@@ -396,184 +458,75 @@ namespace CMDevicesManager.Pages
             _currentPlayMode = PlayMode.OfflineVideo;
             UpdatePlayModeUI();
 
-            if (!_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath))
-                _ = StartVideoPlaybackInternalAsync();
+            //if (!_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath))
+            //    _ = StartVideoPlaybackInternalAsync();
         }
 
-        private async Task StartVideoPlaybackInternalAsync()
+        private async void SuspendModeToggle_Click(object sender, RoutedEventArgs e)
         {
-            if (string.IsNullOrEmpty(_selectedVideoPath) || _isVideoStreaming) return;
-            if (_multiDeviceManager == null)
-            {
-                _multiDeviceManager = new MultiDeviceManager(0x2516, 0x0228);
-                _multiDeviceManager.StartMonitoring();
-            }
+            if (!IsHidServiceReady || _hidDeviceService == null || _isLoading) return;
 
-            var devices = _multiDeviceManager.GetActiveControllers();
-            if (devices.Count == 0) return;
 
-            _isVideoStreaming = true;
-            _streamingCancellationSource = new CancellationTokenSource();
-            VideoInfoText.Text = "Playing (loop)...";
+            var toggle = sender as ToggleButton;
+            //var toggle = sender as ToggleButton;
+            if (toggle == null) return;
 
+            bool isActivated = toggle.IsChecked == true;
+
+            // No confirmation dialog needed - tooltip provides the info
             try
             {
-                StartKeepAliveTimer();
-                int frameDelayMs = 33;
-                await _multiDeviceManager.ExecuteOnAllDevices(async controller =>
+                SetLoadingState(true, isActivated ? "Activating suspend mode..." : "Activating RealTime mode...");
+
+                var results = await _hidDeviceService.SetRealTimeDisplayAsync(!isActivated);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
                 {
-                    try
+                    ShowNotification(isActivated ? "Suspend mode activated successfully." : "RealTime mode activated successfully.");
+
+                    _currentPlayMode =isActivated? PlayMode.OfflineVideo: PlayMode.RealtimeConfig;
+                    UpdatePlayModeUI();
+                    // Update suspend mode display based on new state
+                    if (isActivated)
                     {
-                        return await SendMp4DataWithAdvancedDeviceSync(
-                            controller,
-                            _selectedVideoPath!,
-                            frameDelayMs,
-                            (frameData, frameIndex, transferId) =>
-                            {
-                                try { UpdateStreamingImageViewerFromFrameData(frameData); } catch { }
-                            },
-                            cycleCount: int.MaxValue,
-                            _streamingCancellationSource.Token);
+                        SuspendModeEnabled();
+                        // When activating suspend mode, refresh the display
+                        await RefreshSuspendMediaDisplay();
                     }
-                    catch { return false; }
-                }, timeout: TimeSpan.FromHours(6));
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception) { }
-            finally
-            {
-                StopKeepAliveTimer();
-                _streamingCancellationSource?.Dispose();
-                _streamingCancellationSource = null;
-                _isVideoStreaming = false;
-                if (string.IsNullOrEmpty(_selectedVideoPath))
-                    VideoInfoText.Text = "Select an MP4 file to auto start.";
-                else
-                    VideoInfoText.Text = "Stopped.";
-            }
-        }
+                    else
+                    {
+                        RealtimeStreamingEnabled();
+                        // When clearing suspend mode, hide all suspend content
+                        HideSuspendModeContent();
 
-
-        // 选择视频
-        private void SelectVideoButton_Click(object sender, RoutedEventArgs e)
-        {
-            var ofd = new OpenFileDialog
-            {
-                Title = "Select MP4 Video",
-                Filter = "MP4 Video (*.mp4)|*.mp4|All Files|*.*"
-            };
-            if (ofd.ShowDialog() == true)
-            {
-                _selectedVideoPath = ofd.FileName;
-                SelectedVideoNameText.Text = System.IO.Path.GetFileName(_selectedVideoPath);
-                VideoInfoText.Text = "Auto starting...";
-                if (_currentPlayMode == PlayMode.OfflineVideo)
-                {
-                    _ = StartVideoPlaybackInternalAsync();
+                        // Refresh status to update display
+                        //await RefreshDeviceStatus();
+                    }
                 }
-            }
-        }
-
-        // 清除视频选择
-        private void ClearVideoButton_Click(object sender, RoutedEventArgs e)
-        {
-            _streamingCancellationSource?.Cancel();
-            _isVideoStreaming = false;
-            _selectedVideoPath = null;
-            SelectedVideoNameText.Text = "(None)";
-            VideoInfoText.Text = "Select an MP4 file to auto start.";
-        }
-
-        // 启动视频播放
-        private async void StartVideoButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (string.IsNullOrEmpty(_selectedVideoPath))
-            {
-                //ShowErrorMessage("No video selected.");
-                return;
-            }
-            if (_isVideoStreaming)
-            {
-                //ShowErrorMessage("Video already streaming.");
-                return;
-            }
-            if (_multiDeviceManager == null)
-            {
-                _multiDeviceManager = new MultiDeviceManager(0x2516, 0x0228);
-                _multiDeviceManager.StartMonitoring();
-            }
-
-            var devices = _multiDeviceManager.GetActiveControllers();
-            if (devices.Count == 0)
-            {
-                //ShowErrorMessage("No devices connected.");
-                return;
-            }
-
-            _isVideoStreaming = true;
-            _streamingCancellationSource = new CancellationTokenSource();
-            UpdatePlayModeUI();
-            //ShowStatusMessage($"Starting video playback: {SelectedVideoNameText.Text}");
-
-            try
-            {
-                StartKeepAliveTimer();
-                int frameDelayMs = 33; // 默认 ~30fps, 可根据实际帧率改进
-                var results = await _multiDeviceManager.ExecuteOnAllDevices(async controller =>
+                else
                 {
-                    try
-                    {
-                        bool ok = await SendMp4DataWithAdvancedDeviceSync(
-                            controller,
-                            _selectedVideoPath!,
-                            frameDelayMs,
-                            (frameData, frameIndex, transferId) =>
-                            {
-                                try { UpdateStreamingImageViewerFromFrameData(frameData); }
-                                catch { /* ignore */ }
-                            },
-                            cycleCount: int.MaxValue, // 无限循环，直到外部取消
-                            _streamingCancellationSource.Token);
-                        return ok;
-                    }
-                    catch
-                    {
-                        return false;
-                    }
-                }, timeout: TimeSpan.FromHours(6));
-                int okCount = results.Values.Count(v => v);
-               
-            }
-            catch (OperationCanceledException)
-            {
-               // ShowStatusMessage("Video playback stopped.");
+                    ShowNotification($"Failed to {(isActivated ? "activate" : "clear")} suspend mode. Please try again.", true);
+                    // Revert toggle state on failure
+                    toggle.IsChecked = !isActivated;
+                }
             }
             catch (Exception ex)
             {
-               // ShowErrorMessage("Video playback failed: " + ex.Message);
+                Debug.WriteLine($"Failed to {(isActivated ? "activate" : "clear")} suspend mode: {ex.Message}");
+                ShowNotification($"Failed to {(isActivated ? "activate" : "clear")} suspend mode: {ex.Message}", true);
+                // Revert toggle state on exception
+                toggle.IsChecked = !isActivated;
             }
             finally
             {
-                StopKeepAliveTimer();
-                _streamingCancellationSource?.Dispose();
-                _streamingCancellationSource = null;
-                _isVideoStreaming = false;
-                UpdatePlayModeUI();
+                SetLoadingState(false);
             }
         }
 
-        // 停止视频播放
-        private void StopVideoButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (_isVideoStreaming)
-            {
-                _streamingCancellationSource?.Cancel();
-                //ShowStatusMessage("Stopping video...");
-            }
-        }
 
         // 在 UpdateButtonStates 内（如果保留）增加模式适配（可选）
-        
+
 
         // 如果未调用 InitConfigSequence，请确保添加
         private void Page_Loaded(object sender, RoutedEventArgs e)
@@ -587,7 +540,7 @@ namespace CMDevicesManager.Pages
                 }
                 catch (Exception ex)
                 {
-                  //  ShowErrorMessage("Device manager init failed: " + ex.Message);
+                    //  ShowErrorMessage("Device manager init failed: " + ex.Message);
                 }
             }
             UpdatePlayModeUI();
@@ -600,7 +553,7 @@ namespace CMDevicesManager.Pages
             CurrentRotationText.Text = $"Current: {_currentRotation}°";
             UpdateRotationButtonAppearance(_currentRotation);
         }
-      
+
         private void UpdateDurationEditableStates()
         {
             bool editable = ConfigSequence.Count > 1;
@@ -609,7 +562,7 @@ namespace CMDevicesManager.Pages
                 item.IsDurationEditable = editable;
             }
         }
-       
+
 
 
         // 在构造函数结尾处调用
@@ -819,7 +772,11 @@ namespace CMDevicesManager.Pages
                 StartConfigSequence();
             }
         }
-
+        public DevicePlayModePage(DeviceInfo deviceInfo) : this()
+        {
+            DeviceInfo = deviceInfo;
+            //InitializeDevice();
+        }
         // In InitConfigSequence(), inside CollectionChanged handler add:
         private void InitConfigSequence()
         {
@@ -1870,7 +1827,7 @@ namespace CMDevicesManager.Pages
                 if (ok == results.Count)
                 {
                     _currentBrightness = newVal;
-                   // ShowStatusMessage($"Brightness {newVal}% applied.");
+                    // ShowStatusMessage($"Brightness {newVal}% applied.");
                 }
                 else
                 {
@@ -2116,14 +2073,14 @@ namespace CMDevicesManager.Pages
 
         private bool PrepareStreaming(bool keepAlive = true)
         {
-            
+
             return true;
         }
 
         private void FinishStreaming(Dictionary<DeviceInfo, bool> results)
         {
             int ok = results.Values.Count(v => v);
-           
+
         }
 
         private void CleanupStreaming()
@@ -2133,14 +2090,14 @@ namespace CMDevicesManager.Pages
         private void StopStreamingButton_Click(object sender, RoutedEventArgs e)
         {
             _streamingCancellationSource?.Cancel();
-           
+
         }
 
-    
 
-     
 
-       
+
+
+
 
         private void Page_Unloaded(object sender, RoutedEventArgs e)
         {
@@ -2392,5 +2349,1207 @@ namespace CMDevicesManager.Pages
                 // Swallow navigation exceptions silently
             }
         }
+
+
+        #region HID Device Service Management
+
+        /// <summary>
+        /// Initialize the HID device service and set up device filtering
+        /// </summary>
+        private async Task InitializeHidDeviceServiceAsync()
+        {
+            if (_deviceInfo == null || string.IsNullOrEmpty(_deviceInfo.Path))
+            {
+                Logger.Warn("Cannot initialize HID service: DeviceInfo or device path is null");
+                return;
+            }
+
+            try
+            {
+                Logger.Info($"Initializing HID Device Service for device: {_deviceInfo.ProductString} (Path: {_deviceInfo.Path})");
+
+                // Get the service from ServiceLocator
+                _hidDeviceService = ServiceLocator.HidDeviceService;
+
+                if (!_hidDeviceService.IsInitialized)
+                {
+                    Logger.Warn("HID Device Service is not initialized. Make sure it's initialized in App.xaml.cs");
+                    return;
+                }
+
+                // Set device path filter to only operate on this specific device
+                _hidDeviceService.SetDevicePathFilter(_deviceInfo.Path, enableFilter: true);
+
+                // Only subscribe to DeviceError events
+                //_hidDeviceService.DeviceError += OnHidDeviceError;
+
+                _isHidServiceInitialized = true;
+
+                // Verify the device is available
+                var targetDevices = _hidDeviceService.GetOperationTargetDevices();
+                if (targetDevices.Any())
+                {
+                    var targetDevice = targetDevices.First();
+                    Logger.Info($"Target device found: {targetDevice.ProductString} (Serial: {targetDevice.SerialNumber})");
+                }
+                else
+                {
+                    Logger.Warn($"Target device not found in connected devices. Device may be disconnected.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"Failed to initialize HID Device Service: {ex.Message}", ex);
+                _isHidServiceInitialized = false;
+            }
+        }
+
+        #endregion
+
+
+        #region Suspend Media Management Event Handlers
+
+        private void ShowNotification(string message, bool isError = false, int durationMs = 5000)
+        {
+        }
+
+        /// <summary>
+        /// Try to find local media file for a given slot index
+        /// </summary>
+        /// <param name="slotIndex">Zero-based slot index</param>
+        /// <returns>Local file path if found, null otherwise</returns>
+        private string? TryFindLocalMediaFile(int slotIndex)
+        {
+            try
+            {
+                // First check the offline media data service for this device
+                if (_deviceInfo?.SerialNumber != null && ServiceLocator.IsOfflineMediaServiceInitialized)
+                {
+                    var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                    var mediaFile = offlineDataService.GetSuspendMediaFile(_deviceInfo.SerialNumber, slotIndex);
+
+                    if (mediaFile != null && File.Exists(mediaFile.LocalPath))
+                    {
+                        Logger.Info($"Found media file in offline data for slot {slotIndex + 1}: {Path.GetFileName(mediaFile.LocalPath)}");
+                        return mediaFile.LocalPath;
+                    }
+                }
+
+                // Fallback to searching the medias directory
+                var mediasDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias");
+                if (!Directory.Exists(mediasDir))
+                    return null;
+
+                // Look for files matching the pattern suspend_{slotIndex}.{extension}
+                var searchPattern = $"suspend_{slotIndex}.*";
+                var matchingFiles = Directory.GetFiles(mediasDir, searchPattern);
+
+                if (matchingFiles.Length > 0)
+                {
+                    // Return the first matching file
+                    var filePath = matchingFiles[0];
+                    if (File.Exists(filePath))
+                    {
+                        Logger.Info($"Found local media file for slot {slotIndex + 1}: {Path.GetFileName(filePath)}");
+                        return filePath;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Error searching for local media file for slot {slotIndex + 1}: {ex.Message}");
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Handle media slot clicks for adding or viewing media
+        /// </summary>
+        private async void MediaSlot_Click(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null || _isLoading) return;
+
+            var border = sender as Border;
+            if (border?.Tag is string tagStr && int.TryParse(tagStr, out int slotIndex))
+            {
+                // Check if this slot already has media
+                var thumbnailImage = FindName($"MediaThumbnail{slotIndex + 1}") as Image;
+                var placeholder = FindName($"AddMediaPlaceholder{slotIndex + 1}") as StackPanel;
+
+                // Check if slot has media by looking at either thumbnail visibility or placeholder content
+                bool hasMedia = thumbnailImage?.Visibility == Visibility.Visible ||
+                               (placeholder != null && placeholder.Children.OfType<TextBlock>()
+                                   .FirstOrDefault()?.Text != "\uE710"); // Not the add icon
+
+                if (hasMedia)
+                {
+                    // Double-click or specific click handling for media preview
+                    if (e.ClickCount == 2)
+                    {
+                        await OpenMediaPreview(slotIndex);
+                    }
+                    else
+                    {
+                        // Single click - show media info
+                        ShowMediaInfo(slotIndex);
+                    }
+                }
+                else
+                {
+                    // Slot is empty - add new media
+                    await AddMediaToSlot(slotIndex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Open media preview for a slot (for future enhancement)
+        /// </summary>
+        private async Task OpenMediaPreview(int slotIndex)
+        {
+            try
+            {
+                // Try to find local media file
+                var localMediaPath = TryFindLocalMediaFile(slotIndex);
+                if (!string.IsNullOrEmpty(localMediaPath) && File.Exists(localMediaPath))
+                {
+                    var fileExtension = Path.GetExtension(localMediaPath).ToLower();
+                    if (IsImageFile(fileExtension) || IsVideoFile(fileExtension))
+                    {
+                        // For video files, try to get video info before opening
+                        if (IsVideoFile(fileExtension))
+                        {
+                            try
+                            {
+                                var videoInfo = await VideoThumbnailHelper.GetVideoInfoAsync(localMediaPath);
+                                if (videoInfo != null)
+                                {
+                                    var duration = videoInfo.Duration.ToString(@"mm\:ss");
+                                    var resolution = $"{videoInfo.PrimaryVideoStream?.Width}x{videoInfo.PrimaryVideoStream?.Height}";
+                                    Logger.Info($"Opening video: {Path.GetFileName(localMediaPath)} - Duration: {duration}, Resolution: {resolution}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Warn($"Failed to get video info: {ex.Message}");
+                            }
+                        }
+
+                        // Open with default system application
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = localMediaPath,
+                            UseShellExecute = true
+                        });
+                        Logger.Info($"Opened media preview for slot {slotIndex + 1}: {Path.GetFileName(localMediaPath)}");
+                    }
+                    else
+                    {
+                        ShowNotification($"Cannot preview this media type: {fileExtension}", true, 3000);
+                    }
+                }
+                else
+                {
+                    ShowNotification($"No local media file available for preview (Slot {slotIndex + 1})", true, 3000);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to open media preview for slot {slotIndex + 1}: {ex.Message}");
+                ShowNotification($"Failed to open media preview: {ex.Message}", true, 3000);
+            }
+        }
+
+        /// <summary>
+        /// Add media file to a specific slot
+        /// </summary>
+        private async Task AddMediaToSlot(int slotIndex)
+        {
+            try
+            {
+                var openFileDialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = $"Select Media File for Slot {slotIndex + 1}",
+                    Filter = "Supported Media|*.mp4;*.jpg;*.jpeg",
+                    CheckFileExists = true,
+                    CheckPathExists = true
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    var filePath = openFileDialog.FileName;
+                    await AddMediaFile(filePath, slotIndex);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to add media to slot {slotIndex}: {ex.Message}");
+                ShowNotification($"Failed to add media: {ex.Message}", true);
+            }
+        }
+
+        /// <summary>
+        /// Add media file to device and update UI
+        /// </summary>
+        private async Task AddMediaFile(string filePath, int slotIndex)
+        {
+            try
+            {
+                SetLoadingState(true, $"Adding media to slot {slotIndex + 1}...");
+
+                // Need to rename the file name start suspend_1.jpg, suspend_2.mp4, etc.
+                var fileExtension = Path.GetExtension(filePath).ToLower();
+                var newFileName = $"suspend_{slotIndex}{fileExtension}";
+
+                // Determine the target directory based on device serial number
+                string targetDir;
+                string newFilePath;
+
+                if (_deviceInfo?.SerialNumber != null && ServiceLocator.IsOfflineMediaServiceInitialized)
+                {
+                    // Use device-specific directory
+                    targetDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias", _deviceInfo.SerialNumber);
+                    newFilePath = Path.Combine(targetDir, newFileName);
+                }
+                else
+                {
+                    // Use general medias folder
+                    targetDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias");
+                    newFilePath = Path.Combine(targetDir, newFileName);
+                }
+
+                if (!Directory.Exists(targetDir))
+                    Directory.CreateDirectory(targetDir);
+
+                File.Copy(filePath, newFilePath, true);
+
+                // Update offline media data service if available
+                if (_deviceInfo?.SerialNumber != null && ServiceLocator.IsOfflineMediaServiceInitialized)
+                {
+                    var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                    offlineDataService.AddSuspendMediaFile(
+                        _deviceInfo.SerialNumber,
+                        newFileName,
+                        filePath,
+                        slotIndex,
+                        transferId: (byte)(slotIndex + 1)
+                    );
+                    Logger.Info($"Added media file to offline data: {newFileName}");
+                }
+
+                // Transfer file to device using suspend media functionality
+                var results = await _hidDeviceService.SendMultipleSuspendFilesAsync(
+                    new List<string> { newFilePath },
+                    startingTransferId: (byte)(slotIndex + 1));
+
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    // Update UI to show the media
+                    UpdateMediaSlotUI(slotIndex, newFilePath, true);
+                    ShowNotification($"Media added to slot {slotIndex + 1} successfully.");
+
+                    // Refresh device status to get updated suspend media info
+                    //await RefreshDeviceStatus();
+                }
+                else
+                {
+                    ShowNotification($"Failed to add media to slot {slotIndex + 1}.", true);
+
+                    // Remove from offline data if device transfer failed
+                    if (_deviceInfo?.SerialNumber != null && ServiceLocator.IsOfflineMediaServiceInitialized)
+                    {
+                        var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                        offlineDataService.RemoveSuspendMediaFile(_deviceInfo.SerialNumber, slotIndex);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to add media file: {ex.Message}");
+                Logger.Error($"Failed to add media file to slot {slotIndex + 1}: {ex.Message}", ex);
+                ShowNotification($"Failed to add media: {ex.Message}", true);
+            }
+            finally
+            {
+                SetLoadingState(false);
+            }
+        }
+
+        private void CloseWindowButton_Click(object sender, RoutedEventArgs e)
+        {
+            // 关闭承载此 Page 的窗口
+            Window.GetWindow(this)?.Close();
+        }
+        /// <summary>
+        /// Update media slot UI to show media or empty state
+        /// </summary>
+        private async void UpdateMediaSlotUI(int slotIndex, string filePath = null, bool hasMedia = false)
+        {
+            try
+            {
+                var slotNumber = slotIndex + 1;
+                var thumbnail = FindName($"MediaThumbnail{slotNumber}") as Image;
+                var placeholder = FindName($"AddMediaPlaceholder{slotNumber}") as StackPanel;
+                var infoOverlay = FindName($"MediaInfoOverlay{slotNumber}") as Border;
+                var fileName = FindName($"MediaFileName{slotNumber}") as TextBlock;
+                var removeButton = FindName($"RemoveMediaButton{slotNumber}") as Button;
+                var mediaSlot = FindName($"MediaSlot{slotNumber}") as Border;
+
+                // Release existing image source to prevent memory leaks and file locks
+                if (thumbnail?.Source is BitmapImage existingBitmap)
+                {
+                    try
+                    {
+                        // Clear the source and dispose if possible
+                        thumbnail.Source = null;
+
+                        // Force garbage collection of the bitmap to release file handles
+                        existingBitmap.StreamSource?.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Failed to release existing image source for slot {slotNumber}: {ex.Message}");
+                    }
+                }
+
+                if (hasMedia && !string.IsNullOrEmpty(filePath))
+                {
+                    // Show media state
+                    if (thumbnail != null)
+                    {
+                        // Try to load actual media content
+                        try
+                        {
+                            if (File.Exists(filePath))
+                            {
+                                var fileExtension = Path.GetExtension(filePath).ToLower();
+                                if (IsImageFile(fileExtension))
+                                {
+                                    // Display image directly with proper resource management
+                                    var bitmap = new BitmapImage();
+                                    bitmap.BeginInit();
+                                    bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                                    bitmap.CacheOption = BitmapCacheOption.OnLoad; // Load immediately and release file handle
+                                    bitmap.UriSource = new Uri(filePath);
+                                    bitmap.DecodePixelWidth = 200; // Optimize for display
+                                    bitmap.EndInit();
+                                    bitmap.Freeze(); // Make it thread-safe and optimize memory
+
+                                    thumbnail.Source = bitmap;
+                                    thumbnail.Visibility = Visibility.Visible;
+                                }
+                                else if (IsVideoFile(fileExtension))
+                                {
+                                    // Check cache first for video thumbnails
+                                    BitmapImage? videoThumbnail = null;
+
+                                    if (_videoThumbnailCache.ContainsKey(filePath))
+                                    {
+                                        videoThumbnail = _videoThumbnailCache[filePath];
+                                        Logger.Info($"Using cached video thumbnail for slot {slotNumber}: {Path.GetFileName(filePath)}");
+                                    }
+                                    else
+                                    {
+                                        // Generate and cache video thumbnail
+                                        videoThumbnail = await VideoThumbnailHelper.GenerateVideoThumbnailAsync(filePath, width: 200, height: 150);
+                                        if (videoThumbnail != null)
+                                        {
+                                            videoThumbnail.Freeze(); // Make it thread-safe and optimize memory
+                                            _videoThumbnailCache[filePath] = videoThumbnail;
+                                            Logger.Info($"Generated and cached video thumbnail for slot {slotNumber}: {Path.GetFileName(filePath)}");
+                                        }
+                                    }
+
+                                    if (videoThumbnail != null)
+                                    {
+                                        thumbnail.Source = videoThumbnail;
+                                        thumbnail.Visibility = Visibility.Visible;
+                                    }
+                                    else
+                                    {
+                                        // Fallback: hide thumbnail and show video icon in placeholder
+                                        thumbnail.Visibility = Visibility.Collapsed;
+                                        Logger.Warn($"Failed to generate video thumbnail for slot {slotNumber}: {Path.GetFileName(filePath)}");
+                                    }
+                                }
+                                else
+                                {
+                                    // For other file types
+                                    thumbnail.Visibility = Visibility.Collapsed;
+                                }
+                            }
+                            else
+                            {
+                                // File doesn't exist locally (device media), show media icon instead
+                                thumbnail.Visibility = Visibility.Collapsed;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // If media loading fails, hide the image
+                            Logger.Warn($"Failed to load media for slot {slotNumber}: {ex.Message}");
+                            thumbnail.Visibility = Visibility.Collapsed;
+                        }
+                    }
+
+                    if (placeholder != null)
+                    {
+                        // Show appropriate icon based on media type
+                        var iconBlock = placeholder.Children.OfType<TextBlock>().FirstOrDefault();
+                        var textBlock = placeholder.Children.OfType<TextBlock>().LastOrDefault();
+
+                        if (iconBlock != null)
+                        {
+                            if (File.Exists(filePath))
+                            {
+                                var fileExtension = Path.GetExtension(filePath).ToLower();
+                                if (IsVideoFile(fileExtension))
+                                {
+                                    iconBlock.Text = "\uE714"; // Video play icon
+                                    iconBlock.Foreground = new SolidColorBrush(Colors.LightCoral);
+                                    iconBlock.FontSize = 24; // Larger for video icon
+                                }
+                                else if (IsImageFile(fileExtension))
+                                {
+                                    // For images, hide placeholder since we show the actual image
+                                    iconBlock.Text = "\uE91B"; // Image icon (backup)
+                                    iconBlock.Foreground = new SolidColorBrush(Colors.LightGreen);
+                                }
+                                else
+                                {
+                                    iconBlock.Text = "\uE8A5"; // Generic media icon
+                                    iconBlock.Foreground = new SolidColorBrush(Colors.LightBlue);
+                                }
+                            }
+                            else
+                            {
+                                // Device media
+                                iconBlock.Text = "\uE8B3"; // Device media icon
+                                iconBlock.Foreground = new SolidColorBrush(Colors.LightBlue);
+                            }
+                        }
+
+                        if (textBlock != null && textBlock != iconBlock)
+                        {
+                            if (File.Exists(filePath))
+                            {
+                                var fileExtension = Path.GetExtension(filePath).ToLower();
+                                if (IsVideoFile(fileExtension))
+                                {
+                                    textBlock.Text = "Video Media";
+                                    textBlock.Foreground = new SolidColorBrush(Colors.LightCoral);
+                                }
+                                else if (IsImageFile(fileExtension))
+                                {
+                                    textBlock.Text = "Image Media";
+                                    textBlock.Foreground = new SolidColorBrush(Colors.LightGreen);
+                                }
+                                else
+                                {
+                                    textBlock.Text = "Media File";
+                                    textBlock.Foreground = new SolidColorBrush(Colors.LightBlue);
+                                }
+                            }
+                            else
+                            {
+                                textBlock.Text = "Device Media";
+                                textBlock.Foreground = new SolidColorBrush(Colors.LightBlue);
+                            }
+                        }
+
+                        // Show placeholder when image is not visible (for videos with thumbnails, hide placeholder)
+                        // For videos with successful thumbnails, hide the placeholder; for failed thumbnails, show it
+                        bool showPlaceholder = thumbnail?.Visibility != Visibility.Visible;
+                        placeholder.Visibility = showPlaceholder ? Visibility.Visible : Visibility.Collapsed;
+                    }
+
+                    if (infoOverlay != null) infoOverlay.Visibility = Visibility.Visible;
+                    if (fileName != null)
+                    {
+                        fileName.Text = File.Exists(filePath) ? Path.GetFileName(filePath) : Path.GetFileName(filePath);
+                    }
+                    if (removeButton != null) removeButton.Visibility = Visibility.Visible;
+                    if (mediaSlot != null) mediaSlot.BorderBrush = new SolidColorBrush(Colors.Green);
+                }
+                else
+                {
+                    // Show empty slot - ensure image source is properly released
+                    if (thumbnail != null)
+                    {
+                        // Properly release the image source
+                        if (thumbnail.Source is BitmapImage bitmapToRelease)
+                        {
+                            try
+                            {
+                                thumbnail.Source = null;
+                                bitmapToRelease.StreamSource?.Dispose();
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Warn($"Failed to release image source for empty slot {slotNumber}: {ex.Message}");
+                            }
+                        }
+                        else
+                        {
+                            thumbnail.Source = null;
+                        }
+                        thumbnail.Visibility = Visibility.Collapsed;
+                    }
+                    if (placeholder != null)
+                    {
+                        // Reset to add media state
+                        var iconBlock = placeholder.Children.OfType<TextBlock>().FirstOrDefault();
+                        var textBlock = placeholder.Children.OfType<TextBlock>().LastOrDefault();
+
+                        if (iconBlock != null)
+                        {
+                            iconBlock.Text = "\uE710"; // Add icon
+                            iconBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66));
+                            iconBlock.FontSize = 20; // Reset font size
+                        }
+                        if (textBlock != null && textBlock != iconBlock)
+                        {
+                            textBlock.Text = "Add Media";
+                            textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66));
+                        }
+
+                        placeholder.Visibility = Visibility.Visible;
+                    }
+                    if (infoOverlay != null) infoOverlay.Visibility = Visibility.Collapsed;
+                    if (removeButton != null) removeButton.Visibility = Visibility.Collapsed;
+                    if (mediaSlot != null) mediaSlot.BorderBrush = new SolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to update media slot UI: {ex.Message}");
+                Logger.Error($"Failed to update media slot {slotIndex + 1} UI: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Check if file extension is an image
+        /// </summary>
+        private bool IsImageFile(string extension)
+        {
+            var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp" };
+            return imageExtensions.Contains(extension);
+        }
+
+        /// <summary>
+        /// Check if file extension is a video
+        /// </summary>
+        private bool IsVideoFile(string extension)
+        {
+            return VideoThumbnailHelper.IsSupportedVideoFile($"dummy{extension}");
+        }
+
+        /// <summary>
+        /// Show media information for a slot
+        /// </summary>
+        private void ShowMediaInfo(int slotIndex)
+        {
+            var fileName = FindName($"MediaFileName{slotIndex + 1}") as TextBlock;
+            var mediaName = fileName?.Text ?? $"Media {slotIndex + 1}";
+
+            ShowNotification($"Media: {mediaName} (Slot {slotIndex + 1})", false, 3000);
+        }
+
+        /// <summary>
+        /// Remove media from a specific slot
+        /// </summary>
+        private async void RemoveMedia_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null || _isLoading) return;
+
+            var button = sender as Button;
+            if (button?.Tag is string tagStr && int.TryParse(tagStr, out int slotIndex))
+            {
+                try
+                {
+                    SetLoadingState(true, $"Removing media from slot {slotIndex + 1}...");
+
+                    // Release image source before deletion to avoid file locks
+                    var slotNumber = slotIndex + 1;
+                    var thumbnail = FindName($"MediaThumbnail{slotNumber}") as Image;
+                    if (thumbnail?.Source is BitmapImage bitmapToRelease)
+                    {
+                        try
+                        {
+                            thumbnail.Source = null;
+                            bitmapToRelease.StreamSource?.Dispose();
+                            Logger.Info($"Released image source for slot {slotNumber} before deletion");
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"Failed to release image source for slot {slotNumber}: {ex.Message}");
+                        }
+                    }
+
+                    // Get the actual filename from the offline media data or local media file
+                    string? fileNameToDelete = null;
+                    string? localMediaPath = null;
+
+                    // First try to get from offline media data service
+                    if (_deviceInfo?.SerialNumber != null && ServiceLocator.IsOfflineMediaServiceInitialized)
+                    {
+                        var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                        var mediaFile = offlineDataService.GetSuspendMediaFile(_deviceInfo.SerialNumber, slotIndex);
+
+                        if (mediaFile != null)
+                        {
+                            fileNameToDelete = mediaFile.FileName;
+                            localMediaPath = mediaFile.LocalPath;
+                            Logger.Info($"Found media file in offline data for deletion: {fileNameToDelete}");
+                        }
+                    }
+
+                    // Fallback to trying to find local media file
+                    if (string.IsNullOrEmpty(fileNameToDelete))
+                    {
+                        localMediaPath = TryFindLocalMediaFile(slotIndex);
+                        if (!string.IsNullOrEmpty(localMediaPath) && File.Exists(localMediaPath))
+                        {
+                            fileNameToDelete = Path.GetFileName(localMediaPath);
+                            Logger.Info($"Found local media file for deletion: {fileNameToDelete}");
+                        }
+                    }
+
+                    // Use fallback naming pattern if still no file found
+                    if (string.IsNullOrEmpty(fileNameToDelete))
+                    {
+                        fileNameToDelete = $"suspend_{slotIndex}";
+                        Logger.Info($"Using fallback filename for deletion: {fileNameToDelete}");
+                    }
+
+                    // Delete specific suspend file from device using the actual filename
+                    var results = await _hidDeviceService.DeleteSuspendFilesAsync(fileNameToDelete);
+                    var successCount = results.Values.Count(r => r);
+
+                    if (successCount > 0)
+                    {
+                        // Remove from offline media data service
+                        if (_deviceInfo?.SerialNumber != null && ServiceLocator.IsOfflineMediaServiceInitialized)
+                        {
+                            var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                            offlineDataService.RemoveSuspendMediaFile(_deviceInfo.SerialNumber, slotIndex);
+                            Logger.Info($"Removed media file from offline data: slot {slotIndex + 1}");
+                        }
+
+                        // Remove from video thumbnail cache if it exists
+                        if (!string.IsNullOrEmpty(localMediaPath) && _videoThumbnailCache.ContainsKey(localMediaPath))
+                        {
+                            try
+                            {
+                                var cachedThumbnail = _videoThumbnailCache[localMediaPath];
+                                _videoThumbnailCache.Remove(localMediaPath);
+
+                                // Dispose the cached thumbnail to free memory
+                                cachedThumbnail?.StreamSource?.Dispose();
+                                Logger.Info($"Removed and disposed video thumbnail from cache: {Path.GetFileName(localMediaPath)}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Warn($"Failed to dispose cached thumbnail: {ex.Message}");
+                            }
+                        }
+
+                        // Also remove the local file if it exists and wasn't handled by offline service
+                        if (!string.IsNullOrEmpty(localMediaPath) && File.Exists(localMediaPath))
+                        {
+                            try
+                            {
+                                // Small delay to ensure image source is fully released
+                                await Task.Delay(100);
+
+                                File.Delete(localMediaPath);
+                                Logger.Info($"Deleted local media file: {Path.GetFileName(localMediaPath)}");
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Warn($"Failed to delete local media file: {ex.Message}");
+                            }
+                        }
+
+                        // Update UI to show empty slot
+                        UpdateMediaSlotUI(slotIndex, null, false);
+                        ShowNotification($"Media removed from slot {slotIndex + 1} successfully.");
+
+                        // Refresh device status to get updated suspend media info
+                        //await RefreshDeviceStatus();
+                    }
+                    else
+                    {
+                        ShowNotification($"Failed to remove media from slot {slotIndex + 1}.", true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to remove media: {ex.Message}");
+                    Logger.Error($"Failed to remove media from slot {slotIndex + 1}: {ex.Message}", ex);
+                    ShowNotification($"Failed to remove media: {ex.Message}", true);
+                }
+                finally
+                {
+                    SetLoadingState(false);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Add multiple media files at once
+        /// </summary>
+        private async void AddAllMedia_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null || _isLoading) return;
+
+            try
+            {
+                var openFileDialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "Select Multiple Media Files",
+                    Filter = "Supported Media|*.mp4;*.jpg;*.jpeg;*.png;*.gif;*.bmp|" +
+                            "Video Files|*.mp4|" +
+                            "Image Files|*.jpg;*.jpeg;*.png;*.gif;*.bmp|" +
+                            "All Files|*.*",
+                    CheckFileExists = true,
+                    CheckPathExists = true,
+                    Multiselect = true
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    var filePaths = openFileDialog.FileNames.Take(5).ToList(); // Limit to 5 files
+
+                    SetLoadingState(true, "Adding multiple media files...");
+
+                    // Process each file individually with proper naming
+                    var processedFiles = new List<string>();
+                    for (int i = 0; i < filePaths.Count && i < 5; i++)
+                    {
+                        var originalPath = filePaths[i];
+                        var fileExtension = Path.GetExtension(originalPath).ToLower();
+                        var newFileName = $"suspend_{i}{fileExtension}";
+
+                        // Save to medias folder first
+                        var mediasDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias");
+                        if (!Directory.Exists(mediasDir))
+                            Directory.CreateDirectory(mediasDir);
+                        var newFilePath = Path.Combine(mediasDir, newFileName);
+                        File.Copy(originalPath, newFilePath, true);
+
+                        processedFiles.Add(newFilePath);
+                    }
+
+                    // Send all processed files to device
+                    var results = await _hidDeviceService.SendMultipleSuspendFilesAsync(processedFiles, startingTransferId: 1);
+                    var successCount = results.Values.Count(r => r);
+
+                    if (successCount > 0)
+                    {
+                        ShowNotification($"Added {processedFiles.Count} media files successfully.");
+
+                        // Refresh device status to get updated suspend media info
+                        //await RefreshDeviceStatus();
+                    }
+                    else
+                    {
+                        ShowNotification("Failed to add media files.", true);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to add multiple media files: {ex.Message}");
+                Logger.Error($"Failed to add multiple media files: {ex.Message}", ex);
+                ShowNotification($"Failed to add media files: {ex.Message}", true);
+            }
+            finally
+            {
+                SetLoadingState(false);
+            }
+        }
+
+        /// <summary>
+        /// Clear all media files
+        /// </summary>
+        private async void ClearAllMedia_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null || _isLoading) return;
+
+            try
+            {
+                SetLoadingState(true, "Clearing all media files...");
+
+                // Release all image sources first to prevent file locks
+                for (int i = 0; i < 5; i++)
+                {
+                    var slotNumber = i + 1;
+                    var thumbnail = FindName($"MediaThumbnail{slotNumber}") as Image;
+                    if (thumbnail?.Source is BitmapImage bitmapToRelease)
+                    {
+                        try
+                        {
+                            thumbnail.Source = null;
+                            bitmapToRelease.StreamSource?.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"Failed to release image source for slot {slotNumber}: {ex.Message}");
+                        }
+                    }
+                }
+
+                // Delete all suspend files from device
+                var results = await _hidDeviceService.DeleteSuspendFilesAsync("all");
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    // Clear from offline media data service
+                    if (_deviceInfo?.SerialNumber != null && ServiceLocator.IsOfflineMediaServiceInitialized)
+                    {
+                        var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                        offlineDataService.ClearAllSuspendMediaFiles(_deviceInfo.SerialNumber);
+                        Logger.Info("Cleared all suspend media files from offline data");
+                    }
+
+                    // Also clean up all local media files and cache
+                    try
+                    {
+                        // First try device-specific directory
+                        var deviceMediasDir = _deviceInfo?.SerialNumber != null
+                            ? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias", _deviceInfo.SerialNumber)
+                            : null;
+
+                        var mediasDirectories = new List<string>();
+                        if (deviceMediasDir != null && Directory.Exists(deviceMediasDir))
+                        {
+                            mediasDirectories.Add(deviceMediasDir);
+                        }
+
+                        // Also check general medias directory
+                        var generalMediasDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "medias");
+                        if (Directory.Exists(generalMediasDir))
+                        {
+                            mediasDirectories.Add(generalMediasDir);
+                        }
+
+                        // Clear video thumbnail cache and dispose cached thumbnails first
+                        var thumbnailsToDispose = new List<BitmapImage>(_videoThumbnailCache.Values);
+                        _videoThumbnailCache.Clear();
+
+                        foreach (var cachedThumbnail in thumbnailsToDispose)
+                        {
+                            try
+                            {
+                                cachedThumbnail?.StreamSource?.Dispose();
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Warn($"Failed to dispose cached thumbnail: {ex.Message}");
+                            }
+                        }
+                        Logger.Info("Disposed all cached video thumbnails");
+
+                        // Small delay to ensure all image sources are released
+                        await Task.Delay(200);
+
+                        foreach (var mediasDir in mediasDirectories)
+                        {
+                            // Delete all suspend media files (suspend_0.*, suspend_1.*, etc.)
+                            for (int i = 0; i < 5; i++)
+                            {
+                                var searchPattern = $"suspend_{i}.*";
+                                var matchingFiles = Directory.GetFiles(mediasDir, searchPattern);
+
+                                foreach (var file in matchingFiles)
+                                {
+                                    try
+                                    {
+                                        File.Delete(file);
+                                        Logger.Info($"Deleted local media file: {Path.GetFileName(file)}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Logger.Warn($"Failed to delete local file {Path.GetFileName(file)}: {ex.Message}");
+                                    }
+                                }
+                            }
+                        }
+
+                        Logger.Info("Cleared video thumbnail cache and local media files");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Failed to clean up local media files: {ex.Message}");
+                    }
+
+                    ShowNotification("All media files cleared successfully.");
+
+                    // Refresh device status to get updated suspend media info
+                    //await RefreshDeviceStatus();
+                }
+                else
+                {
+                    ShowNotification("Failed to clear media files.", true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to clear all media: {ex.Message}");
+                Logger.Error($"Failed to clear all media: {ex.Message}", ex);
+                ShowNotification($"Failed to clear media files: {ex.Message}", true);
+            }
+            finally
+            {
+                SetLoadingState(false);
+            }
+        }
+
+        // New methods for active suspend media display
+        private void ShowActiveSuspendMedia()
+        {
+            try
+            {
+                // Ensure content area is visible
+                var contentArea = FindName("SuspendModeContentArea") as FrameworkElement;
+                if (contentArea != null) contentArea.Visibility = Visibility.Visible;
+
+                // Load media slots instead of old list
+                LoadSuspendMediaSlots(new DeviceStatus()); // Pass empty status for now
+            }
+            catch { /* UI elements may not be available */ }
+        }
+
+        private void ShowAddMediaButton()
+        {
+            try
+            {
+                // Ensure content area is visible
+                var contentArea = FindName("SuspendModeContentArea") as FrameworkElement;
+                if (contentArea != null) contentArea.Visibility = Visibility.Visible;
+
+                // Clear all media slots to show add buttons
+                for (int i = 0; i < 5; i++)
+                {
+                    UpdateMediaSlotUI(i, null, false);
+                }
+            }
+            catch { /* UI elements may not be available */ }
+        }
+
+        private void LoadActiveSuspendMediaFiles()
+        {
+            // This method is now replaced by LoadSuspendMediaSlots
+            // Keeping for backward compatibility but functionality moved to LoadSuspendMediaSlots
+        }
+
+        // TODO: Add method to get actual suspend media information from device
+        private async Task<List<string>> GetActiveSuspendMediaFromDevice()
+        {
+            // This method is now replaced by GetSuspendMediaStatusFromDevice
+            // Keeping for backward compatibility
+            var activeFiles = new List<string>();
+
+            try
+            {
+                var status = await GetSuspendMediaStatusFromDevice();
+                // Convert status to file list if needed for backward compatibility
+                // Implementation details would depend on the actual device status structure
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to get suspend media from device: {ex.Message}");
+            }
+
+            return activeFiles;
+        }
+
+        #endregion
+        private void SetLoadingState(bool isLoading, string message = "Loading...")
+        {
+        }
+
+        // Method to refresh suspend media display without full device status update
+        private async Task RefreshSuspendMediaDisplay()
+        {
+            try
+            {
+                var suspendToggle = FindName("SuspendModeToggle") as ToggleButton;
+                bool suspendModeActive = suspendToggle?.IsChecked == true;
+
+                //// Update content area visibility
+                //var contentArea = FindName("SuspendModeContentArea") as FrameworkElement;
+                //if (contentArea != null)
+                //{
+                //    contentArea.Visibility = suspendModeActive ? Visibility.Visible : Visibility.Collapsed;
+                //}
+
+                if (suspendModeActive)
+                {
+                    // Get actual suspend media status from device
+                    var suspendMediaStatus = await GetSuspendMediaStatusFromDevice();
+                    if (suspendMediaStatus.MaxSuspendMediaCount > 0)
+                    {
+                        LoadSuspendMediaSlots(suspendMediaStatus);
+                        Logger.Info($"Refreshed suspend media display. Found {suspendMediaStatus.ActiveSuspendMediaCount} active media files");
+                    }
+                    else
+                    {
+                        // No valid status, show empty slots
+                        for (int i = 0; i < 5; i++)
+                        {
+                            UpdateMediaSlotUI(i, null, false);
+                        }
+                        Logger.Warn("No valid suspend media status received from device");
+                    }
+                }
+                else
+                {
+                    HideSuspendModeContent();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to refresh suspend media display: {ex.Message}");
+                Logger.Error($"Failed to refresh suspend media display: {ex.Message}", ex);
+                HideSuspendModeContent();
+            }
+        }
+
+        private async Task<DeviceStatus> GetSuspendMediaStatusFromDevice()
+        {
+            try
+            {
+                if (IsHidServiceReady && _hidDeviceService != null)
+                {
+                    var statusResults = await _hidDeviceService.GetDeviceStatusAsync();
+
+                    if (statusResults.Any())
+                    {
+                        var result = statusResults.First();
+                        if (result.Value.HasValue)
+                        {
+                            return result.Value.Value;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to get suspend media status from device: {ex.Message}");
+            }
+
+            return new DeviceStatus(); // Return empty status as fallback
+        }
+        /// <summary>
+        /// Load and display suspend media slots based on device status
+        /// </summary>
+        private void LoadSuspendMediaSlots(DeviceStatus status)
+        {
+            try
+            {
+                // Ensure content area is visible
+                var contentArea = FindName("SuspendModeContentArea") as FrameworkElement;
+                if (contentArea != null) contentArea.Visibility = Visibility.Visible;
+
+                // Use actual device status to determine which slots have media
+                var suspendMediaActive = status.SuspendMediaActive ?? new int[0];
+                var maxSlots = Math.Min(5, status.MaxSuspendMediaCount);
+
+                Logger.Info($"Loading suspend media slots. Max slots: {maxSlots}, Active media: [{string.Join(", ", suspendMediaActive)}]");
+
+                // Update each media slot based on device status
+                for (int i = 0; i < 5; i++)
+                {
+                    bool hasMedia = i < suspendMediaActive.Length && suspendMediaActive[i] > 0;
+
+                    if (hasMedia)
+                    {
+                        // Try to find corresponding local media file first
+                        var localMediaPath = TryFindLocalMediaFile(i);
+                        if (!string.IsNullOrEmpty(localMediaPath))
+                        {
+                            // Show local media with actual content
+                            UpdateMediaSlotUI(i, localMediaPath, true);
+                            Logger.Info($"Slot {i + 1}: Local media file found - {Path.GetFileName(localMediaPath)}");
+                        }
+                        else
+                        {
+                            // Show device media with placeholder name
+                            string mediaName = $"suspend_media_{i + 1}";
+                            UpdateMediaSlotUI(i, mediaName, true);
+                            Logger.Info($"Slot {i + 1}: Device media found (no local file)");
+                        }
+                    }
+                    else
+                    {
+                        // Show empty slot with add button
+                        UpdateMediaSlotUI(i, null, false);
+                        Logger.Info($"Slot {i + 1}: Empty slot");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load suspend media slots: {ex.Message}");
+                Logger.Error($"Failed to load suspend media slots: {ex.Message}", ex);
+                // Clear all slots on error
+                for (int i = 0; i < 5; i++)
+                {
+                    UpdateMediaSlotUI(i, null, false);
+                }
+            }
+        }
+
+
+        // Hide all suspend mode content when suspend mode is off
+        private void HideSuspendModeContent()
+        {
+            try
+            {
+                //var contentArea = FindName("SuspendModeContentArea") as FrameworkElement;
+                //if (contentArea != null)
+                //    contentArea.Visibility = Visibility.Collapsed;
+
+                // Release image sources before clearing all media slots
+                for (int i = 0; i < 5; i++)
+                {
+                    var slotNumber = i + 1;
+                    var thumbnail = FindName($"MediaThumbnail{slotNumber}") as Image;
+                    if (thumbnail?.Source is BitmapImage bitmapToRelease)
+                    {
+                        try
+                        {
+                            thumbnail.Source = null;
+                            bitmapToRelease.StreamSource?.Dispose();
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn($"Failed to release image source for slot {slotNumber} during hide: {ex.Message}");
+                        }
+                    }
+                }
+
+                // Clear all media slots to show add state
+                for (int i = 0; i < 5; i++)
+                {
+                    UpdateMediaSlotUI(i, null, false);
+                }
+
+                Logger.Info("Suspend mode content hidden and media slots reset with image sources released");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to hide suspend mode content: {ex.Message}");
+                Logger.Error($"Failed to hide suspend mode content: {ex.Message}", ex);
+            }
+        }
+
+
     }
 }

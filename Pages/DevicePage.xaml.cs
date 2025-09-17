@@ -277,7 +277,7 @@ namespace CMDevicesManager.Pages
             {
                 if (sender is Button btn && btn.DataContext is DeviceViewModel deviceViewModel)
                 {
-                    NavigationService?.Navigate(new DevicePlayModePage());
+                    NavigationService?.Navigate(new DevicePlayModePage(deviceViewModel.DeviceInfo));
                 }
             }
             catch (Exception ex)
