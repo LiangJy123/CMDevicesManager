@@ -9,6 +9,20 @@ namespace CMDevicesManager.Language
 {
     static public class FontSwitch
     {
+        private static bool FontInstalled(string familyName) =>
+        Fonts.SystemFontFamilies.Any(f =>
+            string.Equals(f.Source, familyName, StringComparison.OrdinalIgnoreCase) ||
+            f.FamilyNames.Values.Any(v => string.Equals(v, familyName, StringComparison.OrdinalIgnoreCase)));
+        private static FontFamily ResolveCascadia()
+        {
+            // Try system first
+            if (FontInstalled("Cascadia Mono"))
+                return new FontFamily("Cascadia Mono");
+
+            // Try embedded resource (#FamilyName from file)
+            // If you embedded CascadiaCode-Regular.ttf it usually exposes "Cascadia Code" family
+            return new FontFamily("./Fonts/#Cascadia Code");
+        }
         static public void ChangeFont(string fontFamily)
         {
             string normalized = (fontFamily ?? "default").ToLowerInvariant();
@@ -32,7 +46,7 @@ namespace CMDevicesManager.Language
                 "cascadia-mono" => new FontFamily("Cascadia Mono"),
                 
                 // Default now uses Cascadia Mono
-                "default" or _ => new FontFamily("Cascadia Mono")
+                "default" or _ => ResolveCascadia()
             };
 
             Application.Current.Resources["AppFontFamily"] = selectedFont;
