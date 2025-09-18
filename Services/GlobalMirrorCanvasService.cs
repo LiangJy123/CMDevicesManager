@@ -429,6 +429,23 @@ namespace CMDevicesManager.Services
                 getCpuPercent: () => _metrics.GetCpuUsagePercent(),
                 getGpuPercent: () => _metrics.GetGpuUsagePercent());
 
+            // 初始化温度文本（避免第一秒未刷新前显示空或旧值）
+            //if (_lastResult != null)
+            //{
+            //    double cpuTemp = _metrics.GetCpuTemperature();
+            //    double gpuTemp = _metrics.GetGpuTemperature();
+            //    foreach (var u in _lastResult.UsageItems)
+            //    {
+            //        if (u.DisplayStyle == "Text")
+            //        {
+            //            if (u.Kind == LiveInfoKind.CpuTemperature)
+            //                u.Text.Text = $"CPU {Math.Round(cpuTemp)}°C";
+            //            else if (u.Kind == LiveInfoKind.GpuTemperature)
+            //                u.Text.Text = $"GPU {Math.Round(gpuTemp)}°C";
+            //        }
+            //    }
+            //}
+
             if (string.IsNullOrWhiteSpace(cfg.BackgroundColor))
                 _bgRect.Fill = Brushes.White;
             if (_bgRect.Fill == null)
@@ -714,10 +731,11 @@ namespace CMDevicesManager.Services
         private void UpdateMetricsOnce()
         {
             if (_lastResult == null) return;
+
             double cpu = _metrics.GetCpuUsagePercent();
             double gpu = _metrics.GetGpuUsagePercent();
-            //double cpu = 4.9f;
-            //double gpu = 56.0f;
+            double cpuTemp = _metrics.GetCpuTemperature();
+            double gpuTemp = _metrics.GetGpuTemperature();
             DateTime now = DateTime.Now;
 
             foreach (var item in _lastResult.UsageItems)
@@ -726,8 +744,12 @@ namespace CMDevicesManager.Services
                 {
                     LiveInfoKind.CpuUsage => cpu,
                     LiveInfoKind.GpuUsage => gpu,
+                    LiveInfoKind.CpuTemperature => cpuTemp,
+                    LiveInfoKind.GpuTemperature => gpuTemp,
                     _ => 0
                 };
+
+                bool isTemp = item.Kind == LiveInfoKind.CpuTemperature || item.Kind == LiveInfoKind.GpuTemperature;
 
                 switch (item.DisplayStyle)
                 {
@@ -736,22 +758,35 @@ namespace CMDevicesManager.Services
                         {
                             double percent = Math.Clamp(raw, 0, 100);
                             item.BarFill.Width = item.BarTotalWidth * (percent / 100.0);
-                            string prefix = item.Kind == LiveInfoKind.CpuUsage ? "CPU" :
-                                            item.Kind == LiveInfoKind.GpuUsage ? "GPU" : "";
+
+                            string prefix =
+                                (item.Kind == LiveInfoKind.CpuUsage || item.Kind == LiveInfoKind.CpuTemperature) ? "CPU" :
+                                (item.Kind == LiveInfoKind.GpuUsage || item.Kind == LiveInfoKind.GpuTemperature) ? "GPU" : "";
+
+                            string valuePart = isTemp
+                                ? $"{Math.Round(percent)}°C"
+                                : $"{Math.Round(percent)}%";
+
                             item.Text.Text = string.IsNullOrEmpty(prefix)
-                                ? $"{Math.Round(percent)}%"
-                                : $"{prefix} {Math.Round(percent)}%";
+                                ? valuePart
+                                : $"{prefix} {valuePart}";
+
                             var mid = LerpColor(item.StartColor, item.EndColor, percent / 100.0);
                             item.Text.Foreground = new SolidColorBrush(mid);
                         }
                         break;
+
                     case "Gauge":
                         if (item.GaugeNeedleRotate != null)
                         {
-                            item.GaugeNeedleRotate.Angle = GaugeRotationFromPercent(raw);
-                            item.Text.Text = $"{Math.Round(raw)}%";
+                            double percent = Math.Clamp(raw, 0, 100);
+                            item.GaugeNeedleRotate.Angle = GaugeRotationFromPercent(percent);
+                            item.Text.Text = isTemp
+                                ? $"{Math.Round(percent)}°C"
+                                : $"{Math.Round(percent)}%";
                         }
                         break;
+
                     case "Text":
                         if (item.Kind == LiveInfoKind.DateTime)
                         {
@@ -767,6 +802,14 @@ namespace CMDevicesManager.Services
                         else if (item.Kind == LiveInfoKind.GpuUsage)
                         {
                             item.Text.Text = $"GPU {Math.Round(gpu)}%";
+                        }
+                        else if (item.Kind == LiveInfoKind.CpuTemperature)
+                        {
+                            item.Text.Text = $"CPU {Math.Round(cpuTemp)}°C";
+                        }
+                        else if (item.Kind == LiveInfoKind.GpuTemperature)
+                        {
+                            item.Text.Text = $"GPU {Math.Round(gpuTemp)}°C";
                         }
                         break;
                 }
