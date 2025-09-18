@@ -489,9 +489,10 @@ namespace CMDevicesManager.Pages
 
 
         // 如果未调用 InitConfigSequence，请确保添加
-        private void Page_Loaded(object sender, RoutedEventArgs e)
+        private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
             UpdatePlayModeUI();
+            await RefreshSuspendMediaDisplay();
         }
 
         private void InitializeDisplayControls()
@@ -2373,6 +2374,8 @@ namespace CMDevicesManager.Pages
 
                 if (successCount > 0)
                 {
+                    await _hidDeviceService.SetRealTimeDisplayAsync(false);
+                    //await _hidDeviceService.sen
                     // Update UI to show the media
                     UpdateMediaSlotUI(slotIndex, newFilePath, true);
                     ShowNotification($"Media added to slot {slotIndex + 1} successfully.");
