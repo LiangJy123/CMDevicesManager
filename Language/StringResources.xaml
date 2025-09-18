@@ -267,4 +267,6 @@
     <sys:String x:Key="ConfirmActionTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">确认操作</sys:String>
     <sys:String x:Key="ConfirmActionMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">确定要继续吗？</sys:String>
     <sys:String x:Key="ConfirmButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">确定</sys:String>
+    <sys:String x:Key="CpuTemp" xmlns:sys="clr-namespace:System;assembly=mscorlib">CPU 温度</sys:String>
+    <sys:String x:Key="GpuTemp" xmlns:sys="clr-namespace:System;assembly=mscorlib">GPU 温度</sys:String>
 </ResourceDictionary>

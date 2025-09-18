@@ -294,11 +294,11 @@ namespace CMDevicesManager.Pages
         {
             double cpu = _metrics.GetCpuUsagePercent();
             double gpu = _metrics.GetGpuUsagePercent();
-            //double cpu = 4.9f;
-            //double gpu = 56.0f;
+            double cpuTemp = _metrics.GetCpuTemperature();
+            double gpuTemp = _metrics.GetGpuTemperature();
             DateTime now = DateTime.Now;
 
-            // 纯文本/日期（无样式）
+            // 旧的纯文本集合（如果未来仍使用）保持原逻辑：这里只处理最初收集到的条目
             foreach (var (text, kind, fmt) in _liveDynamicItems)
             {
                 switch (kind)
@@ -309,17 +309,31 @@ namespace CMDevicesManager.Pages
                     case LiveInfoKindAlias.GpuUsage:
                         text.Text = $"GPU {Math.Round(gpu)}%";
                         break;
+                    case LiveInfoKindAlias.CpuTemperature:
+                        text.Text = $"CPU {Math.Round(cpuTemp)}°C";
+                        break;
+                    case LiveInfoKindAlias.GpuTemperature:
+                        text.Text = $"GPU {Math.Round(gpuTemp)}°C";
+                        break;
                     case LiveInfoKindAlias.DateTime:
                         text.Text = now.ToString(string.IsNullOrWhiteSpace(fmt) ? "yyyy-MM-dd HH:mm:ss" : fmt);
                         break;
                 }
             }
 
-            // 带 ProgressBar / Gauge
             foreach (var item in _usageVisualItems)
             {
-                double raw = item.Kind == LiveInfoKindAlias.CpuUsage ? cpu :
-                             item.Kind == LiveInfoKindAlias.GpuUsage ? gpu : 0;
+                // 获取当前原始值
+                double raw = item.Kind switch
+                {
+                    LiveInfoKindAlias.CpuUsage => cpu,
+                    LiveInfoKindAlias.GpuUsage => gpu,
+                    LiveInfoKindAlias.CpuTemperature => cpuTemp,
+                    LiveInfoKindAlias.GpuTemperature => gpuTemp,
+                    _ => 0
+                };
+
+                bool isTemp = item.Kind == LiveInfoKindAlias.CpuTemperature || item.Kind == LiveInfoKindAlias.GpuTemperature;
 
                 switch (item.DisplayStyle)
                 {
@@ -329,13 +343,16 @@ namespace CMDevicesManager.Pages
                             {
                                 double percent = Math.Clamp(raw, 0, 100);
                                 item.BarFill.Width = item.BarTotalWidth * (percent / 100.0);
-                                string prefix = item.Kind == LiveInfoKindAlias.CpuUsage ? "CPU" :
-                                                item.Kind == LiveInfoKindAlias.GpuUsage ? "GPU" : "";
-                                item.Text.Text = string.IsNullOrEmpty(prefix)
-                                    ? $"{Math.Round(percent)}%"
-                                    : $"{prefix} {Math.Round(percent)}%";
 
-                                // 文字颜色渐变
+                                string prefix = (item.Kind == LiveInfoKindAlias.CpuUsage || item.Kind == LiveInfoKindAlias.CpuTemperature) ? "CPU"
+                                               : (item.Kind == LiveInfoKindAlias.GpuUsage || item.Kind == LiveInfoKindAlias.GpuTemperature) ? "GPU" : "";
+
+                                string valuePart = isTemp
+                                    ? $"{Math.Round(percent)}°C"
+                                    : $"{Math.Round(percent)}%";
+
+                                item.Text.Text = string.IsNullOrEmpty(prefix) ? valuePart : $"{prefix} {valuePart}";
+
                                 double t = percent / 100.0;
                                 var col = LerpColor(item.StartColor, item.EndColor, t);
                                 item.Text.Foreground = new SolidColorBrush(col);
@@ -344,12 +361,14 @@ namespace CMDevicesManager.Pages
                         }
                     case "Gauge":
                         {
+                            double percent = Math.Clamp(raw, 0, 100);
                             if (item.GaugeNeedleRotate != null)
                             {
-                                double target = GaugeRotationFromPercent(raw);
-                                item.GaugeNeedleRotate.Angle = target; // 可加动画，播放页直接赋值即可
+                                item.GaugeNeedleRotate.Angle = GaugeRotationFromPercent(percent);
                             }
-                            item.Text.Text = $"{Math.Round(raw)}%";
+                            item.Text.Text = isTemp
+                                ? $"{Math.Round(percent)}°C"
+                                : $"{Math.Round(percent)}%";
                             break;
                         }
                     case "Text":
@@ -367,6 +386,14 @@ namespace CMDevicesManager.Pages
                             else if (item.Kind == LiveInfoKindAlias.GpuUsage)
                             {
                                 item.Text.Text = $"GPU {Math.Round(gpu)}%";
+                            }
+                            else if (item.Kind == LiveInfoKindAlias.CpuTemperature)
+                            {
+                                item.Text.Text = $"CPU {Math.Round(cpuTemp)}°C";
+                            }
+                            else if (item.Kind == LiveInfoKindAlias.GpuTemperature)
+                            {
+                                item.Text.Text = $"GPU {Math.Round(gpuTemp)}°C";
                             }
                             break;
                         }
@@ -1095,11 +1122,19 @@ namespace CMDevicesManager.Pages
                                 tb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
                             else if (kind == LiveInfoKindAlias.GpuUsage)
                                 tb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
+                            else if (kind == LiveInfoKindAlias.CpuTemperature)
+                                tb.Text = $"CPU {Math.Round(_metrics.GetCpuTemperature())}°C";
+                            else if (kind == LiveInfoKindAlias.GpuTemperature)
+                                tb.Text = $"GPU {Math.Round(_metrics.GetGpuTemperature())}°C";
 
                             var style = elem.UsageDisplayStyle?.Trim();
-                            bool isUsageVisual = (kind == LiveInfoKindAlias.CpuUsage || kind == LiveInfoKindAlias.GpuUsage)
-                                                 && !string.IsNullOrWhiteSpace(style)
-                                                 && !style.Equals("Text", StringComparison.OrdinalIgnoreCase);
+                            bool isUsageVisual =
+    (kind == LiveInfoKindAlias.CpuUsage ||
+     kind == LiveInfoKindAlias.GpuUsage ||
+     kind == LiveInfoKindAlias.CpuTemperature ||
+     kind == LiveInfoKindAlias.GpuTemperature)
+    && !string.IsNullOrWhiteSpace(style)
+    && !style.Equals("Text", StringComparison.OrdinalIgnoreCase);
 
                             if (isUsageVisual)
                             {
@@ -1479,7 +1514,11 @@ namespace CMDevicesManager.Pages
                         canvas.Children.Add(lbl);
                         item.GaugeLabels.Add(lbl);
 
-                        if (percent == 50 && (kind == LiveInfoKindAlias.CpuUsage || kind == LiveInfoKindAlias.GpuUsage))
+                        if (percent == 50 &&
+    (kind == LiveInfoKindAlias.CpuUsage ||
+     kind == LiveInfoKindAlias.GpuUsage ||
+     kind == LiveInfoKindAlias.CpuTemperature ||
+     kind == LiveInfoKindAlias.GpuTemperature))
                         {
                             double label2Radius = labelRadius - 10;
                             double lx2 = GaugeCenterX + label2Radius * Math.Cos(rad);

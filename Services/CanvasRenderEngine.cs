@@ -75,7 +75,12 @@ namespace CMDevicesManager.Services
             double MoveSpeed);
 
         public record RenderContext(Rectangle BgColorRect, Image BgImage, Canvas DesignCanvas, string OutputFolder);
-
+        // NEW: usage-like 判定（CPU/GPU 使用率 + 温度）
+        private static bool IsUsageLike(LiveInfoKind kind) =>
+            kind == LiveInfoKind.CpuUsage ||
+            kind == LiveInfoKind.GpuUsage ||
+            kind == LiveInfoKind.CpuTemperature ||
+            kind == LiveInfoKind.GpuTemperature;
         public RenderResult Apply(
             CanvasConfiguration cfg,
             RenderContext ctx,
@@ -231,10 +236,14 @@ namespace CMDevicesManager.Services
                 tb.Text = $"CPU {(getCpu?.Invoke() ?? 0):0}%";
             else if (kind == DeviceConfigPage.LiveInfoKind.GpuUsage)
                 tb.Text = $"GPU {(getGpu?.Invoke() ?? 0):0}%";
+            else if (kind == DeviceConfigPage.LiveInfoKind.CpuTemperature)
+                tb.Text = "CPU 0°C"; // 初始占位，稍后定时器刷新
+            else if (kind == DeviceConfigPage.LiveInfoKind.GpuTemperature)
+                tb.Text = "GPU 0°C";
 
             string style = e.UsageDisplayStyle?.Trim() ?? "Text";
-            bool isUsageStyle = (kind == DeviceConfigPage.LiveInfoKind.CpuUsage || kind == DeviceConfigPage.LiveInfoKind.GpuUsage)
-                                && !style.Equals("Text", StringComparison.OrdinalIgnoreCase);
+            bool isUsageStyle = IsUsageLike(kind) &&
+                    !style.Equals("Text", StringComparison.OrdinalIgnoreCase);
 
             if (!isUsageStyle)
             {
