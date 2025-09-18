@@ -465,16 +465,16 @@
 
                         <!-- Usage style selector -->
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,8"
-                                    Visibility="{Binding IsUsageSelected, Converter={StaticResource BoolToVis}}">
+            Visibility="{Binding IsUsageSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{DynamicResource UsageStyleLabel}"  Width="100" VerticalAlignment="Center"
-                                       Foreground="{StaticResource SubtitleBrush}"/>
+               Foreground="{StaticResource SubtitleBrush}"/>
                             <ComboBox Width="180"
-                                      SelectedValue="{Binding SelectedUsageDisplayStyle, UpdateSourceTrigger=PropertyChanged}"
-                                      SelectedValuePath="Content"
-                                      Style="{StaticResource DarkComboBoxStyle}">
-                                <ComboBoxItem Content="{DynamicResource UsageTextStyleOption}"/>
-                                <ComboBoxItem Content="{DynamicResource UsageProgressBarStyleOption}"/>
-                                <ComboBoxItem Content="{DynamicResource UsageGaugeStyleOption}"/>
+              SelectedValuePath="Tag"
+              SelectedValue="{Binding SelectedUsageDisplayStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+              Style="{StaticResource DarkComboBoxStyle}">
+                                <ComboBoxItem Tag="Text"        Content="{DynamicResource UsageTextStyleOption}"/>
+                                <ComboBoxItem Tag="ProgressBar" Content="{DynamicResource UsageProgressBarStyleOption}"/>
+                                <ComboBoxItem Tag="Gauge"       Content="{DynamicResource UsageGaugeStyleOption}"/>
                             </ComboBox>
                         </StackPanel>
 

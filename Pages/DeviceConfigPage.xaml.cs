@@ -369,6 +369,8 @@ namespace CMDevicesManager.Pages
         {
             CpuUsage,
             GpuUsage,
+            CpuTemperature,   // NEW
+            GpuTemperature,   // NEW
             DateTime,
             VideoPlayback
         }
@@ -429,8 +431,11 @@ namespace CMDevicesManager.Pages
         public bool IsAnySelected => _selected != null;
 
         public bool IsUsageSelected =>
-            _selected?.Tag is LiveInfoKind k &&
-            (k == LiveInfoKind.CpuUsage || k == LiveInfoKind.GpuUsage);
+     _selected?.Tag is LiveInfoKind k &&
+     (k == LiveInfoKind.CpuUsage ||
+      k == LiveInfoKind.GpuUsage ||
+      k == LiveInfoKind.CpuTemperature ||    // NEW
+      k == LiveInfoKind.GpuTemperature);     // NEW
 
         public bool IsGaugeSelected => string.Equals(NormalizeUsageStyleString(SelectedUsageDisplayStyle), "Gauge", StringComparison.OrdinalIgnoreCase);
         public bool IsUsageVisualSelected
@@ -439,7 +444,11 @@ namespace CMDevicesManager.Pages
 
         public bool IsTextSelected => GetCurrentTextBlock() != null && !IsUsageSelected;
         public bool IsSelectedTextReadOnly => _selected?.Tag is LiveInfoKind kind &&
-                                              (kind == LiveInfoKind.CpuUsage || kind == LiveInfoKind.GpuUsage || kind == LiveInfoKind.DateTime);
+            (kind == LiveInfoKind.CpuUsage ||
+             kind == LiveInfoKind.GpuUsage ||
+             kind == LiveInfoKind.CpuTemperature ||   // NEW
+             kind == LiveInfoKind.GpuTemperature ||   // NEW
+             kind == LiveInfoKind.DateTime);
         public bool IsImageSelected => _selected?.Child is Image && _selected.Tag is not VideoElementInfo;
         public bool IsDateTimeSelected => _selected?.Tag is LiveInfoKind kind && kind == LiveInfoKind.DateTime;
 
@@ -824,9 +833,37 @@ namespace CMDevicesManager.Pages
             }
             return _userPrefsCache;
         }
+        private void BuildSystemInfoButtons()
+        {
+            SystemInfoItems.Clear();
+            SystemInfoItems.Add(new SystemInfoItem(
+                LiveInfoKind.CpuUsage,
+                $"{Application.Current.FindResource("CpuUsage")?.ToString() ?? "CPU Usage"} ({_metrics.CpuName})"));
+
+            var gpuName = (_metrics as RealSystemMetricsService)?.PrimaryGpuName ?? "GPU";
+            var gpuVal = _metrics.GetGpuUsagePercent();
+            if (!string.Equals(gpuName, "GPU", StringComparison.OrdinalIgnoreCase) || gpuVal > 0)
+                SystemInfoItems.Add(new SystemInfoItem(
+                    LiveInfoKind.GpuUsage,
+                    $"{Application.Current.FindResource("GpuUsage")?.ToString() ?? "GPU Usage"} ({gpuName})"));
+
+            double cpuTemp = _metrics.GetCpuTemperature();
+            if (!double.IsNaN(cpuTemp) && cpuTemp > 0)
+            {
+                var cpuTempLabel = Application.Current.FindResource("CpuTemp")?.ToString() ?? "CPU Temp";
+                SystemInfoItems.Add(new SystemInfoItem(LiveInfoKind.CpuTemperature, $"{cpuTempLabel} ({cpuTemp:F0}°C)"));
+            }
+
+            double gpuTemp = _metrics.GetGpuTemperature();
+            if (!double.IsNaN(gpuTemp) && gpuTemp > 0)
+            {
+                var gpuTempLabel = Application.Current.FindResource("GpuTemp")?.ToString() ?? "GPU Temp";
+                SystemInfoItems.Add(new SystemInfoItem(LiveInfoKind.GpuTemperature, $"{gpuTempLabel} ({gpuTemp:F0}°C)"));
+            }
+        }
         // 检测 globalconfig1.json 是否“为空”
-// 判定标准：不存在 -> 空；存在且反序列化后包含可识别的 items/entries/count == 0 -> 空
-private bool IsGlobalPlayModeEmpty()
+        // 判定标准：不存在 -> 空；存在且反序列化后包含可识别的 items/entries/count == 0 -> 空
+        private bool IsGlobalPlayModeEmpty()
         {
             try
             {
@@ -896,7 +933,7 @@ private bool IsGlobalPlayModeEmpty()
                         // 统一走主窗口封装，确保 NavList 选中同步
                         mw.NavigateToPlayModePageAndSelectNav();
                     }
-                   
+
                 }
             }
             catch (Exception ex)
@@ -1002,15 +1039,6 @@ private bool IsGlobalPlayModeEmpty()
         // ================= System Info Buttons =================
         public sealed record SystemInfoItem(LiveInfoKind Kind, string DisplayName);
 
-        private void BuildSystemInfoButtons()
-        {
-            SystemInfoItems.Clear();
-            SystemInfoItems.Add(new SystemInfoItem(LiveInfoKind.CpuUsage, $"CPU Usage ({_metrics.CpuName})"));
-            var gpuName = (_metrics as RealSystemMetricsService)?.PrimaryGpuName ?? "GPU";
-            var gpuVal = _metrics.GetGpuUsagePercent();
-            if (!string.Equals(gpuName, "GPU", StringComparison.OrdinalIgnoreCase) || gpuVal > 0)
-                SystemInfoItems.Add(new SystemInfoItem(LiveInfoKind.GpuUsage, $"GPU Usage ({gpuName})"));
-        }
 
         // ================= Navigation =================
         private void Back_Click(object sender, RoutedEventArgs e)
@@ -1071,9 +1099,14 @@ private bool IsGlobalPlayModeEmpty()
         {
             if (sender is not FrameworkElement fe || fe.Tag is not LiveInfoKind kind) return;
 
-            var displayText = kind == LiveInfoKind.CpuUsage
-                ? $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%"
-                : $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
+            string displayText = kind switch
+            {
+                LiveInfoKind.CpuUsage => $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%",
+                LiveInfoKind.GpuUsage => $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%",
+                LiveInfoKind.CpuTemperature => $"CPU {Math.Round(_metrics.GetCpuTemperature())}°C",   // NEW
+                LiveInfoKind.GpuTemperature => $"GPU {Math.Round(_metrics.GetGpuTemperature())}°C",   // NEW
+                _ => "N/A"
+            };
 
             var textBlock = new TextBlock
             {
@@ -1087,8 +1120,21 @@ private bool IsGlobalPlayModeEmpty()
 
             var cpuUsageText = Application.Current.FindResource("CpuUsage")?.ToString() ?? "CPU Usage";
             var gpuUsageText = Application.Current.FindResource("GpuUsage")?.ToString() ?? "GPU Usage";
-            var border = AddElement(textBlock, kind == LiveInfoKind.CpuUsage ? cpuUsageText : gpuUsageText);
+            var cpuTempText = Application.Current.FindResource("CpuTemp")?.ToString() ?? "CPU Temp"; ; // 可视需要再加资源
+            var gpuTempText = Application.Current.FindResource("GpuTemp")?.ToString() ?? "GPU Temp"; ;
+
+            string header = kind switch
+            {
+                LiveInfoKind.CpuUsage => cpuUsageText,
+                LiveInfoKind.GpuUsage => gpuUsageText,
+                LiveInfoKind.CpuTemperature => cpuTempText,
+                LiveInfoKind.GpuTemperature => gpuTempText,
+                _ => "Info"
+            };
+
+            var border = AddElement(textBlock, header);
             border.Tag = kind;
+
             var item = new LiveTextItem { Border = border, Text = textBlock, Kind = kind };
             _liveItems.Add(item);
 
@@ -1466,6 +1512,8 @@ private bool IsGlobalPlayModeEmpty()
                     {
                         LiveInfoKind.CpuUsage => Application.Current.FindResource("CpuUsage")?.ToString() ?? "CPU Usage",
                         LiveInfoKind.GpuUsage => Application.Current.FindResource("GpuUsage")?.ToString() ?? "GPU Usage",
+                        LiveInfoKind.CpuTemperature => "CPU Temp",   // NEW （可根据需要接入资源）
+                        LiveInfoKind.GpuTemperature => "GPU Temp",   // NEW
                         LiveInfoKind.DateTime => Application.Current.FindResource("DateTime")?.ToString() ?? "Date/Time",
                         _ => Application.Current.FindResource("LiveText")?.ToString() ?? "Live Text"
                     };
@@ -2008,7 +2056,7 @@ private bool IsGlobalPlayModeEmpty()
 
                 var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
-              
+
                 LocalizedMessageBox.Show(string.Format("{0}: {1}", msg, CurrentConfigName), title, MessageBoxButton.OK, MessageBoxImage.Information, true);
                 if (IsGlobalPlayModeEmpty())
                     CheckAndPromptPlayMode();
@@ -2040,7 +2088,7 @@ private bool IsGlobalPlayModeEmpty()
 
                 var msg = Application.Current.FindResource("ConfigSaved")?.ToString() ?? "Configuration saved";
                 var title = Application.Current.FindResource("SaveSuccessful")?.ToString() ?? "Save Successful";
-                
+
                 LocalizedMessageBox.Show(string.Format("{0}: {1}", msg, newName), title, MessageBoxButton.OK, MessageBoxImage.Information, true);
                 if (IsGlobalPlayModeEmpty())
                     CheckAndPromptPlayMode();
@@ -2077,7 +2125,7 @@ private bool IsGlobalPlayModeEmpty()
             }
 
             // Handle name collision (if not the same file already loaded)
-            if (File.Exists(targetPath) )
+            if (File.Exists(targetPath))
             {
                 // Ask user overwrite / rename / cancel
                 var overwriteResult = LocalizedMessageBox.Show(
@@ -2408,6 +2456,12 @@ private bool IsGlobalPlayModeEmpty()
                                             case LiveInfoKind.GpuUsage:
                                                 liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
                                                 break;
+                                            case LiveInfoKind.CpuTemperature:                             // NEW
+                                                liveTb.Text = $"CPU {Math.Round(_metrics.GetCpuTemperature())}°C";
+                                                break;
+                                            case LiveInfoKind.GpuTemperature:                             // NEW
+                                                liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuTemperature())}°C";
+                                                break;
                                         }
                                     }
 
@@ -2596,7 +2650,9 @@ private bool IsGlobalPlayModeEmpty()
                             };
 
                             if (elemConfig.LiveKind.Value == LiveInfoKind.CpuUsage ||
-                                elemConfig.LiveKind.Value == LiveInfoKind.GpuUsage)
+     elemConfig.LiveKind.Value == LiveInfoKind.GpuUsage ||
+     elemConfig.LiveKind.Value == LiveInfoKind.CpuTemperature ||      // NEW
+     elemConfig.LiveKind.Value == LiveInfoKind.GpuTemperature)        // NEW
                             {
                                 if (Enum.TryParse<UsageDisplayStyle>(elemConfig.UsageDisplayStyle ?? "Text", out var ds)) newItem.DisplayStyle = ds;
                                 if (TryParseHexColor(elemConfig.UsageStartColor, out var usc)) newItem.StartColor = usc;
@@ -2696,7 +2752,8 @@ private bool IsGlobalPlayModeEmpty()
         {
             double cpu = _metrics.GetCpuUsagePercent();
             double gpu = _metrics.GetGpuUsagePercent();
-            
+            double cpuTemp = _metrics.GetCpuTemperature();
+            double gpuTemp = _metrics.GetGpuTemperature();
             DateTime now = DateTime.Now;
 
             foreach (var item in _liveItems.ToArray())
@@ -2706,6 +2763,8 @@ private bool IsGlobalPlayModeEmpty()
                 {
                     LiveInfoKind.CpuUsage => (rawVal = cpu, $"CPU {Math.Round(cpu)}%").Item2,
                     LiveInfoKind.GpuUsage => (rawVal = gpu, $"GPU {Math.Round(gpu)}%").Item2,
+                    LiveInfoKind.CpuTemperature => (rawVal = cpuTemp, $"CPU {Math.Round(cpuTemp)}°C").Item2,   // Temperature 0–100 映射同百分比
+                    LiveInfoKind.GpuTemperature => (rawVal = gpuTemp, $"GPU {Math.Round(gpuTemp)}°C").Item2,
                     LiveInfoKind.DateTime => (rawVal = 0, now.ToString(item.DateFormat ?? "yyyy-MM-dd HH:mm:ss")).Item2,
                     _ => item.Text.Text
                 };
@@ -2720,18 +2779,23 @@ private bool IsGlobalPlayModeEmpty()
                         {
                             if (item.BarFill != null)
                             {
+                                // 温度也按 0~100 直接映射宽度
                                 double percent = Math.Clamp(rawVal, 0, 100);
                                 double totalWidth = 140;
                                 item.BarFill.Width = totalWidth * (percent / 100.0);
 
-                                // 显示类别 + 百分比，例如 "CPU 40%"
-                                string prefix = item.Kind == LiveInfoKind.CpuUsage ? "CPU" :
-                                                item.Kind == LiveInfoKind.GpuUsage ? "GPU" : "";
-                                item.Text.Text = string.IsNullOrEmpty(prefix)
-                                    ? $"{Math.Round(percent)}%"
-                                    : $"{prefix} {Math.Round(percent)}%";
+                                bool isTemp = item.Kind == LiveInfoKind.CpuTemperature || item.Kind == LiveInfoKind.GpuTemperature;
+                                string prefix = (item.Kind == LiveInfoKind.CpuUsage || item.Kind == LiveInfoKind.CpuTemperature) ? "CPU"
+                                               : (item.Kind == LiveInfoKind.GpuUsage || item.Kind == LiveInfoKind.GpuTemperature) ? "GPU" : "";
 
-                                // 文本颜色跟随进度（按 StartColor → EndColor 线性插值）
+                                string valuePart = isTemp
+                                    ? $"{Math.Round(percent)}°C"
+                                    : $"{Math.Round(percent)}%";
+
+                                item.Text.Text = string.IsNullOrEmpty(prefix)
+                                    ? valuePart
+                                    : $"{prefix} {valuePart}";
+
                                 double t = percent / 100.0;
                                 var col = LerpColor(item.StartColor, item.EndColor, t);
                                 item.Text.Foreground = new SolidColorBrush(col);
@@ -2741,9 +2805,10 @@ private bool IsGlobalPlayModeEmpty()
 
                     case UsageDisplayStyle.Gauge:
                         {
+                            double percent = Math.Clamp(rawVal, 0, 100);
                             if (item.GaugeNeedleRotate != null)
                             {
-                                double targetAngle = GaugeRotationFromPercent(rawVal);
+                                double targetAngle = GaugeRotationFromPercent(percent);
                                 double current = item.GaugeNeedleRotate.Angle;
                                 if (Math.Abs(current - targetAngle) > 0.05)
                                 {
@@ -2760,8 +2825,11 @@ private bool IsGlobalPlayModeEmpty()
                                         HandoffBehavior.SnapshotAndReplace);
                                 }
                             }
-                            // Gauge 仍只显示百分比，不加 CPU/GPU 前缀（按需求只改 ProgressBar）
-                            item.Text.Text = $"{Math.Round(rawVal)}%";
+
+                            bool isTemp = item.Kind == LiveInfoKind.CpuTemperature || item.Kind == LiveInfoKind.GpuTemperature;
+                            item.Text.Text = isTemp
+                                ? $"{Math.Round(percent)}°C"
+                                : $"{Math.Round(percent)}%";
                             break;
                         }
                 }
@@ -2969,7 +3037,10 @@ private bool IsGlobalPlayModeEmpty()
                                 canvas.Children.Add(lbl);
 
                                 if (percent == 50 &&
-                                    (item.Kind == LiveInfoKind.CpuUsage || item.Kind == LiveInfoKind.GpuUsage))
+                                    (item.Kind == LiveInfoKind.CpuUsage ||
+                                     item.Kind == LiveInfoKind.GpuUsage ||
+                                     item.Kind == LiveInfoKind.CpuTemperature ||          // NEW
+                                     item.Kind == LiveInfoKind.GpuTemperature))           // NEW
                                 {
                                     double label2Radius = labelRadius - 10;
                                     double lx2 = GaugeCenterX + label2Radius * Math.Cos(rad);
@@ -2977,7 +3048,7 @@ private bool IsGlobalPlayModeEmpty()
 
                                     var kindLabel = new TextBlock
                                     {
-                                        Text = item.Kind == LiveInfoKind.CpuUsage ? "CPU" : "GPU",
+                                        Text = (item.Kind == LiveInfoKind.CpuUsage || item.Kind == LiveInfoKind.CpuTemperature) ? "CPU" : "GPU",
                                         FontSize = 10,
                                         FontWeight = FontWeights.SemiBold,
                                         Foreground = new SolidColorBrush(Color.FromRgb(140, 150, 165))

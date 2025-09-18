@@ -268,4 +268,6 @@ Cancel: Abort save</sys:String>
     <sys:String x:Key="ConfirmActionTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Confirm Action</sys:String>
     <sys:String x:Key="ConfirmActionMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Are you sure you want to proceed?</sys:String>
     <sys:String x:Key="ConfirmButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Confirm</sys:String>
+    <sys:String x:Key="CpuTemp" xmlns:sys="clr-namespace:System;assembly=mscorlib">CPU Temp</sys:String>
+    <sys:String x:Key="GpuTemp" xmlns:sys="clr-namespace:System;assembly=mscorlib">GPU Temp</sys:String>
 </ResourceDictionary>
