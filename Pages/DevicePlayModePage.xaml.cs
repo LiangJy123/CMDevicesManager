@@ -4,6 +4,7 @@ using CMDevicesManager.Models;
 using CMDevicesManager.Pages; // contains CanvasConfiguration / ElementConfiguration
 using CMDevicesManager.Services;
 using CMDevicesManager.Utilities;
+using CMDevicesManager.Windows;
 using HID.DisplayController;
 using HidApi;
 //using Microsoft.UI.Xaml.Controls.Primitives;
@@ -577,76 +578,46 @@ namespace CMDevicesManager.Pages
         {
             try
             {
-                // Reuse same folder structure as DeviceConfigPage
                 var configFolder = Path.Combine(_outputFolder, "Configs");
-                if (!Directory.Exists(configFolder))
+                Directory.CreateDirectory(configFolder);
+
+                if (!ConfigSelectionDialog.TrySelectConfig(
+                        Application.Current.MainWindow ?? Window.GetWindow(this),
+                        configFolder,
+                        out var cfg,
+                        out var path,
+                        showPathInList: false))
                 {
-                    LocalizedMessageBox.Show("NoConfigFolderFoundDetail", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                var files = Directory.GetFiles(configFolder, "*.json");
-                if (files.Length == 0)
+                string displayName = !string.IsNullOrWhiteSpace(cfg!.ConfigName)
+                    ? cfg.ConfigName
+                    : System.IO.Path.GetFileNameWithoutExtension(path);
+
+                var newItem = new PlayConfigItem
                 {
-                    LocalizedMessageBox.Show("NoConfigFilesFound", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
+                    DisplayName = displayName,
+                    FilePath = path!,
+                    DurationSeconds = 5
+                };
+                AttachConfigItemEvents(newItem);
+                ConfigSequence.Add(newItem);
 
-                var list = new List<(string path, CanvasConfiguration config)>();
-                foreach (var file in files)
-                {
-                    try
-                    {
-                        var json = File.ReadAllText(file);
-                        var cfg = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
-                        {
-                            Converters = { new JsonStringEnumConverter() }
-                        });
-                        if (cfg != null)
-                            list.Add((file, cfg));
-                    }
-                    catch
-                    {
-                        // Skip invalid file
-                    }
-                }
+                UpdateDurationEditableStates();
+                SaveGlobalSequence();
 
-                if (list.Count == 0)
-                {
-                    LocalizedMessageBox.Show("NoValidConfigFilesLoaded", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                var dialog = new ConfigSelectionDialog(list);
-                if (Application.Current.MainWindow != null)
-                    dialog.Owner = Application.Current.MainWindow;
-
-                if (dialog.ShowDialog() == true && dialog.SelectedConfigPath != null)
-                {
-                    var cfg = dialog.SelectedConfig;
-                    string displayName = !string.IsNullOrWhiteSpace(cfg?.ConfigName)
-                        ? cfg!.ConfigName
-                        : Path.GetFileNameWithoutExtension(dialog.SelectedConfigPath);
-
-                    var newItem = new PlayConfigItem
-                    {
-                        DisplayName = displayName,
-                        FilePath = dialog.SelectedConfigPath,
-                        DurationSeconds = 5
-                    };
-                    AttachConfigItemEvents(newItem);
-                    ConfigSequence.Add(newItem);
-
-                    UpdateDurationEditableStates();
-                    SaveGlobalSequence();
-
-                    if (_currentPlayMode == PlaybackMode.RealtimeConfig && !_isConfigSequenceRunning)
-                        StartConfigSequence();
-                }
+                if (_currentPlayMode == PlaybackMode.RealtimeConfig && !_isConfigSequenceRunning)
+                    StartConfigSequence();
             }
             catch (Exception ex)
             {
-                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("AddConfigFailed")?.ToString() ?? "添加配置失败：{0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
+                LocalizedMessageBox.Show(
+                    string.Format(Application.Current.FindResource("AddConfigFailed")?.ToString() ?? "添加配置失败：{0}", ex.Message),
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error,
+                    true);
             }
         }
         // 提取原 StartSequenceButton_Click 逻辑，供按钮和自动触发共同使用
