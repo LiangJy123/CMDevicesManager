@@ -19,14 +19,6 @@
         <SolidColorBrush x:Key="AccentBrush" Color="#3A7E00"/>
         <SolidColorBrush x:Key="AccentHoverBrush" Color="#4A9E00"/>
 
-        <!-- 外层窗口阴影（WPF 自带，透明窗口时使用） -->
-        <DropShadowEffect x:Key="WindowShadow"
-                          Color="#000000"
-                          Direction="270"
-                          ShadowDepth="4"
-                          BlurRadius="28"
-                          Opacity="0.55"/>
-
         <DropShadowEffect x:Key="CardShadow" Color="Black"
                           Direction="270" ShadowDepth="8"
                           Opacity="0.45" BlurRadius="18"/>
@@ -65,6 +57,9 @@
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="bd" Property="Background" Value="#2A6E00"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.45"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -87,12 +82,11 @@
         </Style>
     </Window.Resources>
 
-    <!-- 圆角 + 背景容器 -->
+    <!-- Outer container without shadow -->
     <Border CornerRadius="18"
             Background="#20252F"
             BorderBrush="#2E3747"
             BorderThickness="1"
-            Effect="{StaticResource WindowShadow}"
             SnapsToDevicePixels="True">
         <Grid Margin="14" MouseLeftButtonDown="WindowDragArea_MouseLeftButtonDown">
             <Grid.RowDefinitions>
@@ -101,7 +95,7 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- 标题 + 关闭 -->
+            <!-- Title + close (close still hidden) -->
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -118,7 +112,8 @@
                         Content="✕"
                         Style="{StaticResource SecondaryButtonStyle}"
                         Click="CloseButton_Click"
-                        ToolTip="关闭" Visibility="Collapsed"/>
+                        ToolTip="关闭"
+                        Visibility="Collapsed"/>
             </Grid>
 
             <Grid Grid.Row="1">
@@ -130,7 +125,7 @@
                     <ColumnDefinition Width="0"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- 色轮 -->
+                <!-- Color wheel -->
                 <Border x:Name="WheelBorder"
                         Grid.Column="0"
                         Style="{StaticResource CardBorderStyle}"
@@ -159,7 +154,7 @@
                     </Grid>
                 </Border>
 
-                <!-- RGB / HEX -->
+                <!-- RGB / HEX panel -->
                 <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}">
                     <StackPanel>
                         <TextBlock Text="RGB" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource SubtitleBrush}"/>
@@ -212,7 +207,7 @@
                                      CharacterCasing="Upper"
                                      MaxLength="6"
                                      TextChanged="TxtHex_TextChanged"/>
-                            <Border Width="24" Height="24" Margin="12,0,0,0" 
+                            <Border Width="24" Height="24" Margin="12,0,0,0"
                                     CornerRadius="6"
                                     BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                 <Border.Background>
@@ -225,11 +220,11 @@
                                    Text="点击或拖动取色；方向键微调"
                                    Foreground="{StaticResource SubtitleBrush}"
                                    FontSize="11"
-                                   TextWrapping="Wrap"/>
+                                   TextWrapping="Wrap" Visibility="Collapsed"/>
                     </StackPanel>
                 </Border>
 
-                <!-- 预设 -->
+                <!-- Presets -->
                 <Border Grid.Column="4" Style="{StaticResource CardBorderStyle}">
                     <StackPanel>
                         <TextBlock Text="预设色彩" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource SubtitleBrush}"/>
