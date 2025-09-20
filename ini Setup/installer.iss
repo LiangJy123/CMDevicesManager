@@ -28,34 +28,34 @@ PrivilegesRequiredOverridesAllowed=dialog
 
 [Languages]
 Name: "en";    MessagesFile: "compiler:Default.isl"
-Name: "zh-CN"; MessagesFile: "compiler:Languages\\ChineseSimplified.isl"
-Name: "zh-TW"; MessagesFile: "compiler:Languages\\ChineseTraditional.isl"
+Name: "ChineseSimplified"; MessagesFile: "compiler:Languages\\ChineseSimplified.isl"
+Name: "ChineseTraditional"; MessagesFile: "compiler:Languages\\ChineseTraditional.isl"
 
 [CustomMessages]
 ; --- Desktop Icon ---
 en.CreateDesktopIcon=Create a &desktop icon
-zh-CN.CreateDesktopIcon=创建桌面快捷方式(&D)
-zh-TW.CreateDesktopIcon=建立桌面捷徑(&D)
+ChineseSimplified.CreateDesktopIcon=创建桌面快捷方式(&D)
+ChineseTraditional.CreateDesktopIcon=建立桌面捷徑(&D)
 
 ; Group: Additional Icons
 en.AdditionalIcons=Additional icons:
-zh-CN.AdditionalIcons=附加图标:
-zh-TW.AdditionalIcons=附加圖示:
+ChineseSimplified.AdditionalIcons=附加图标:
+ChineseTraditional.AdditionalIcons=附加圖示:
 
 ; Autostart
 en.Autostart=Run at Windows &startup
-zh-CN.Autostart=开机自动运行(&S)
-zh-TW.Autostart=開機自動執行(&S)
+ChineseSimplified.Autostart=开机自动运行(&S)
+ChineseTraditional.Autostart=開機自動執行(&S)
 
 ; Group: Startup Options
 en.StartupOptions=Startup options:
-zh-CN.StartupOptions=启动选项:
-zh-TW.StartupOptions=啟動選項:
+ChineseSimplified.StartupOptions=启动选项:
+ChineseTraditional.StartupOptions=啟動選項:
 
 ; Launch after install (Finish page checkbox)
 en.LaunchApp=Launch {#MyAppName}
-zh-CN.LaunchApp=运行 {#MyAppName}
-zh-TW.LaunchApp=執行 {#MyAppName}
+ChineseSimplified.LaunchApp=运行 {#MyAppName}
+ChineseTraditional.LaunchApp=執行 {#MyAppName}
 
 ; (可再补充更多自定义本地化条目)
 
