@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
 	<UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>
+	 <ApplicationIcon>AppIcon.ico</ApplicationIcon>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
 	  <AssemblyName>LCDMaster</AssemblyName>
 	  <Product>LCDMaster</Product>
@@ -39,6 +40,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="AppIcon.ico" />
     <None Remove="exe\ffprobe.exe" />
     <None Remove="ffmpeg.exe" />
     <None Remove="Fonts\CascadiaMono.ttf" />
@@ -64,6 +66,12 @@
     <None Remove="Resources\icon\icon.svg" />
     <None Remove="Resources\icon\icon2.ico" />
     <None Remove="Resources\SplashGIF.gif" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="AppIcon.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>

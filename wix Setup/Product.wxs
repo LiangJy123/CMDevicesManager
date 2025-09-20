@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="LCD Manager"
+           Manufacturer="Elink"
+           Version="1.0.0"
+           UpgradeCode="{0F2F0FC9-4E6B-4E54-A7A0-60F63A5A1234}"
+           Scope="perMachine"
+           InstallerVersion="500"
+           ProductCode="*">
+    <StandardAction Set="INSTALLDESKTOPSHORTCUT=1" After="CostFinalize" Condition="INSTALLDESKTOPSHORTCUT = '' AND NOT REMOVE"><![CDATA[NOT Installed AND UILevel >= 3]]></StandardAction>
+    <StandardAction Set="AUTOSTARTAPP=1" After="CostFinalize" Condition="AUTOSTARTAPP = '' AND NOT REMOVE"><![CDATA[NOT Installed AND UILevel >= 3]]></StandardAction>
+
+    <Property Id="INSTALLDESKTOPSHORTCUT" Value="0"/>
+    <Property Id="AUTOSTARTAPP" Value="0"/>
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER"/>
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+
+    <Feature Id="MainFeature" Title="Main Application" Level="1">
+      <ComponentGroupRef Id="AppFiles"/>
+      <ComponentRef Id="DesktopShortcutComponent"/>
+      <ComponentRef Id="AutoStartRegistryComponent"/>
+    </Feature>
+
+    <UIRef Id="WixUI_InstallDir"/>
+    <UI>
+      <DialogRef Id="CustomizeDlg"/>
+      <!-- Add checkboxes on CustomizeDlg via modification (advanced) or supply your own dialog -->
+    </UI>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFilesFolder">
+        <Directory Id="INSTALLFOLDER" Name="CM Devices Manager" />
+      </Directory>
+      <Directory Id="DesktopFolder"/>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="AppProgramMenuDir" Name="CM Devices Manager"/>
+      </Directory>
+    </Directory>
+
+    <ComponentGroup Id="AppFiles">
+      <!-- Harvest published output: run heat.exe or manually list -->
+      <Component Id="AppExeComponent" Directory="INSTALLFOLDER">
+        <File Source="..\bin\Release\net8.0-windows\win-x64\publish\LCDManager.exe" KeyPath="yes"/>
+        <!-- Add remaining files similarly or use heat -->
+      </Component>
+    </ComponentGroup>
+
+    <Component Id="DesktopShortcutComponent" Directory="DesktopFolder" Guid="*">
+      <Condition>INSTALLDESKTOPSHORTCUT = 1</Condition>
+      <Shortcut Id="DesktopShortcut"
+                Name="LCD Manager"
+                Target="[INSTALLFOLDER]LCDManager.exe"
+                WorkingDirectory="INSTALLFOLDER"/>
+      <RemoveFolder Id="RemoveDesktopShortcut" Directory="DesktopFolder" On="uninstall"/>
+      <RegistryValue Root="HKCU" Key="Software\LCDManager" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes"/>
+    </Component>
+
+    <Component Id="AutoStartRegistryComponent" Directory="INSTALLFOLDER" Guid="*">
+      <Condition>AUTOSTARTAPP = 1</Condition>
+      <RegistryValue Root="HKCU"
+                     Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                     Name="LCD Manager"
+                     Type="string"
+                     Value="&quot;[INSTALLFOLDER]LCDManager.exe&quot;"
+                     KeyPath="yes"/>
+    </Component>
+
+  </Package>
+</Wix>
