@@ -1,5 +1,6 @@
 ﻿// NEW: bring in config models + enum alias
 using CMDevicesManager.Helper;
+using CMDevicesManager.Language;
 using CMDevicesManager.Models;
 using CMDevicesManager.Pages; // contains CanvasConfiguration / ElementConfiguration
 using CMDevicesManager.Services;
@@ -67,7 +68,8 @@ namespace CMDevicesManager.Pages
         private Dictionary<string, BitmapImage> _videoThumbnailCache = new();
 
         private PlaybackMode _currentPlayMode = PlaybackMode.RealtimeConfig;
-
+        private string LR(string key, string fallback) =>
+    Application.Current.TryFindResource(key) as string ?? fallback;
         private sealed class GlobalConfigSequence
         {
             public List<GlobalConfigEntry> Items { get; set; } = new();
@@ -420,7 +422,19 @@ namespace CMDevicesManager.Pages
             PlayContentHintText.Text = isRealtime
                 ? "Add configs to auto play (loop). Remove all to stop automatically."
                 : "Select an MP4 file to auto start playback. Clear to stop.";
+            UpdateLivePreviewAvailability(); // NEW
 
+            ApplyPlayModeLocalization();
+
+        }
+        private void UpdateLivePreviewAvailability()
+        {
+            bool suspendMode = _currentPlayMode == PlaybackMode.OfflineVideo;
+            if (LivePreviewContainer != null)
+            {
+                LivePreviewContainer.IsEnabled = !suspendMode;
+                LivePreviewContainer.Opacity = suspendMode ? 0.45 : 1.0;
+            }
         }
 
         private void RealtimeStreamingEnabled()
@@ -463,7 +477,8 @@ namespace CMDevicesManager.Pages
             // No confirmation dialog needed - tooltip provides the info
             try
             {
-                SetLoadingState(true, isActivated ? "Activating suspend mode..." : "Activating RealTime mode...");
+                SetLoadingState(true, LR(isActivated ? "PlayMode_ActivatingSuspend" : "PlayMode_ActivatingRealtime",
+                         isActivated ? "Activating offline mode..." : "Activating realtime mode..."));
 
                 var results = await _hidDeviceService.SetRealTimeDisplayAsync(!isActivated);
                 var successCount = results.Values.Count(r => r);
@@ -718,6 +733,25 @@ namespace CMDevicesManager.Pages
             {
                 StartConfigSequence();
             }
+
+            LanguageSwitch.LanguageChanged += OnGlobalLanguageChanged;
+        }
+        // ADD method inside class (e.g. below ApplyPlayModeLocalization):
+        private void OnGlobalLanguageChanged(string culture)
+        {
+            Dispatcher.Invoke(ApplyPlayModeLocalization);
+        }
+
+        
+        private void ApplyPlayModeLocalization()
+        {
+            bool isRealtime = _currentPlayMode == PlaybackMode.RealtimeConfig;
+            if (PlayContentTitleText != null)
+                PlayContentTitleText.Text = LR(isRealtime ? "PlayMode_PlayContentTitle" : "PlayMode_VideoPlaybackTitle",
+                                               isRealtime ? "Play Content" : "Offline Media");
+            if (PlayContentHintText != null)
+                PlayContentHintText.Text = LR(isRealtime ? "PlayMode_RealtimeHint" : "PlayMode_OfflineVideoHint",
+                                              PlayContentHintText.Text);
         }
         public DevicePlayModePage(DeviceInfo deviceInfo) : this()
         {
@@ -1931,6 +1965,7 @@ namespace CMDevicesManager.Pages
             try { _liveUpdateTimer.Stop(); } catch { }
             try { _autoMoveTimer.Stop(); } catch { }
             try { _metrics.Dispose(); } catch { }
+            try { LanguageSwitch.LanguageChanged -= OnGlobalLanguageChanged; } catch { }
         }
 
         // MP4 advanced streaming pieces (copied essential parts)

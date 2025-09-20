@@ -270,4 +270,40 @@ Cancel: Abort save</sys:String>
     <sys:String x:Key="ConfirmButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Confirm</sys:String>
     <sys:String x:Key="CpuTemp" xmlns:sys="clr-namespace:System;assembly=mscorlib">CPU Temp</sys:String>
     <sys:String x:Key="GpuTemp" xmlns:sys="clr-namespace:System;assembly=mscorlib">GPU Temp</sys:String>
+    <!-- Play Mode (DevicePlayModePage) -->
+    <sys:String x:Key="PlayMode_PlaybackModes" xmlns:sys="clr-namespace:System;assembly=mscorlib">Playback Modes</sys:String>
+    <sys:String x:Key="PlayMode_SuspendToggleTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">Left: Realtime (online) | Right: Offline (local media loop)</sys:String>
+    <sys:String x:Key="PlayMode_SuspendRealtimeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Realtime</sys:String>
+    <sys:String x:Key="PlayMode_SuspendOfflineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Offline</sys:String>
+    <sys:String x:Key="PlayMode_PlayContentTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Play Content</sys:String>
+    <sys:String x:Key="PlayMode_VideoPlaybackTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Offline Media</sys:String>
+    <sys:String x:Key="PlayMode_RealtimeHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">Single config → continuous. Multiple → loop by each duration.</sys:String>
+    <sys:String x:Key="PlayMode_OfflineVideoHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">Select or add offline media used during suspend playback.</sys:String>
+    <sys:String x:Key="PlayMode_Add" xmlns:sys="clr-namespace:System;assembly=mscorlib">Add</sys:String>
+    <sys:String x:Key="PlayMode_Clear" xmlns:sys="clr-namespace:System;assembly=mscorlib">Clear</sys:String>
+    <sys:String x:Key="PlayMode_NoConfigsTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">No configurations</sys:String>
+    <sys:String x:Key="PlayMode_NoConfigsDesc" xmlns:sys="clr-namespace:System;assembly=mscorlib">Click 'Add' to select configuration files. Multiple entries loop automatically.</sys:String>
+    <sys:String x:Key="PlayMode_AddConfigBtn" xmlns:sys="clr-namespace:System;assembly=mscorlib">Add Config</sys:String>
+    <sys:String x:Key="PlayMode_CurrentLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Current:</sys:String>
+    <sys:String x:Key="PlayMode_NoConfig" xmlns:sys="clr-namespace:System;assembly=mscorlib">No config</sys:String>
+    <sys:String x:Key="PlayMode_MissingConfig" xmlns:sys="clr-namespace:System;assembly=mscorlib">(Missing config)</sys:String>
+    <sys:String x:Key="PlayMode_InvalidConfig" xmlns:sys="clr-namespace:System;assembly=mscorlib">(Invalid config)</sys:String>
+    <sys:String x:Key="PlayMode_ActivatingSuspend" xmlns:sys="clr-namespace:System;assembly=mscorlib">Activating offline mode...</sys:String>
+    <sys:String x:Key="PlayMode_ActivatingRealtime" xmlns:sys="clr-namespace:System;assembly=mscorlib">Activating realtime mode...</sys:String>
+    <sys:String x:Key="PlayMode_SuspendActivated" xmlns:sys="clr-namespace:System;assembly=mscorlib">Offline mode activated</sys:String>
+    <sys:String x:Key="PlayMode_RealtimeActivated" xmlns:sys="clr-namespace:System;assembly=mscorlib">Realtime mode activated</sys:String>
+    <sys:String x:Key="PlayMode_LivePreviewTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Live Preview</sys:String>
+    <sys:String x:Key="PlayMode_DisplaySettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">Display Settings</sys:String>
+    <sys:String x:Key="PlayMode_Rotation" xmlns:sys="clr-namespace:System;assembly=mscorlib">Rotation</sys:String>
+    <sys:String x:Key="PlayMode_Brightness" xmlns:sys="clr-namespace:System;assembly=mscorlib">Brightness</sys:String>
+    <sys:String x:Key="PlayMode_DurationLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Duration:</sys:String>
+    <sys:String x:Key="PlayMode_SecondsSuffix" xmlns:sys="clr-namespace:System;assembly=mscorlib">s</sys:String>
+    <sys:String x:Key="PlayMode_NoImage" xmlns:sys="clr-namespace:System;assembly=mscorlib">No image</sys:String>
+    <sys:String x:Key="PlayMode_LiveTag" xmlns:sys="clr-namespace:System;assembly=mscorlib">LIVE</sys:String>
+    <sys:String x:Key="PlayMode_NoStreamingContent" xmlns:sys="clr-namespace:System;assembly=mscorlib">No streaming content</sys:String>
+    <sys:String x:Key="PlayMode_Loading" xmlns:sys="clr-namespace:System;assembly=mscorlib">Loading...</sys:String>
+    <sys:String x:Key="PlayMode_BackTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">Back</sys:String>
+    <sys:String x:Key="PlayMode_ImagesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Images:</sys:String>
+    <sys:String x:Key="PlayMode_DevicesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Devices:</sys:String>
+    <sys:String x:Key="PlayMode_CurrentRotationFormat" xmlns:sys="clr-namespace:System;assembly=mscorlib">Current: {0}°</sys:String>
 </ResourceDictionary>
