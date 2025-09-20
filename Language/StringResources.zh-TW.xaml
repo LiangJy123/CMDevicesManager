@@ -275,4 +275,40 @@
     <sys:String x:Key="ConfirmButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">確認</sys:String>
     <sys:String x:Key="CpuTemp" xmlns:sys="clr-namespace:System;assembly=mscorlib">CPU 溫度</sys:String>
     <sys:String x:Key="GpuTemp" xmlns:sys="clr-namespace:System;assembly=mscorlib">GPU 溫度</sys:String>
+    <!-- Play Mode (DevicePlayModePage) -->
+    <sys:String x:Key="PlayMode_PlaybackModes" xmlns:sys="clr-namespace:System;assembly=mscorlib">播放模式</sys:String>
+    <sys:String x:Key="PlayMode_SuspendToggleTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">左：即時播放（線上設定） | 右：離線播放（本機媒體循環）</sys:String>
+    <sys:String x:Key="PlayMode_SuspendRealtimeLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">即時播放</sys:String>
+    <sys:String x:Key="PlayMode_SuspendOfflineLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">離線播放</sys:String>
+    <sys:String x:Key="PlayMode_PlayContentTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">播放內容</sys:String>
+    <sys:String x:Key="PlayMode_VideoPlaybackTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">離線媒體</sys:String>
+    <sys:String x:Key="PlayMode_RealtimeHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">單一配置 → 連續播放；多個配置 → 依序循環（各自時長）。</sys:String>
+    <sys:String x:Key="PlayMode_OfflineVideoHint" xmlns:sys="clr-namespace:System;assembly=mscorlib">選取或新增離線媒體供掛起時播放。</sys:String>
+    <sys:String x:Key="PlayMode_Add" xmlns:sys="clr-namespace:System;assembly=mscorlib">新增</sys:String>
+    <sys:String x:Key="PlayMode_Clear" xmlns:sys="clr-namespace:System;assembly=mscorlib">清除</sys:String>
+    <sys:String x:Key="PlayMode_NoConfigsTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">尚未新增配置</sys:String>
+    <sys:String x:Key="PlayMode_NoConfigsDesc" xmlns:sys="clr-namespace:System;assembly=mscorlib">點擊「新增」選擇配置檔。多筆將自動循環。</sys:String>
+    <sys:String x:Key="PlayMode_AddConfigBtn" xmlns:sys="clr-namespace:System;assembly=mscorlib">新增配置</sys:String>
+    <sys:String x:Key="PlayMode_CurrentLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">當前：</sys:String>
+    <sys:String x:Key="PlayMode_NoConfig" xmlns:sys="clr-namespace:System;assembly=mscorlib">無配置</sys:String>
+    <sys:String x:Key="PlayMode_MissingConfig" xmlns:sys="clr-namespace:System;assembly=mscorlib">(配置缺失)</sys:String>
+    <sys:String x:Key="PlayMode_InvalidConfig" xmlns:sys="clr-namespace:System;assembly=mscorlib">(配置無效)</sys:String>
+    <sys:String x:Key="PlayMode_ActivatingSuspend" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在啟用離線播放模式...</sys:String>
+    <sys:String x:Key="PlayMode_ActivatingRealtime" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在啟用即時播放模式...</sys:String>
+    <sys:String x:Key="PlayMode_SuspendActivated" xmlns:sys="clr-namespace:System;assembly=mscorlib">離線播放模式已啟用</sys:String>
+    <sys:String x:Key="PlayMode_RealtimeActivated" xmlns:sys="clr-namespace:System;assembly=mscorlib">即時播放模式已啟用</sys:String>
+    <sys:String x:Key="PlayMode_LivePreviewTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">即時預覽</sys:String>
+    <sys:String x:Key="PlayMode_DisplaySettings" xmlns:sys="clr-namespace:System;assembly=mscorlib">顯示設定</sys:String>
+    <sys:String x:Key="PlayMode_Rotation" xmlns:sys="clr-namespace:System;assembly=mscorlib">旋轉</sys:String>
+    <sys:String x:Key="PlayMode_Brightness" xmlns:sys="clr-namespace:System;assembly=mscorlib">亮度</sys:String>
+    <sys:String x:Key="PlayMode_DurationLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">時長:</sys:String>
+    <sys:String x:Key="PlayMode_SecondsSuffix" xmlns:sys="clr-namespace:System;assembly=mscorlib">秒</sys:String>
+    <sys:String x:Key="PlayMode_NoImage" xmlns:sys="clr-namespace:System;assembly=mscorlib">無圖像</sys:String>
+    <sys:String x:Key="PlayMode_LiveTag" xmlns:sys="clr-namespace:System;assembly=mscorlib">LIVE</sys:String>
+    <sys:String x:Key="PlayMode_NoStreamingContent" xmlns:sys="clr-namespace:System;assembly=mscorlib">無串流內容</sys:String>
+    <sys:String x:Key="PlayMode_Loading" xmlns:sys="clr-namespace:System;assembly=mscorlib">載入中...</sys:String>
+    <sys:String x:Key="PlayMode_BackTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">返回</sys:String>
+    <sys:String x:Key="PlayMode_ImagesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">圖像:</sys:String>
+    <sys:String x:Key="PlayMode_DevicesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">設備:</sys:String>
+    <sys:String x:Key="PlayMode_CurrentRotationFormat" xmlns:sys="clr-namespace:System;assembly=mscorlib">當前: {0}°</sys:String>
 </ResourceDictionary>

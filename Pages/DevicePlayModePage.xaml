@@ -484,13 +484,146 @@
             </Setter>
         </Style>
 
-        <Style x:Key="SuspendModeToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource BaseToggleSwitchStyle}">
-            <Setter Property="Background" Value="{StaticResource ToggleOffBrush}"/>
-            <Style.Triggers>
-                <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-                </Trigger>
-            </Style.Triggers>
+        <Style x:Key="SuspendModeToggleStyle" TargetType="ToggleButton">
+            <Setter Property="Width" Value="170"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Root"
+                               CornerRadius="18"
+                               Background="{TemplateBinding Background}">
+                            <Grid x:Name="LayoutRoot"
+                                 ClipToBounds="True"
+                                 Margin="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Selection highlight (half) -->
+                                <Border x:Name="Selection"
+                                       Grid.Column="0"
+                                       Margin="0"
+                                       CornerRadius="16"
+                                       Background="#2A4A8B"/>
+
+                                <!-- Labels -->
+                                <TextBlock Text="{DynamicResource PlayMode_SuspendRealtimeLabel}"
+                                          Grid.Column="0"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          FontSize="12"
+                                          FontWeight="SemiBold"
+                                          Foreground="#FFFFFF"
+                                          Opacity="1"
+                                          x:Name="OnlineLabel"/>
+
+                                <TextBlock Text="{DynamicResource PlayMode_SuspendOfflineLabel}"
+                                          Grid.Column="1"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          FontSize="12"
+                                          FontWeight="SemiBold"
+                                          Foreground="#FFFFFF"
+                                          Opacity="0.65"
+                                          x:Name="OfflineLabel"/>
+
+                                <!-- Optional small captions (comment out if not needed)
+                               <TextBlock Text="(实时配置)" Grid.Column="0" Margin="0,20,0,2"
+                                          FontSize="9" Foreground="#DDDDDD" HorizontalAlignment="Center"/>
+                               <TextBlock Text="(本地媒体)" Grid.Column="1" Margin="0,20,0,2"
+                                          FontSize="9" Foreground="#DDDDDD" HorizontalAlignment="Center"/>
+                               -->
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- Checked = Suspend/Offline -->
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Selection" Property="Grid.Column" Value="1"/>
+                                <Setter TargetName="Selection" Property="Background" Value="#7A4BD1"/>
+                                <!-- Match offline theme -->
+                                <Setter TargetName="OfflineLabel" Property="Opacity" Value="1"/>
+                                <Setter TargetName="OnlineLabel" Property="Opacity" Value="0.65"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.93"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PlayModePrimaryButton" TargetType="Button" BasedOn="{StaticResource MiniButton}">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#2F5FAF" Offset="0"/>
+                        <GradientStop Color="#2A4A8B" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#3E6AA5"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Root"
+                         CornerRadius="6"
+                         Background="{TemplateBinding Background}"
+                         BorderBrush="{TemplateBinding BorderBrush}"
+                         BorderThickness="{TemplateBinding BorderThickness}"
+                         Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.92"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.80"/>
+                                <Setter TargetName="Root" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.97" ScaleY="0.97"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PlayModeDangerButton" TargetType="Button" BasedOn="{StaticResource PlayModePrimaryButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#D84F4F" Offset="0"/>
+                        <GradientStop Color="#B21818" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#E07070"/>
         </Style>
     </Page.Resources>
 
@@ -516,13 +649,13 @@
          Margin="0,0,0,0"
          HorizontalAlignment="Left"
          VerticalAlignment="Top"
-         ToolTip="Back"
+         ToolTip="{DynamicResource PlayMode_BackTooltip}"
          Click="Back_Click"
          Style="{StaticResource MiniButton}"/>
 
         <!-- Title -->
         <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
-                   Text="Play Mode"
+                  Text="{DynamicResource PlayMode_PlaybackModes}"
                    FontSize="26" FontWeight="Bold"
                    Foreground="{StaticResource TitleBrush}"
                    HorizontalAlignment="Center"
@@ -543,39 +676,23 @@
             <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
                 <StackPanel>
                     <UniformGrid Columns="2">
-                        <TextBlock Text="Playback Modes:" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                        <TextBlock Text="{DynamicResource PlayMode_PlaybackModes}" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
                         <ToggleButton x:Name="SuspendModeToggle"
-                                      Grid.Column="1"
-                                      HorizontalAlignment="Right"
-                                      Click="SuspendModeToggle_Click"
-                                      Style="{StaticResource SuspendModeToggleStyle}"
-                                      ToolTipService.ToolTip="OFF: Play the app build realtime.  ON: Play the below imported image or animation."
-                                      ToolTipService.Placement="MousePoint"
-                                      ToolTipService.InitialShowDelay="100">
-                                      <ToggleButton.ToolTip>
-                                            <ToolTip MaxWidth="320">
-                                                <StackPanel>
-                                                    <TextBlock Text="Playback Modes Control" FontWeight="Bold" FontSize="14" Margin="0,0,0,4"/>
-                                                    <TextBlock TextWrapping="Wrap" FontSize="12" Margin="0,0,0,4">
-                                Toggle suspend mode for offline media playback. When activated, the device enters suspend mode to play stored media files.
-                                                    </TextBlock>
-                                                    <TextBlock Text="ON: Device plays suspend media offline" 
-                                                                FontSize="11" Foreground="LightBlue" Margin="0,2,0,0"/>
-                                                    <TextBlock Text="OFF: Real-Time mode" 
-                                                                FontSize="11" Foreground="Orange" Margin="0,1,0,0"/>
-                                                </StackPanel>
-                                            </ToolTip>
-                                      </ToggleButton.ToolTip>
-                        </ToggleButton>
+                  HorizontalAlignment="Right"
+                  Click="SuspendModeToggle_Click"
+                  Style="{StaticResource SuspendModeToggleStyle}"
+                   ToolTipService.ToolTip="{DynamicResource PlayMode_SuspendToggleTooltip}"
+                  ToolTipService.InitialShowDelay="150"/>
+                       
                     </UniformGrid>
                 </StackPanel>
             </Border>
 
             <!-- Display Settings (expanded by default here if you prefer) -->
             <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
-                <Expander Header="Display Settings" Style="{StaticResource ExpanderStyleMini}" IsExpanded="True">
+                <Expander Header="{DynamicResource PlayMode_DisplaySettings}"  Style="{StaticResource ExpanderStyleMini}" IsExpanded="True">
                     <StackPanel Margin="0,4,0,0">
-                        <TextBlock Text="Rotation" FontSize="12" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
+                        <TextBlock Text="{DynamicResource PlayMode_Rotation}"  FontSize="12" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
                         <UniformGrid Columns="4" Margin="0,0,0,8">
                             <Button x:Name="Rotation0Button" Content="0°" Tag="0" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
                             <Button x:Name="Rotation90Button" Content="90°" Tag="90" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
@@ -615,22 +732,27 @@
                     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                         <DockPanel>
                             <TextBlock x:Name="PlayContentTitleText"
-                           Text="Play Content"
+                           Text="{DynamicResource PlayMode_PlayContentTitle}"
                            Style="{StaticResource SectionTitle}"
                            Margin="0,0,8,0"
                            DockPanel.Dock="Left"/>
-                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                <!-- 实时模式按钮组（配置序列） -->
-                                <StackPanel x:Name="ConfigActionButtons" Orientation="Horizontal">
-                                    <Button Content="Add" Style="{StaticResource MiniButton}" Click="AddConfigButton_Click"/>
-                                    <Button Content="Clear" Style="{StaticResource MiniButton}" Margin="4,0,0,0"
-                                Click="ClearConfigsButton_Click"/>
-                                  
-                                </StackPanel>
+                            <StackPanel x:Name="ConfigActionButtons" Orientation="Horizontal">
+                                <Button Style="{StaticResource PlayModePrimaryButton}" Click="AddConfigButton_Click" Margin="0,0,6,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE710;" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{DynamicResource PlayMode_Add}"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource PlayModeDangerButton}" Click="ClearConfigsButton_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE74D;" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{DynamicResource PlayMode_Clear}"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
                         </DockPanel>
                         <TextBlock x:Name="PlayContentHintText"
-                       Text="Single config → continuous. Multiple configs → loop with per-item duration."
+                        Text="{DynamicResource PlayMode_RealtimeHint}"
                        Foreground="{StaticResource SubtitleBrush}"
                        FontSize="11"/>
                     </StackPanel>
@@ -658,7 +780,7 @@
                                                Foreground="{StaticResource TitleBrush}"
                                                TextTrimming="CharacterEllipsis"/>
                                                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                                            <TextBlock Text="Duration:"
+                                                            <TextBlock Text="{DynamicResource PlayMode_DurationLabel}"
                                                    FontSize="11" Foreground="{StaticResource SubtitleBrush}"
                                                    VerticalAlignment="Center" Margin="0,0,4,0"/>
                                                             <TextBox Width="56"
@@ -682,7 +804,7 @@
                                                                     </Style>
                                                                 </TextBox.Style>
                                                             </TextBox>
-                                                            <TextBlock Text="s"
+                                                            <TextBlock Text="{DynamicResource PlayMode_SecondsSuffix}"
                                                    FontSize="11" Foreground="{StaticResource SubtitleBrush}"
                                                    Margin="4,0,0,0" VerticalAlignment="Center"/>
                                                         </StackPanel>
@@ -711,22 +833,26 @@
                     Opacity="0.85"
                     Margin="12"
                     MaxWidth="340">
-                                <TextBlock Text="No configurations added."
+                                <TextBlock Text="{DynamicResource PlayMode_NoConfigsTitle}" 
                        FontSize="15"
                        FontWeight="SemiBold"
                        Foreground="{StaticResource TitleBrush}"
                        HorizontalAlignment="Center"/>
-                                <TextBlock Text="Click 'Add' to select a configuration file. These will loop automatically once added."
+                                <TextBlock Text="{DynamicResource PlayMode_NoConfigsDesc}"
                        TextWrapping="Wrap"
                        Margin="0,6,0,10"
                        FontSize="11"
                        Foreground="{StaticResource SubtitleBrush}"
                        HorizontalAlignment="Center"/>
-                                <Button Content="Add Config"
-                    Width="110"
-                    HorizontalAlignment="Center"
-                    Style="{StaticResource MiniButton}"
-                    Click="AddConfigButton_Click"/>
+                                <Button Width="140"
+          HorizontalAlignment="Center"
+          Style="{StaticResource PlayModePrimaryButton}"
+          Click="AddConfigButton_Click">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE710;" Margin="0,0,4,0"/>
+                                        <TextBlock Text="{DynamicResource PlayMode_AddConfigBtn}"/>
+                                    </StackPanel>
+                                </Button>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -747,11 +873,11 @@
                                                                Foreground="#4CAF50"
                                                                VerticalAlignment="Center"
                                                                Margin="0,0,6,0"/>
-                                    <TextBlock Text="Suspend Media Files"
+                                    <TextBlock Text="{DynamicResource SuspendMediaFilesHeader}"
                                                                FontSize="12"
                                                                FontWeight="SemiBold"
                                                                Foreground="{StaticResource SecondaryTextBrush}"/>
-                                    <TextBlock Text="(Click empty slot to add media)"
+                                    <TextBlock Text="{DynamicResource SuspendMediaHint}"
                                                                FontSize="10"
                                                                Foreground="{StaticResource HintTextBrush}"
                                                                Margin="8,0,0,0"
@@ -786,7 +912,7 @@
                                                                           FontSize="20"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"/>
-                                                <TextBlock Text="Add Media"
+                                                <TextBlock Text="{DynamicResource AddMediaText}"
                                                                           FontSize="9"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"
@@ -803,7 +929,7 @@
                                                                               FontSize="8"
                                                                               Foreground="White"
                                                                               TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="Active"
+                                                    <TextBlock Text="{DynamicResource ActiveStatusText}"
                                                                               FontSize="7"
                                                                               Foreground="#4CAF50"/>
                                                 </StackPanel>
@@ -850,7 +976,7 @@
                                                                           FontSize="20"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"/>
-                                                <TextBlock Text="Add Media"
+                                                <TextBlock Text="{DynamicResource AddMediaText}" 
                                                                           FontSize="9"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"
@@ -867,7 +993,7 @@
                                                                               FontSize="8"
                                                                               Foreground="White"
                                                                               TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="Active"
+                                                    <TextBlock Text="{DynamicResource ActiveStatusText}"
                                                                               FontSize="7"
                                                                               Foreground="#4CAF50"/>
                                                 </StackPanel>
@@ -914,7 +1040,7 @@
                                                                           FontSize="20"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"/>
-                                                <TextBlock Text="Add Media"
+                                                <TextBlock Text="{DynamicResource AddMediaText}"
                                                                           FontSize="9"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"
@@ -931,7 +1057,7 @@
                                                                               FontSize="8"
                                                                               Foreground="White"
                                                                               TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="Active"
+                                                    <TextBlock Text="{DynamicResource ActiveStatusText}"
                                                                               FontSize="7"
                                                                               Foreground="#4CAF50"/>
                                                 </StackPanel>
@@ -978,7 +1104,7 @@
                                                                           FontSize="20"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"/>
-                                                <TextBlock Text="Add Media"
+                                                <TextBlock  Text="{DynamicResource AddMediaText}" 
                                                                           FontSize="9"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"
@@ -995,7 +1121,7 @@
                                                                               FontSize="8"
                                                                               Foreground="White"
                                                                               TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="Active"
+                                                    <TextBlock  Text="{DynamicResource ActiveStatusText}"
                                                                               FontSize="7"
                                                                               Foreground="#4CAF50"/>
                                                 </StackPanel>
@@ -1042,7 +1168,7 @@
                                                                           FontSize="20"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"/>
-                                                <TextBlock Text="Add Media"
+                                                <TextBlock Text="{DynamicResource AddMediaText}"
                                                                           FontSize="9"
                                                                           Foreground="#666666"
                                                                           HorizontalAlignment="Center"
@@ -1059,7 +1185,7 @@
                                                                               FontSize="8"
                                                                               Foreground="White"
                                                                               TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="Active"
+                                                    <TextBlock  Text="{DynamicResource ActiveStatusText}"
                                                                               FontSize="7"
                                                                               Foreground="#4CAF50"/>
                                                 </StackPanel>
@@ -1100,7 +1226,7 @@
                                                                       FontFamily="Segoe MDL2 Assets"
                                                                       FontSize="12"
                                                                       Margin="0,0,4,0"/>
-                                            <TextBlock Text="Add Multiple"
+                                            <TextBlock Text="{DynamicResource AddMultipleButton}"
                                                                       FontSize="10"/>
                                         </StackPanel>
                                     </Button>
@@ -1115,7 +1241,7 @@
                                                                       FontFamily="Segoe MDL2 Assets"
                                                                       FontSize="12"
                                                                       Margin="0,0,4,0"/>
-                                            <TextBlock Text="Clear All"
+                                            <TextBlock Text="{DynamicResource ClearAllButtonText}"
                                                                       FontSize="10"/>
                                         </StackPanel>
                                     </Button>
@@ -1134,7 +1260,7 @@
         </Grid>
 
         <!-- RIGHT: Canvas View (unchanged except counters hidden) -->
-        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource CardBorderStyle}">
+        <Border  x:Name="LivePreviewContainer" Grid.Row="1" Grid.Column="2" Style="{StaticResource CardBorderStyle}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -1143,7 +1269,7 @@
                 </Grid.RowDefinitions>
 
                 <DockPanel Grid.Row="0" Margin="0,0,0,10">
-                    <TextBlock Text="Live Preview" FontSize="18" FontWeight="SemiBold"
+                    <TextBlock Text="{DynamicResource PlayMode_LivePreviewTitle}"  FontSize="18" FontWeight="SemiBold"
                                Foreground="{StaticResource TitleBrush}" DockPanel.Dock="Left"/>
                     <Border x:Name="StreamingStatusIndicator"
                             Background="#2A4A8B"
@@ -1152,7 +1278,7 @@
                             Padding="6,2"
                             Margin="12,0,0,0"
                             DockPanel.Dock="Left">
-                        <TextBlock Text="LIVE" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                        <TextBlock Text="{DynamicResource PlayMode_LiveTag}" FontSize="10" FontWeight="Bold" Foreground="White"/>
                     </Border>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Visibility="Collapsed">
                         <Button x:Name="SaveCanvasButton"
@@ -1195,7 +1321,7 @@
                                     VerticalAlignment="Center"
                                     Panel.ZIndex="12">
                             <TextBlock Text="🖼️" FontSize="40" Foreground="#666" HorizontalAlignment="Center"/>
-                            <TextBlock Text="No streaming content"
+                            <TextBlock  Text="{DynamicResource PlayMode_NoStreamingContent}"
                                        FontSize="11"
                                        Foreground="#888"
                                        HorizontalAlignment="Center"/>
@@ -1224,7 +1350,7 @@
                                     </Ellipse.Triggers>
                                 </Ellipse>
                             </Grid>
-                            <TextBlock Text="Loading..." FontSize="10" Foreground="#4A6BAB" HorizontalAlignment="Center"/>
+                            <TextBlock  Text="{DynamicResource PlayMode_Loading}" FontSize="10" Foreground="#4A6BAB" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -1238,9 +1364,9 @@
                         Padding="8,6">
                     <DockPanel>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="Current: " FontSize="11" Foreground="{StaticResource SubtitleBrush}"/>
+                            <TextBlock Text="{DynamicResource PlayMode_CurrentLabel}" FontSize="11" Foreground="{StaticResource SubtitleBrush}"/>
                             <TextBlock x:Name="CurrentImageName"
-                                       Text="No image"
+                                       Text="{DynamicResource PlayMode_NoImage}"
                                        FontSize="11"
                                        FontWeight="Medium"
                                        Foreground="{StaticResource TitleBrush}"/>
@@ -1249,9 +1375,9 @@
                         </StackPanel>
                         <!-- Hidden counters (compat) -->
                         <StackPanel Orientation="Horizontal" Visibility="Collapsed">
-                            <TextBlock Text="Images:" FontSize="11"/>
+                            <TextBlock  Text="{DynamicResource PlayMode_ImagesLabel}"  FontSize="11"/>
                             <TextBlock x:Name="ImageCounter" Text="0" FontSize="11" Margin="4,0,12,0"/>
-                            <TextBlock Text="Devices:" FontSize="11"/>
+                            <TextBlock Text="{DynamicResource PlayMode_DevicesLabel}" FontSize="11"/>
                             <TextBlock x:Name="ActiveDeviceCount" Text="0" FontSize="11" Margin="4,0,0,0"/>
                         </StackPanel>
                     </DockPanel>

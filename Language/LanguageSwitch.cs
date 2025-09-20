@@ -1,17 +1,16 @@
 ﻿using CMDevicesManager.Helper;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using Application = System.Windows.Application;
 
 namespace CMDevicesManager.Language
 {
-    static public class LanguageSwitch
+    public static class LanguageSwitch
     {
-        static public void ChangeLanguage(string culture)
+        // NEW: language changed event
+        public static event Action<string>? LanguageChanged;
+
+        public static void ChangeLanguage(string culture)
         {
             var dict = new ResourceDictionary();
             switch (culture.ToLowerInvariant())
@@ -31,7 +30,11 @@ namespace CMDevicesManager.Language
             Application.Current.Resources.MergedDictionaries.Clear();
             Application.Current.Resources.MergedDictionaries.Add(dict);
 
-            UserConfigManager.Current.Language = culture.ToLowerInvariant();
+            var normalized = culture.ToLowerInvariant();
+            UserConfigManager.Current.Language = normalized;
+
+            // RAISE EVENT
+            LanguageChanged?.Invoke(normalized);
         }
     }
 }
