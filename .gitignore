@@ -424,3 +424,5 @@ app.log
 
 ffmpeg.exe
 ffprobe.exe
+
+ini Setup/Output
