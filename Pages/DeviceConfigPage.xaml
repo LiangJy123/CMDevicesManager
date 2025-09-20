@@ -11,6 +11,7 @@
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
             <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis"/>
             <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
             <SolidColorBrush x:Key="CardBg" Color="#232834"/>
             <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
             <SolidColorBrush x:Key="CardBorder" Color="#2E3747"/>
@@ -333,9 +334,9 @@
                             <Grid>
                                 <Rectangle x:Name="BgColorRect" Fill="{Binding BackgroundBrush}"/>
                                 <Image x:Name="BgImage"
-                                       Source="{Binding BackgroundImagePath}"
-                                       Stretch="UniformToFill"
-                                       Opacity="{Binding BackgroundImageOpacity}"/>
+       Source="{Binding BackgroundImagePath, Converter={StaticResource StringToImageSourceConverter}}"
+       Stretch="UniformToFill"
+       Opacity="{Binding BackgroundImageOpacity}"/>
                             </Grid>
                             <Canvas x:Name="DesignCanvas"
                                     Background="White"

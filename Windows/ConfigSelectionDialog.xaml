@@ -1,0 +1,481 @@
+﻿<Window x:Class="CMDevicesManager.Windows.ConfigSelectionDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:CMDevicesManager.Windows"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Width="620" Height="520"
+        Background="Transparent"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        PreviewKeyDown="Window_PreviewKeyDown">
+
+    <Window.Resources>
+        <!-- Unified colors -->
+        <SolidColorBrush x:Key="WindowBg" Color="#20252F"/>
+        <SolidColorBrush x:Key="CardBg" Color="#232834"/>
+        <SolidColorBrush x:Key="CardBorder" Color="#2E3747"/>
+        <SolidColorBrush x:Key="TitleBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C0CC"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#3A7E00"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#4A9E00"/>
+        <SolidColorBrush x:Key="HoverOverlay" Color="#14FFFFFF"/>
+        <SolidColorBrush x:Key="ListSelectedBg" Color="#223A7E00"/>
+        <SolidColorBrush x:Key="SearchIconBrush" Color="#8AA0B4"/>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <!-- Buttons -->
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="#2A6E00"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource PrimaryButtonStyle}">
+            <Setter Property="Background" Value="#3F3F3F"/>
+            <Setter Property="Foreground" Value="#A7A8AA"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#55595F"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#44484C"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Search TextBox -->
+        <Style x:Key="SearchBoxStyle" TargetType="TextBox">
+            <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="CaretBrush" Value="White"/>
+        </Style>
+
+        <!-- ListViewItem -->
+        <Style TargetType="ListViewItem">
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewItem">
+                        <Border x:Name="Root"
+                                CornerRadius="10"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter Margin="0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource HoverOverlay}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Root" Property="Background" Value="{StaticResource ListSelectedBg}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <SolidColorBrush x:Key="ScrollTrackBrush" Color="#1AFFFFFF"/>
+        <SolidColorBrush x:Key="ScrollThumbBrush" Color="#3D4A5A"/>
+        <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#516170"/>
+        <SolidColorBrush x:Key="ScrollThumbActiveBrush" Color="#3A7E00"/>
+        <!-- 使用 Accent -->
+        <SolidColorBrush x:Key="ScrollThumbBorderBrush" Color="#2E3747"/>
+        <SolidColorBrush x:Key="ScrollThumbBorderHoverBrush" Color="#4A9E00"/>
+
+        <!-- Thumb style -->
+        <Style x:Key="DialogScrollThumbStyle" TargetType="Thumb">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="Bd"
+                          Background="{StaticResource ScrollThumbBrush}"
+                          BorderBrush="{StaticResource ScrollThumbBorderBrush}"
+                          BorderThickness="1"
+                          CornerRadius="4"
+                          SnapsToDevicePixels="True"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource ScrollThumbHoverBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource ScrollThumbBorderHoverBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource ScrollThumbActiveBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource AccentHoverBrush}"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ========== Scroll styles copied from HomePage ========== -->
+        <SolidColorBrush x:Key="ScrollThumbNormal" Color="#505A6B" Opacity="0.55"/>
+        <SolidColorBrush x:Key="ScrollThumbHover"  Color="#5F6B7D" Opacity="0.85"/>
+        <SolidColorBrush x:Key="ScrollThumbDrag"   Color="#6F7C90" Opacity="0.95"/>
+
+        <Style x:Key="RoundedThumbStyle" TargetType="Thumb">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="ThumbBorder"
+                          Background="{TemplateBinding Background}"
+                          CornerRadius="3"
+                          SnapsToDevicePixels="True"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource ScrollThumbHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource ScrollThumbDrag}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Background" Value="{StaticResource ScrollThumbNormal}"/>
+        </Style>
+
+        <Style TargetType="ScrollBar">
+            <Setter Property="Foreground" Value="{StaticResource ScrollThumbNormal}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid x:Name="Root" Background="Transparent">
+                            <Track x:Name="PART_Track"
+                             IsDirectionReversed="True"
+                             Focusable="False">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Width="0" Height="0"
+                                            Command="{x:Static ScrollBar.LineUpCommand}"
+                                            Opacity="0" IsHitTestVisible="False"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Width="0" Height="0"
+                                            Command="{x:Static ScrollBar.LineDownCommand}"
+                                            Opacity="0" IsHitTestVisible="False"/>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb x:Name="Thumb"
+                                     Style="{StaticResource RoundedThumbStyle}"
+                                     Margin="0"/>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- 垂直 -->
+                            <Trigger Property="Orientation" Value="Vertical">
+                                <Setter TargetName="Root"  Property="Width" Value="8"/>
+                                <Setter TargetName="Thumb" Property="MinHeight" Value="24"/>
+                                <Setter TargetName="Thumb" Property="Width" Value="6"/>
+                                <Setter TargetName="Thumb" Property="Margin" Value="1,2,1,2"/>
+                            </Trigger>
+                            <!-- 水平（理论上 ListView 不用，保留一致性） -->
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter TargetName="Root"  Property="Height" Value="8"/>
+                                <Setter TargetName="Thumb" Property="MinWidth" Value="24"/>
+                                <Setter TargetName="Thumb" Property="Height" Value="6"/>
+                                <Setter TargetName="Thumb" Property="Margin" Value="2,1,2,1"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource ScrollThumbHover}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ScrollViewer">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid Background="{TemplateBinding Background}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
+                                              Grid.Row="0" Grid.Column="0"
+                                              Margin="{TemplateBinding Padding}"
+                                              CanContentScroll="{TemplateBinding CanContentScroll}"/>
+
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                                 Grid.Row="0" Grid.Column="1"
+                                 Orientation="Vertical"
+                                 Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"
+                                 Maximum="{TemplateBinding ScrollableHeight}"
+                                 ViewportSize="{TemplateBinding ViewportHeight}"
+                                 Value="{TemplateBinding VerticalOffset}"
+                                 Width="8"
+                                 Margin="0"
+                                 Background="Transparent"
+                                 SmallChange="16" LargeChange="64"/>
+
+                            <ScrollBar x:Name="PART_HorizontalScrollBar"
+                                 Grid.Row="1" Grid.Column="0"
+                                 Orientation="Horizontal"
+                                 Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"
+                                 Maximum="{TemplateBinding ScrollableWidth}"
+                                 ViewportSize="{TemplateBinding ViewportWidth}"
+                                 Value="{TemplateBinding HorizontalOffset}"
+                                 Height="8"
+                                 Margin="0"
+                                 Background="Transparent"
+                                 SmallChange="16" LargeChange="64"/>
+
+                            <Border Grid.Row="1" Grid.Column="1"
+                              Background="Transparent"
+                              x:Name="Corner"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- No shadow: pure rounded surface -->
+    <Border CornerRadius="18"
+            Background="{StaticResource WindowBg}"
+            BorderBrush="{StaticResource CardBorder}"
+            BorderThickness="1"
+            SnapsToDevicePixels="True">
+        <Grid Margin="14">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Title Bar -->
+            <Grid Grid.Row="0" Height="40" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="选择配置"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource TitleBrush}"
+                           VerticalAlignment="Center"/>
+                <Button Grid.Column="1"
+                        Width="34" Height="32"
+                        Margin="6,0,0,0"
+                        Click="BtnClose_Click"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        ToolTip="关闭"
+                        Cursor="Hand">
+                    <Path Data="M6,6 L12,12 M12,6 L6,12"
+                          StrokeThickness="2"
+                          Stroke="{StaticResource SubtitleBrush}"
+                          StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round"/>
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}"
+                                                CornerRadius="4">
+                                            <ContentPresenter HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#18FFFFFF"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="#30FFFFFF"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+
+            <!-- Search -->
+            <Border Grid.Row="1"
+                    Margin="0,8,0,10"
+                    CornerRadius="10"
+                    Background="{StaticResource CardBg}"
+                    BorderBrush="{StaticResource CardBorder}"
+                    BorderThickness="1"
+                    Padding="10,6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Path Data="M12,11 L16,15 M9,3 A6,6 0 1 1 8.999,3.01"
+                          Stroke="{StaticResource SearchIconBrush}"
+                          StrokeThickness="2"
+                          StrokeStartLineCap="Round"
+                          StrokeEndLineCap="Round"
+                          Width="28" Height="18"
+                          VerticalAlignment="Center"
+                          Margin="0,0,6,0"/>
+                    <TextBox x:Name="SearchBox"
+                             Grid.Column="1"
+                             Style="{StaticResource SearchBoxStyle}"
+                             TextChanged="SearchBox_TextChanged"
+                             ToolTip="搜索"/>
+                </Grid>
+            </Border>
+
+            <!-- List -->
+            <ListView x:Name="ListViewConfigs"
+                      Grid.Row="2"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      Foreground="{StaticResource TitleBrush}"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
+                      MouseDoubleClick="ListViewConfigs_MouseDoubleClick">
+                <ListView.ItemTemplate>
+                    <DataTemplate DataType="{x:Type local:ConfigSelectionDialog+ConfigListItem}">
+                        <Border Background="{StaticResource CardBg}"
+                BorderBrush="{StaticResource CardBorder}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Padding="10"
+                SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110"/>
+                                    <!-- 原 104，稍微放大并留出正方形 -->
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 预览方形容器 -->
+                                <Grid Grid.Column="0"
+                      Width="100"
+                      Height="100"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center">
+                                    <Border CornerRadius="10"
+                            Background="#1B202B"
+                            BorderBrush="{StaticResource CardBorder}"
+                            BorderThickness="1"
+                            SnapsToDevicePixels="True"
+                            ClipToBounds="True">
+                                        <!-- 改为 Uniform 避免裁切, 保留完整图像 -->
+                                        <Image Source="{Binding PreviewImage}"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               SnapsToDevicePixels="True"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                                    </Border>
+                                </Grid>
+
+                                <StackPanel Grid.Column="1"
+                            Margin="14,2,4,2"
+                            VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DisplayName}"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TitleBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Text="{Binding Path}"
+                               Margin="0,6,0,0"
+                               FontSize="11"
+                               Foreground="{StaticResource SubtitleBrush}"
+                               TextTrimming="CharacterEllipsis"
+                               Visibility="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=ShowPathInList, Converter={StaticResource BoolToVis}}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+            <!-- Buttons -->
+            <StackPanel Grid.Row="3"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,14,0,0">
+                <Button x:Name="BtnLoad"
+                        Width="120"
+                        Content="加载"
+                        Click="BtnLoad_Click"
+                        Style="{StaticResource PrimaryButtonStyle}"/>
+                <Button x:Name="BtnCancel"
+                        Width="100"
+                        Margin="10,0,0,0"
+                        Content="取消"
+                        Click="BtnCancel_Click"
+                        Style="{StaticResource SecondaryButtonStyle}"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

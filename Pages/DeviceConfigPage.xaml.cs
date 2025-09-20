@@ -51,6 +51,8 @@ using Rectangle = System.Windows.Shapes.Rectangle;
 using Size = System.Windows.Size;
 using TextBox = System.Windows.Controls.TextBox;
 using WF = System.Windows.Forms;
+using System.Windows.Data;
+using Binding = System.Windows.Data.Binding;
 
 namespace CMDevicesManager.Pages
 {
@@ -191,91 +193,7 @@ namespace CMDevicesManager.Pages
         }
     }
 
-    public class ConfigSelectionDialog : Window
-    {
-        private ListBox _configListBox;
-        public CanvasConfiguration? SelectedConfig { get; private set; }
-        public string? SelectedConfigPath { get; private set; }
-
-        public ConfigSelectionDialog(List<(string path, CanvasConfiguration config)> configs)
-        {
-            Title = Application.Current.FindResource("SelectConfigTitle")?.ToString() ?? "Select Configuration";
-            Width = 500;
-            Height = 400;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            ResizeMode = ResizeMode.NoResize;
-
-            var grid = new Grid { Margin = new Thickness(20) };
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            _configListBox = new ListBox
-            {
-                Margin = new Thickness(0, 0, 0, 20),
-                DisplayMemberPath = "Name",
-                SelectedValuePath = "Config"
-            };
-
-            var items = configs.Select(c => new
-            {
-                Name = $"{c.config.ConfigName} - {Path.GetFileNameWithoutExtension(c.path)}",
-                Config = c.config,
-                Path = c.path
-            }).ToList();
-
-            _configListBox.ItemsSource = items;
-            _configListBox.MouseDoubleClick += (s, e) =>
-            {
-                if (_configListBox.SelectedItem != null) AcceptSelection();
-            };
-
-            Grid.SetRow(_configListBox, 0);
-            grid.Children.Add(_configListBox);
-
-            var buttonPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Right
-            };
-
-            var loadButton = new Button
-            {
-                Content = Application.Current.FindResource("LoadButton")?.ToString() ?? "Load",
-                Width = 80,
-                Height = 30,
-                Margin = new Thickness(0, 0, 10, 0),
-                IsDefault = true
-            };
-            loadButton.Click += (s, e) => AcceptSelection();
-
-            var cancelButton = new Button
-            {
-                Content = Application.Current.FindResource("CancelButton")?.ToString() ?? "Cancel",
-                Width = 80,
-                Height = 30,
-                IsCancel = true
-            };
-            cancelButton.Click += (s, e) => DialogResult = false;
-
-            buttonPanel.Children.Add(loadButton);
-            buttonPanel.Children.Add(cancelButton);
-            Grid.SetRow(buttonPanel, 1);
-            grid.Children.Add(buttonPanel);
-
-            Content = grid;
-        }
-
-        private void AcceptSelection()
-        {
-            if (_configListBox.SelectedItem != null)
-            {
-                dynamic selected = _configListBox.SelectedItem;
-                SelectedConfig = selected.Config;
-                SelectedConfigPath = selected.Path;
-                DialogResult = true;
-            }
-        }
-    }
+   
 
     // ================= Main Page =================
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
@@ -2301,10 +2219,28 @@ namespace CMDevicesManager.Pages
                 Converters = { new JsonStringEnumConverter() }
             });
             File.WriteAllText(targetPath, json);
-
+            SaveConfigPreview(safeName, configFolder);
             _loadedConfigFilePath = targetPath;
             return targetPath;
         }
+
+        private void SaveConfigPreview(string safeBaseName, string configFolder)
+        {
+            try
+            {
+                var data = CaptureCanvasAsStream();
+                if (data == null || data.Length == 0) return;
+
+                // 简单直接保存 JPEG（若需缩放可后续扩展 DecodePixelWidth）
+                var previewPath = Path.Combine(configFolder, safeBaseName + ".preview.jpg");
+                File.WriteAllBytes(previewPath, data);
+            }
+            catch (Exception ex)
+            {
+                Logger.Info("SaveConfigPreview failed: " + ex.Message);
+            }
+        }
+
 
         private static string MakeSafeFileBase(string name)
         {
@@ -2315,6 +2251,363 @@ namespace CMDevicesManager.Pages
             name = Regex.Replace(name, @"\s+", "_");
             return name;
         }
+        // === Add below (if not already added) ===
+        private static Color ParseColorOr(string? hex, Color fallback)
+        {
+            if (string.IsNullOrWhiteSpace(hex)) return fallback;
+            return TryParseHexColor(hex, out var c) ? c : fallback;
+        }
+
+        private Border CreateBaseBorder(FrameworkElement child)
+        {
+            var border = new Border
+            {
+                BorderBrush = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Child = child,
+                RenderTransformOrigin = new Point(0.5, 0.5),
+                Cursor = Cursors.SizeAll
+            };
+            border.PreviewMouseLeftButtonDown += Item_PreviewMouseLeftButtonDown;
+            border.PreviewMouseLeftButtonUp += Item_PreviewMouseLeftButtonUp;
+            border.PreviewMouseMove += Item_PreviewMouseMove;
+            border.MouseDown += (_, __) => SelectElement(border);
+            border.MouseEnter += (_, __) => { if (_selected != border) border.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 30, 144, 255)); };
+            border.MouseLeave += (_, __) => { if (_selected != border) border.BorderBrush = Brushes.Transparent; };
+            return border;
+        }
+
+        private void ApplyTransform(Border border, double scale, double x, double y)
+        {
+            var tg = new TransformGroup();
+            var sc = new ScaleTransform(scale <= 0 ? 1 : scale, scale <= 0 ? 1 : scale);
+            var tr = new TranslateTransform(x, y);
+            tg.Children.Add(sc);
+            tg.Children.Add(tr);
+            border.RenderTransform = tg;
+        }
+
+        private void RestoreTextElement(ElementConfiguration ec)
+        {
+            var tb = new TextBlock
+            {
+                Text = ec.Text ?? "Text",
+                FontSize = ec.FontSize ?? 24,
+                FontWeight = FontWeights.SemiBold
+            };
+            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+
+            if (ec.UseTextGradient == true &&
+                !string.IsNullOrWhiteSpace(ec.TextColor) &&
+                !string.IsNullOrWhiteSpace(ec.TextColor2) &&
+                TryParseHexColor(ec.TextColor, out var c1) &&
+                TryParseHexColor(ec.TextColor2, out var c2))
+            {
+                tb.Foreground = new LinearGradientBrush(c1, c2, 45);
+            }
+            else if (!string.IsNullOrWhiteSpace(ec.TextColor) && TryParseHexColor(ec.TextColor, out var cSolid))
+            {
+                tb.Foreground = new SolidColorBrush(cSolid);
+            }
+            else tb.Foreground = Brushes.White;
+
+            var border = CreateBaseBorder(tb);
+            border.Opacity = ec.Opacity <= 0 ? 1 : ec.Opacity;
+            ApplyTransform(border, ec.Scale, ec.X, ec.Y);
+            Canvas.SetZIndex(border, ec.ZIndex);
+            DesignCanvas.Children.Add(border);
+
+            if (ec.MoveDirX.HasValue && ec.MoveDirY.HasValue &&
+                (Math.Abs(ec.MoveDirX.Value) > 0.0001 || Math.Abs(ec.MoveDirY.Value) > 0.0001))
+                _movingDirections[border] = (ec.MoveDirX.Value, ec.MoveDirY.Value);
+        }
+
+        private void RestoreLiveElement(ElementConfiguration ec)
+        {
+            if (!ec.LiveKind.HasValue) return;
+            var kind = ec.LiveKind.Value;
+
+            var tb = new TextBlock
+            {
+                FontSize = ec.FontSize ?? 18,
+                FontWeight = FontWeights.SemiBold,
+                Text = "..."
+            };
+            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+
+            var border = CreateBaseBorder(tb);
+            border.Opacity = ec.Opacity <= 0 ? 1 : ec.Opacity;
+            border.Tag = kind;
+            ApplyTransform(border, ec.Scale, ec.X, ec.Y);
+            Canvas.SetZIndex(border, ec.ZIndex);
+            DesignCanvas.Children.Add(border);
+
+            var item = new LiveTextItem
+            {
+                Border = border,
+                Text = tb,
+                Kind = kind,
+                DisplayStyle = UsageDisplayStyle.Text
+            };
+
+            // Usage style?
+            string style = ec.UsageDisplayStyle ?? "Text";
+            if (!Enum.TryParse<UsageDisplayStyle>(style, true, out var parsed))
+                parsed = UsageDisplayStyle.Text;
+            item.DisplayStyle = parsed;
+
+            // Theme
+            item.StartColor = ParseColorOr(ec.UsageStartColor, Color.FromRgb(80, 180, 80));
+            item.EndColor = ParseColorOr(ec.UsageEndColor, Color.FromRgb(40, 120, 40));
+            item.NeedleColor = ParseColorOr(ec.UsageNeedleColor, Color.FromRgb(90, 200, 90));
+            item.BarBackgroundColor = ParseColorOr(ec.UsageBarBackgroundColor, Color.FromRgb(40, 46, 58));
+            if (kind == LiveInfoKind.DateTime)
+                item.DateFormat = ec.DateFormat ?? "yyyy-MM-dd HH:mm:ss";
+
+            _liveItems.Add(item);
+
+            if (item.DisplayStyle != UsageDisplayStyle.Text)
+            {
+                RebuildUsageVisual(item);
+                ApplyUsageTheme();
+            }
+            else
+            {
+                // plain text style coloring
+                if (ec.UseTextGradient == true &&
+                    !string.IsNullOrWhiteSpace(ec.TextColor) &&
+                    !string.IsNullOrWhiteSpace(ec.TextColor2) &&
+                    TryParseHexColor(ec.TextColor, out var c1) &&
+                    TryParseHexColor(ec.TextColor2, out var c2))
+                {
+                    tb.Foreground = new LinearGradientBrush(c1, c2, 45);
+                }
+                else if (!string.IsNullOrWhiteSpace(ec.TextColor) && TryParseHexColor(ec.TextColor, out var cSolid))
+                {
+                    tb.Foreground = new SolidColorBrush(cSolid);
+                }
+                else tb.Foreground = Brushes.White;
+            }
+
+            // Initial text
+            switch (kind)
+            {
+                case LiveInfoKind.CpuUsage: tb.Text = "CPU 0%"; break;
+                case LiveInfoKind.GpuUsage: tb.Text = "GPU 0%"; break;
+                case LiveInfoKind.CpuTemperature: tb.Text = "CPU 0°C"; break;
+                case LiveInfoKind.GpuTemperature: tb.Text = "GPU 0°C"; break;
+                case LiveInfoKind.DateTime: tb.Text = DateTime.Now.ToString(item.DateFormat); break;
+            }
+
+            if (ec.MoveDirX.HasValue && ec.MoveDirY.HasValue &&
+                (Math.Abs(ec.MoveDirX.Value) > 0.0001 || Math.Abs(ec.MoveDirY.Value) > 0.0001))
+                _movingDirections[border] = (ec.MoveDirX.Value, ec.MoveDirY.Value);
+        }
+
+        private void RestoreImageElement(ElementConfiguration ec)
+        {
+            if (string.IsNullOrWhiteSpace(ec.ImagePath)) return;
+            string resolved = ResolveRelativePath(ec.ImagePath);
+            if (!File.Exists(resolved)) return;
+
+            try
+            {
+                var bmp = new BitmapImage();
+                bmp.BeginInit();
+                bmp.CacheOption = BitmapCacheOption.OnLoad;
+                bmp.UriSource = new Uri(resolved, UriKind.Absolute);
+                bmp.EndInit();
+                bmp.Freeze();
+
+                var img = new Image { Source = bmp, Stretch = Stretch.Uniform };
+                var border = CreateBaseBorder(img);
+                border.Opacity = ec.Opacity <= 0 ? 1 : ec.Opacity;
+
+                var tg = new TransformGroup();
+                tg.Children.Add(new ScaleTransform(ec.Scale <= 0 ? 1 : ec.Scale, ec.Scale <= 0 ? 1 : ec.Scale));
+                if (ec.MirroredX == true) tg.Children.Add(new ScaleTransform(-1, 1));
+                if (ec.Rotation.HasValue && Math.Abs(ec.Rotation.Value) > 0.01)
+                    tg.Children.Add(new RotateTransform(ec.Rotation.Value));
+                tg.Children.Add(new TranslateTransform(ec.X, ec.Y));
+                border.RenderTransform = tg;
+
+                Canvas.SetZIndex(border, ec.ZIndex);
+                DesignCanvas.Children.Add(border);
+            }
+            catch { }
+        }
+
+        // === 添加：恢复视频元素 ===
+        // 放在其它 RestoreXXX 方法附近，或文件中部任意合适位置（类内部）
+        // 依赖已有: ResolveRelativePath, LoadCachedVideoFrames, VideoElementInfo, StartVideoPlayback,
+        // _currentVideoFrames, _currentVideoImage, _currentVideoBorder, _currentFrameIndex
+
+        private void RestoreVideoElement(ElementConfiguration ec)
+        {
+            if (string.IsNullOrWhiteSpace(ec.VideoPath))
+                return;
+
+            try
+            {
+                // 先清理当前正在播放的视频（保持与 AddMp4_Click 单一视频的语义一致）
+                if (_currentVideoBorder != null && DesignCanvas.Children.Contains(_currentVideoBorder))
+                {
+                    StopVideoPlayback();
+                    DesignCanvas.Children.Remove(_currentVideoBorder);
+                    _currentVideoFrames = null;
+                    _currentVideoImage = null;
+                    _currentVideoBorder = null;
+                }
+
+                string resolved = ResolveRelativePath(ec.VideoPath);
+                // 可以不存在（用户可能四处移动文件），仍然给个占位
+                List<VideoFrameData>? cached = null;
+                if (!string.IsNullOrWhiteSpace(ec.VideoFramesCacheFolder))
+                    cached = LoadCachedVideoFrames(ec.VideoFramesCacheFolder);
+
+                Border host;
+                Image? videoImage = null;
+
+                if (cached != null && cached.Count > 0)
+                {
+                    // 使用缓存帧
+                    _currentVideoFrames = cached;
+                    _currentFrameIndex = 0;
+                    videoImage = new Image { Stretch = Stretch.Uniform };
+                    UpdateVideoFrame(videoImage, cached[0]); // 利用已有方法
+                    host = CreateBaseBorder(videoImage);
+                    _currentVideoImage = videoImage;
+                    _currentVideoBorder = host;
+
+                    // 异步探测帧率再启动，否则默认 30
+                    double frameRate = 30;
+                    if (File.Exists(resolved))
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var info = await VideoConverter.GetMp4InfoAsync(resolved);
+                                if (info != null && info.FrameRate > 1)
+                                    frameRate = info.FrameRate;
+                            }
+                            catch { }
+                            Dispatcher.Invoke(() => StartVideoPlayback(frameRate));
+                        });
+                    }
+                    else
+                    {
+                        StartVideoPlayback(frameRate);
+                    }
+                }
+                else
+                {
+                    // 没有缓存或者缓存为空 -> 放一个占位文本，后台异步读取视频
+                    var placeholder = new TextBlock
+                    {
+                        Text = File.Exists(resolved) ? "Loading Video..." : "VIDEO (missing)",
+                        FontSize = 20,
+                        Foreground = Brushes.White,
+                        FontWeight = FontWeights.SemiBold,
+                        Background = new SolidColorBrush(Color.FromArgb(60, 0, 0, 0)),
+                        Padding = new Thickness(10)
+                    };
+                    placeholder.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+                    host = CreateBaseBorder(placeholder);
+
+                    if (File.Exists(resolved))
+                    {
+                        // 后台解码帧
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var frames = new List<VideoFrameData>();
+                                await foreach (var f in VideoConverter.ExtractMp4FramesToJpegRealTimeAsync(
+                                    resolved,
+                                    quality: 85,
+                                    CancellationToken.None))
+                                {
+                                    frames.Add(f);
+                                }
+
+                                if (frames.Count > 0)
+                                {
+                                    await Dispatcher.InvokeAsync(() =>
+                                    {
+                                        if (!DesignCanvas.Children.Contains(host))
+                                            return; // 已被清理
+
+                                        _currentVideoFrames = frames;
+                                        _currentFrameIndex = 0;
+
+                                        var img = new Image { Stretch = Stretch.Uniform };
+                                        UpdateVideoFrame(img, frames[0]);
+                                        _currentVideoImage = img;
+                                        _currentVideoBorder = host;
+                                        host.Child = img;
+
+                                        double fr = 30;
+                                        _ = Task.Run(async () =>
+                                        {
+                                            try
+                                            {
+                                                var info = await VideoConverter.GetMp4InfoAsync(resolved);
+                                                if (info != null && info.FrameRate > 1) fr = info.FrameRate;
+                                            }
+                                            catch { }
+                                            Dispatcher.Invoke(() => StartVideoPlayback(fr));
+                                        });
+                                    });
+                                }
+                                else
+                                {
+                                    await Dispatcher.InvokeAsync(() =>
+                                    {
+                                        if (host.Child is TextBlock tb)
+                                            tb.Text = "VIDEO (decode failed)";
+                                    });
+                                }
+                            }
+                            catch
+                            {
+                                await Dispatcher.InvokeAsync(() =>
+                                {
+                                    if (host.Child is TextBlock tb)
+                                        tb.Text = "VIDEO (error)";
+                                });
+                            }
+                        });
+                    }
+                }
+
+                // 设置公共属性（Transform / ZIndex / Opacity）
+                host.Opacity = ec.Opacity <= 0 ? 1 : ec.Opacity;
+
+                var tg = new TransformGroup();
+                var scale = new ScaleTransform(ec.Scale <= 0 ? 1 : ec.Scale, ec.Scale <= 0 ? 1 : ec.Scale);
+                tg.Children.Add(scale);
+                tg.Children.Add(new TranslateTransform(ec.X, ec.Y));
+                host.RenderTransform = tg;
+                Canvas.SetZIndex(host, ec.ZIndex);
+
+                // 给 Tag 标记视频信息（与保存逻辑匹配）
+                host.Tag = new VideoElementInfo
+                {
+                    Kind = LiveInfoKind.VideoPlayback,
+                    FilePath = resolved,
+                    TotalFrames = _currentVideoFrames?.Count ?? 0,
+                    VideoInfo = null
+                };
+
+                DesignCanvas.Children.Add(host);
+            }
+            catch (Exception ex)
+            {
+                Logger.Info($"Restore video element failed: {ex.Message}");
+            }
+        }
+
 
         // ================= Load Config =================
         private async void LoadConfig_Click(object sender, RoutedEventArgs e)
@@ -2322,50 +2615,21 @@ namespace CMDevicesManager.Pages
             try
             {
                 var configFolder = Path.Combine(OutputFolder, "Configs");
-                if (!Directory.Exists(configFolder))
-                    Directory.CreateDirectory(configFolder);
+                Directory.CreateDirectory(configFolder);
 
-                var configFiles = Directory.GetFiles(configFolder, "*.json");
-                if (configFiles.Length == 0)
+                if (!ConfigSelectionDialog.TrySelectConfig(
+                        Application.Current.MainWindow ?? Window.GetWindow(this),
+                        configFolder,
+                        out var config,
+                        out var selectedPath,
+                        showPathInList: false))
                 {
-                    LocalizedMessageBox.Show("NoConfigFilesFound", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LocalizedMessageBox.Show("NoValidConfigFilesFound", "Notice",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
-                var configs = new List<(string path, CanvasConfiguration config)>();
-                foreach (var file in configFiles)
-                {
-                    try
-                    {
-                        var json = File.ReadAllText(file);
-                        var cfg = JsonSerializer.Deserialize<CanvasConfiguration>(json, new JsonSerializerOptions
-                        {
-                            Converters = { new JsonStringEnumConverter() }
-                        });
-                        if (cfg != null)
-                            configs.Add((file, cfg));
-                    }
-                    catch (Exception ex2)
-                    {
-                        Logger.Info($"Failed to load config file {file}: {ex2.Message}");
-                    }
-                }
-
-                if (configs.Count == 0)
-                {
-                    LocalizedMessageBox.Show("NoValidConfigFilesFound", "Notice", MessageBoxButton.OK, MessageBoxImage.Information);
-                    return;
-                }
-
-                var selectionDialog = new ConfigSelectionDialog(configs);
-                if (Application.Current.MainWindow != null)
-                    selectionDialog.Owner = Application.Current.MainWindow;
-
-                if (selectionDialog.ShowDialog() != true || selectionDialog.SelectedConfig == null)
-                    return;
-
-                var config = selectionDialog.SelectedConfig;
-
+                // Clear old
                 DesignCanvas.Children.Clear();
                 _liveItems.Clear();
                 _movingDirections.Clear();
@@ -2373,6 +2637,7 @@ namespace CMDevicesManager.Pages
                 StopVideoPlayback();
                 ResetMoveDirection();
 
+                // Basic props
                 CurrentConfigName = config.ConfigName;
                 CanvasSize = config.CanvasSize;
                 BackgroundHex = config.BackgroundColor;
@@ -2380,350 +2645,58 @@ namespace CMDevicesManager.Pages
                     ? ResolveRelativePath(config.BackgroundImagePath)
                     : null;
                 BackgroundImageOpacity = config.BackgroundImageOpacity;
+                if (config.MoveSpeed > 0) MoveSpeed = config.MoveSpeed;
 
-                if (config.MoveSpeed > 0) MoveSpeed = config.MoveSpeed; // NEW: restore global move speed
-
-                foreach (var elemConfig in config.Elements.OrderBy(ei => ei.ZIndex))
+                // Restore each element
+                foreach (var ec in config.Elements.OrderBy(e2 => e2.ZIndex))
                 {
-                    FrameworkElement? element = null;
-                    Border? border = null;
-
-                    switch (elemConfig.Type)
+                    try
                     {
-                        case "Text":
-                            {
-                                var tb = new TextBlock
-                                {
-                                    Text = elemConfig.Text ?? "Text",
-                                    FontSize = elemConfig.FontSize ?? 24,
-                                    FontWeight = FontWeights.SemiBold
-                                };
-                                tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-
-                                if (elemConfig.UseTextGradient == true &&
-                                    !string.IsNullOrEmpty(elemConfig.TextColor) &&
-                                    !string.IsNullOrEmpty(elemConfig.TextColor2) &&
-                                    TryParseHexColor(elemConfig.TextColor, out var c1) &&
-                                    TryParseHexColor(elemConfig.TextColor2, out var c2))
-                                {
-                                    var gradientBrush = new LinearGradientBrush
-                                    {
-                                        StartPoint = new Point(0, 0),
-                                        EndPoint = new Point(1, 1)
-                                    };
-                                    gradientBrush.GradientStops.Add(new GradientStop(c1, 0.0));
-                                    gradientBrush.GradientStops.Add(new GradientStop(c2, 1.0));
-                                    tb.Foreground = gradientBrush;
-                                }
-                                else if (!string.IsNullOrEmpty(elemConfig.TextColor) &&
-                                         TryParseHexColor(elemConfig.TextColor, out var tc))
-                                {
-                                    tb.Foreground = new SolidColorBrush(tc);
-                                }
-                                else
-                                {
-                                    tb.Foreground = new SolidColorBrush(Colors.Black);
-                                }
-                                element = tb;
+                        switch (ec.Type)
+                        {
+                            case "Text":
+                                RestoreTextElement(ec);
                                 break;
-                            }
-                        case "LiveText":
-                            {
-                                if (elemConfig.LiveKind.HasValue)
-                                {
-                                    var liveTb = new TextBlock
-                                    {
-                                        FontSize = elemConfig.FontSize ?? 18,
-                                        FontWeight = FontWeights.SemiBold
-                                    };
-                                    liveTb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-                                    liveTb.Foreground = new SolidColorBrush(Colors.Black);
-
-                                    if (elemConfig.LiveKind.Value == LiveInfoKind.DateTime)
-                                    {
-                                        string fmt = string.IsNullOrWhiteSpace(elemConfig.DateFormat)
-                                            ? "yyyy-MM-dd HH:mm:ss"
-                                            : elemConfig.DateFormat;
-                                        liveTb.Text = DateTime.Now.ToString(fmt);
-                                    }
-                                    else
-                                    {
-                                        switch (elemConfig.LiveKind.Value)
-                                        {
-                                            case LiveInfoKind.CpuUsage:
-                                                liveTb.Text = $"CPU {Math.Round(_metrics.GetCpuUsagePercent())}%";
-                                                break;
-                                            case LiveInfoKind.GpuUsage:
-                                                liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuUsagePercent())}%";
-                                                break;
-                                            case LiveInfoKind.CpuTemperature:                             // NEW
-                                                liveTb.Text = $"CPU {Math.Round(_metrics.GetCpuTemperature())}°C";
-                                                break;
-                                            case LiveInfoKind.GpuTemperature:                             // NEW
-                                                liveTb.Text = $"GPU {Math.Round(_metrics.GetGpuTemperature())}°C";
-                                                break;
-                                        }
-                                    }
-
-                                    // NEW: restore text color / gradient when style is plain text
-                                    if (elemConfig.UseTextGradient == true &&
-                                        !string.IsNullOrEmpty(elemConfig.TextColor) &&
-                                        !string.IsNullOrEmpty(elemConfig.TextColor2) &&
-                                        TryParseHexColor(elemConfig.TextColor, out var dtc1) &&
-                                        TryParseHexColor(elemConfig.TextColor2, out var dtc2))
-                                    {
-                                        var g = new LinearGradientBrush
-                                        {
-                                            StartPoint = new Point(0, 0),
-                                            EndPoint = new Point(1, 1)
-                                        };
-                                        g.GradientStops.Add(new GradientStop(dtc1, 0));
-                                        g.GradientStops.Add(new GradientStop(dtc2, 1));
-                                        liveTb.Foreground = g;
-                                    }
-                                    else if (!string.IsNullOrEmpty(elemConfig.TextColor) &&
-                                             TryParseHexColor(elemConfig.TextColor, out var dtSolid))
-                                    {
-                                        liveTb.Foreground = new SolidColorBrush(dtSolid);
-                                    }
-
-                                    element = liveTb;
-                                }
+                            case "LiveText":
+                                RestoreLiveElement(ec);
                                 break;
-                            }
-                        case "Image":
-                            {
-                                if (!string.IsNullOrEmpty(elemConfig.ImagePath))
-                                {
-                                    var resolvedPath = ResolveRelativePath(elemConfig.ImagePath);
-                                    if (File.Exists(resolvedPath))
-                                    {
-                                        try
-                                        {
-                                            var bitmap = new BitmapImage();
-                                            bitmap.BeginInit();
-                                            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                                            bitmap.UriSource = new Uri(resolvedPath, UriKind.Absolute);
-                                            bitmap.EndInit();
-                                            bitmap.Freeze();
-
-                                            var img = new Image
-                                            {
-                                                Source = bitmap,
-                                                Stretch = Stretch.Uniform
-                                            };
-                                            element = img;
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Logger.Error($"Failed to load image from {resolvedPath}: {ex.Message}");
-                                        }
-                                    }
-                                }
+                            case "Image":
+                                RestoreImageElement(ec);
                                 break;
-                            }
-                        case "Video":
-                            {
-                                if (!string.IsNullOrEmpty(elemConfig.VideoPath))
-                                {
-                                    var resolvedPath = ResolveRelativePath(elemConfig.VideoPath);
-                                    if (File.Exists(resolvedPath))
-                                    {
-                                        List<VideoFrameData>? frames = null;
-
-                                        // VIDEO CACHE: try load cached frames first
-                                        if (!string.IsNullOrEmpty(elemConfig.VideoFramesCacheFolder))
-                                            frames = LoadCachedVideoFrames(elemConfig.VideoFramesCacheFolder);
-
-                                        if (frames != null && frames.Count > 0)
-                                        {
-                                            _currentVideoFrames = frames;
-                                            _currentFrameIndex = 0;
-
-                                            var videoImage = new Image
-                                            {
-                                                Stretch = Stretch.Uniform,
-                                                HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                                                VerticalAlignment = VerticalAlignment.Top
-                                            };
-                                            UpdateVideoFrame(videoImage, frames[0]);
-                                            element = videoImage;
-                                        }
-                                        else
-                                        {
-                                            var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedPath);
-                                            if (videoInfo != null)
-                                            {
-                                                Mouse.OverrideCursor = Cursors.Wait;
-                                                var extracted = await ExtractMp4FramesToMemory(resolvedPath);
-                                                Mouse.OverrideCursor = null;
-
-                                                if (extracted != null && extracted.Count > 0)
-                                                {
-                                                    _currentVideoFrames = extracted;
-                                                    _currentFrameIndex = 0;
-
-                                                    var videoImage = new Image
-                                                    {
-                                                        Stretch = Stretch.Uniform,
-                                                        HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                                                        VerticalAlignment = VerticalAlignment.Top
-                                                    };
-                                                    UpdateVideoFrame(videoImage, extracted[0]);
-                                                    element = videoImage;
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                            case "Video":
+                                RestoreVideoElement(ec);
                                 break;
-                            }
+                        }
                     }
-
-                    if (element != null)
+                    catch (Exception exInner)
                     {
-                        element.HorizontalAlignment = System.Windows.HorizontalAlignment.Left;
-                        element.VerticalAlignment = VerticalAlignment.Top;
-
-                        border = new Border
-                        {
-                            BorderBrush = Brushes.Transparent,
-                            BorderThickness = new Thickness(0),
-                            Child = element,
-                            RenderTransformOrigin = new Point(0.5, 0.5),
-                            Cursor = Cursors.SizeAll,
-                            Opacity = elemConfig.Opacity
-                        };
-
-                        var tg = new TransformGroup();
-                        var scale = new ScaleTransform(elemConfig.Scale, elemConfig.Scale);
-                        var translate = new TranslateTransform(elemConfig.X, elemConfig.Y);
-                        tg.Children.Add(scale);
-                        tg.Children.Add(translate);
-                        border.RenderTransform = tg;
-
-                        // NEW: restore mirror & rotation for images
-                        if (elemConfig.Type == "Image" && (elemConfig.Rotation.HasValue || elemConfig.MirroredX == true))
-                        {
-                            if (border.RenderTransform is TransformGroup tgg)
-                            {
-                                var contentScale = tgg.Children.OfType<ScaleTransform>().First();
-                                var translateT = tgg.Children.OfType<TranslateTransform>().First();
-
-                                if (elemConfig.MirroredX == true)
-                                {
-                                    var mirrorScale = new ScaleTransform(-1, 1);
-                                    int insertIndex = tg.Children.IndexOf(contentScale) + 1;
-                                    tg.Children.Insert(insertIndex, mirrorScale);
-                                }
-
-                                if (elemConfig.Rotation.HasValue)
-                                {
-                                    var rotate = new RotateTransform(elemConfig.Rotation.Value);
-                                    int translateIndex = tg.Children.IndexOf(translateT);
-                                    tg.Children.Insert(translateIndex, rotate);
-                                }
-                            }
-                        }
-
-                        border.PreviewMouseLeftButtonDown += Item_PreviewMouseLeftButtonDown;
-                        border.PreviewMouseLeftButtonUp += Item_PreviewMouseLeftButtonUp;
-                        border.PreviewMouseMove += Item_PreviewMouseMove;
-                        border.MouseDown += (_, __) => SelectElement(border);
-                        border.MouseEnter += (_, __) => { if (_selected != border) border.BorderBrush = new SolidColorBrush(Color.FromArgb(60, 30, 144, 255)); };
-                        border.MouseLeave += (_, __) => { if (_selected != border) border.BorderBrush = Brushes.Transparent; };
-
-                        DesignCanvas.Children.Add(border);
-                        Canvas.SetZIndex(border, elemConfig.ZIndex);
-
-                        if (elemConfig.Type == "LiveText" && elemConfig.LiveKind.HasValue)
-                        {
-                            border.Tag = elemConfig.LiveKind.Value;
-                            var newItem = new LiveTextItem
-                            {
-                                Border = border,
-                                Text = (TextBlock)element,
-                                Kind = elemConfig.LiveKind.Value,
-                                DateFormat = (elemConfig.LiveKind.Value == LiveInfoKind.DateTime)
-                                    ? (elemConfig.DateFormat ?? "yyyy-MM-dd HH:mm:ss")
-                                    : "yyyy-MM-dd HH:mm:ss"
-                            };
-
-                            if (elemConfig.LiveKind.Value == LiveInfoKind.CpuUsage ||
-     elemConfig.LiveKind.Value == LiveInfoKind.GpuUsage ||
-     elemConfig.LiveKind.Value == LiveInfoKind.CpuTemperature ||      // NEW
-     elemConfig.LiveKind.Value == LiveInfoKind.GpuTemperature)        // NEW
-                            {
-                                if (Enum.TryParse<UsageDisplayStyle>(elemConfig.UsageDisplayStyle ?? "Text", out var ds)) newItem.DisplayStyle = ds;
-                                if (TryParseHexColor(elemConfig.UsageStartColor, out var usc)) newItem.StartColor = usc;
-                                if (TryParseHexColor(elemConfig.UsageEndColor, out var uec)) newItem.EndColor = uec;
-                                if (TryParseHexColor(elemConfig.UsageNeedleColor, out var unc)) newItem.NeedleColor = unc;
-                                if (TryParseHexColor(elemConfig.UsageBarBackgroundColor, out var ubc)) newItem.BarBackgroundColor = ubc;
-                            }
-
-                            _liveItems.Add(newItem);
-                            if (newItem.DisplayStyle != UsageDisplayStyle.Text)
-                            {
-                                RebuildUsageVisual(newItem);
-                                // Re-apply restored theme
-                                if (newItem.DisplayStyle == UsageDisplayStyle.ProgressBar)
-                                {
-                                    if (newItem.BarBackgroundBorder != null)
-                                        newItem.BarBackgroundBorder.Background = new SolidColorBrush(newItem.BarBackgroundColor);
-                                    if (newItem.BarFill != null)
-                                        newItem.BarFill.Fill = new LinearGradientBrush(newItem.StartColor, newItem.EndColor, 0);
-                                }
-                                else if (newItem.DisplayStyle == UsageDisplayStyle.Gauge)
-                                {
-                                    if (newItem.GaugeNeedle != null)
-                                        newItem.GaugeNeedle.Stroke = new SolidColorBrush(newItem.NeedleColor);
-                                    RecolorGaugeTicks(newItem);
-                                }
-                            }
-                        }
-
-                        if (elemConfig.Type == "Video" && element is Image videoImg)
-                        {
-                            _currentVideoImage = videoImg;
-                            _currentVideoBorder = border;
-
-                            var resolvedVideoPath = ResolveRelativePath(elemConfig.VideoPath!);
-                            var videoInfo = await VideoConverter.GetMp4InfoAsync(resolvedVideoPath);
-                            if (videoInfo != null)
-                            {
-                                border.Tag = new VideoElementInfo
-                                {
-                                    Kind = LiveInfoKind.VideoPlayback,
-                                    VideoInfo = videoInfo,
-                                    FilePath = resolvedVideoPath,
-                                    TotalFrames = _currentVideoFrames?.Count ?? 0
-                                };
-                                // VIDEO CACHE: if frames loaded from cache, still start playback using metadata frame rate
-                                StartVideoPlayback(videoInfo.FrameRate);
-                            }
-                        }
-
-                        // NEW: restore per-element auto-move direction (only plain text)
-                        if ((elemConfig.Type == "Text" || elemConfig.Type == "LiveText") &&
-     elemConfig.MoveDirX.HasValue && elemConfig.MoveDirY.HasValue &&
-     (Math.Abs(elemConfig.MoveDirX.Value) > 0.0001 || Math.Abs(elemConfig.MoveDirY.Value) > 0.0001))
-                        {
-                            _movingDirections[border] = (elemConfig.MoveDirX.Value, elemConfig.MoveDirY.Value);
-                        }
+                        Logger.Info($"Restore element failed: {exInner.Message}");
                     }
                 }
 
-                UpdateAutoMoveTimer(); // ensure timer runs if any moving text restored
+                UpdateAutoMoveTimer();
                 LoadedFromConfigFile = true;
-                _loadedConfigFilePath = selectionDialog.SelectedConfigPath;
-                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("ConfigurationLoaded")?.ToString() ?? "配置已加载：{0}", config.ConfigName), "LoadSuccessful", MessageBoxButton.OK, MessageBoxImage.Information, true);
+                _loadedConfigFilePath = selectedPath;
+
+                LocalizedMessageBox.Show(
+                    string.Format(Application.Current.FindResource("ConfigurationLoaded")?.ToString()
+                                  ?? "配置已加载：{0}", config.ConfigName),
+                    "LoadSuccessful",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information,
+                    true);
             }
             catch (Exception ex)
             {
-                LocalizedMessageBox.Show(string.Format(Application.Current.FindResource("LoadConfigurationFailed")?.ToString() ?? "加载配置失败：{0}", ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error, true);
+                LocalizedMessageBox.Show(
+                    string.Format(Application.Current.FindResource("LoadConfigurationFailed")?.ToString()
+                                  ?? "加载配置失败：{0}", ex.Message),
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error,
+                    true);
             }
         }
-
         // ================= Apply Text Color / Gradient =================
         private void ApplyTextColorOrGradient()
         {
