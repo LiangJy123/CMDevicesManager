@@ -116,6 +116,12 @@ namespace CMDevicesManager
                 // Initialize Offline Media Data Service first
                 Logger.Info("Initializing Offline Media Data Service");
                 _offlineMediaDataService = new OfflineMediaDataService();
+                // Set up DeviceDataChanged event handler
+                _offlineMediaDataService.DeviceDataChanged += (sender, args) =>
+                {
+                    Logger.Info("Offline Media Data Service: Device data changed, Save to disk.");
+                    _offlineMediaDataService.SaveDatabase(); // Save changes to database
+                };
 
                 // Initialize HID Device Service
                 Logger.Info("Initializing HID Device Service");

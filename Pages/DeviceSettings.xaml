@@ -374,6 +374,7 @@
                                     BorderBrush="Transparent"
                                     Padding="8"
                                     Cursor="Hand"
+                                    Visibility="Collapsed"
                                     ToolTip="{DynamicResource RefreshStatusTooltip}">
                                 <TextBlock Text="&#xE72C;" FontFamily="Segoe MDL2 Assets"
                                            FontSize="14"
