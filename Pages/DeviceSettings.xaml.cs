@@ -1,4 +1,5 @@
 ﻿using CMDevicesManager.Helper;
+using CMDevicesManager.Models;
 using CMDevicesManager.Services;
 using HID.DisplayController;
 using HidApi;
@@ -13,11 +14,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Button = System.Windows.Controls.Button;
 using Color = System.Windows.Media.Color;
 using Image = System.Windows.Controls.Image;
-using Button = System.Windows.Controls.Button;
-using System.Windows.Media.Imaging;
 
 namespace CMDevicesManager.Pages
 {
@@ -42,6 +43,8 @@ namespace CMDevicesManager.Pages
         // Video thumbnail cache to avoid regenerating thumbnails
         private Dictionary<string, BitmapImage> _videoThumbnailCache = new();
 
+        private PlaybackMode _currentPlayMode = PlaybackMode.RealtimeConfig;
+
         #region Properties
 
         public DeviceInfo? DeviceInfo
@@ -54,6 +57,8 @@ namespace CMDevicesManager.Pages
                     _deviceInfo = value;
                     // Initialize HID service when device info is set
                     _ = InitializeHidDeviceServiceAsync();
+                    // Load playback mode from offline data service
+                    LoadPlaybackModeFromService();
                 }
             }
         }
@@ -244,6 +249,38 @@ namespace CMDevicesManager.Pages
             SerialNumberText.Text = _deviceInfo.SerialNumber ?? "N/A";
             ManufacturerText.Text = _deviceInfo.ManufacturerString ?? "N/A";
             ProductNameText.Text = _deviceInfo.ProductString ?? "N/A";
+        }
+
+
+        /// <summary>
+        /// Method that loads the playback mode when device info is set
+        /// This should be called in the DeviceInfo property setter
+        /// </summary>
+        private void LoadPlaybackModeFromService()
+        {
+            if (_deviceInfo?.SerialNumber == null || !ServiceLocator.IsOfflineMediaServiceInitialized)
+                return;
+
+            try
+            {
+                var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                var savedPlaybackMode = offlineDataService.GetDevicePlaybackMode(_deviceInfo.SerialNumber);
+
+                _currentPlayMode = savedPlaybackMode;
+
+                bool isRealtime = _currentPlayMode == PlaybackMode.RealtimeConfig;
+
+                // binding the SuspendModeToggle state from current mode
+                SuspendModeToggle.IsChecked = !isRealtime;
+
+                Console.WriteLine($"Loaded playback mode for device {_deviceInfo.SerialNumber}: {savedPlaybackMode}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to load playback mode for device {_deviceInfo?.SerialNumber}: {ex.Message}");
+                // Use default mode on error
+                _currentPlayMode = PlaybackMode.RealtimeConfig;
+            }
         }
 
         private async Task LoadDeviceInformation()
@@ -927,6 +964,8 @@ namespace CMDevicesManager.Pages
                 {
                     ShowNotification(isActivated ? "Suspend mode activated successfully." : "RealTime mode activated successfully.");
 
+                    _currentPlayMode = isActivated ? PlaybackMode.OfflineVideo : PlaybackMode.RealtimeConfig;
+                    SavePlaybackModeToService(); // Save to offline data service
                     // Update suspend mode display based on new state
                     if (isActivated)
                     {
@@ -1224,6 +1263,7 @@ namespace CMDevicesManager.Pages
                 
                 if (successCount > 0)
                 {
+                    await _hidDeviceService.SetRealTimeDisplayAsync(false);
                     // Update UI to show the media
                     UpdateMediaSlotUI(slotIndex, newFilePath, true);
                     ShowNotification($"Media added to slot {slotIndex + 1} successfully.");
@@ -1944,6 +1984,28 @@ namespace CMDevicesManager.Pages
             }
             
             return activeFiles;
+        }
+
+        /// <summary>
+        /// Method that saves the current playback mode
+        /// This should be called whenever _currentPlayMode changes
+        /// </summary>
+        private void SavePlaybackModeToService()
+        {
+            if (_deviceInfo?.SerialNumber == null || !ServiceLocator.IsOfflineMediaServiceInitialized)
+                return;
+
+            try
+            {
+                var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                offlineDataService.UpdateDevicePlaybackMode(_deviceInfo.SerialNumber, _currentPlayMode);
+
+                Console.WriteLine($"Saved playback mode for device {_deviceInfo.SerialNumber}: {_currentPlayMode}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to save playback mode for device {_deviceInfo?.SerialNumber}: {ex.Message}");
+            }
         }
 
         #endregion
