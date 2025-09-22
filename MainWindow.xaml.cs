@@ -36,7 +36,7 @@ namespace CMDevicesManager
     internal static class UIDebugFlags
     {
         // 为 false 时隐藏指定的导航按钮
-        public const bool UI_Debug_without_deivce = false;
+        public const bool UI_Debug_without_device = false;
     }
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -96,7 +96,7 @@ namespace CMDevicesManager
         }
         private void ApplyUIDebugFlag()
         {
-            if (!UIDebugFlags.UI_Debug_without_deivce)
+            if (!UIDebugFlags.UI_Debug_without_device)
             {
                 HideNavItem(ConfigNavItem);
                 HideNavItem(DemoNavItem);
