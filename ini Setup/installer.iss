@@ -1,7 +1,7 @@
 ﻿#define MyAppName        "LCD Manager"
 #define MyAppExeName     "LCDManager.exe"
 #define MyCompany        "ELINK"
-#define MyAppVersion     "1.0.0"
+#define MyAppVersion     "0.0.2"
 #define MyPublishDir     "..\\bin\\release\\net8.0-windows10.0.19041.0\\publish"
 
 [Setup]
@@ -12,7 +12,7 @@ AppPublisher={#MyCompany}
 DefaultDirName={autopf}\{#MyCompany}\{#MyAppName}
 DisableDirPage=no
 DefaultGroupName={#MyAppName}
-OutputBaseFilename=Setup-{#MyAppVersion}
+OutputBaseFilename=LCDManagerSetup-{#MyAppVersion}
 OutputDir=.\Output
 Compression=lzma
 SolidCompression=yes
