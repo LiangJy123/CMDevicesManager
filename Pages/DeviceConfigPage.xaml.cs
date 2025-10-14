@@ -369,6 +369,9 @@ namespace CMDevicesManager.Pages
              kind == LiveInfoKind.DateTime);
         public bool IsImageSelected => _selected?.Child is Image && _selected.Tag is not VideoElementInfo;
         public bool IsDateTimeSelected => _selected?.Tag is LiveInfoKind kind && kind == LiveInfoKind.DateTime;
+        // 在现有属性附近添加新属性
+        public bool IsUsageTextModeSelected =>
+            IsUsageSelected && string.Equals(NormalizeUsageStyleString(SelectedUsageDisplayStyle), "Text", StringComparison.OrdinalIgnoreCase);
 
         private double _selectedScale = 1.0;
         public double SelectedScale
@@ -495,7 +498,16 @@ namespace CMDevicesManager.Pages
             {
                 _usageStartColor = value;
                 UsageStartHex = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
-                ApplyUsageTheme();
+                if (IsUsageTextModeSelected)
+                {
+                    ApplyTextColorOrGradient();
+                }
+                else
+                {
+                    ApplyUsageTheme();
+                }
+
+               
                 OnPropertyChanged();
             }
         }
@@ -522,7 +534,14 @@ namespace CMDevicesManager.Pages
             {
                 _usageEndColor = value;
                 UsageEndHex = $"#{value.R:X2}{value.G:X2}{value.B:X2}";
-                ApplyUsageTheme();
+                if (IsUsageTextModeSelected)
+                {
+                    ApplyTextColorOrGradient();
+                }
+                else
+                {
+                    ApplyUsageTheme();
+                }
                 OnPropertyChanged();
             }
         }
@@ -582,6 +601,7 @@ namespace CMDevicesManager.Pages
                 ApplySelectedUsageStyle();
                 OnPropertyChanged(nameof(IsGaugeSelected));
                 OnPropertyChanged(nameof(IsUsageVisualSelected));
+                OnPropertyChanged(nameof(IsUsageTextModeSelected));
             }
         }
 
@@ -702,6 +722,7 @@ namespace CMDevicesManager.Pages
                 OnPropertyChanged(nameof(IsUsageSelected));
                 OnPropertyChanged(nameof(IsUsageVisualSelected));
                 OnPropertyChanged(nameof(IsGaugeSelected));
+                OnPropertyChanged(nameof(IsUsageTextModeSelected));
             }
         }
         private void OpenColorPicker(Color initial, Action<Color> apply)
@@ -1147,13 +1168,13 @@ namespace CMDevicesManager.Pages
 
         private void PickUsageStartColor_Click(object sender, RoutedEventArgs e)
         {
-            if (!IsUsageVisualSelected) return;
+            if (!IsUsageVisualSelected && !IsUsageTextModeSelected) return;
             OpenColorPicker(UsageStartColor, c => UsageStartColor = c);
         }
 
         private void PickUsageEndColor_Click(object sender, RoutedEventArgs e)
         {
-            if (!IsUsageVisualSelected) return;
+            if (!IsUsageVisualSelected && !IsUsageTextModeSelected) return;
             OpenColorPicker(UsageEndColor, c => UsageEndColor = c);
         }
 
@@ -1332,6 +1353,20 @@ namespace CMDevicesManager.Pages
                     UsageEndColor = liveItem.EndColor;
                     UsageNeedleColor = liveItem.NeedleColor;
                     UsageBarBackgroundColor = liveItem.BarBackgroundColor;
+
+                    // 如果是文本模式，从 TextBlock 的 Foreground 判断是否使用渐变
+                    if (liveItem.DisplayStyle == UsageDisplayStyle.Text)
+                    {
+                        var tb_tmp = GetCurrentTextBlock();
+                        if (tb_tmp.Foreground is LinearGradientBrush)
+                        {
+                            UseTextGradient = true;
+                        }
+                        else
+                        {
+                            UseTextGradient = false;
+                        }
+                    }
                 }
             }
 
@@ -2701,7 +2736,39 @@ namespace CMDevicesManager.Pages
         private void ApplyTextColorOrGradient()
         {
             var tb = GetCurrentTextBlock();
-            if (tb == null || IsUsageSelected) return;
+            if (tb == null) return;
+
+            // 如果是 systeminfo 文本模式，使用 UsageStartColor/UsageEndColor
+            if (IsUsageTextModeSelected)
+            {
+                if (UseTextGradient)
+                {
+                    var brush = new LinearGradientBrush
+                    {
+                        StartPoint = new Point(0, 0),
+                        EndPoint = new Point(1, 1)
+                    };
+                    brush.GradientStops.Add(new GradientStop(UsageStartColor, 0));
+                    brush.GradientStops.Add(new GradientStop(UsageEndColor, 1));
+                    tb.Foreground = brush;
+                }
+                else
+                {
+                    tb.Foreground = new SolidColorBrush(UsageStartColor);
+                }
+
+                // 更新 LiveTextItem 的颜色（用于保存配置）
+                var item = _liveItems.FirstOrDefault(i => i.Border == _selected);
+                if (item != null)
+                {
+                    item.StartColor = UsageStartColor;
+                    item.EndColor = UsageEndColor;
+                }
+                return;
+            }
+
+            // 普通文本的颜色逻辑保持不变
+            if (IsUsageSelected) return;
 
             if (UseTextGradient)
             {

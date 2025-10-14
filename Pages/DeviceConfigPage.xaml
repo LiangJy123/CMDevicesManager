@@ -479,72 +479,156 @@
                             </ComboBox>
                         </StackPanel>
 
-                        <!-- Usage theme -->
+                        <!-- SystemInfo Text Mode Color Settings (使用与普通文本类似的方式设置主题色) -->
                         <StackPanel Margin="0,0,0,8"
-                                    Visibility="{Binding IsUsageVisualSelected, Converter={StaticResource BoolToVis}}">
+            Visibility="{Binding IsUsageTextModeSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{DynamicResource UsageThemeTitle}" FontWeight="SemiBold" Margin="0,0,0,8"
-                                       Foreground="{StaticResource TitleBrush}" FontSize="14"/>
+               Foreground="{StaticResource TitleBrush}" FontSize="14"/>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                <CheckBox IsChecked="{Binding UseTextGradient}"
+                  Content="{DynamicResource UseGradientLabel}"
+                  Foreground="{StaticResource TitleBrush}"
+                  VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- 单色模式 -->
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
+                Visibility="{Binding UseTextGradient, Converter={StaticResource InverseBoolToVis}}">
+                                <TextBlock Text="{DynamicResource ColorLabel}" VerticalAlignment="Center" Width="100"
+                   Foreground="{StaticResource SubtitleBrush}"/>
+                                <TextBox Text="{Binding UsageStartHex, UpdateSourceTrigger=PropertyChanged}"
+                 Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
+                                <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
+                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                    <Border.Background>
+                                        <SolidColorBrush Color="{Binding UsageStartColor}"/>
+                                    </Border.Background>
+                                </Border>
+                                <Button Click="PickUsageStartColor_Click" Margin="8,0,0,0"
+                Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
+                            </StackPanel>
+
+                            <!-- 渐变模式 -->
+                            <StackPanel Visibility="{Binding UseTextGradient, Converter={StaticResource BoolToVis}}">
+                                <!-- Start color -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{DynamicResource StartColorLabel}" Width="100" VerticalAlignment="Center"
+                       Foreground="{StaticResource SubtitleBrush}"/>
+                                    <TextBox Text="{Binding UsageStartHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
+                     Style="{StaticResource DarkTextBoxStyle}"/>
+                                    <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
+                    BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                        <Border.Background>
+                                            <SolidColorBrush Color="{Binding UsageStartColor}"/>
+                                        </Border.Background>
+                                    </Border>
+                                    <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
+                    Click="PickUsageStartColor_Click" Content="{DynamicResource PickButton}"/>
+                                </StackPanel>
+
+                                <!-- End color -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{DynamicResource EndColorLabel}" Width="100" VerticalAlignment="Center"
+                       Foreground="{StaticResource SubtitleBrush}"/>
+                                    <TextBox Text="{Binding UsageEndHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
+                     Style="{StaticResource DarkTextBoxStyle}"/>
+                                    <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
+                    BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                        <Border.Background>
+                                            <SolidColorBrush Color="{Binding UsageEndColor}"/>
+                                        </Border.Background>
+                                    </Border>
+                                    <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
+                    Click="PickUsageEndColor_Click" Content="{DynamicResource PickButton}"/>
+                                </StackPanel>
+
+                                <!-- Preview -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{DynamicResource PreviewLabel}" Width="100" VerticalAlignment="Center"
+                       Foreground="{StaticResource SubtitleBrush}"/>
+                                    <Border Width="200" Height="30" CornerRadius="4" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                <GradientStop Color="{Binding UsageStartColor}" Offset="0"/>
+                                                <GradientStop Color="{Binding UsageEndColor}" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <TextBlock Text="{DynamicResource GradientSampleText}"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          FontWeight="Bold"/>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Usage theme (ProgressBar/Gauge 模式) -->
+                        <StackPanel Margin="0,0,0,8"
+            Visibility="{Binding IsUsageVisualSelected, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{DynamicResource UsageThemeTitle}" FontWeight="SemiBold" Margin="0,0,0,8"
+               Foreground="{StaticResource TitleBrush}" FontSize="14"/>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                 <TextBlock Text="{DynamicResource StartLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                   Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageStartHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                                         Style="{StaticResource DarkTextBoxStyle}"/>
+                 Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageStartColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                                        Click="PickUsageStartColor_Click" Content="{DynamicResource PickButton}"/>
+                Click="PickUsageStartColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                 <TextBlock Text="{DynamicResource EndLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                   Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageEndHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                                         Style="{StaticResource DarkTextBoxStyle}"/>
+                 Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageEndColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                                        Click="PickUsageEndColor_Click" Content="{DynamicResource PickButton}"/>
+                Click="PickUsageEndColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
-                                        Visibility="{Binding IsGaugeSelected, Converter={StaticResource InverseBoolToVis}}">
+                Visibility="{Binding IsGaugeSelected, Converter={StaticResource InverseBoolToVis}}">
                                 <TextBlock Text="{DynamicResource BackgroundLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                   Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageBarBackgroundHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                                         Style="{StaticResource DarkTextBoxStyle}"/>
+                 Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageBarBackgroundColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                                        Click="PickUsageBarBackgroundColor_Click" Content="{DynamicResource PickButton}"/>
+                Click="PickUsageBarBackgroundColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
-                                        Visibility="{Binding IsGaugeSelected, Converter={StaticResource BoolToVis}}">
+                Visibility="{Binding IsGaugeSelected, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="{DynamicResource NeedleLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                   Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageNeedleHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                                         Style="{StaticResource DarkTextBoxStyle}"/>
+                 Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageNeedleColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                                        Click="PickUsageNeedleColor_Click" Content="{DynamicResource PickButton}"/>
+                Click="PickUsageNeedleColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                                 <TextBlock Text="{DynamicResource PreviewLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                   Foreground="{StaticResource SubtitleBrush}"/>
                                 <Border Width="200" Height="30" CornerRadius="4" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
