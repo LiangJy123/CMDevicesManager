@@ -318,7 +318,7 @@
                                 <Canvas x:Name="MirrorDesignCanvas"
                                 Width="512"
                                 Height="512"
-                                Background="White"
+                                Background="Transparent"
                                 ClipToBounds="True"/>
                             </Grid>
                         </Border>

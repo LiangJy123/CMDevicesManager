@@ -61,7 +61,7 @@ namespace CMDevicesManager.Pages
     {
         public string ConfigName { get; set; } = "Untitled";
         public int CanvasSize { get; set; }
-        public string BackgroundColor { get; set; } = "#000000";
+        public string BackgroundColor { get; set; } = "#FFFFFF";
         public string? BackgroundImagePath { get; set; }
         public double BackgroundImageOpacity { get; set; }
         public double MoveSpeed { get; set; } = 100;              // NEW: global auto-move speed
@@ -330,14 +330,14 @@ namespace CMDevicesManager.Pages
         private int _canvasSize = 512;
         public int CanvasSize { get => _canvasSize; set { if (_canvasSize != value && value > 0) { _canvasSize = value; OnPropertyChanged(); } } }
 
-        private Color _backgroundColor = Colors.Black;
+        private Color _backgroundColor = Colors.White;
         public Color BackgroundColor { get => _backgroundColor; set { _backgroundColor = value; OnPropertyChanged(); OnPropertyChanged(nameof(BackgroundBrush)); BackgroundHex = $"#{value.R:X2}{value.G:X2}{value.B:X2}"; } }
         public Brush BackgroundBrush => new SolidColorBrush(BackgroundColor);
         private string? _backgroundImagePath;
         public string? BackgroundImagePath { get => _backgroundImagePath; set { _backgroundImagePath = value; OnPropertyChanged(); } }
         private double _backgroundImageOpacity = 1.0;
         public double BackgroundImageOpacity { get => _backgroundImageOpacity; set { _backgroundImageOpacity = Math.Clamp(value, 0, 1); OnPropertyChanged(); } }
-        private string _backgroundHex = "#000000";
+        private string _backgroundHex = "#FFFFFF";
         public string BackgroundHex { get => _backgroundHex; set { if (_backgroundHex != value) { _backgroundHex = value; if (TryParseHexColor(value, out var c)) BackgroundColor = c; OnPropertyChanged(); } } }
 
         private Border? _selected;
@@ -1126,6 +1126,15 @@ namespace CMDevicesManager.Pages
             ResetMoveDirection();
             CurrentConfigName = "";
             LoadedFromConfigFile = false;
+        }
+        // 在 Color Pickers 区域添加新方法
+        private void SetBackgroundColor_Click(object sender, RoutedEventArgs e)
+        {
+            OpenColorPicker(BackgroundColor, c =>
+            {
+                BackgroundColor = c;
+                BackgroundHex = $"#{c.R:X2}{c.G:X2}{c.B:X2}";
+            });
         }
 
         // ================= Color Pickers =================

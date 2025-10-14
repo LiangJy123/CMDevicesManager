@@ -1059,8 +1059,23 @@ namespace CMDevicesManager.Pages
             {
                 if (!string.IsNullOrWhiteSpace(cfg.BackgroundColor))
                 {
-                    var brush = (Brush)new BrushConverter().ConvertFromString(cfg.BackgroundColor);
-                    BgColorRect.Fill = brush;
+                    // 先尝试使用 BrushConverter（支持多种格式）
+                    var converter = new BrushConverter();
+                    var brush = (Brush?)converter.ConvertFromString(cfg.BackgroundColor);
+                    if (brush != null)
+                    {
+                        BgColorRect.Fill = brush;
+                    }
+                    else
+                    {
+                        // 转换失败，使用白色
+                        BgColorRect.Fill = Brushes.White;
+                    }
+                }
+                else
+                {
+                    // 配置中没有颜色，使用白色
+                    BgColorRect.Fill = Brushes.White;
                 }
             }
             catch { BgColorRect.Fill = Brushes.White; }

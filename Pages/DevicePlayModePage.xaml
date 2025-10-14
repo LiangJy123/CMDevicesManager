@@ -1303,7 +1303,7 @@
                                    Opacity="{Binding BackgroundImageOpacity}"/>
                         </Grid>
                         <Canvas x:Name="DesignCanvas"
-                                Background="White"
+                                Background="Transparent"
                                 Width="512"
                                 Height="512"
                                 ClipToBounds="True"

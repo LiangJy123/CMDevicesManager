@@ -273,6 +273,12 @@
                             <TextBlock Text="{DynamicResource AddMp4Button}"/>
                         </StackPanel>
                     </Button>
+                    <Button Style="{StaticResource ActionButtonStyle}" Click="SetBackgroundColor_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE790;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
+                            <TextBlock Text="{DynamicResource SetBackgroundColorButton}"/>
+                        </StackPanel>
+                    </Button>
 
                     <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,12,0,12"/>
 
@@ -339,7 +345,7 @@
        Opacity="{Binding BackgroundImageOpacity}"/>
                             </Grid>
                             <Canvas x:Name="DesignCanvas"
-                                    Background="White"
+                                    Background="Transparent"
                                     Width="512"
                                     Height="512"
                                     ClipToBounds="True"/>
