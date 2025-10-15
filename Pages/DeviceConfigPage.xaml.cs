@@ -729,6 +729,17 @@ namespace CMDevicesManager.Pages
         {
             var dlg = new ColorPickerWindow(initial);
             dlg.Owner = Application.Current?.MainWindow;
+
+            dlg.WindowStartupLocation = WindowStartupLocation.Manual;
+
+            var owner = Application.Current?.MainWindow;
+            if (owner != null)
+            {
+                // Position relative to owner window's right side
+                dlg.Left = owner.Left + owner.ActualWidth - dlg.Width - 20;
+                dlg.Top = owner.Top + (owner.ActualHeight - dlg.Height) / 2;
+            }
+
             if (dlg.ShowDialog() == true)
                 apply(dlg.SelectedColor);
         }
@@ -3391,7 +3402,8 @@ namespace CMDevicesManager.Pages
         {
             if (_realtimeActive) return;
             // 尝试获取设计画布（按你工程中的名称调整：DesignCanvas / MirrorRoot / RootCanvas …）
-            _captureRoot ??= (FrameworkElement?)this.FindName("DesignCanvas")
+            _captureRoot ??= (FrameworkElement?)this.FindName("DesignRoot")
+                            ??(FrameworkElement?)this.FindName("DesignCanvas")
                           ?? (FrameworkElement?)this.FindName("MirrorRoot")
                           ?? this.Content as FrameworkElement;
 
