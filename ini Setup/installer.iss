@@ -1,7 +1,7 @@
-﻿#define MyAppName        "LCD Manager"
-#define MyAppExeName     "LCDManager.exe"
+﻿#define MyAppName        "LCDMaster"
+#define MyAppExeName     "LCDMaster.exe"
 #define MyCompany        "ELINK"
-#define MyAppVersion     "0.0.2"
+#define MyAppVersion     "0.0.3"
 #define MyPublishDir     "..\\bin\\release\\net8.0-windows10.0.19041.0\\publish"
 
 [Setup]
