@@ -416,6 +416,30 @@ namespace CMDevicesManager.Services
             }
         }
 
+        // 🆕 新增辅助方法：从左上角 X 坐标计算 TranslateTransform.X
+        private double CalculateTranslateX(Border border, double topLeftX, double scaleX)
+        {
+            double actualW = border.ActualWidth;
+            if (actualW <= 0) return topLeftX;
+
+            double scaledW = actualW * scaleX;
+            double offsetX = (actualW - scaledW) / 2.0;
+
+            return topLeftX - offsetX;
+        }
+
+        // 🆕 新增辅助方法：从左上角 Y 坐标计算 TranslateTransform.Y
+        private double CalculateTranslateY(Border border, double topLeftY, double scaleY)
+        {
+            double actualH = border.ActualHeight;
+            if (actualH <= 0) return topLeftY;
+
+            double scaledH = actualH * scaleY;
+            double offsetY = (actualH - scaledH) / 2.0;
+
+            return topLeftY - offsetY;
+        }
+
 
         public void ApplyConfig(CanvasConfiguration cfg)
         {
@@ -429,23 +453,6 @@ namespace CMDevicesManager.Services
                 getCpuPercent: () => _metrics.GetCpuUsagePercent(),
                 getGpuPercent: () => _metrics.GetGpuUsagePercent());
 
-            // 初始化温度文本（避免第一秒未刷新前显示空或旧值）
-            //if (_lastResult != null)
-            //{
-            //    double cpuTemp = _metrics.GetCpuTemperature();
-            //    double gpuTemp = _metrics.GetGpuTemperature();
-            //    foreach (var u in _lastResult.UsageItems)
-            //    {
-            //        if (u.DisplayStyle == "Text")
-            //        {
-            //            if (u.Kind == LiveInfoKind.CpuTemperature)
-            //                u.Text.Text = $"CPU {Math.Round(cpuTemp)}°C";
-            //            else if (u.Kind == LiveInfoKind.GpuTemperature)
-            //                u.Text.Text = $"GPU {Math.Round(gpuTemp)}°C";
-            //        }
-            //    }
-            //}
-
             if (string.IsNullOrWhiteSpace(cfg.BackgroundColor))
                 _bgRect.Fill = Brushes.White;
             if (_bgRect.Fill == null)
@@ -455,8 +462,9 @@ namespace CMDevicesManager.Services
             _moveSpeed = _lastResult.MoveSpeed;
             _lastMoveTick = DateTime.Now;
 
-            _hasActiveContent = (cfg.Elements?.Count ?? 0) > 0;   // NEW
+            _hasActiveContent = (cfg.Elements?.Count ?? 0) > 0;
 
+           
             StartTimers();
             SetupVideoElements(cfg);
         }
@@ -698,7 +706,7 @@ namespace CMDevicesManager.Services
                     {
                         try
                         {
-                            await foreach (var frame in VideoConverter.ExtractMp4FramesToJpegRealTimeAsync(resolvedPath, 85, token))
+                            await foreach (var frame in VideoConverter.ExtractMp4FramesToJpegRealTimeWithHWAccelAsync(resolvedPath, 85, token))
                             {
                                 collected.Add(frame);
                             }
@@ -949,7 +957,7 @@ namespace CMDevicesManager.Services
         {
             return SaveSnapshotCore(filePath, overlayHost, forceRootOpacity);
         }
-            
+
         // 在 GlobalMirrorCanvasService 类里增加（放在其它字段附近）
         public enum SnapshotScaleMode
         {
@@ -1147,7 +1155,7 @@ namespace CMDevicesManager.Services
             }
         }
 
-      
+
         public bool SaveSnapshot(string filePath)
         {
             if (_rootVisual == null) return false;
@@ -1370,7 +1378,8 @@ namespace CMDevicesManager.Services
                     int children = VisualTreeHelper.GetChildrenCount(v);
                     for (int i = 0; i < children; i++)
                     {
-                        if (i >= maxPerLevel) { 
+                        if (i >= maxPerLevel)
+                        {
                             Logger.Info($"[MoveDbg-Deep]   (depth {depth}) more children truncated...");
                             break;
                         }
@@ -1653,7 +1662,7 @@ namespace CMDevicesManager.Services
                     return null;
                 }
 
-             
+
 
                 // 强制刷新布局，确保最新渲染
                 DesignRoot.UpdateLayout();
@@ -1665,7 +1674,7 @@ namespace CMDevicesManager.Services
                 rtb.Render(DesignRoot);
 
                 // 恢复选中边框
-              
+
 
                 string captureDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "captureimage");
                 Directory.CreateDirectory(captureDir);

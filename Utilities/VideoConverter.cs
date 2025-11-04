@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -241,7 +241,7 @@ namespace CMDevicesManager.Utilities
         /// <param name="cancellationToken">Cancellation token to stop the extraction</param>
         /// <returns>Async enumerable of JPEG frame data</returns>
         public static async IAsyncEnumerable<VideoFrameData> ExtractMp4FramesToJpegRealTimeAsync(
-            string mp4FilePath, 
+            string mp4FilePath,
             int quality = 90,
             [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
@@ -253,7 +253,7 @@ namespace CMDevicesManager.Utilities
             // Get video info
             var videoInfo = await FFProbe.AnalyseAsync(mp4FilePath);
             var videoStream = videoInfo.PrimaryVideoStream;
-            
+
             if (videoStream == null)
             {
                 yield break;
@@ -261,76 +261,110 @@ namespace CMDevicesManager.Utilities
 
             var frameRate = videoStream.FrameRate;
             var duration = videoInfo.Duration;
-            var frameDuration = 1000.0 / frameRate; // Duration per frame in milliseconds
+            var frameDuration = 1000.0 / frameRate;
             var totalFrames = (int)(duration.TotalSeconds * frameRate);
 
             Console.WriteLine($"Starting real-time frame extraction from: {Path.GetFileName(mp4FilePath)}");
             Console.WriteLine($"Duration: {duration}, Frame Rate: {frameRate:F2} fps, Total Frames: {totalFrames}");
 
-            // Create temporary directory for frame-by-frame extraction
+            // Create temporary directory for frame extraction
             string tempDir = Path.Combine(Path.GetTempPath(), $"VideoFrames_{Guid.NewGuid()}");
             Directory.CreateDirectory(tempDir);
 
             try
             {
-                // Extract frames one by one in real-time
-                for (int frameIndex = 0; frameIndex < totalFrames; frameIndex++)
+                var outputPattern = Path.Combine(tempDir, "frame_%06d.jpg");
+
+                // 使用 FFmpeg 多线程参数批量提取所有帧
+                var extractTask = Task.Run(async () =>
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    await FFMpegArguments
+                        .FromFileInput(mp4FilePath)
+                        .OutputToFile(outputPattern, overwrite: true, options => options
+                            .WithCustomArgument($"-threads {Environment.ProcessorCount}") // 多线程
+                            .WithCustomArgument("-vsync 0") // 不丢帧
+                            .WithVideoCodec("mjpeg")
+                            .WithArgument(new CustomArgument($"-q:v {100 - quality}")))
+                        .ProcessAsynchronously();
+                }, cancellationToken);
 
-                    double timeSeconds = frameIndex / frameRate;
-                    var outputFileName = $"frame_{frameIndex:D6}.jpg";
-                    var outputPath = Path.Combine(tempDir, outputFileName);
+                // 等待一小段时间让 FFmpeg 开始生成文件
+                await Task.Delay(200, cancellationToken);
 
-                    VideoFrameData? frameInfo = null;
-                    Exception? extractionException = null;
+                int frameIndex = 0;
+                var framePath = Path.Combine(tempDir, $"frame_{frameIndex + 1:D6}.jpg");
 
-                    try
+                // 边生成边读取
+                while (frameIndex < totalFrames && !cancellationToken.IsCancellationRequested)
+                {
+                    framePath = Path.Combine(tempDir, $"frame_{frameIndex + 1:D6}.jpg");
+
+                    // 等待文件生成
+                    int retries = 0;
+                    while (!File.Exists(framePath) && retries < 100) // 最多等待10秒
                     {
-                        // Extract single frame at specific timestamp
-                        await FFMpegArguments
-                            .FromFileInput(mp4FilePath)
-                            .OutputToFile(outputPath, overwrite: true, options => options
-                                .Seek(TimeSpan.FromSeconds(timeSeconds))
-                                .WithCustomArgument("-vframes 1")
-                                .WithVideoCodec("mjpeg")
-                                .WithArgument(new CustomArgument($"-q:v {100 - quality}")))
-                            .ProcessAsynchronously();
+                        await Task.Delay(100, cancellationToken);
+                        retries++;
 
-                        // Read the frame data and prepare to yield it
-                        if (File.Exists(outputPath))
+                        // 如果提取任务已完成但文件不存在，说明已经没有更多帧了
+                        if (extractTask.IsCompleted && !File.Exists(framePath))
                         {
-                            byte[] frameData = await File.ReadAllBytesAsync(outputPath, cancellationToken);
-
-                            frameInfo = new VideoFrameData
-                            {
-                                FrameIndex = frameIndex,
-                                JpegData = frameData,
-                                TimeStampMs = frameIndex * frameDuration,
-                                DurationMs = frameDuration,
-                                Width = videoStream.Width,
-                                Height = videoStream.Height
-                            };
-
-                            // Clean up the temporary file immediately
-                            try
-                            {
-                                File.Delete(outputPath);
-                            }
-                            catch { /* Ignore cleanup errors */ }
+                            break;
                         }
                     }
-                    catch (Exception ex)
+
+                    if (!File.Exists(framePath))
                     {
-                        extractionException = ex;
-                        Console.WriteLine($"Error extracting frame {frameIndex}: {ex.Message}");
-                        // Continue with next frame instead of breaking
+                        break;
                     }
 
-                    if (frameInfo != null)
+                    // 等待文件写入完成
+                    byte[]? frameData = null;
+                    retries = 0;
+                    while (frameData == null && retries < 10)
                     {
-                        yield return frameInfo;
+                        try
+                        {
+                            frameData = await File.ReadAllBytesAsync(framePath, cancellationToken);
+                        }
+                        catch (IOException)
+                        {
+                            await Task.Delay(50, cancellationToken);
+                            retries++;
+                        }
                     }
+
+                    if (frameData != null && frameData.Length > 0)
+                    {
+                        yield return new VideoFrameData
+                        {
+                            FrameIndex = frameIndex,
+                            JpegData = frameData,
+                            TimeStampMs = frameIndex * frameDuration,
+                            DurationMs = frameDuration,
+                            Width = videoStream.Width,
+                            Height = videoStream.Height
+                        };
+
+                        // 读取后立即删除以节省空间
+                        try
+                        {
+                            File.Delete(framePath);
+                        }
+                        catch { /* Ignore cleanup errors */ }
+                    }
+
+                    frameIndex++;
+                }
+
+                // 等待 FFmpeg 完成
+                try
+                {
+                    await extractTask;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancellation is requested
                 }
             }
             finally
@@ -349,7 +383,134 @@ namespace CMDevicesManager.Utilities
                 }
             }
         }
+        /// <summary>
+        /// Extract all frames using hardware acceleration if available
+        /// </summary>
+        public static async IAsyncEnumerable<VideoFrameData> ExtractMp4FramesToJpegRealTimeWithHWAccelAsync(
+            string mp4FilePath,
+            int quality = 90,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            if (!File.Exists(mp4FilePath))
+            {
+                throw new FileNotFoundException($"MP4 file not found: {mp4FilePath}");
+            }
 
+            var videoInfo = await FFProbe.AnalyseAsync(mp4FilePath);
+            var videoStream = videoInfo.PrimaryVideoStream;
+
+            if (videoStream == null)
+            {
+                yield break;
+            }
+
+            var frameRate = videoStream.FrameRate;
+            var duration = videoInfo.Duration;
+            var frameDuration = 1000.0 / frameRate;
+            var totalFrames = (int)(duration.TotalSeconds * frameRate);
+
+            string tempDir = Path.Combine(Path.GetTempPath(), $"VideoFrames_{Guid.NewGuid()}");
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                var outputPattern = Path.Combine(tempDir, "frame_%06d.jpg");
+
+                var extractTask = Task.Run(async () =>
+                {
+                    await FFMpegArguments
+                        .FromFileInput(mp4FilePath, true, options => options
+                            .WithHardwareAcceleration() // 硬件加速
+                            .WithCustomArgument($"-threads {Environment.ProcessorCount}"))
+                        .OutputToFile(outputPattern, overwrite: true, options => options
+                            .WithCustomArgument("-vsync 0")
+                            .WithVideoCodec("mjpeg")
+                            .WithArgument(new CustomArgument($"-q:v {100 - quality}")))
+                        .ProcessAsynchronously();
+                }, cancellationToken);
+
+                await Task.Delay(200, cancellationToken);
+
+                int frameIndex = 0;
+                while (frameIndex < totalFrames && !cancellationToken.IsCancellationRequested)
+                {
+                    var framePath = Path.Combine(tempDir, $"frame_{frameIndex + 1:D6}.jpg");
+
+                    int retries = 0;
+                    while (!File.Exists(framePath) && retries < 100)
+                    {
+                        await Task.Delay(100, cancellationToken);
+                        retries++;
+
+                        if (extractTask.IsCompleted && !File.Exists(framePath))
+                        {
+                            break;
+                        }
+                    }
+
+                    if (!File.Exists(framePath))
+                    {
+                        break;
+                    }
+
+                    byte[]? frameData = null;
+                    retries = 0;
+                    while (frameData == null && retries < 10)
+                    {
+                        try
+                        {
+                            frameData = await File.ReadAllBytesAsync(framePath, cancellationToken);
+                        }
+                        catch (IOException)
+                        {
+                            await Task.Delay(50, cancellationToken);
+                            retries++;
+                        }
+                    }
+
+                    if (frameData != null && frameData.Length > 0)
+                    {
+                        yield return new VideoFrameData
+                        {
+                            FrameIndex = frameIndex,
+                            JpegData = frameData,
+                            TimeStampMs = frameIndex * frameDuration,
+                            DurationMs = frameDuration,
+                            Width = videoStream.Width,
+                            Height = videoStream.Height
+                        };
+
+                        try
+                        {
+                            File.Delete(framePath);
+                        }
+                        catch { }
+                    }
+
+                    frameIndex++;
+                }
+
+                try
+                {
+                    await extractTask;
+                }
+                catch (OperationCanceledException) { }
+            }
+            finally
+            {
+                try
+                {
+                    if (Directory.Exists(tempDir))
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                }
+                catch (Exception cleanupEx)
+                {
+                    Console.WriteLine($"Warning: Could not clean up temporary directory: {cleanupEx.Message}");
+                }
+            }
+        }
         /// <summary>
         /// Extract frames from an MP4 video with real-time progress reporting
         /// </summary>
@@ -366,7 +527,7 @@ namespace CMDevicesManager.Utilities
         {
             var frames = new List<VideoFrameData>();
 
-            await foreach (var frame in ExtractMp4FramesToJpegRealTimeAsync(mp4FilePath, quality, cancellationToken))
+            await foreach (var frame in ExtractMp4FramesToJpegRealTimeWithHWAccelAsync(mp4FilePath, quality, cancellationToken))
             {
                 frames.Add(frame);
                 

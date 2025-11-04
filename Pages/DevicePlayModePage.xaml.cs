@@ -449,7 +449,7 @@ namespace CMDevicesManager.Pages
             if (!_isConfigSequenceRunning && ConfigSequence.Count > 0)
                 StartConfigSequence();
         }
-        private  void SuspendModeEnabled()
+        private void SuspendModeEnabled()
         {
             if (_currentPlayMode == PlaybackMode.OfflineVideo) return;
 
@@ -462,7 +462,7 @@ namespace CMDevicesManager.Pages
             //if (!_isVideoStreaming && !string.IsNullOrEmpty(_selectedVideoPath))
             //    _ = StartVideoPlaybackInternalAsync();
         }
-        
+
         private async void SuspendModeToggle_Click(object sender, RoutedEventArgs e)
         {
             if (!IsHidServiceReady || _hidDeviceService == null) return;
@@ -742,7 +742,7 @@ namespace CMDevicesManager.Pages
             Dispatcher.Invoke(ApplyPlayModeLocalization);
         }
 
-        
+
         private void ApplyPlayModeLocalization()
         {
             bool isRealtime = _currentPlayMode == PlaybackMode.RealtimeConfig;
@@ -1042,6 +1042,29 @@ namespace CMDevicesManager.Pages
                 return null;
             }
         }
+        // 🆕 新增辅助方法：从左上角 X 坐标计算 TranslateTransform.X
+        private double CalculateTranslateX(Border border, double topLeftX, double scaleX)
+        {
+            double actualW = border.ActualWidth;
+            if (actualW <= 0) return topLeftX;
+
+            double scaledW = actualW * scaleX;
+            double offsetX = (actualW - scaledW) / 2.0;
+
+            return topLeftX - offsetX;
+        }
+
+        // 🆕 新增辅助方法：从左上角 Y 坐标计算 TranslateTransform.Y
+        private double CalculateTranslateY(Border border, double topLeftY, double scaleY)
+        {
+            double actualH = border.ActualHeight;
+            if (actualH <= 0) return topLeftY;
+
+            double scaledH = actualH * scaleY;
+            double offsetY = (actualH - scaledH) / 2.0;
+
+            return topLeftY - offsetY;
+        }
         private void ApplyConfigurationToPreview(CanvasConfiguration cfg)
         {
             StopVideoPlaybackTimer(disposeState: true);
@@ -1105,6 +1128,9 @@ namespace CMDevicesManager.Pages
 
             foreach (var elem in cfg.Elements.OrderBy(e => e.ZIndex))
             {
+                // 🔧 关键修复：创建局部副本避免闭包捕获循环变量
+                var elemCopy = elem;
+
                 FrameworkElement? content = null;
                 Border? host = null;
                 bool usageVisualCreated = false;
@@ -1149,12 +1175,12 @@ namespace CMDevicesManager.Pages
 
                             var style = elem.UsageDisplayStyle?.Trim();
                             bool isUsageVisual =
-    (kind == LiveInfoKindAlias.CpuUsage ||
-     kind == LiveInfoKindAlias.GpuUsage ||
-     kind == LiveInfoKindAlias.CpuTemperature ||
-     kind == LiveInfoKindAlias.GpuTemperature)
-    && !string.IsNullOrWhiteSpace(style)
-    && !style.Equals("Text", StringComparison.OrdinalIgnoreCase);
+            (kind == LiveInfoKindAlias.CpuUsage ||
+             kind == LiveInfoKindAlias.GpuUsage ||
+             kind == LiveInfoKindAlias.CpuTemperature ||
+             kind == LiveInfoKindAlias.GpuTemperature)
+            && !string.IsNullOrWhiteSpace(style)
+            && !style.Equals("Text", StringComparison.OrdinalIgnoreCase);
 
                             if (isUsageVisual)
                             {
@@ -1210,7 +1236,7 @@ namespace CMDevicesManager.Pages
                         }
                     case "Video":
                         {
-                            // Try cached frames first
+                            // [保持原有视频逻辑不变]
                             Image? videoImg = null;
                             List<VideoFrameData>? frames = null;
                             string? resolvedVideoPath = null;
@@ -1220,13 +1246,11 @@ namespace CMDevicesManager.Pages
                             }
                             if (frames == null || frames.Count == 0)
                             {
-                                // Fallback: decode frames asynchronously (non-blocking) if video file provided
                                 if (!string.IsNullOrEmpty(elem.VideoPath))
                                 {
                                     resolvedVideoPath = ResolveRelativePath(elem.VideoPath);
                                     if (File.Exists(resolvedVideoPath))
                                     {
-                                        // Placeholder image while decoding
                                         var tb = new TextBlock
                                         {
                                             Text = "Loading Video...",
@@ -1239,13 +1263,12 @@ namespace CMDevicesManager.Pages
                                         tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
                                         content = tb;
 
-                                        // Fire & forget extraction
                                         _ = Task.Run(async () =>
                                         {
                                             try
                                             {
                                                 var extracted = new List<VideoFrameData>();
-                                                await foreach (var f in VideoConverter.ExtractMp4FramesToJpegRealTimeAsync(resolvedVideoPath, 85, CancellationToken.None))
+                                                await foreach (var f in VideoConverter.ExtractMp4FramesToJpegRealTimeWithHWAccelAsync(resolvedVideoPath, 85, CancellationToken.None))
                                                 {
                                                     extracted.Add(f);
                                                 }
@@ -1264,13 +1287,11 @@ namespace CMDevicesManager.Pages
                                                         }
                                                         _videoImage = videoImg;
                                                         UpdateVideoImageSource(extracted[0]);
-                                                        // Replace placeholder border child (host already added later)
                                                         if (videoImg.Parent == null && content?.Parent is Border hostBorder)
                                                         {
                                                             hostBorder.Child = videoImg;
                                                             _videoImage = videoImg;
                                                         }
-                                                        // Try get frame rate
                                                         double fr = 30;
                                                         _ = Task.Run(async () =>
                                                         {
@@ -1290,7 +1311,6 @@ namespace CMDevicesManager.Pages
                                     }
                                     else
                                     {
-                                        // No file; simple placeholder
                                         var tb = new TextBlock
                                         {
                                             Text = "VIDEO (missing)",
@@ -1305,7 +1325,6 @@ namespace CMDevicesManager.Pages
                             }
                             else
                             {
-                                // Cached frames available
                                 _currentVideoFrames = frames;
                                 _videoFrameIndex = 0;
                                 videoImg = new Image { Stretch = Stretch.Uniform };
@@ -1356,28 +1375,30 @@ namespace CMDevicesManager.Pages
                         RenderTransformOrigin = new Point(0.5, 0.5)
                     };
                 }
-
                 // 共用：设置 Opacity
                 host!.Opacity = elem.Opacity <= 0 ? 1.0 : elem.Opacity;
 
-                // Transform: Scale → (Mirror) → (Rotate) → Translate
+                // ✅ Transform: 直接使用配置中保存的坐标（已经是修正后的值）
                 var tg = new TransformGroup();
-                var scale = new ScaleTransform(elem.Scale <= 0 ? 1.0 : elem.Scale, elem.Scale <= 0 ? 1.0 : elem.Scale);
+                double scaleFactor = elem.Scale <= 0 ? 1.0 : elem.Scale;
+                var scale = new ScaleTransform(scaleFactor, scaleFactor);
                 tg.Children.Add(scale);
 
                 if (elem.MirroredX == true)
-                {
                     tg.Children.Add(new ScaleTransform(-1, 1));
-                }
                 if (elem.Rotation.HasValue && Math.Abs(elem.Rotation.Value) > 0.01)
-                {
                     tg.Children.Add(new RotateTransform(elem.Rotation.Value));
-                }
-                tg.Children.Add(new TranslateTransform(elem.X, elem.Y));
-                host.RenderTransform = tg;
 
+                // ✅ 关键：直接使用配置中的坐标，不进行二次修正
+                var translate = new TranslateTransform(elem.X, elem.Y);
+                tg.Children.Add(translate);
+
+                host.RenderTransform = tg;
                 Canvas.SetZIndex(host, elem.ZIndex);
                 DesignCanvas.Children.Add(host);
+
+                // ❌ 删除所有 Loaded 和 SizeChanged 事件订阅
+                // DeviceConfigPage 保存的坐标已经是正确的，无需二次修正
 
                 // 自动移动
                 if ((elem.Type == "Text" || elem.Type == "LiveText")
@@ -1393,13 +1414,13 @@ namespace CMDevicesManager.Pages
             GlobalConfigRendered?.Invoke(cfg);
         }
         private UsageVisualItem BuildUsageVisual(
-    LiveInfoKindAlias kind,
-    string style,
-    TextBlock baseText,
-    string? startHex,
-    string? endHex,
-    string? needleHex,
-    string? barBgHex)
+                    LiveInfoKindAlias kind,
+                    string style,
+                    TextBlock baseText,
+                    string? startHex,
+                    string? endHex,
+                    string? needleHex,
+                    string? barBgHex)
         {
             // 解析主题色
             var startColor = TryParseColor(startHex ?? "#50B450", out var sc) ? sc : Color.FromRgb(80, 180, 80);
@@ -1607,6 +1628,8 @@ namespace CMDevicesManager.Pages
             item.HostBorder = wrapper;
             return item;
         }
+
+    
         private void AutoMoveTimer_Tick(object? sender, EventArgs e)
         {
             if (_movingDirections.Count == 0) return;
@@ -2008,7 +2031,7 @@ namespace CMDevicesManager.Pages
 
                 for (int cycle = 0; cycle < cycleCount && !token.IsCancellationRequested; cycle++)
                 {
-                    await foreach (var frame in VideoConverter.ExtractMp4FramesToJpegRealTimeAsync(mp4FilePath, 90, token))
+                    await foreach (var frame in VideoConverter.ExtractMp4FramesToJpegRealTimeWithHWAccelAsync(mp4FilePath, 90, token))
                     {
                         if (token.IsCancellationRequested) break;
                         controller.SendFileTransfer(frame.JpegData, 1, transferId);
