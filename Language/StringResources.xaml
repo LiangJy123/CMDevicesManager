@@ -335,5 +335,12 @@
     <sys:String x:Key="ColorPicker_CurrentColor" xmlns:sys="clr-namespace:System;assembly=mscorlib">当前颜色</sys:String>
     <sys:String x:Key="ColorPicker_ApplyButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">应用</sys:String>
     <sys:String x:Key="ColorPicker_CancelButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">取消</sys:String>
+    <!-- Play Mode - Close Screen -->
+    <sys:String x:Key="PlayMode_CloseScreen" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭画面</sys:String>
+    <sys:String x:Key="PlayMode_CloseScreenTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭设备屏幕显示（进入睡眠模式）</sys:String>
+    <sys:String x:Key="PlayMode_ClosingScreen" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在关闭画面...</sys:String>
+    <sys:String x:Key="PlayMode_ScreenClosedSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">画面已成功关闭</sys:String>
+    <sys:String x:Key="PlayMode_ScreenClosedFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭画面失败，请重试</sys:String>
+    <sys:String x:Key="PlayMode_ScreenClosedError" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭画面失败：{0}</sys:String>
 
 </ResourceDictionary>

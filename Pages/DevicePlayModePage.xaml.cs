@@ -3424,5 +3424,56 @@ namespace CMDevicesManager.Pages
                 Console.WriteLine($"Failed to save playback mode for device {_deviceInfo?.SerialNumber}: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Handle close screen button click to turn off the display
+        /// </summary>
+        private async void CloseScreenButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null) return;
+
+            try
+            {
+                SetLoadingState(true, LR("PlayMode_ClosingScreen", "Closing screen..."));
+
+                // Set display in sleep mode (true = enable sleep/turn off display)
+                var results = await _hidDeviceService.SetDisplayInSleepAsync(true);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    ShowNotification(
+                        LR("PlayMode_ScreenClosedSuccess", "Screen closed successfully."),
+                        false,
+                        3000);
+
+                    Logger.Info($"Screen closed for {successCount} device(s)");
+                }
+                else
+                {
+                    ShowNotification(
+                        LR("PlayMode_ScreenClosedFailed", "Failed to close screen. Please try again."),
+                        true,
+                        3000);
+
+                    Logger.Warn("Failed to close screen on all devices");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to close screen: {ex.Message}");
+                Logger.Error($"Failed to close screen: {ex.Message}", ex);
+                ShowNotification(
+                    string.Format(
+                        LR("PlayMode_ScreenClosedError", "Failed to close screen: {0}"),
+                        ex.Message),
+                    true,
+                    4000);
+            }
+            finally
+            {
+                SetLoadingState(false);
+            }
+        }
     }
 }

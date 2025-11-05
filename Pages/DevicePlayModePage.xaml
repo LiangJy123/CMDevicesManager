@@ -731,12 +731,65 @@
                     <UniformGrid Columns="2">
                         <TextBlock Text="{DynamicResource PlayMode_PlaybackModes}" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
                         <ToggleButton x:Name="SuspendModeToggle"
-                  HorizontalAlignment="Right"
-                  Click="SuspendModeToggle_Click"
-                  Style="{StaticResource SuspendModeToggleStyle}"
-                   ToolTipService.ToolTip="{DynamicResource PlayMode_SuspendToggleTooltip}"
-                  ToolTipService.InitialShowDelay="150"/>
+        HorizontalAlignment="Right"
+        Click="SuspendModeToggle_Click"
+        Style="{StaticResource SuspendModeToggleStyle}"
+         ToolTipService.ToolTip="{DynamicResource PlayMode_SuspendToggleTooltip}"
+        ToolTipService.InitialShowDelay="150"/>
                     </UniformGrid>
+
+                    <!-- 🆕 关闭画面按钮（与Toggle尺寸一致） -->
+                    <Button x:Name="CloseScreenButton"
+                  Content="{DynamicResource PlayMode_CloseScreen}"
+                  Width="170"
+                  Height="34"
+                  HorizontalAlignment="Right"
+                  Margin="0,8,0,0"
+                  Foreground="White"
+                  Cursor="Hand"
+                  Click="CloseScreenButton_Click"
+                  ToolTipService.ToolTip="{DynamicResource PlayMode_CloseScreenTooltip}">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#5B7FFF" Offset="0"/>
+                                <GradientStop Color="#7B8FFF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Root"
+                              CornerRadius="18"
+                              Background="{TemplateBinding Background}"
+                              BorderBrush="#8B9FFF"
+                              BorderThickness="0"
+                              Padding="10,4">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock FontFamily="Segoe MDL2 Assets" 
+                                         Text="&#xE7E8;" 
+                                         Margin="0,0,6,0"
+                                         FontSize="12"
+                                         FontWeight="SemiBold"
+                                         VerticalAlignment="Center"/>
+                                        <TextBlock Text="{TemplateBinding Content}"
+                                         FontSize="12"
+                                         FontWeight="SemiBold"
+                                         VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Root" Property="Opacity" Value="0.93"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Root" Property="Opacity" Value="0.85"/>
+                                    </Trigger>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                 </StackPanel>
             </Border>
 

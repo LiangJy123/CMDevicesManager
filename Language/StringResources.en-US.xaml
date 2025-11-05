@@ -335,4 +335,12 @@ This operation will delete both the configuration file and preview images, and c
     <sys:String x:Key="ColorPicker_CurrentColor" xmlns:sys="clr-namespace:System;assembly=mscorlib">Current Color</sys:String>
     <sys:String x:Key="ColorPicker_ApplyButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Apply</sys:String>
     <sys:String x:Key="ColorPicker_CancelButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cancel</sys:String>
+
+    <!-- Play Mode - Close Screen -->
+    <sys:String x:Key="PlayMode_CloseScreen" xmlns:sys="clr-namespace:System;assembly=mscorlib">Close Screen</sys:String>
+    <sys:String x:Key="PlayMode_CloseScreenTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">Turn off device display (enter sleep mode)</sys:String>
+    <sys:String x:Key="PlayMode_ClosingScreen" xmlns:sys="clr-namespace:System;assembly=mscorlib">Closing screen...</sys:String>
+    <sys:String x:Key="PlayMode_ScreenClosedSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">Screen closed successfully</sys:String>
+    <sys:String x:Key="PlayMode_ScreenClosedFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to close screen. Please try again.</sys:String>
+    <sys:String x:Key="PlayMode_ScreenClosedError" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to close screen: {0}</sys:String>
 </ResourceDictionary>
