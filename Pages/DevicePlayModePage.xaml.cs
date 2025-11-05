@@ -855,7 +855,6 @@ namespace CMDevicesManager.Pages
                 if (ConfigSequence.Count == 1)
                 {
                     var single = ConfigSequence[0];
-                    //ShowStatusMessage($"Loaded: {single.DisplayName} (continuous)");
                     await LoadConfigToCanvasAsync(single.FilePath, token);
                     try
                     {
@@ -867,15 +866,24 @@ namespace CMDevicesManager.Pages
                     continue; // 重新评估集合（可能加了更多配置）
                 }
 
-                // 多配置顺序轮播
-                foreach (var item in ConfigSequence.ToList())
+                // ✅ 修复：多配置顺序轮播 - 使用索引而不是快照遍历
+                int currentIndex = 0;
+                while (!token.IsCancellationRequested && ConfigSequence.Count > 1)
                 {
+                    // ✅ 每次循环时重新检查列表，而不是使用快照
+                    if (currentIndex >= ConfigSequence.Count)
+                    {
+                        currentIndex = 0; // 重新开始循环
+                    }
+
+                    if (ConfigSequence.Count == 0) break;
+
+                    var item = ConfigSequence[currentIndex];
                     token.ThrowIfCancellationRequested();
 
                     int dur = item.DurationSeconds;
                     if (dur <= 0) dur = 5;
 
-                    //ShowStatusMessage($"Loading: {item.DisplayName} ({dur}s)");
                     await LoadConfigToCanvasAsync(item.FilePath, token);
 
                     try
@@ -886,9 +894,18 @@ namespace CMDevicesManager.Pages
                     {
                         token.ThrowIfCancellationRequested();
                     }
+
+                    // ✅ 移动到下一个索引前再次检查列表（防止删除导致索引越界）
+                    if (currentIndex < ConfigSequence.Count - 1)
+                    {
+                        currentIndex++;
+                    }
+                    else
+                    {
+                        currentIndex = 0; // 循环回到开头
+                    }
                 }
             }
-            //ShowStatusMessage("Sequence stopped.");
         }
 
         // 数字限制 (Duration TextBox)
