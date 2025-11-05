@@ -12,22 +12,44 @@
             <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis"/>
             <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <converters:StringToImageSourceConverter x:Key="StringToImageSourceConverter"/>
-            <SolidColorBrush x:Key="CardBg" Color="#232834"/>
-            <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
-            <SolidColorBrush x:Key="CardBorder" Color="#2E3747"/>
-            <SolidColorBrush x:Key="TitleBrush" Color="#FFFFFF"/>
-            <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C0CC"/>
-            <SolidColorBrush x:Key="ButtonBg" Color="#3A7E00"/>
-            <SolidColorBrush x:Key="ButtonHoverBg" Color="#4A9E00"/>
 
-            <DropShadowEffect x:Key="CardShadow" Color="Black" Direction="270" ShadowDepth="8" Opacity="0.4" BlurRadius="20"/>
-            <DropShadowEffect x:Key="ButtonShadow" Color="Black" Direction="270" ShadowDepth="2" Opacity="0.3" BlurRadius="4"/>
+            <!-- ✅ 全新配色方案 - 深蓝紫渐变 + 青色强调 -->
+            <LinearGradientBrush x:Key="CardBg" StartPoint="0,0" EndPoint="1,1" Opacity="0.75">
+                <GradientStop Color="#1A1F3A" Offset="0.0"/>
+                <GradientStop Color="#2D1B3D" Offset="1.0"/>
+            </LinearGradientBrush>
+
+            <LinearGradientBrush x:Key="CardBgAlt" StartPoint="0,0" EndPoint="1,1" Opacity="0.65">
+                <GradientStop Color="#1A1F3A" Offset="0.0"/>
+                <GradientStop Color="#2A2045" Offset="1.0"/>
+            </LinearGradientBrush>
+
+            <SolidColorBrush x:Key="CardBorder" Color="#5B7FFF" Opacity="0.35"/>
+            <SolidColorBrush x:Key="TitleBrush" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C5FF"/>
+            <SolidColorBrush x:Key="ButtonBg" Color="#5B7FFF"/>
+            <SolidColorBrush x:Key="ButtonHoverBg" Color="#7B8FFF"/>
+
+            <!-- ✅ 优化阴影效果 - 带紫色光晕 -->
+            <DropShadowEffect x:Key="CardShadow" 
+                              Color="#6B4FFF" 
+                              Direction="270" 
+                              ShadowDepth="4" 
+                              Opacity="0.3" 
+                              BlurRadius="16"/>
+
+            <DropShadowEffect x:Key="ButtonShadow" 
+                              Color="#5B7FFF" 
+                              Direction="270" 
+                              ShadowDepth="2" 
+                              Opacity="0.25" 
+                              BlurRadius="8"/>
 
             <Style x:Key="CardBorderStyle" TargetType="Border">
-                <Setter Property="CornerRadius" Value="15"/>
+                <Setter Property="CornerRadius" Value="16"/>
                 <Setter Property="Background" Value="{StaticResource CardBg}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
-                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="BorderThickness" Value="1.5"/>
                 <Setter Property="Padding" Value="20"/>
                 <Setter Property="SnapsToDevicePixels" Value="True"/>
                 <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
@@ -50,7 +72,7 @@
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="4"
+                                    CornerRadius="8"
                                     Padding="{TemplateBinding Padding}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
@@ -59,7 +81,7 @@
                                     <Setter TargetName="border" Property="Background" Value="{StaticResource ButtonHoverBg}"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="#2A6E00"/>
+                                    <Setter TargetName="border" Property="Background" Value="#4B6FEF"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -68,7 +90,7 @@
             </Style>
 
             <Style x:Key="SmallButtonStyle" TargetType="Button">
-                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Background" Value="#30FFFFFF"/>
                 <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
                 <Setter Property="BorderThickness" Value="1"/>
@@ -82,16 +104,16 @@
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="4"
+                                    CornerRadius="6"
                                     Padding="{TemplateBinding Padding}">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="#3A414F"/>
+                                    <Setter TargetName="border" Property="Background" Value="#45FFFFFF"/>
                                 </Trigger>
                                 <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="border" Property="Background" Value="#2A313F"/>
+                                    <Setter TargetName="border" Property="Background" Value="#35FFFFFF"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -100,7 +122,14 @@
             </Style>
 
             <Style x:Key="DarkTextBoxStyle" TargetType="TextBox">
-                <Setter Property="Background" Value="#1B202B"/>
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.5">
+                            <GradientStop Color="#1A1F3A" Offset="0.0"/>
+                            <GradientStop Color="#2A2045" Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
                 <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
                 <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
                 <Setter Property="BorderThickness" Value="1"/>
@@ -111,7 +140,7 @@
                             <Border Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="4">
+                                    CornerRadius="6">
                                 <ScrollViewer x:Name="PART_ContentHost" Padding="{TemplateBinding Padding}"/>
                             </Border>
                         </ControlTemplate>
@@ -121,7 +150,14 @@
 
             <Style x:Key="DarkComboBoxStyle" TargetType="ComboBox">
                 <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
-                <Setter Property="Background" Value="#1B202B"/>
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.5">
+                            <GradientStop Color="#1A1F3A" Offset="0.0"/>
+                            <GradientStop Color="#2A2045" Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Setter.Value>
+                </Setter>
                 <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Padding" Value="4,2"/>
@@ -131,7 +167,7 @@
                         <ControlTemplate TargetType="ComboBox">
                             <Grid>
                                 <Border x:Name="Border"
-                                        CornerRadius="4"
+                                        CornerRadius="6"
                                         Background="{TemplateBinding Background}"
                                         BorderBrush="{TemplateBinding BorderBrush}"
                                         BorderThickness="{TemplateBinding BorderThickness}">
@@ -160,12 +196,22 @@
                                        AllowsTransparency="True"
                                        Focusable="False"
                                        PopupAnimation="Slide">
-                                    <Border Background="#242A36"
-                                            BorderBrush="{StaticResource CardBorder}"
-                                            BorderThickness="1"
-                                            CornerRadius="4"
+                                    <Border CornerRadius="6"
                                             Padding="2"
                                             SnapsToDevicePixels="True">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.95">
+                                                <GradientStop Color="#1A1F3A" Offset="0.0"/>
+                                                <GradientStop Color="#2D1B3D" Offset="1.0"/>
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <Border.BorderBrush>
+                                            <SolidColorBrush Color="#5B7FFF" Opacity="0.5"/>
+                                        </Border.BorderBrush>
+                                        <Border.BorderThickness>1</Border.BorderThickness>
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="#6B4FFF" Direction="270" ShadowDepth="4" Opacity="0.4" BlurRadius="12"/>
+                                        </Border.Effect>
                                         <ScrollViewer Style="{x:Null}" BorderThickness="0">
                                             <ItemsPresenter/>
                                         </ScrollViewer>
@@ -174,7 +220,11 @@
                             </Grid>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Border" Property="BorderBrush" Value="#4C5A6B"/>
+                                    <Setter TargetName="Border" Property="BorderBrush">
+                                        <Setter.Value>
+                                            <SolidColorBrush Color="#7B8FFF" Opacity="0.6"/>
+                                        </Setter.Value>
+                                    </Setter>
                                 </Trigger>
                                 <Trigger Property="IsEnabled" Value="False">
                                     <Setter Property="Opacity" Value="0.5"/>
@@ -214,7 +264,15 @@
             </Button>
 
             <TextBlock Grid.Column="1" Text="{DynamicResource DeviceConfigPageHeader}" FontSize="20" FontWeight="SemiBold"
-                       Foreground="{StaticResource TitleBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                       Foreground="{StaticResource TitleBrush}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock.Effect>
+                    <DropShadowEffect Color="#6B4FFF" 
+                                      Direction="270" 
+                                      ShadowDepth="2" 
+                                      Opacity="0.4" 
+                                      BlurRadius="6"/>
+                </TextBlock.Effect>
+            </TextBlock>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal" Visibility="Collapsed">
                 <TextBlock Text="{DynamicResource SizeLabel}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TitleBrush}"/>
@@ -297,25 +355,25 @@
                     <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,12,0,12"/>
 
                     <TextBlock Text="{DynamicResource OperatorGroup}" FontWeight="SemiBold" Margin="0,0,0,8" Foreground="{StaticResource TitleBrush}" FontSize="16"/>
-                    <Button Style="{StaticResource ActionButtonStyle}" Background="#CC4444" Click="ClearCanvas_Click">
+                    <Button Style="{StaticResource ActionButtonStyle}" Background="#E53965" Click="ClearCanvas_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE74D;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
                             <TextBlock Text="{DynamicResource ClearAllButton}"/>
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC" Click="LoadConfig_Click">
+                    <Button Style="{StaticResource ActionButtonStyle}" Background="#00D9FF" Click="LoadConfig_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE118;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
                             <TextBlock Text="{DynamicResource ImportButton}"/>
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC" Click="SaveConfig_Click">
+                    <Button Style="{StaticResource ActionButtonStyle}" Background="#00D9FF" Click="SaveConfig_Click">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE105;" FontFamily="Segoe MDL2 Assets" Margin="0,0,6,0"/>
                             <TextBlock Text="{DynamicResource SaveButton}"/>
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource ActionButtonStyle}" Background="#4A7ACC"
+                    <Button Style="{StaticResource ActionButtonStyle}" Background="#00D9FF"
                             Click="SaveAsConfig_Click"
                             Visibility="{Binding LoadedFromConfigFile, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <StackPanel Orientation="Horizontal">
@@ -360,49 +418,49 @@
                     <StackPanel>
 
                         <TextBlock Text="{DynamicResource SelectedElementTitle}" FontWeight="SemiBold" Margin="0,0,0,8"
-                                   Foreground="{StaticResource TitleBrush}" FontSize="16"/>
+                        Foreground="{StaticResource TitleBrush}" FontSize="16"/>
                         <TextBlock Text="{Binding SelectedInfo}" Margin="0,0,0,8" Foreground="{StaticResource SubtitleBrush}"/>
 
                         <!-- Text props -->
                         <StackPanel x:Name="TextProps"
-                                    Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}">
+                         Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{DynamicResource TextLabel}" Foreground="{StaticResource SubtitleBrush}"/>
                             <TextBox Text="{Binding SelectedText, UpdateSourceTrigger=PropertyChanged}"
-                                     IsReadOnly="{Binding IsSelectedTextReadOnly}"
-                                     Margin="0,4,0,8"
-                                     Style="{StaticResource DarkTextBoxStyle}"/>
+                          IsReadOnly="{Binding IsSelectedTextReadOnly}"
+                          Margin="0,4,0,8"
+                          Style="{StaticResource DarkTextBoxStyle}"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="{DynamicResource FontSizeLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                Foreground="{StaticResource SubtitleBrush}"/>
                                 <Slider Minimum="8" Maximum="120" Value="{Binding SelectedFontSize}"
-                                        Width="160" Style="{StaticResource DarkSliderStyle}"/>
+                             Width="160" Style="{StaticResource DarkSliderStyle}"/>
                                 <TextBlock Text="{Binding SelectedFontSize}" Margin="8,0,0,0"
-                                           VerticalAlignment="Center" Foreground="{StaticResource TitleBrush}"/>
+                                VerticalAlignment="Center" Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <CheckBox x:Name="UseGradientCheckBox"
-                                          IsChecked="{Binding UseTextGradient}"
-                                          Content="{DynamicResource UseGradientLabel}"
-                                          Foreground="{StaticResource TitleBrush}"
-                                          VerticalAlignment="Center"/>
+                               IsChecked="{Binding UseTextGradient}"
+                               Content="{DynamicResource UseGradientLabel}"
+                               Foreground="{StaticResource TitleBrush}"
+                               VerticalAlignment="Center"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
-                                        Visibility="{Binding UseTextGradient, Converter={StaticResource InverseBoolToVis}}">
+                             Visibility="{Binding UseTextGradient, Converter={StaticResource InverseBoolToVis}}">
                                 <TextBlock Text="{DynamicResource ColorLabel}" VerticalAlignment="Center" Width="100"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding SelectedTextHex, UpdateSourceTrigger=PropertyChanged}"
-                                         Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
+                              Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                                        BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                             BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding SelectedTextColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Click="PickSelectedTextColor_Click" Margin="8,0,0,0"
-                                        Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
+                             Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
 
                             <StackPanel Visibility="{Binding UseTextGradient, Converter={StaticResource BoolToVis}}">
@@ -410,40 +468,40 @@
                                 <!-- Start color -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{DynamicResource StartColorLabel}" Width="100" VerticalAlignment="Center"
-                                               Foreground="{StaticResource SubtitleBrush}"/>
+                                    Foreground="{StaticResource SubtitleBrush}"/>
                                     <TextBox Text="{Binding SelectedTextHex, UpdateSourceTrigger=PropertyChanged}"
-                                             Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
+                                  Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
                                     <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                                            BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                 BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                         <Border.Background>
                                             <SolidColorBrush Color="{Binding SelectedTextColor}"/>
                                         </Border.Background>
                                     </Border>
                                     <Button Click="PickSelectedTextColor_Click" Margin="8,0,0,0"
-                                            Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
+                                 Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
                                 </StackPanel>
 
                                 <!-- End color -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{DynamicResource EndColorLabel}" Width="100" VerticalAlignment="Center"
-                                               Foreground="{StaticResource SubtitleBrush}"/>
+                                    Foreground="{StaticResource SubtitleBrush}"/>
                                     <TextBox Text="{Binding SelectedTextHex2, UpdateSourceTrigger=PropertyChanged}"
-                                             Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
+                                  Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
                                     <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                                            BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                 BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                         <Border.Background>
                                             <SolidColorBrush Color="{Binding SelectedTextColor2}"/>
                                         </Border.Background>
                                     </Border>
                                     <Button Click="PickSelectedTextColor2_Click" Margin="8,0,0,0"
-                                            Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
+                                 Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
                                 </StackPanel>
 
                                 <!-- Preview -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{DynamicResource PreviewLabel}" Width="100" VerticalAlignment="Center"
-                                               Foreground="{StaticResource SubtitleBrush}"/>
-                                    <Border Width="200" Height="30" CornerRadius="4" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+                                    Foreground="{StaticResource SubtitleBrush}"/>
+                                    <Border Width="200" Height="30" CornerRadius="6" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                         <Border.Background>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                                 <GradientStop Color="{Binding SelectedTextColor}" Offset="0"/>
@@ -451,34 +509,34 @@
                                             </LinearGradientBrush>
                                         </Border.Background>
                                         <TextBlock Text="{DynamicResource GradientSampleText}"
-                                                  HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"
-                                                  FontWeight="Bold"/>
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontWeight="Bold"/>
                                     </Border>
                                 </StackPanel>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
-                                        Visibility="{Binding IsDateTimeSelected, Converter={StaticResource BoolToVis}}">
+                             Visibility="{Binding IsDateTimeSelected, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="{DynamicResource DateFormatLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                Foreground="{StaticResource SubtitleBrush}"/>
                                 <ComboBox Width="180"
-                                          ItemsSource="{Binding DateFormats}"
-                                          SelectedItem="{Binding SelectedDateFormat, UpdateSourceTrigger=PropertyChanged}"
-                                          Style="{StaticResource DarkComboBoxStyle}"
-                                          Padding="4,2"/>
+                               ItemsSource="{Binding DateFormats}"
+                               SelectedItem="{Binding SelectedDateFormat, UpdateSourceTrigger=PropertyChanged}"
+                               Style="{StaticResource DarkComboBoxStyle}"
+                               Padding="4,2"/>
                             </StackPanel>
                         </StackPanel>
 
                         <!-- Usage style selector -->
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,8"
-            Visibility="{Binding IsUsageSelected, Converter={StaticResource BoolToVis}}">
+ Visibility="{Binding IsUsageSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{DynamicResource UsageStyleLabel}"  Width="100" VerticalAlignment="Center"
-               Foreground="{StaticResource SubtitleBrush}"/>
+    Foreground="{StaticResource SubtitleBrush}"/>
                             <ComboBox Width="180"
-              SelectedValuePath="Tag"
-              SelectedValue="{Binding SelectedUsageDisplayStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-              Style="{StaticResource DarkComboBoxStyle}">
+   SelectedValuePath="Tag"
+   SelectedValue="{Binding SelectedUsageDisplayStyle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+   Style="{StaticResource DarkComboBoxStyle}">
                                 <ComboBoxItem Tag="Text"        Content="{DynamicResource UsageTextStyleOption}"/>
                                 <ComboBoxItem Tag="ProgressBar" Content="{DynamicResource UsageProgressBarStyleOption}"/>
                                 <ComboBoxItem Tag="Gauge"       Content="{DynamicResource UsageGaugeStyleOption}"/>
@@ -487,32 +545,32 @@
 
                         <!-- SystemInfo Text Mode Color Settings (使用与普通文本类似的方式设置主题色) -->
                         <StackPanel Margin="0,0,0,8"
-            Visibility="{Binding IsUsageTextModeSelected, Converter={StaticResource BoolToVis}}">
+ Visibility="{Binding IsUsageTextModeSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{DynamicResource UsageThemeTitle}" FontWeight="SemiBold" Margin="0,0,0,8"
-               Foreground="{StaticResource TitleBrush}" FontSize="14"/>
+    Foreground="{StaticResource TitleBrush}" FontSize="14"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <CheckBox IsChecked="{Binding UseTextGradient}"
-                  Content="{DynamicResource UseGradientLabel}"
-                  Foreground="{StaticResource TitleBrush}"
-                  VerticalAlignment="Center"/>
+       Content="{DynamicResource UseGradientLabel}"
+       Foreground="{StaticResource TitleBrush}"
+       VerticalAlignment="Center"/>
                             </StackPanel>
 
                             <!-- 单色模式 -->
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
-                Visibility="{Binding UseTextGradient, Converter={StaticResource InverseBoolToVis}}">
+     Visibility="{Binding UseTextGradient, Converter={StaticResource InverseBoolToVis}}">
                                 <TextBlock Text="{DynamicResource ColorLabel}" VerticalAlignment="Center" Width="100"
-                   Foreground="{StaticResource SubtitleBrush}"/>
+        Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageStartHex, UpdateSourceTrigger=PropertyChanged}"
-                 Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
+      Width="100" Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+     BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageStartColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Click="PickUsageStartColor_Click" Margin="8,0,0,0"
-                Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
+     Style="{StaticResource SmallButtonStyle}" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
 
                             <!-- 渐变模式 -->
@@ -520,40 +578,40 @@
                                 <!-- Start color -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{DynamicResource StartColorLabel}" Width="100" VerticalAlignment="Center"
-                       Foreground="{StaticResource SubtitleBrush}"/>
+            Foreground="{StaticResource SubtitleBrush}"/>
                                     <TextBox Text="{Binding UsageStartHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                     Style="{StaticResource DarkTextBoxStyle}"/>
+          Style="{StaticResource DarkTextBoxStyle}"/>
                                     <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                    BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+         BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                         <Border.Background>
                                             <SolidColorBrush Color="{Binding UsageStartColor}"/>
                                         </Border.Background>
                                     </Border>
                                     <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                    Click="PickUsageStartColor_Click" Content="{DynamicResource PickButton}"/>
+         Click="PickUsageStartColor_Click" Content="{DynamicResource PickButton}"/>
                                 </StackPanel>
 
                                 <!-- End color -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{DynamicResource EndColorLabel}" Width="100" VerticalAlignment="Center"
-                       Foreground="{StaticResource SubtitleBrush}"/>
+            Foreground="{StaticResource SubtitleBrush}"/>
                                     <TextBox Text="{Binding UsageEndHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                     Style="{StaticResource DarkTextBoxStyle}"/>
+          Style="{StaticResource DarkTextBoxStyle}"/>
                                     <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                    BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+         BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                         <Border.Background>
                                             <SolidColorBrush Color="{Binding UsageEndColor}"/>
                                         </Border.Background>
                                     </Border>
                                     <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                    Click="PickUsageEndColor_Click" Content="{DynamicResource PickButton}"/>
+         Click="PickUsageEndColor_Click" Content="{DynamicResource PickButton}"/>
                                 </StackPanel>
 
                                 <!-- Preview -->
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{DynamicResource PreviewLabel}" Width="100" VerticalAlignment="Center"
-                       Foreground="{StaticResource SubtitleBrush}"/>
-                                    <Border Width="200" Height="30" CornerRadius="4" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+            Foreground="{StaticResource SubtitleBrush}"/>
+                                    <Border Width="200" Height="30" CornerRadius="6" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                         <Border.Background>
                                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                                 <GradientStop Color="{Binding UsageStartColor}" Offset="0"/>
@@ -561,9 +619,9 @@
                                             </LinearGradientBrush>
                                         </Border.Background>
                                         <TextBlock Text="{DynamicResource GradientSampleText}"
-                          HorizontalAlignment="Center"
-                          VerticalAlignment="Center"
-                          FontWeight="Bold"/>
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               FontWeight="Bold"/>
                                     </Border>
                                 </StackPanel>
                             </StackPanel>
@@ -571,71 +629,71 @@
 
                         <!-- Usage theme (ProgressBar/Gauge 模式) -->
                         <StackPanel Margin="0,0,0,8"
-            Visibility="{Binding IsUsageVisualSelected, Converter={StaticResource BoolToVis}}">
+ Visibility="{Binding IsUsageVisualSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{DynamicResource UsageThemeTitle}" FontWeight="SemiBold" Margin="0,0,0,8"
-               Foreground="{StaticResource TitleBrush}" FontSize="14"/>
+    Foreground="{StaticResource TitleBrush}" FontSize="14"/>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                 <TextBlock Text="{DynamicResource StartLabel}" Width="100" VerticalAlignment="Center"
-                   Foreground="{StaticResource SubtitleBrush}"/>
+        Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageStartHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                 Style="{StaticResource DarkTextBoxStyle}"/>
+      Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+     BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageStartColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                Click="PickUsageStartColor_Click" Content="{DynamicResource PickButton}"/>
+     Click="PickUsageStartColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
                                 <TextBlock Text="{DynamicResource EndLabel}" Width="100" VerticalAlignment="Center"
-                   Foreground="{StaticResource SubtitleBrush}"/>
+        Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageEndHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                 Style="{StaticResource DarkTextBoxStyle}"/>
+      Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+     BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageEndColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                Click="PickUsageEndColor_Click" Content="{DynamicResource PickButton}"/>
+     Click="PickUsageEndColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
-                Visibility="{Binding IsGaugeSelected, Converter={StaticResource InverseBoolToVis}}">
+     Visibility="{Binding IsGaugeSelected, Converter={StaticResource InverseBoolToVis}}">
                                 <TextBlock Text="{DynamicResource BackgroundLabel}" Width="100" VerticalAlignment="Center"
-                   Foreground="{StaticResource SubtitleBrush}"/>
+        Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageBarBackgroundHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                 Style="{StaticResource DarkTextBoxStyle}"/>
+      Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+     BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageBarBackgroundColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                Click="PickUsageBarBackgroundColor_Click" Content="{DynamicResource PickButton}"/>
+     Click="PickUsageBarBackgroundColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,6"
-                Visibility="{Binding IsGaugeSelected, Converter={StaticResource BoolToVis}}">
+     Visibility="{Binding IsGaugeSelected, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="{DynamicResource NeedleLabel}" Width="100" VerticalAlignment="Center"
-                   Foreground="{StaticResource SubtitleBrush}"/>
+        Foreground="{StaticResource SubtitleBrush}"/>
                                 <TextBox Text="{Binding UsageNeedleHex, UpdateSourceTrigger=PropertyChanged}" Width="100"
-                 Style="{StaticResource DarkTextBoxStyle}"/>
+      Style="{StaticResource DarkTextBoxStyle}"/>
                                 <Border Width="24" Height="24" Margin="8,0,0,0" CornerRadius="4"
-                BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+     BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <SolidColorBrush Color="{Binding UsageNeedleColor}"/>
                                     </Border.Background>
                                 </Border>
                                 <Button Style="{StaticResource SmallButtonStyle}" Margin="8,0,0,0"
-                Click="PickUsageNeedleColor_Click" Content="{DynamicResource PickButton}"/>
+     Click="PickUsageNeedleColor_Click" Content="{DynamicResource PickButton}"/>
                             </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
                                 <TextBlock Text="{DynamicResource PreviewLabel}" Width="100" VerticalAlignment="Center"
-                   Foreground="{StaticResource SubtitleBrush}"/>
-                                <Border Width="200" Height="30" CornerRadius="4" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
+        Foreground="{StaticResource SubtitleBrush}"/>
+                                <Border Width="200" Height="30" CornerRadius="6" BorderBrush="{StaticResource CardBorder}" BorderThickness="1">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                             <GradientStop Color="{Binding UsageStartColor}" Offset="0"/>
@@ -650,42 +708,42 @@
                         <StackPanel Margin="0,8,0,0" Visibility="{Binding IsAnySelected, Converter={StaticResource BoolToVis}}">
 
                             <StackPanel x:Name="ScaleRow"
-                                        Orientation="Horizontal" Margin="0,0,0,8"
-                                        Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}">
+                             Orientation="Horizontal" Margin="0,0,0,8"
+                             Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}">
                                 <TextBlock Text="{DynamicResource ScaleLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                Foreground="{StaticResource SubtitleBrush}"/>
                                 <Slider Minimum="0.1" Maximum="5" Value="{Binding SelectedScale}"
-                                        Width="160" Style="{StaticResource DarkSliderStyle}"/>
+                             Width="160" Style="{StaticResource DarkSliderStyle}"/>
                                 <TextBlock Text="{Binding SelectedScale, StringFormat={}{0:0.00}}"
-                                           Margin="8,0,0,0" VerticalAlignment="Center"
-                                           Foreground="{StaticResource TitleBrush}"/>
+                                Margin="8,0,0,0" VerticalAlignment="Center"
+                                Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8"
-                                        Visibility="{Binding IsImageSelected, Converter={StaticResource BoolToVis}}">
+                             Visibility="{Binding IsImageSelected, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="{DynamicResource RotateMirrorLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                Foreground="{StaticResource SubtitleBrush}"/>
                                 <StackPanel Orientation="Horizontal">
                                     <Button Style="{StaticResource SmallButtonStyle}" Width="40"
-                                            Click="RotateImageLeft_Click"
-                                            ToolTip="{DynamicResource RotateLeftTooltip}">⟲</Button>
+                                 Click="RotateImageLeft_Click"
+                                 ToolTip="{DynamicResource RotateLeftTooltip}">⟲</Button>
                                     <Button Style="{StaticResource SmallButtonStyle}" Width="40" Margin="8,0,0,0"
-                                            Click="RotateImageRight_Click"
-                                            ToolTip="{DynamicResource RotateRightTooltip}">⟳</Button>
+                                 Click="RotateImageRight_Click"
+                                 ToolTip="{DynamicResource RotateRightTooltip}">⟳</Button>
                                     <Button Style="{StaticResource SmallButtonStyle}" Width="40" Margin="8,0,0,0"
-                                            Click="MirrorImageHorizontal_Click"
-                                            ToolTip="{DynamicResource MirrorHorizontalTooltip}">⇋</Button>
+                                 Click="MirrorImageHorizontal_Click"
+                                 ToolTip="{DynamicResource MirrorHorizontalTooltip}">⇋</Button>
                                 </StackPanel>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="{DynamicResource OpacityLabel}" Width="100" VerticalAlignment="Center"
-                                           Foreground="{StaticResource SubtitleBrush}"/>
+                                Foreground="{StaticResource SubtitleBrush}"/>
                                 <Slider Minimum="0.1" Maximum="1" Value="{Binding SelectedOpacity}"
-                                        Width="160" Style="{StaticResource DarkSliderStyle}"/>
+                             Width="160" Style="{StaticResource DarkSliderStyle}"/>
                                 <TextBlock Text="{Binding SelectedOpacity, StringFormat={}{0:P0}}"
-                                           Margin="8,0,0,0" VerticalAlignment="Center"
-                                           Foreground="{StaticResource TitleBrush}"/>
+                                Margin="8,0,0,0" VerticalAlignment="Center"
+                                Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -695,9 +753,9 @@
                             </StackPanel>
 
                             <TextBlock Text="{DynamicResource TipScale}" Foreground="{StaticResource SubtitleBrush}" FontSize="12"
-                                       Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}"/>
+                            Visibility="{Binding IsTextSelected, Converter={StaticResource InverseBoolToVis}}"/>
                             <TextBlock Text="{DynamicResource TipMove}" Foreground="{StaticResource SubtitleBrush}" FontSize="12"
-                                       Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}"/>
+                            Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}"/>
                         </StackPanel>
 
                         <Rectangle Height="1" Fill="{StaticResource CardBorder}" Margin="0,16,0,16"/>
@@ -705,61 +763,61 @@
                         <!-- Auto Move -->
                         <StackPanel Margin="0,0,0,0" Visibility="{Binding IsTextSelected, Converter={StaticResource BoolToVis}}">
                             <TextBlock Text="{DynamicResource AutoMoveTitle}" FontWeight="SemiBold" Margin="0,0,0,8"
-                                       Foreground="{StaticResource TitleBrush}" FontSize="16"/>
+                            Foreground="{StaticResource TitleBrush}" FontSize="16"/>
 
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                 <TextBlock Text="{DynamicResource SpeedLabel}" Width="100" VerticalAlignment="Center" Foreground="{StaticResource SubtitleBrush}"/>
                                 <Slider Minimum="0" Maximum="400" Value="{Binding MoveSpeed}" Width="160"
-                                        Style="{StaticResource DarkSliderStyle}"/>
+                             Style="{StaticResource DarkSliderStyle}"/>
                                 <TextBlock Text="{Binding MoveSpeed, StringFormat={}{0:0}}" Margin="8,0,0,0"
-                                           VerticalAlignment="Center" Foreground="{StaticResource TitleBrush}"/>
+                                VerticalAlignment="Center" Foreground="{StaticResource TitleBrush}"/>
                             </StackPanel>
 
                             <StackPanel>
                                 <TextBlock Text="{DynamicResource DirectionLabel}" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
                                 <Grid Width="120" Height="120"
-                                      x:Name="JoystickBase"
-                                      MouseLeftButtonDown="JoystickBase_MouseDown"
-                                      MouseLeftButtonUp="JoystickBase_MouseUp"
-                                      MouseMove="JoystickBase_MouseMove"
-                                      Background="Transparent">
-                                    <Ellipse Fill="#202633"
-                                             Stroke="{StaticResource CardBorder}"
-                                             StrokeThickness="2"/>
+                           x:Name="JoystickBase"
+                           MouseLeftButtonDown="JoystickBase_MouseDown"
+                           MouseLeftButtonUp="JoystickBase_MouseUp"
+                           MouseMove="JoystickBase_MouseMove"
+                           Background="Transparent">
+                                    <Ellipse Fill="#20000000"
+                                  Stroke="{StaticResource CardBorder}"
+                                  StrokeThickness="2"/>
                                     <Canvas IsHitTestVisible="False">
                                         <Line X1="60" Y1="22" X2="60" Y2="98"
-                                              Stroke="#35404F" StrokeThickness="3"
-                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                   Stroke="#40FFFFFF" StrokeThickness="3"
+                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                         <Line X1="22" Y1="60" X2="98" Y2="60"
-                                              Stroke="#35404F" StrokeThickness="3"
-                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                   Stroke="#40FFFFFF" StrokeThickness="3"
+                                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
                                         <Polygon Points="60,18 52,32 68,32"
-                                                 Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
+                                      Fill="#80FFFFFF" Stroke="#40FFFFFF" StrokeThickness="1"/>
                                         <Polygon Points="60,102 52,88 68,88"
-                                                 Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
+                                      Fill="#80FFFFFF" Stroke="#40FFFFFF" StrokeThickness="1"/>
                                         <Polygon Points="18,60 32,52 32,68"
-                                                 Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
+                                      Fill="#80FFFFFF" Stroke="#40FFFFFF" StrokeThickness="1"/>
                                         <Polygon Points="102,60 88,52 88,68"
-                                                 Fill="#6F7B8A" Stroke="#2A313D" StrokeThickness="1"/>
+                                      Fill="#80FFFFFF" Stroke="#40FFFFFF" StrokeThickness="1"/>
                                     </Canvas>
                                     <Ellipse Width="32"
-                                             Height="32"
-                                             x:Name="JoystickKnob"
-                                             Fill="{StaticResource ButtonBg}"
-                                             Stroke="White"
-                                             StrokeThickness="2"
-                                             HorizontalAlignment="Center"
-                                             VerticalAlignment="Center">
+                                  Height="32"
+                                  x:Name="JoystickKnob"
+                                  Fill="{StaticResource ButtonBg}"
+                                  Stroke="White"
+                                  StrokeThickness="2"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center">
                                         <Ellipse.RenderTransform>
                                             <TranslateTransform x:Name="JoystickKnobTransform" X="0" Y="0"/>
                                         </Ellipse.RenderTransform>
                                     </Ellipse>
                                 </Grid>
                                 <Button Content="{DynamicResource CenterButton}"
-                                        Width="80"
-                                        Margin="0,8,0,0"
-                                        Click="JoystickCenter_Click"
-                                        Style="{StaticResource SmallButtonStyle}"/>
+                             Width="80"
+                             Margin="0,8,0,0"
+                             Click="JoystickCenter_Click"
+                             Style="{StaticResource SmallButtonStyle}"/>
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>

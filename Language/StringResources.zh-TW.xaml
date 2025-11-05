@@ -312,4 +312,32 @@
     <sys:String x:Key="PlayMode_DevicesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">設備:</sys:String>
     <sys:String x:Key="PlayMode_CurrentRotationFormat" xmlns:sys="clr-namespace:System;assembly=mscorlib">當前: {0}°</sys:String>
     <sys:String x:Key="SetBackgroundColorButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">設定背景顏色</sys:String>
+    <!-- Delete Config Dialog -->
+    <sys:String x:Key="DeleteConfig_ConfirmTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">確認刪除</sys:String>
+    <sys:String x:Key="DeleteConfig_ConfirmMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">確定要刪除配置 "{0}" 嗎？
+
+此操作將同時刪除配置文件和預覽圖，且無法撤銷。</sys:String>
+    <sys:String x:Key="DeleteConfig_AllDeletedTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">提示</sys:String>
+    <sys:String x:Key="DeleteConfig_AllDeletedMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">已刪除所有配置。</sys:String>
+    <sys:String x:Key="DeleteConfig_SuccessTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">刪除成功</sys:String>
+    <sys:String x:Key="DeleteConfig_SuccessMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">配置已成功刪除。</sys:String>
+    <sys:String x:Key="DeleteConfig_ErrorTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">刪除失敗</sys:String>
+    <sys:String x:Key="DeleteConfig_ErrorMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">刪除配置時發生錯誤：
+{0}</sys:String>
+    <!-- Play Mode Prompt Dialog -->
+    <sys:String x:Key="PlayModePrompt_Title" xmlns:sys="clr-namespace:System;assembly=mscorlib">播放模式提示</sys:String>
+    <sys:String x:Key="PlayModePrompt_Message" xmlns:sys="clr-namespace:System;assembly=mscorlib">螢幕畫面已經設置，是否現在去設置播放模式？</sys:String>
+    <sys:String x:Key="PlayModePrompt_DescriptionTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">說明</sys:String>
+    <sys:String x:Key="PlayModePrompt_DescriptionBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">播放模式用於在設備上輪播或實時展示多個畫面序列（配置組）。點擊「去設置」可立即前往「播放模式」頁面進行添加。</sys:String>
+    <sys:String x:Key="PlayModePrompt_DontRemind" xmlns:sys="clr-namespace:System;assembly=mscorlib">不再提醒</sys:String>
+    <sys:String x:Key="PlayModePrompt_GoButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">去設置</sys:String>
+    <sys:String x:Key="PlayModePrompt_LaterButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">以後再說</sys:String>
+    <!-- Color Picker Window -->
+    <sys:String x:Key="ColorPicker_Title" xmlns:sys="clr-namespace:System;assembly=mscorlib">顏色選擇器</sys:String>
+    <sys:String x:Key="ColorPicker_RGB" xmlns:sys="clr-namespace:System;assembly=mscorlib">RGB</sys:String>
+    <sys:String x:Key="ColorPicker_Hex" xmlns:sys="clr-namespace:System;assembly=mscorlib">Hex #</sys:String>
+    <sys:String x:Key="ColorPicker_Hint" xmlns:sys="clr-namespace:System;assembly=mscorlib">點擊或拖動取色；方向鍵微調</sys:String>
+    <sys:String x:Key="ColorPicker_CurrentColor" xmlns:sys="clr-namespace:System;assembly=mscorlib">當前顏色</sys:String>
+    <sys:String x:Key="ColorPicker_ApplyButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">應用</sys:String>
+    <sys:String x:Key="ColorPicker_CancelButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">取消</sys:String>
 </ResourceDictionary>

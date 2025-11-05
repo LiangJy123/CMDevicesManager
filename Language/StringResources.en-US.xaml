@@ -307,4 +307,32 @@ Cancel: Abort save</sys:String>
     <sys:String x:Key="PlayMode_DevicesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Devices:</sys:String>
     <sys:String x:Key="PlayMode_CurrentRotationFormat" xmlns:sys="clr-namespace:System;assembly=mscorlib">Current: {0}°</sys:String>
     <sys:String x:Key="SetBackgroundColorButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Set Background Color</sys:String>
+    <!-- Delete Config Dialog -->
+    <sys:String x:Key="DeleteConfig_ConfirmTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Confirm Delete</sys:String>
+    <sys:String x:Key="DeleteConfig_ConfirmMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Are you sure you want to delete configuration "{0}"?
+
+This operation will delete both the configuration file and preview images, and cannot be undone.</sys:String>
+    <sys:String x:Key="DeleteConfig_AllDeletedTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Notice</sys:String>
+    <sys:String x:Key="DeleteConfig_AllDeletedMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">All configurations have been deleted.</sys:String>
+    <sys:String x:Key="DeleteConfig_SuccessTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Delete Successful</sys:String>
+    <sys:String x:Key="DeleteConfig_SuccessMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">Configuration deleted successfully.</sys:String>
+    <sys:String x:Key="DeleteConfig_ErrorTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Delete Failed</sys:String>
+    <sys:String x:Key="DeleteConfig_ErrorMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">An error occurred while deleting configuration:
+{0}</sys:String>
+    <!-- Play Mode Prompt Dialog -->
+    <sys:String x:Key="PlayModePrompt_Title" xmlns:sys="clr-namespace:System;assembly=mscorlib">Play Mode Prompt</sys:String>
+    <sys:String x:Key="PlayModePrompt_Message" xmlns:sys="clr-namespace:System;assembly=mscorlib">Screen display has been configured. Would you like to set up play mode now?</sys:String>
+    <sys:String x:Key="PlayModePrompt_DescriptionTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Description</sys:String>
+    <sys:String x:Key="PlayModePrompt_DescriptionBody" xmlns:sys="clr-namespace:System;assembly=mscorlib">Play mode is used to rotate or display multiple screen sequences (configuration groups) in real-time on the device. Click "Go to Settings" to immediately navigate to the "Play Mode" page to add configurations.</sys:String>
+    <sys:String x:Key="PlayModePrompt_DontRemind" xmlns:sys="clr-namespace:System;assembly=mscorlib">Don't remind me again</sys:String>
+    <sys:String x:Key="PlayModePrompt_GoButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Go to Settings</sys:String>
+    <sys:String x:Key="PlayModePrompt_LaterButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Maybe Later</sys:String>
+    <!-- Color Picker Window -->
+    <sys:String x:Key="ColorPicker_Title" xmlns:sys="clr-namespace:System;assembly=mscorlib">Color Picker</sys:String>
+    <sys:String x:Key="ColorPicker_RGB" xmlns:sys="clr-namespace:System;assembly=mscorlib">RGB</sys:String>
+    <sys:String x:Key="ColorPicker_Hex" xmlns:sys="clr-namespace:System;assembly=mscorlib">Hex #</sys:String>
+    <sys:String x:Key="ColorPicker_Hint" xmlns:sys="clr-namespace:System;assembly=mscorlib">Click or drag to pick color; arrow keys for fine-tuning</sys:String>
+    <sys:String x:Key="ColorPicker_CurrentColor" xmlns:sys="clr-namespace:System;assembly=mscorlib">Current Color</sys:String>
+    <sys:String x:Key="ColorPicker_ApplyButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Apply</sys:String>
+    <sys:String x:Key="ColorPicker_CancelButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cancel</sys:String>
 </ResourceDictionary>
