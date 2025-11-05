@@ -12,9 +12,10 @@
       d:DataContext="{d:DesignInstance vm:HomeViewModel}">
 
     <Page.Resources>
-        <SolidColorBrush x:Key="ScrollThumbNormal" Color="#505A6B" Opacity="0.55"/>
-        <SolidColorBrush x:Key="ScrollThumbHover"  Color="#5F6B7D" Opacity="0.85"/>
-        <SolidColorBrush x:Key="ScrollThumbDrag"   Color="#6F7C90" Opacity="0.95"/>
+        <!-- ✅ 滚动条样式 -->
+        <SolidColorBrush x:Key="ScrollThumbNormal" Color="#6B7FFF" Opacity="0.4"/>
+        <SolidColorBrush x:Key="ScrollThumbHover"  Color="#7B8FFF" Opacity="0.7"/>
+        <SolidColorBrush x:Key="ScrollThumbDrag"   Color="#8B9FFF" Opacity="0.9"/>
         <Style x:Key="RoundedThumbStyle" TargetType="Thumb">
             <Setter Property="Template">
                 <Setter.Value>
@@ -34,7 +35,6 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <!-- 让 Thumb 默认使用正常颜色（如果未被外层触发修改） -->
             <Setter Property="Background" Value="{StaticResource ScrollThumbNormal}"/>
         </Style>
         <Style TargetType="ScrollBar">
@@ -67,21 +67,18 @@
                             </Track>
                         </Grid>
                         <ControlTemplate.Triggers>
-                            <!-- 垂直 -->
                             <Trigger Property="Orientation" Value="Vertical">
                                 <Setter TargetName="Root"  Property="Width" Value="8"/>
                                 <Setter TargetName="Thumb" Property="MinHeight" Value="24"/>
                                 <Setter TargetName="Thumb" Property="Width" Value="6"/>
                                 <Setter TargetName="Thumb" Property="Margin" Value="1,2,1,2"/>
                             </Trigger>
-                            <!-- 水平 -->
                             <Trigger Property="Orientation" Value="Horizontal">
                                 <Setter TargetName="Root"  Property="Height" Value="8"/>
                                 <Setter TargetName="Thumb" Property="MinWidth" Value="24"/>
                                 <Setter TargetName="Thumb" Property="Height" Value="6"/>
                                 <Setter TargetName="Thumb" Property="Margin" Value="2,1,2,1"/>
                             </Trigger>
-                            <!-- 整条鼠标悬停：如果 Thumb 没被触发，会提高对比度 -->
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Foreground" Value="{StaticResource ScrollThumbHover}"/>
                             </Trigger>
@@ -92,7 +89,7 @@
         </Style>
         <Style TargetType="ScrollViewer">
             <Setter Property="SnapsToDevicePixels" Value="True"/>
-            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Focusable" Value="True"/>
             <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
             <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -109,13 +106,11 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <!-- Content -->
                             <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
                                              Grid.Row="0" Grid.Column="0"
                                              Margin="{TemplateBinding Padding}"
                                              CanContentScroll="{TemplateBinding CanContentScroll}"/>
 
-                            <!-- Vertical ScrollBar -->
                             <ScrollBar x:Name="PART_VerticalScrollBar"
                                 Grid.Row="0" Grid.Column="1"
                                 Orientation="Vertical"
@@ -128,7 +123,6 @@
                                 Background="Transparent"
                                 SmallChange="16" LargeChange="64"/>
 
-                            <!-- Horizontal ScrollBar -->
                             <ScrollBar x:Name="PART_HorizontalScrollBar"
                                 Grid.Row="1" Grid.Column="0"
                                 Orientation="Horizontal"
@@ -141,7 +135,6 @@
                                 Background="Transparent"
                                 SmallChange="16" LargeChange="64"/>
 
-                            <!-- Corner (was white) now transparent -->
                             <Border Grid.Row="1" Grid.Column="1"
                              Background="Transparent"
                              x:Name="Corner"/>
@@ -150,38 +143,46 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Colors -->
-        <SolidColorBrush x:Key="CardBg" Color="#232834"/>
-        <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
-        <SolidColorBrush x:Key="CardBorder" Color="#2E3747"/>
+
+        <!-- ✅ 全新配色方案 - 深蓝紫渐变 + 青色强调 -->
+        <LinearGradientBrush x:Key="CardBg" StartPoint="0,0" EndPoint="1,1" Opacity="0.75">
+            <GradientStop Color="#1A1F3A" Offset="0.0"/>
+            <GradientStop Color="#2D1B3D" Offset="1.0"/>
+        </LinearGradientBrush>
+        
+        <LinearGradientBrush x:Key="CardBgAlt" StartPoint="0,0" EndPoint="1,1" Opacity="0.65">
+            <GradientStop Color="#1A1F3A" Offset="0.0"/>
+            <GradientStop Color="#2A2045" Offset="1.0"/>
+        </LinearGradientBrush>
+        
+        <SolidColorBrush x:Key="CardBorder" Color="#5B7FFF" Opacity="0.35"/>
         <SolidColorBrush x:Key="TitleBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C0CC"/>
+        <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C5FF"/>
         <SolidColorBrush x:Key="ValueBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="AccentDown" Color="#38D6BD"/>
-        <SolidColorBrush x:Key="AccentUp" Color="#F45B89"/>
+        <SolidColorBrush x:Key="AccentDown" Color="#00D9FF"/>
+        <SolidColorBrush x:Key="AccentUp" Color="#FF6B9D"/>
 
-        <!-- Shadow effect for cards -->
+        <!-- ✅ 优化阴影效果 - 带紫色光晕 -->
         <DropShadowEffect x:Key="CardShadow" 
-                          Color="Black" 
-                          Direction="270" 
-                          ShadowDepth="8" 
-                          Opacity="0.4" 
-                          BlurRadius="20"/>
-
-        <!-- Lighter shadow for inner elements -->
-        <DropShadowEffect x:Key="LightShadow" 
-                          Color="Black" 
+                          Color="#6B4FFF" 
                           Direction="270" 
                           ShadowDepth="4" 
                           Opacity="0.3" 
+                          BlurRadius="16"/>
+
+        <DropShadowEffect x:Key="LightShadow" 
+                          Color="#5B7FFF" 
+                          Direction="270" 
+                          ShadowDepth="2" 
+                          Opacity="0.25" 
                           BlurRadius="10"/>
 
-        <!-- Fixed-size card style (scaled from previous design by 1.5x) -->
+        <!-- ✅ 卡片样式 -->
         <Style x:Key="CardBorderStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="15"/>
+            <Setter Property="CornerRadius" Value="16"/>
             <Setter Property="Background" Value="{StaticResource CardBg}"/>
             <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
             <Setter Property="Margin" Value="18"/>
             <Setter Property="MinWidth" Value="420"/>
             <Setter Property="MaxWidth" Value="630"/>
@@ -190,7 +191,7 @@
             <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
         </Style>
 
-        <!-- Sensor card template (unit bottom-aligned with number) -->
+        <!-- Sensor card template -->
         <DataTemplate DataType="{x:Type m:SensorCard}">
             <Border>
                 <Border.Style>
@@ -211,13 +212,13 @@
                         <TextBlock Text="{Binding IconGlyph}"
                                    DockPanel.Dock="Right"
                                    FontFamily="Segoe MDL2 Assets"
-                                   Foreground="#F45B89"
+                                   Foreground="#FF6B9D"
                                    FontSize="27">
                             <TextBlock.Effect>
-                                <DropShadowEffect Color="#F45B89" 
+                                <DropShadowEffect Color="#FF6B9D" 
                                                   ShadowDepth="0" 
-                                                  BlurRadius="10" 
-                                                  Opacity="0.6"/>
+                                                  BlurRadius="12" 
+                                                  Opacity="0.7"/>
                             </TextBlock.Effect>
                         </TextBlock>
                     </DockPanel>
@@ -229,9 +230,9 @@
                                FontSize="18"
                                Foreground="{StaticResource SubtitleBrush}"/>
 
-                    <!-- Content: normal value or ring for % -->
+                    <!-- Content -->
                     <Grid Grid.Row="2">
-                        <!-- Numeric value (non-percent) with bottom-aligned unit -->
+                        <!-- Numeric value -->
                         <Grid x:Name="ValueGrid" VerticalAlignment="Bottom">
                             <Grid.Style>
                                 <Style TargetType="Grid">
@@ -251,7 +252,14 @@
                                        Text="{Binding Value, StringFormat={}{0:F0}}"
                                        FontSize="42" FontWeight="SemiBold"
                                        Foreground="{StaticResource ValueBrush}"
-                                       VerticalAlignment="Bottom"/>
+                                       VerticalAlignment="Bottom">
+                                <TextBlock.Effect>
+                                    <DropShadowEffect Color="#5B7FFF" 
+                                                      ShadowDepth="0" 
+                                                      BlurRadius="8" 
+                                                      Opacity="0.4"/>
+                                </TextBlock.Effect>
+                            </TextBlock>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding Unit}"
                                        Margin="6,0,0,2"
@@ -260,13 +268,13 @@
                                        VerticalAlignment="Bottom"/>
                         </Grid>
 
-                        <!-- Ring progress (for %) -->
+                        <!-- Ring progress -->
                         <ctrl:RingProgressBar x:Name="RingPanel"
                                               Width="96" Height="96"
                                               Value="{Binding Value}"
                                               Thickness="8"
                                               TrackBrush="{StaticResource CardBorder}"
-                                              Foreground="#38D6BD"
+                                              Foreground="#00D9FF"
                                               HorizontalAlignment="Left"
                                               VerticalAlignment="Bottom">
                             <ctrl:RingProgressBar.Style>
@@ -280,10 +288,10 @@
                                 </Style>
                             </ctrl:RingProgressBar.Style>
                             <ctrl:RingProgressBar.Effect>
-                                <DropShadowEffect Color="#38D6BD" 
+                                <DropShadowEffect Color="#00D9FF" 
                                                   ShadowDepth="0" 
-                                                  BlurRadius="15" 
-                                                  Opacity="0.4"/>
+                                                  BlurRadius="18" 
+                                                  Opacity="0.5"/>
                             </ctrl:RingProgressBar.Effect>
                         </ctrl:RingProgressBar>
                     </Grid>
@@ -299,21 +307,22 @@
             <Setter Property="Margin" Value="0,24,0,6"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect Color="Black" 
+                    <DropShadowEffect Color="#6B4FFF" 
                                       Direction="270" 
                                       ShadowDepth="2" 
-                                      Opacity="0.3" 
-                                      BlurRadius="4"/>
+                                      Opacity="0.4" 
+                                      BlurRadius="6"/>
                 </Setter.Value>
             </Setter>
         </Style>
     </Page.Resources>
 
-    <!-- ScrollViewer with hidden scrollbars but enabled scrolling -->
-    <ScrollViewer VerticalScrollBarVisibility="Auto" 
-                  HorizontalScrollBarVisibility="Auto"
-                  PanningMode="VerticalOnly">
-        <Grid Margin="10,10">
+    <ScrollViewer  x:Name="MainScrollViewer"
+              VerticalScrollBarVisibility="Auto" 
+              HorizontalScrollBarVisibility="Disabled"
+              Focusable="True"
+              PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+        <Grid Margin="10,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -379,7 +388,7 @@
 
                         <!-- Download tile -->
                         <Border Grid.Column="0" Background="{StaticResource CardBgAlt}" 
-                                CornerRadius="12" Padding="16"
+                                CornerRadius="14" Padding="16"
                                 Effect="{StaticResource LightShadow}">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -387,19 +396,18 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
                                 <StackPanel Orientation="Horizontal">
-                                    <Ellipse Width="22" Height="22" Fill="{StaticResource AccentDown}" Opacity="0.9">
+                                    <Ellipse Width="22" Height="22" Fill="{StaticResource AccentDown}" Opacity="0.95">
                                         <Ellipse.Effect>
-                                            <DropShadowEffect Color="#38D6BD" 
+                                            <DropShadowEffect Color="#00D9FF" 
                                                               ShadowDepth="0" 
-                                                              BlurRadius="8" 
-                                                              Opacity="0.6"/>
+                                                              BlurRadius="10" 
+                                                              Opacity="0.7"/>
                                         </Ellipse.Effect>
                                     </Ellipse>
                                     <TextBlock Text="{DynamicResource DownloadText}" Margin="8,2,0,0"
                                                Foreground="{StaticResource SubtitleBrush}" FontSize="14"/>
                                 </StackPanel>
 
-                                <!-- bottom-aligned value + unit -->
                                 <Grid Grid.Row="1" VerticalAlignment="Bottom">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
@@ -409,7 +417,14 @@
                                                Text="{Binding NetworkCards[0].Value, StringFormat={}{0:F0}}"
                                                Foreground="{StaticResource ValueBrush}"
                                                FontSize="28" FontWeight="SemiBold"
-                                               VerticalAlignment="Bottom"/>
+                                               VerticalAlignment="Bottom">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect Color="#00D9FF" 
+                                                              ShadowDepth="0" 
+                                                              BlurRadius="6" 
+                                                              Opacity="0.3"/>
+                                        </TextBlock.Effect>
+                                    </TextBlock>
                                     <TextBlock Grid.Column="1" Text="{DynamicResource KbpsUnit}"
                                                Foreground="{StaticResource SubtitleBrush}" FontSize="12"
                                                Margin="6,0,0,2" VerticalAlignment="Bottom"/>
@@ -419,7 +434,7 @@
 
                         <!-- Upload tile -->
                         <Border Grid.Column="2" Background="{StaticResource CardBgAlt}" 
-                                CornerRadius="12" Padding="16"
+                                CornerRadius="14" Padding="16"
                                 Effect="{StaticResource LightShadow}">
                             <Grid>
                                 <Grid.RowDefinitions>
@@ -427,19 +442,18 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
                                 <StackPanel Orientation="Horizontal">
-                                    <Ellipse Width="22" Height="22" Fill="{StaticResource AccentUp}" Opacity="0.9">
+                                    <Ellipse Width="22" Height="22" Fill="{StaticResource AccentUp}" Opacity="0.95">
                                         <Ellipse.Effect>
-                                            <DropShadowEffect Color="#F45B89" 
+                                            <DropShadowEffect Color="#FF6B9D" 
                                                               ShadowDepth="0" 
-                                                              BlurRadius="8" 
-                                                              Opacity="0.6"/>
+                                                              BlurRadius="10" 
+                                                              Opacity="0.7"/>
                                         </Ellipse.Effect>
                                     </Ellipse>
                                     <TextBlock Text="{DynamicResource UploadText}" Margin="8,2,0,0"
                                                Foreground="{StaticResource SubtitleBrush}" FontSize="14"/>
                                 </StackPanel>
 
-                                <!-- bottom-aligned value + unit -->
                                 <Grid Grid.Row="1" VerticalAlignment="Bottom">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
@@ -449,7 +463,14 @@
                                                Text="{Binding NetworkCards[1].Value, StringFormat={}{0:F0}}"
                                                Foreground="{StaticResource ValueBrush}"
                                                FontSize="28" FontWeight="SemiBold"
-                                               VerticalAlignment="Bottom"/>
+                                               VerticalAlignment="Bottom">
+                                        <TextBlock.Effect>
+                                            <DropShadowEffect Color="#FF6B9D" 
+                                                              ShadowDepth="0" 
+                                                              BlurRadius="6" 
+                                                              Opacity="0.3"/>
+                                        </TextBlock.Effect>
+                                    </TextBlock>
                                     <TextBlock Grid.Column="1" Text="{DynamicResource KbpsUnit}"
                                                Foreground="{StaticResource SubtitleBrush}" FontSize="12"
                                                Margin="6,0,0,2" VerticalAlignment="Bottom"/>

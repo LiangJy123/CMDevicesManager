@@ -30,13 +30,15 @@ using Application = System.Windows.Application;
 using Brushes = System.Windows.Media.Brushes; // ADDED for DispatcherTimer
 using MessageBox = System.Windows.MessageBox;
 using Path = System.IO.Path;
+using Point = System.Windows.Point;
+using Size = System.Windows.Size;
 
 namespace CMDevicesManager
 {
     internal static class UIDebugFlags
     {
         // 为 false 时隐藏指定的导航按钮
-        public const bool UI_Debug_without_deivce = false;
+        public const bool UI_Debug_without_deivce = true;
     }
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -330,17 +332,30 @@ namespace CMDevicesManager
             }
         }
 
+
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            // 由于按钮区域已经阻止了事件冒泡，这里不会收到按钮的点击
+
+            // 处理拖拽和双击
             if (e.ClickCount == 2)
             {
                 ToggleWindowState();
             }
             else
             {
-                DragMove();
+                try
+                {
+                    DragMove();
+                }
+                catch (InvalidOperationException)
+                {
+                    // 忽略异常
+                }
             }
         }
+
+        // 删除 TitleBarButton_PreviewMouseLeftButtonDown 方法（不再需要）
 
         private void Minimize_Click(object sender, RoutedEventArgs e)
         {
@@ -419,8 +434,8 @@ namespace CMDevicesManager
                 _mainCaptureRoot.ActualWidth < 1 ||
                 _mainCaptureRoot.ActualHeight < 1) return;
             if (!GlobalMirrorCanvasService.Instance.HasActiveContent) return;
-            
-            if(!GetHidDeviceStatus())
+
+            if (!GetHidDeviceStatus())
             {
                 // 没有连接的设备时不发送
                 return;
@@ -531,14 +546,14 @@ namespace CMDevicesManager
             try
             {
                 var hidService = ServiceLocator.HidDeviceService;
-                if(hidService.ConnectedDeviceCount == 0)
+                if (hidService.ConnectedDeviceCount == 0)
                 {
                     return false;
                 }
                 var connectedDevices = hidService?.ConnectedDevices;
-                foreach(var dev in connectedDevices)
+                foreach (var dev in connectedDevices)
                 {
-                    if(dev != null)
+                    if (dev != null)
                     {
                         return GetStoreRealTimeDisplayEnabled(dev.SerialNumber);
                     }
@@ -558,7 +573,7 @@ namespace CMDevicesManager
             {
                 var offlineService = ServiceLocator.OfflineMediaDataService;
                 var data = offlineService.GetDevicePlaybackMode(deviceSerialNumber);
-                if(data == PlaybackMode.RealtimeConfig)
+                if (data == PlaybackMode.RealtimeConfig)
                 {
                     return true;
                 }
@@ -587,9 +602,9 @@ namespace CMDevicesManager
         private const int MONITOR_DEFAULTTONEAREST = 0x00000002;
 
 
-       
 
-   
+
+
 
         // Win32 结构定义
         [StructLayout(LayoutKind.Sequential)]
@@ -759,5 +774,35 @@ namespace CMDevicesManager
         }
 
         #endregion
+
+        // 将原方法名修改为 PreviewMouseLeftButtonDown
+        // 在按钮上添加 PreviewMouseLeftButtonDown，阻止事件冒泡到拖拽区域
+        private void TitleBarButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 标记事件已处理，防止冒泡到拖拽区域
+            // 但不阻止按钮自身的 Click 事件
+            e.Handled = false; // 允许 Click 事件继续
+        }
+
+        // 在类的任意位置添加此方法
+
+        /// <summary>
+        /// 在 Preview 阶段拦截按钮区域的鼠标按下事件
+        /// 优先级高于 MicaWindow 的内部拖拽逻辑
+        /// </summary>
+        private void TitleBarButtonPanel_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 完全阻止事件传播到 MicaWindow 的内部逻辑
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// 同样需要拦截鼠标释放事件，确保按钮的 Click 事件能正常触发
+        /// </summary>
+        private void TitleBarButtonPanel_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            // 不阻止 MouseUp，让按钮的 Click 事件正常工作
+            e.Handled = false;
+        }
     }
 }

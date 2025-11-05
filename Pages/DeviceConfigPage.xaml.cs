@@ -193,7 +193,7 @@ namespace CMDevicesManager.Pages
         }
     }
 
-   
+
 
     // ================= Main Page =================
     public partial class DeviceConfigPage : Page, INotifyPropertyChanged
@@ -507,7 +507,7 @@ namespace CMDevicesManager.Pages
                     ApplyUsageTheme();
                 }
 
-               
+
                 OnPropertyChanged();
             }
         }
@@ -1566,13 +1566,66 @@ namespace CMDevicesManager.Pages
             if (e.Source == DesignCanvas) SetSelected(null);
         }
 
+
         private void DesignCanvas_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {
             if ((Keyboard.Modifiers & ModifierKeys.Control) == 0) return;
             if (_selected == null) return;
 
             var delta = e.Delta > 0 ? 0.05 : -0.05;
-            SelectedScale = Math.Clamp(SelectedScale + delta, 0.1, 5.0);
+            var newScale = Math.Clamp(SelectedScale + delta, 0.1, 5.0);
+
+            // 🔧 检查缩放后元素是否会超出画布（仅对非图片元素）
+            if (_selected.Child is not Image)
+            {
+                double actualW = _selected.ActualWidth;
+                double actualH = _selected.ActualHeight;
+
+                double scaledW = actualW * newScale;
+                double scaledH = actualH * newScale;
+
+                double maxAllowedSize = CanvasSize * 1.5;
+                if (scaledW > maxAllowedSize || scaledH > maxAllowedSize)
+                {
+                    if (newScale >= SelectedScale)
+                    {
+                        e.Handled = true;
+                        return;
+                    }
+                }
+            }
+
+            // 🔧 关键修复：区分纯文本和 Usage 可视化样式
+            var tb = GetCurrentTextBlock();
+            if (tb != null)
+            {
+                // 检查是否为 Usage 的可视化样式（ProgressBar/Gauge）
+                bool isUsageVisual = IsUsageSelected &&
+                                     _liveItems.FirstOrDefault(i => i.Border == _selected)?.DisplayStyle
+                                     is UsageDisplayStyle.ProgressBar or UsageDisplayStyle.Gauge;
+
+                if (isUsageVisual)
+                {
+                    // ProgressBar/Gauge：仅缩放容器，不单独放大字体
+                    SelectedScale = newScale;
+                }
+                else
+                {
+                    // 纯文本（包括 Usage 的 Text 模式）：同步字体大小
+                    double scaleRatio = newScale / SelectedScale;
+                    double newFontSize = tb.FontSize * scaleRatio;
+                    newFontSize = Math.Clamp(newFontSize, 1, 200);
+
+                    SelectedScale = newScale;
+                    SelectedFontSize = newFontSize;
+                }
+            }
+            else
+            {
+                // 非文本元素（图片/视频）
+                SelectedScale = newScale;
+            }
+
             e.Handled = true;
         }
 
@@ -1581,33 +1634,52 @@ namespace CMDevicesManager.Pages
         {
             if (!GetTransforms(border, out var sc, out _)) return (x, y);
 
-            double scaledW = border.ActualWidth * sc.ScaleX;
-            double scaledH = border.ActualHeight * sc.ScaleY;
+            double actualW = border.ActualWidth;
+            double actualH = border.ActualHeight;
+            double scale = sc.ScaleX;
 
-            // Default clamp (left edge >= 0, right edge <= CanvasSize)
-            double extraRightAllowance = 0;
+            double scaledW = actualW * scale;
+            double scaledH = actualH * scale;
 
-            // Allow ProgressBar usage item to move further right so“可见进度条主体”能贴紧画布右边
-            // (ProgressBar 外容器宽度包含左右各 10 像素的外边距 barMargin；我们给出向右额外的 10 以便条本身贴边)
+            double offsetX = (actualW - scaledW) / 2.0;
+            double offsetY = (actualH - scaledH) / 2.0;
+
+            double minX = -offsetX;
+            double maxX = CanvasSize - scaledW - offsetX;
+
+            double minY = -offsetY;
+            double maxY = CanvasSize - scaledH - offsetY;
+
+            // ProgressBar 特殊处理
             if (border.Tag is LiveInfoKind &&
                 _liveItems.FirstOrDefault(i => i.Border == border)?.DisplayStyle == UsageDisplayStyle.ProgressBar)
             {
-                // 与 RebuildUsageVisual 中 progressbar 使用的 var barMargin = new Thickness(10,8,10,20) 对应
                 const double progressBarHorizontalOuterRightMargin = 0;
-                extraRightAllowance = progressBarHorizontalOuterRightMargin;
+                maxX += progressBarHorizontalOuterRightMargin;
             }
 
-            // 计算范围：
-            // minX: 仍保持 0（不允许拖出左外）
-            // maxX: 允许再多出 extraRightAllowance，这样内部条背景能贴紧右侧
-            double minX = Math.Min(0, CanvasSize - scaledW);
-            double maxX = Math.Max(0, CanvasSize - scaledW + extraRightAllowance);
+            // 🔧 关键修复：确保 min <= max，避免 Math.Clamp 抛出异常
+            if (minX > maxX)
+            {
+                // 元素过大，无法正常约束，居中显示
+                double center = (minX + maxX) / 2.0;
+                x = center;
+            }
+            else
+            {
+                x = Math.Clamp(x, minX, maxX);
+            }
 
-            double minY = Math.Min(0, CanvasSize - scaledH);
-            double maxY = Math.Max(0, CanvasSize - scaledH);
+            if (minY > maxY)
+            {
+                double center = (minY + maxY) / 2.0;
+                y = center;
+            }
+            else
+            {
+                y = Math.Clamp(y, minY, maxY);
+            }
 
-            x = Math.Clamp(x, minX, maxX);
-            y = Math.Clamp(y, minY, maxY);
             return (x, y);
         }
 
@@ -1770,7 +1842,7 @@ namespace CMDevicesManager.Pages
             var frames = new List<VideoFrameData>();
             try
             {
-                await foreach (var frame in VideoConverter.ExtractMp4FramesToJpegRealTimeAsync(
+                await foreach (var frame in VideoConverter.ExtractMp4FramesToJpegRealTimeWithHWAccelAsync(
                     mp4Path,
                     quality: 85,
                     CancellationToken.None))
@@ -2161,8 +2233,8 @@ namespace CMDevicesManager.Pages
                 {
                     var elemConfig = new ElementConfiguration
                     {
-                        X = translate.X,
-                        Y = translate.Y,
+                        X = CalculateTopLeftX(border, translate.X, scale.ScaleX),
+                        Y = CalculateTopLeftY(border, translate.Y, scale.ScaleY),
                         Scale = scale.ScaleX,
                         Opacity = border.Opacity,
                         ZIndex = Canvas.GetZIndex(border)
@@ -2279,6 +2351,32 @@ namespace CMDevicesManager.Pages
             return targetPath;
         }
 
+        // 🆕 新增辅助方法：计算左上角 X 坐标
+        private double CalculateTopLeftX(Border border, double translateX, double scaleX)
+        {
+            double actualW = border.ActualWidth;
+            if (actualW <= 0) return translateX;
+
+            // RenderTransformOrigin = (0.5, 0.5) 时，缩放会导致左上角偏移
+            double scaledW = actualW * scaleX;
+            double offsetX = (actualW - scaledW) / 2.0;
+
+            // 返回真实的左上角 X（相对于画布）
+            return translateX + offsetX;
+        }
+
+        // 🆕 新增辅助方法：计算左上角 Y 坐标
+        private double CalculateTopLeftY(Border border, double translateY, double scaleY)
+        {
+            double actualH = border.ActualHeight;
+            if (actualH <= 0) return translateY;
+
+            double scaledH = actualH * scaleY;
+            double offsetY = (actualH - scaledH) / 2.0;
+
+            return translateY + offsetY;
+        }
+
         private void SaveConfigPreview(string safeBaseName, string configFolder)
         {
             try
@@ -2377,6 +2475,31 @@ namespace CMDevicesManager.Pages
                 _movingDirections[border] = (ec.MoveDirX.Value, ec.MoveDirY.Value);
         }
 
+        // 🆕 新增辅助方法：从左上角 X 坐标计算 TranslateTransform.X
+        private double CalculateTranslateX(Border border, double topLeftX, double scaleX)
+        {
+            double actualW = border.ActualWidth;
+            if (actualW <= 0) return topLeftX;
+
+            double scaledW = actualW * scaleX;
+            double offsetX = (actualW - scaledW) / 2.0;
+
+            // 返回 TranslateTransform 所需的值（中心点偏移）
+            return topLeftX - offsetX;
+        }
+
+        // 🆕 新增辅助方法：从左上角 Y 坐标计算 TranslateTransform.Y
+        private double CalculateTranslateY(Border border, double topLeftY, double scaleY)
+        {
+            double actualH = border.ActualHeight;
+            if (actualH <= 0) return topLeftY;
+
+            double scaledH = actualH * scaleY;
+            double offsetY = (actualH - scaledH) / 2.0;
+
+            return topLeftY - offsetY;
+        }
+
         private void RestoreLiveElement(ElementConfiguration ec)
         {
             if (!ec.LiveKind.HasValue) return;
@@ -2393,7 +2516,13 @@ namespace CMDevicesManager.Pages
             var border = CreateBaseBorder(tb);
             border.Opacity = ec.Opacity <= 0 ? 1 : ec.Opacity;
             border.Tag = kind;
+
+            // ❌ 旧代码：直接使用保存的坐标
+            // ApplyTransform(border, ec.Scale, ec.X, ec.Y);
+
+            // ✅ 新代码：暂时使用原始坐标，稍后在 Loaded 回调中修正
             ApplyTransform(border, ec.Scale, ec.X, ec.Y);
+
             Canvas.SetZIndex(border, ec.ZIndex);
             DesignCanvas.Children.Add(border);
 
@@ -2457,6 +2586,18 @@ namespace CMDevicesManager.Pages
             if (ec.MoveDirX.HasValue && ec.MoveDirY.HasValue &&
                 (Math.Abs(ec.MoveDirX.Value) > 0.0001 || Math.Abs(ec.MoveDirY.Value) > 0.0001))
                 _movingDirections[border] = (ec.MoveDirX.Value, ec.MoveDirY.Value);
+
+            // 🔧 关键修复：在元素布局完成后修正位置
+            border.Loaded += (s, e) =>
+            {
+                if (GetTransforms(border, out var sc, out var tr))
+                {
+                    double correctedX = CalculateTranslateX(border, ec.X, ec.Scale);
+                    double correctedY = CalculateTranslateY(border, ec.Y, ec.Scale);
+                    tr.X = correctedX;
+                    tr.Y = correctedY;
+                }
+            };
         }
 
         private void RestoreImageElement(ElementConfiguration ec)
@@ -2578,7 +2719,7 @@ namespace CMDevicesManager.Pages
                             try
                             {
                                 var frames = new List<VideoFrameData>();
-                                await foreach (var f in VideoConverter.ExtractMp4FramesToJpegRealTimeAsync(
+                                await foreach (var f in VideoConverter.ExtractMp4FramesToJpegRealTimeWithHWAccelAsync(
                                     resolved,
                                     quality: 85,
                                     CancellationToken.None))
@@ -3403,7 +3544,7 @@ namespace CMDevicesManager.Pages
             if (_realtimeActive) return;
             // 尝试获取设计画布（按你工程中的名称调整：DesignCanvas / MirrorRoot / RootCanvas …）
             _captureRoot ??= (FrameworkElement?)this.FindName("DesignRoot")
-                            ??(FrameworkElement?)this.FindName("DesignCanvas")
+                            ?? (FrameworkElement?)this.FindName("DesignCanvas")
                           ?? (FrameworkElement?)this.FindName("MirrorRoot")
                           ?? this.Content as FrameworkElement;
 

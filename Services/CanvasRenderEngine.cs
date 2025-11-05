@@ -17,6 +17,7 @@ using Image = System.Windows.Controls.Image;
 using Path = System.IO.Path;
 using Point = System.Windows.Point;
 using Rectangle = System.Windows.Shapes.Rectangle;
+using Size = System.Windows.Size;
 
 namespace CMDevicesManager.Services
 {
@@ -81,6 +82,32 @@ namespace CMDevicesManager.Services
             kind == LiveInfoKind.GpuUsage ||
             kind == LiveInfoKind.CpuTemperature ||
             kind == LiveInfoKind.GpuTemperature;
+
+
+        // 🆕 新增辅助方法（放在 Apply 方法之前）
+        private static double CalculateTranslateX(Border border, double topLeftX, double scaleX)
+        {
+            double actualW = border.ActualWidth;
+            if (actualW <= 0) return topLeftX;
+
+            double scaledW = actualW * scaleX;
+            double offsetX = (actualW - scaledW) / 2.0;
+
+            return topLeftX - offsetX;
+        }
+
+        private static double CalculateTranslateY(Border border, double topLeftY, double scaleY)
+        {
+            double actualH = border.ActualHeight;
+            if (actualH <= 0) return topLeftY;
+
+            double scaledH = actualH * scaleY;
+            double offsetY = (actualH - scaledH) / 2.0;
+
+            return topLeftY - offsetY;
+        }
+
+
         public RenderResult Apply(
             CanvasConfiguration cfg,
             RenderContext ctx,
@@ -134,6 +161,8 @@ namespace CMDevicesManager.Services
 
             foreach (var elem in cfg.Elements.OrderBy(e => e.ZIndex))
             {
+                var elemCopy = elem; // 用于闭包（移动方向等）
+
                 FrameworkElement? inner = null;
                 Border? host = null;
                 bool usageVisual = false;
@@ -170,20 +199,28 @@ namespace CMDevicesManager.Services
                 }
                 else
                 {
-                    // usageVisual 已经构建了 Border (在 BuildLive 中使用其 HostBorder)
-                    host = (Border)inner.Parent ?? inner as Border;
+                    host = usage.LastOrDefault()?.HostBorder;
                     if (host != null)
                         host.Opacity = elem.Opacity <= 0 ? 1 : elem.Opacity;
                 }
 
+                if (host == null) continue;
+
+                // ✅ Transform: 直接使用配置中的值（无需转换）
                 var tg = new TransformGroup();
                 double scaleFactor = elem.Scale <= 0 ? 1.0 : elem.Scale;
-                tg.Children.Add(new ScaleTransform(scaleFactor, scaleFactor));
+                var scaleTransform = new ScaleTransform(scaleFactor, scaleFactor);
+                tg.Children.Add(scaleTransform);
+
                 if (elem.MirroredX == true)
                     tg.Children.Add(new ScaleTransform(-1, 1));
                 if (elem.Rotation.HasValue && Math.Abs(elem.Rotation.Value) > 0.01)
                     tg.Children.Add(new RotateTransform(elem.Rotation.Value));
-                tg.Children.Add(new TranslateTransform(elem.X, elem.Y));
+
+                // ✅ 直接使用保存的 TranslateTransform 值
+                var translate = new TranslateTransform(elem.X, elem.Y);
+                tg.Children.Add(translate);
+
                 host.RenderTransform = tg;
                 Canvas.SetZIndex(host, elem.ZIndex);
                 designCanvas.Children.Add(host);
@@ -283,13 +320,15 @@ namespace CMDevicesManager.Services
                     Margin = margin,
                     Height = 14,
                     HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
-                    RadiusX = 5, RadiusY = 5,
+                    RadiusX = 5,
+                    RadiusY = 5,
                     Fill = new LinearGradientBrush(startColor, endColor, 0),
                     Width = 0
                 };
                 tb.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
                 tb.VerticalAlignment = System.Windows.VerticalAlignment.Bottom;
                 tb.FontSize = 14;
+                tb.Margin = new Thickness(0, 0, 0, 2);
                 tb.Foreground = new SolidColorBrush(startColor);
 
                 var layer = new Grid();
@@ -333,7 +372,10 @@ namespace CMDevicesManager.Services
                     double y2 = GaugeCenterY + rInner * Math.Sin(rad);
                     var tick = new Line
                     {
-                        X1 = x1, Y1 = y1, X2 = x2, Y2 = y2,
+                        X1 = x1,
+                        Y1 = y1,
+                        X2 = x2,
+                        Y2 = y2,
                         StrokeThickness = major ? 3 : 1.5,
                         StrokeStartLineCap = PenLineCap.Round,
                         StrokeEndLineCap = PenLineCap.Round,

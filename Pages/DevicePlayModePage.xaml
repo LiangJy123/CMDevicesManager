@@ -3,30 +3,33 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Title="Device Play Mode"
       Loaded="Page_Loaded"
-      Unloaded="Page_Unloaded">
-    <!-- (Styles / Resources kept exactly as your current file – trimmed here for brevity) -->
+      Unloaded="Page_Unloaded"
+      Background="Transparent">
     <Page.Resources>
 
-        <!-- Typography / Foregrounds -->
+        <!-- ✅ 全新配色方案 - 深蓝紫渐变 + 青色强调 -->
         <SolidColorBrush x:Key="PrimaryTextBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#CCCCCC"/>
-        <SolidColorBrush x:Key="HintTextBrush" Color="#888888"/>
-        <SolidColorBrush x:Key="AccentBrushLight" Color="#D671FF"/>
-        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#1E1E1E"/>
-        <SolidColorBrush x:Key="SubPanelBackgroundBrush" Color="#111114"/>
-        <SolidColorBrush x:Key="SubPanelAltBackgroundBrush" Color="#161618"/>
-        <SolidColorBrush x:Key="ElevatedPanelBrush" Color="#242428"/>
-        <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#111114"/>
-        <SolidColorBrush x:Key="DividerBrush" Color="#333333"/>
-        <SolidColorBrush x:Key="ToggleOffBrush" Color="#333333"/>
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#B8C5FF"/>
+        <SolidColorBrush x:Key="HintTextBrush" Color="#8B9FFF"/>
+        <SolidColorBrush x:Key="AccentBrushLight" Color="#00D9FF"/>
+        
+        <!-- 深蓝紫色调 -->
+        <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#1A1F3A"/>
+        <SolidColorBrush x:Key="SubPanelBackgroundBrush" Color="#151A2E"/>
+        <SolidColorBrush x:Key="SubPanelAltBackgroundBrush" Color="#1D2238"/>
+        <SolidColorBrush x:Key="ElevatedPanelBrush" Color="#242A45"/>
+        <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#151A2E"/>
+        <SolidColorBrush x:Key="DividerBrush" Color="#5B7FFF" Opacity="0.2"/>
+        <SolidColorBrush x:Key="ToggleOffBrush" Color="#3A4A5E"/>
         <SolidColorBrush x:Key="ToggleThumbBrush" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="OverlayMaskBrush" Color="#80000000"/>
-        
+
+        <!-- 滚动条样式 -->
         <Style x:Key="VerticalSlimScrollBar" TargetType="ScrollBar">
             <Setter Property="Width" Value="8"/>
             <Setter Property="MinHeight" Value="30"/>
             <Setter Property="Margin" Value="2,0,2,0"/>
-            <Setter Property="Foreground" Value="#5A6A80"/>
+            <Setter Property="Foreground" Value="#6B7FFF"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -34,7 +37,7 @@
                         <Grid x:Name="Root" Background="Transparent">
                             <Border x:Name="TrackBg"
                              CornerRadius="4"
-                             Background="#14202B"
+                             Background="#1A1F3A"
                              Margin="0"/>
                             <Track x:Name="PART_Track"
                             IsDirectionReversed="true"
@@ -54,20 +57,20 @@
                                             <ControlTemplate TargetType="Thumb">
                                                 <Border x:Name="ThumbBody"
                                                  CornerRadius="4"
-                                                 Background="#3A4655">
+                                                 Background="#5B7FFF">
                                                     <Border.Effect>
                                                         <DropShadowEffect BlurRadius="8"
                                                                    ShadowDepth="0"
-                                                                   Opacity="0.25"
-                                                                   Color="#22000000"/>
+                                                                   Opacity="0.3"
+                                                                   Color="#6B4FFF"/>
                                                     </Border.Effect>
                                                 </Border>
                                                 <ControlTemplate.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#4F5F72"/>
+                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#7B8FFF"/>
                                                     </Trigger>
                                                     <Trigger Property="IsDragging" Value="True">
-                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#2A4A8B"/>
+                                                        <Setter TargetName="ThumbBody" Property="Background" Value="#00D9FF"/>
                                                     </Trigger>
                                                 </ControlTemplate.Triggers>
                                             </ControlTemplate>
@@ -89,13 +92,14 @@
                                 <Setter TargetName="TrackBg" Property="Height" Value="8"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="TrackBg" Property="Background" Value="#182633"/>
+                                <Setter TargetName="TrackBg" Property="Background" Value="#242A45"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
         <Style x:Key="ConfigListScrollViewerStyle" TargetType="ScrollViewer">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
@@ -140,12 +144,14 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- 模式切换按钮基础样式 -->
         <Style x:Key="ModeSelectToggleBaseStyle" TargetType="ToggleButton">
             <Setter Property="Height" Value="48"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
@@ -174,61 +180,7 @@
                                 <Setter TargetName="ActiveBar" Property="Opacity" Value="1"/>
                                 <Setter TargetName="Root" Property="Effect">
                                     <Setter.Value>
-                                        <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.45" Color="#66222222"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Root" Property="Opacity" Value="0.96"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Root" Property="Opacity" Value="0.88"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="ModeToggleBaseStyle" TargetType="ToggleButton">
-            <Setter Property="Height" Value="48"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="10,4"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border x:Name="Root"
-                        CornerRadius="8"
-                        Background="{TemplateBinding Background}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        SnapsToDevicePixels="True">
-                            <Grid>
-                                <!-- 选中指示条 -->
-                                <Border x:Name="ActiveBar"
-                                Width="5"
-                                HorizontalAlignment="Left"
-                                CornerRadius="5,0,0,5"
-                                Background="{TemplateBinding Tag}"
-                                Opacity="0"/>
-                                <ContentPresenter HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          Margin="6,0,6,0"/>
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="ActiveBar" Property="Opacity" Value="1"/>
-                                <Setter TargetName="Root" Property="Effect">
-                                    <Setter.Value>
-                                        <DropShadowEffect BlurRadius="10" ShadowDepth="0" Opacity="0.45" Color="#66000000"/>
+                                        <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.5" Color="#6B4FFF"/>
                                     </Setter.Value>
                                 </Setter>
                             </Trigger>
@@ -247,93 +199,183 @@
             </Setter>
         </Style>
 
-        <!-- 实时播放：未选中=较浅蓝，选中=更深蓝 -->
+        <Style x:Key="ModeToggleBaseStyle" TargetType="ToggleButton">
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Root"
+                        CornerRadius="8"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        SnapsToDevicePixels="True">
+                            <Grid>
+                                <Border x:Name="ActiveBar"
+                                Width="5"
+                                HorizontalAlignment="Left"
+                                CornerRadius="5,0,0,5"
+                                Background="{TemplateBinding Tag}"
+                                Opacity="0"/>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="6,0,6,0"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="ActiveBar" Property="Opacity" Value="1"/>
+                                <Setter TargetName="Root" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="12" ShadowDepth="0" Opacity="0.5" Color="#6B4FFF"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.95"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 实时播放模式 - 蓝色系 -->
         <Style x:Key="RealtimeModeToggleStyle"
        TargetType="ToggleButton"
        BasedOn="{StaticResource ModeToggleBaseStyle}">
-            <!-- 未选中浅色 -->
-            <Setter Property="Background" Value="#4E82D2"/>
-            <!-- Light Blue -->
-            <Setter Property="BorderBrush" Value="#709DE0"/>
-            <Setter Property="Tag" Value="#FFC65A"/>
-            <!-- 选中指示条暖色强调 -->
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.8">
+                        <GradientStop Color="#4E82D2" Offset="0.0"/>
+                        <GradientStop Color="#5B7FFF" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#7B8FFF"/>
+            <Setter Property="Tag" Value="#00D9FF"/>
             <Style.Triggers>
                 <Trigger Property="IsChecked" Value="True">
-                    <!-- 选中深色 -->
-                    <Setter Property="Background" Value="#1D3F72"/>
-                    <!-- Darker Blue -->
-                    <Setter Property="BorderBrush" Value="#3E6AA5"/>
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.9">
+                                <GradientStop Color="#1D3F72" Offset="0.0"/>
+                                <GradientStop Color="#2A4A8B" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="BorderBrush" Value="#5B7FFF"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- 视频离线播放：未选中=较浅紫，选中=更深紫 -->
+        <!-- 视频离线播放 - 紫色系 -->
         <Style x:Key="Mp4ModeToggleStyle"
        TargetType="ToggleButton"
        BasedOn="{StaticResource ModeToggleBaseStyle}">
-            <Setter Property="Background" Value="#7A4BD1"/>
-            <!-- Light Purple -->
-            <Setter Property="BorderBrush" Value="#946EE0"/>
-            <Setter Property="Tag" Value="#FFB74D"/>
-            <!-- 指示条暖色 -->
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.8">
+                        <GradientStop Color="#7A4BD1" Offset="0.0"/>
+                        <GradientStop Color="#946EE0" Offset="1.0"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="#A588FF"/>
+            <Setter Property="Tag" Value="#FF6B9D"/>
             <Style.Triggers>
                 <Trigger Property="IsChecked" Value="True">
-                    <Setter Property="Background" Value="#3A1C6E"/>
-                    <!-- Dark Purple -->
-                    <Setter Property="BorderBrush" Value="#5A3592"/>
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.9">
+                                <GradientStop Color="#3A1C6E" Offset="0.0"/>
+                                <GradientStop Color="#5A3592" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="BorderBrush" Value="#8B6FBF"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
-        <SolidColorBrush x:Key="CardBg" Color="#232834"/>
-        <SolidColorBrush x:Key="CardBgAlt" Color="#1B202B"/>
-        <SolidColorBrush x:Key="CardBorder" Color="#2E3747"/>
+        <!-- 卡片资源 - 深蓝紫渐变 -->
+        <LinearGradientBrush x:Key="CardBg" StartPoint="0,0" EndPoint="1,1" Opacity="0.75">
+            <GradientStop Color="#1A1F3A" Offset="0.0"/>
+            <GradientStop Color="#2D1B3D" Offset="1.0"/>
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="CardBgAlt" StartPoint="0,0" EndPoint="1,1" Opacity="0.65">
+            <GradientStop Color="#1A1F3A" Offset="0.0"/>
+            <GradientStop Color="#2A2045" Offset="1.0"/>
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="CardBorder" Color="#5B7FFF" Opacity="0.35"/>
         <SolidColorBrush x:Key="TitleBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C0CC"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#2A4A8B"/>
-        <DropShadowEffect x:Key="CardShadow" Color="Black" Direction="270" ShadowDepth="8" Opacity="0.35" BlurRadius="18"/>
+        <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C5FF"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#00D9FF"/>
+        
+        <DropShadowEffect x:Key="CardShadow" 
+                          Color="#6B4FFF" 
+                          Direction="270" 
+                          ShadowDepth="4" 
+                          Opacity="0.3" 
+                          BlurRadius="16"/>
 
+        <!-- 卡片样式 -->
         <Style x:Key="CardBorderStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="CornerRadius" Value="16"/>
             <Setter Property="Background" Value="{StaticResource CardBg}"/>
             <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
             <Setter Property="Padding" Value="14"/>
             <Setter Property="SnapsToDevicePixels" Value="True"/>
             <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
         </Style>
+
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
             <Setter Property="Margin" Value="0,0,0,10"/>
         </Style>
+
+        <!-- 小按钮样式 -->
         <Style x:Key="MiniButton" TargetType="Button">
             <Setter Property="Height" Value="30"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Margin" Value="4,0,4,0"/>
             <Setter Property="Padding" Value="8,3"/>
-            <Setter Property="Background" Value="#38414E"/>
+            <Setter Property="Background" Value="#3A4A5E"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#586170"/>
+            <Setter Property="BorderBrush" Value="#5B7FFF"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border Background="{TemplateBinding Background}"
-                                CornerRadius="5"
+                                CornerRadius="6"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#465160"/>
+                                <Setter Property="Background" Value="#4A5A6E"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#2A4A8B"/>
-                                <Setter Property="BorderBrush" Value="#3C6BC0"/>
+                                <Setter Property="Background" Value="#5B7FFF"/>
+                                <Setter Property="BorderBrush" Value="#7B8FFF"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.45"/>
@@ -343,12 +385,15 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
         <Style x:Key="ModeButton" TargetType="Button" BasedOn="{StaticResource MiniButton}">
             <Setter Property="Height" Value="48"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="10,4"/>
         </Style>
+
+        <!-- Expander 样式 -->
         <Style x:Key="ExpanderStyleMini" TargetType="Expander">
             <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -408,8 +453,7 @@
             </Setter>
         </Style>
 
-
-        <!-- Toggle Base Style -->
+        <!-- Toggle Switch 样式 -->
         <Style x:Key="BaseToggleSwitchStyle" TargetType="ToggleButton">
             <Setter Property="Width" Value="60"/>
             <Setter Property="Height" Value="30"/>
@@ -484,12 +528,13 @@
             </Setter>
         </Style>
 
+        <!-- 暂停模式切换开关 -->
         <Style x:Key="SuspendModeToggleStyle" TargetType="ToggleButton">
             <Setter Property="Width" Value="170"/>
             <Setter Property="Height" Value="34"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Background" Value="#3A4A5E"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -510,7 +555,7 @@
                                        Grid.Column="0"
                                        Margin="0"
                                        CornerRadius="16"
-                                       Background="#2A4A8B"/>
+                                       Background="#5B7FFF"/>
 
                                 <!-- Labels -->
                                 <TextBlock Text="{DynamicResource PlayMode_SuspendRealtimeLabel}"
@@ -545,7 +590,7 @@
                             <!-- Checked = Suspend/Offline -->
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Selection" Property="Grid.Column" Value="1"/>
-                                <Setter TargetName="Selection" Property="Background" Value="#7A4BD1"/>
+                                <Setter TargetName="Selection" Property="Background" Value="#946EE0"/>
                                 <!-- Match offline theme -->
                                 <Setter TargetName="OfflineLabel" Property="Opacity" Value="1"/>
                                 <Setter TargetName="OnlineLabel" Property="Opacity" Value="0.65"/>
@@ -564,18 +609,20 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- 主按钮样式 -->
         <Style x:Key="PlayModePrimaryButton" TargetType="Button" BasedOn="{StaticResource MiniButton}">
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Background">
                 <Setter.Value>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#2F5FAF" Offset="0"/>
-                        <GradientStop Color="#2A4A8B" Offset="1"/>
+                        <GradientStop Color="#5B7FFF" Offset="0"/>
+                        <GradientStop Color="#7B8FFF" Offset="1"/>
                     </LinearGradientBrush>
                 </Setter.Value>
             </Setter>
-            <Setter Property="BorderBrush" Value="#3E6AA5"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#8B9FFF"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
             <Setter Property="Padding" Value="10,4"/>
             <Setter Property="Height" Value="34"/>
             <Setter Property="FontSize" Value="13"/>
@@ -585,7 +632,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Root"
-                         CornerRadius="6"
+                         CornerRadius="8"
                          Background="{TemplateBinding Background}"
                          BorderBrush="{TemplateBinding BorderBrush}"
                          BorderThickness="{TemplateBinding BorderThickness}"
@@ -614,6 +661,7 @@
             </Setter>
         </Style>
 
+        <!-- 危险按钮样式 -->
         <Style x:Key="PlayModeDangerButton" TargetType="Button" BasedOn="{StaticResource PlayModePrimaryButton}">
             <Setter Property="Background">
                 <Setter.Value>
@@ -638,7 +686,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- NEW Back Button -->
+        <!-- Back Button -->
         <Button x:Name="BackButton"
          Grid.Row="0"
          Grid.Column="0"
@@ -659,36 +707,93 @@
                    FontSize="26" FontWeight="Bold"
                    Foreground="{StaticResource TitleBrush}"
                    HorizontalAlignment="Center"
-                   Margin="0,0,0,14"/>
+                   Margin="0,0,0,14">
+            <TextBlock.Effect>
+                <DropShadowEffect Color="#6B4FFF" 
+                                  ShadowDepth="0" 
+                                  BlurRadius="8" 
+                                  Opacity="0.4"/>
+            </TextBlock.Effect>
+        </TextBlock>
 
-        <!-- LEFT: reorder so Playback Modes + Display Settings are on top, Play Content fills rest -->
+        <!-- LEFT COLUMN -->
         <Grid Grid.Row="1" Grid.Column="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>  <!-- Status -->
-                <RowDefinition Height="Auto"/>  <!-- Playback Modes -->
-                <RowDefinition Height="Auto"/>  <!-- Display Settings -->
-                <RowDefinition Height="*"/>     <!-- Play Content (larger) -->
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-           
-
-            <!-- Playback Modes (top) -->
+            <!-- Playback Modes -->
             <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
                 <StackPanel>
                     <UniformGrid Columns="2">
                         <TextBlock Text="{DynamicResource PlayMode_PlaybackModes}" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
                         <ToggleButton x:Name="SuspendModeToggle"
-                  HorizontalAlignment="Right"
-                  Click="SuspendModeToggle_Click"
-                  Style="{StaticResource SuspendModeToggleStyle}"
-                   ToolTipService.ToolTip="{DynamicResource PlayMode_SuspendToggleTooltip}"
-                  ToolTipService.InitialShowDelay="150"/>
-                       
+        HorizontalAlignment="Right"
+        Click="SuspendModeToggle_Click"
+        Style="{StaticResource SuspendModeToggleStyle}"
+         ToolTipService.ToolTip="{DynamicResource PlayMode_SuspendToggleTooltip}"
+        ToolTipService.InitialShowDelay="150"/>
                     </UniformGrid>
+
+                    <!-- 🆕 关闭画面按钮（与Toggle尺寸一致） -->
+                    <Button x:Name="CloseScreenButton"
+                  Content="{DynamicResource PlayMode_CloseScreen}"
+                  Width="170"
+                  Height="34"
+                  HorizontalAlignment="Right"
+                  Margin="0,8,0,0"
+                  Foreground="White"
+                  Cursor="Hand"
+                  Click="CloseScreenButton_Click"
+                  ToolTipService.ToolTip="{DynamicResource PlayMode_CloseScreenTooltip}">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#5B7FFF" Offset="0"/>
+                                <GradientStop Color="#7B8FFF" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Root"
+                              CornerRadius="18"
+                              Background="{TemplateBinding Background}"
+                              BorderBrush="#8B9FFF"
+                              BorderThickness="0"
+                              Padding="10,4">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock FontFamily="Segoe MDL2 Assets" 
+                                         Text="&#xE7E8;" 
+                                         Margin="0,0,6,0"
+                                         FontSize="12"
+                                         FontWeight="SemiBold"
+                                         VerticalAlignment="Center"/>
+                                        <TextBlock Text="{TemplateBinding Content}"
+                                         FontSize="12"
+                                         FontWeight="SemiBold"
+                                         VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Root" Property="Opacity" Value="0.93"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Root" Property="Opacity" Value="0.85"/>
+                                    </Trigger>
+                                    <Trigger Property="IsEnabled" Value="False">
+                                        <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                 </StackPanel>
             </Border>
 
-            <!-- Display Settings (expanded by default here if you prefer) -->
+            <!-- Display Settings -->
             <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
                 <Expander Header="{DynamicResource PlayMode_DisplaySettings}"  Style="{StaticResource ExpanderStyleMini}" IsExpanded="True">
                     <StackPanel Margin="0,4,0,0">
@@ -724,11 +829,9 @@
                 </Expander>
             </Border>
 
-            <!-- Play Content (fills remaining space) -->
+            <!-- Play Content -->
             <Border Grid.Row="3" Style="{StaticResource CardBorderStyle}" Padding="14">
                 <DockPanel LastChildFill="True">
-
-                    <!-- 顶部标题与操作（根据模式切换文案/按钮显示） -->
                     <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
                         <DockPanel>
                             <TextBlock x:Name="PlayContentTitleText"
@@ -757,7 +860,7 @@
                        FontSize="11"/>
                     </StackPanel>
 
-                    <!-- 实时播放：配置序列区域 -->
+                    <!-- 配置列表容器 -->
                     <Border x:Name="ConfigsContainer"
         Background="{StaticResource CardBgAlt}"
         BorderBrush="{StaticResource CardBorder}"
@@ -766,13 +869,12 @@
         Padding="6"
         Visibility="Collapsed">
                         <Grid>
-                            <!-- Original list -->
                             <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource ConfigListScrollViewerStyle}">
                                 <ItemsControl x:Name="ConfigSequenceListBox"
                           ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#262F3A" CornerRadius="8" Padding="8" Margin="0,0,0,8">
+                                            <Border Background="#242A45" CornerRadius="8" Padding="8" Margin="0,0,0,8">
                                                 <DockPanel LastChildFill="False">
                                                     <StackPanel DockPanel.Dock="Left" Width="300">
                                                         <TextBlock Text="{Binding DisplayName}"
@@ -791,7 +893,7 @@
                                                  MaxLength="4">
                                                                 <TextBox.Style>
                                                                     <Style TargetType="TextBox">
-                                                                        <Setter Property="Background" Value="#1B202B"/>
+                                                                        <Setter Property="Background" Value="#1A1F3A"/>
                                                                         <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
                                                                         <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
                                                                         <Setter Property="BorderThickness" Value="1"/>
@@ -825,7 +927,7 @@
                                 </ItemsControl>
                             </ScrollViewer>
 
-                            <!-- EMPTY PLACEHOLDER -->
+                            <!-- 空状态占位符 -->
                             <StackPanel x:Name="NoConfigsPlaceholder"
                     Visibility="Collapsed"
                     HorizontalAlignment="Center"
@@ -857,8 +959,7 @@
                         </Grid>
                     </Border>
 
-                    <!-- 视频离线播放：视频选择 + 信息展示 -->
-
+                    <!-- 暂停/离线模式内容 -->
                     <Border x:Name="SuspendModeContentArea"                                            
                                             CornerRadius="6"
                                             Padding="12"
@@ -1259,7 +1360,7 @@
             </Border>
         </Grid>
 
-        <!-- RIGHT: Canvas View (unchanged except counters hidden) -->
+        <!-- RIGHT: Canvas View -->
         <Border  x:Name="LivePreviewContainer" Grid.Row="1" Grid.Column="2" Style="{StaticResource CardBorderStyle}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -1272,7 +1373,7 @@
                     <TextBlock Text="{DynamicResource PlayMode_LivePreviewTitle}"  FontSize="18" FontWeight="SemiBold"
                                Foreground="{StaticResource TitleBrush}" DockPanel.Dock="Left"/>
                     <Border x:Name="StreamingStatusIndicator"
-                            Background="#2A4A8B"
+                            Background="#5B7FFF"
                             Visibility="Collapsed"
                             CornerRadius="10"
                             Padding="6,2"
@@ -1332,7 +1433,7 @@
                                     VerticalAlignment="Center"
                                     Panel.ZIndex="13">
                             <Grid Width="44" Height="44" Margin="0,0,0,6">
-                                <Ellipse Stroke="#4A6BAB" StrokeThickness="4" StrokeDashArray="25,25" RenderTransformOrigin="0.5,0.5">
+                                <Ellipse Stroke="#5B7FFF" StrokeThickness="4" StrokeDashArray="25,25" RenderTransformOrigin="0.5,0.5">
                                     <Ellipse.RenderTransform>
                                         <RotateTransform x:Name="LoadingRotation"/>
                                     </Ellipse.RenderTransform>
@@ -1350,7 +1451,7 @@
                                     </Ellipse.Triggers>
                                 </Ellipse>
                             </Grid>
-                            <TextBlock  Text="{DynamicResource PlayMode_Loading}" FontSize="10" Foreground="#4A6BAB" HorizontalAlignment="Center"/>
+                            <TextBlock  Text="{DynamicResource PlayMode_Loading}" FontSize="10" Foreground="#5B7FFF" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </Grid>
@@ -1373,7 +1474,6 @@
                             <TextBlock Text="  |  " FontSize="11" Foreground="#556170" Margin="4,0,4,0"/>
                             <TextBlock x:Name="ImageDimensions" Text="" FontSize="11" Foreground="{StaticResource SubtitleBrush}"/>
                         </StackPanel>
-                        <!-- Hidden counters (compat) -->
                         <StackPanel Orientation="Horizontal" Visibility="Collapsed">
                             <TextBlock  Text="{DynamicResource PlayMode_ImagesLabel}"  FontSize="11"/>
                             <TextBlock x:Name="ImageCounter" Text="0" FontSize="11" Margin="4,0,12,0"/>
