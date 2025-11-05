@@ -229,6 +229,7 @@ namespace CMDevicesManager.Pages
                     _ = InitializeHidDeviceServiceAsync();
                     // Load playback mode from offline data service
                     LoadPlaybackModeFromService();
+                    GetCurrentBrightnessToService();
                 }
             }
         }
@@ -480,6 +481,7 @@ namespace CMDevicesManager.Pages
                 SetLoadingState(true, LR(isActivated ? "PlayMode_ActivatingSuspend" : "PlayMode_ActivatingRealtime",
                          isActivated ? "Activating offline mode..." : "Activating realtime mode..."));
 
+                await RestoreBrightnessFromServiceAsync();
                 var results = await _hidDeviceService.SetRealTimeDisplayAsync(!isActivated);
                 var successCount = results.Values.Count(r => r);
 
@@ -534,6 +536,7 @@ namespace CMDevicesManager.Pages
         // 如果未调用 InitConfigSequence，请确保添加
         private async void Page_Loaded(object sender, RoutedEventArgs e)
         {
+            await LoadCurrentDeviceDisplaySettingsAsync();
             UpdatePlayModeUI();
             await RefreshSuspendMediaDisplay();
         }
@@ -1874,6 +1877,7 @@ namespace CMDevicesManager.Pages
                 if (ok == results.Count)
                 {
                     _currentBrightness = newVal;
+                    SaveCurrentBrightnessToService();
                     // ShowStatusMessage($"Brightness {newVal}% applied.");
                 }
                 else
@@ -1920,6 +1924,7 @@ namespace CMDevicesManager.Pages
                     if (successCount > 0)
                     {
                         _currentBrightness = value;
+                        SaveCurrentBrightnessToService();
                     }
                     else
                     {
@@ -3426,6 +3431,209 @@ namespace CMDevicesManager.Pages
         }
 
         /// <summary>
+        /// Persists the current brightness value to the offline data service
+        /// </summary>
+        private void SaveCurrentBrightnessToService()
+        {
+            if (_deviceInfo?.SerialNumber == null || !ServiceLocator.IsOfflineMediaServiceInitialized)
+                return;
+
+            try
+            {
+                var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                offlineDataService.UpdateDeviceSetting(_deviceInfo.SerialNumber, "brightness", _currentBrightness);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to save brightness for device {_deviceInfo?.SerialNumber}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Loads current brightness and rotation from the device via HID and updates the UI
+        /// </summary>
+        private async Task LoadCurrentDeviceDisplaySettingsAsync()
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null || _deviceInfo == null)
+                return;
+
+            try
+            {
+                var statusResults = await _hidDeviceService.GetDeviceStatusAsync();
+                if (!statusResults.Any()) return;
+
+                DeviceStatus? status = null;
+
+                if (!string.IsNullOrEmpty(_deviceInfo.Path) &&
+                    statusResults.TryGetValue(_deviceInfo.Path, out var matchedStatus) &&
+                    matchedStatus.HasValue)
+                {
+                    status = matchedStatus.Value;
+                }
+                else
+                {
+                    status = statusResults.Values.FirstOrDefault(s => s.HasValue);
+                }
+
+                if (!status.HasValue) return;
+
+                var deviceStatus = status.Value;
+                int deviceBrightness = Math.Clamp(deviceStatus.Brightness, 0, 100);
+                int normalizedRotation = NormalizeRotation(deviceStatus.Degree);
+
+                _currentBrightness = deviceBrightness;
+                ApplyBrightnessToUi(deviceBrightness);
+
+                _currentRotation = normalizedRotation;
+                UpdateRotationUi(normalizedRotation);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to load device display settings for {_deviceInfo?.SerialNumber}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Restores brightness to the value saved in the offline data service
+        /// </summary>
+        private async Task RestoreBrightnessFromServiceAsync()
+        {
+            if (_deviceInfo?.SerialNumber == null || !ServiceLocator.IsOfflineMediaServiceInitialized)
+                return;
+
+            try
+            {
+                var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                var settings = offlineDataService.GetDeviceSettings(_deviceInfo.SerialNumber);
+                var savedBrightness = Math.Clamp(settings.Brightness, 0, 100);
+
+                if (!IsHidServiceReady || _hidDeviceService == null)
+                {
+                    _currentBrightness = savedBrightness;
+                    ApplyBrightnessToUi(_currentBrightness);
+                    return;
+                }
+
+                var results = await _hidDeviceService.SetBrightnessAsync(savedBrightness);
+                int successCount = results.Values.Count(v => v);
+                if (successCount > 0)
+                {
+                    _currentBrightness = savedBrightness;
+                    ApplyBrightnessToUi(_currentBrightness);
+                }
+                else
+                {
+                    Logger.Warn($"Failed to restore brightness for device {_deviceInfo.SerialNumber}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to restore brightness for device {_deviceInfo?.SerialNumber}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Applies the provided brightness value to UI elements on the dispatcher thread
+        /// </summary>
+        private void ApplyBrightnessToUi(int brightness)
+        {
+            void update()
+            {
+                _isBrightnessSliderUpdating = true;
+                if (BrightnessSlider != null)
+                {
+                    BrightnessSlider.Value = brightness;
+                }
+                if (BrightnessValueText != null)
+                {
+                    BrightnessValueText.Text = $"{brightness}%";
+                }
+                _isBrightnessSliderUpdating = false;
+            }
+
+            if (Dispatcher.CheckAccess())
+            {
+                update();
+            }
+            else
+            {
+                Dispatcher.Invoke(update);
+            }
+        }
+
+        /// <summary>
+        /// Updates rotation-related UI elements to match the provided rotation value
+        /// </summary>
+        private void UpdateRotationUi(int rotation)
+        {
+            void update()
+            {
+                if (CurrentRotationText != null)
+                {
+                    var rotationFormat = LR("PlayMode_CurrentRotationFormat", "Current: {0}°");
+                    CurrentRotationText.Text = string.Format(rotationFormat, rotation);
+                }
+
+                UpdateRotationButtonAppearance(rotation);
+            }
+
+            if (Dispatcher.CheckAccess())
+            {
+                update();
+            }
+            else
+            {
+                Dispatcher.Invoke(update);
+            }
+        }
+
+        /// <summary>
+        /// Normalizes rotation degrees to canonical values supported by the device
+        /// </summary>
+        private static int NormalizeRotation(int rotation)
+        {
+            int normalized = rotation % 360;
+            if (normalized < 0)
+            {
+                normalized += 360;
+            }
+
+            return normalized switch
+            {
+                0 => 0,
+                90 => 90,
+                180 => 180,
+                270 => 270,
+                _ => 0
+            };
+        }
+
+        /// <summary>
+        /// Fetches the stored brightness value from the offline data service
+        /// </summary>
+        private void GetCurrentBrightnessToService()
+        {
+            if (_deviceInfo?.SerialNumber == null || !ServiceLocator.IsOfflineMediaServiceInitialized)
+                return;
+
+            try
+            {
+                var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                var settings = offlineDataService.GetDeviceSettings(_deviceInfo.SerialNumber);
+                var savedBrightness = Math.Clamp(settings.Brightness, 0, 100);
+
+                _currentBrightness = savedBrightness;
+
+                ApplyBrightnessToUi(_currentBrightness);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to load brightness for device {_deviceInfo?.SerialNumber}: {ex.Message}");
+            }
+        }
+
+
+        /// <summary>
         /// Handle close screen button click to turn off the display
         /// </summary>
         private async void CloseScreenButton_Click(object sender, RoutedEventArgs e)
@@ -3435,13 +3643,17 @@ namespace CMDevicesManager.Pages
             try
             {
                 SetLoadingState(true, LR("PlayMode_ClosingScreen", "Closing screen..."));
+                // save current brightness level before turning off
+                SaveCurrentBrightnessToService();
 
-                // Set display in sleep mode (true = enable sleep/turn off display)
-                var results = await _hidDeviceService.SetDisplayInSleepAsync(true);
+                // Set display brightness to 0 to turn off screen
+                var results = await _hidDeviceService.SetBrightnessAsync(0);
                 var successCount = results.Values.Count(r => r);
 
                 if (successCount > 0)
                 {
+                    _currentBrightness = 0;
+                    ApplyBrightnessToUi(_currentBrightness);
                     ShowNotification(
                         LR("PlayMode_ScreenClosedSuccess", "Screen closed successfully."),
                         false,
