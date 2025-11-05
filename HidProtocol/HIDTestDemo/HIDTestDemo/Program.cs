@@ -225,7 +225,7 @@ namespace MultiDeviceTestApp
         {
             Console.Clear();
             Console.WriteLine("=== Display Control Tests ===");
-            Console.WriteLine("1. Brightness Test (20% -> 80% -> 50%)");
+            Console.WriteLine("1. Brightness Test (0% -> 20% -> 80% -> 50%)");
             Console.WriteLine("2. Rotation Test (0° -> 90° -> 180° -> 270° -> 0°)");
             Console.WriteLine("3. Display Sleep Test (Enable -> Wait -> Disable)");
             Console.WriteLine("4. Combined Display Settings Test");
@@ -614,7 +614,10 @@ namespace MultiDeviceTestApp
 
         private static async Task TestBrightnessSequence()
         {
-            Console.WriteLine("Testing brightness sequence: 20% -> 80% -> 50%");
+            Console.WriteLine("Testing brightness sequence: 0% -> 20% -> 80% -> 50%");
+
+            await TestSetBrightness(0);
+            await Task.Delay(5000);
 
             await TestSetBrightness(20);
             await Task.Delay(2000);
