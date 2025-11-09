@@ -343,4 +343,10 @@ This operation will delete both the configuration file and preview images, and c
     <sys:String x:Key="PlayMode_ScreenClosedSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">Screen closed successfully</sys:String>
     <sys:String x:Key="PlayMode_ScreenClosedFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to close screen. Please try again.</sys:String>
     <sys:String x:Key="PlayMode_ScreenClosedError" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to close screen: {0}</sys:String>
+
+    <sys:String x:Key="PlayMode_ScreenOn"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Screen ON</sys:String>
+    <sys:String x:Key="PlayMode_ScreenOff"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Screen OFF</sys:String>
+    <sys:String x:Key="PlayMode_ScreenToggleTooltip"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Toggle screen on/off</sys:String>
+    <sys:String x:Key="PlayMode_OfflineModeTitle"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Switching to Offline Mode</sys:String>
+    <sys:String x:Key="PlayMode_OfflineModeMessage"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Please configure offline media files below. The preview will be disabled while in offline mode.</sys:String>
 </ResourceDictionary>

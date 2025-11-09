@@ -12,7 +12,7 @@
         <SolidColorBrush x:Key="SecondaryTextBrush" Color="#B8C5FF"/>
         <SolidColorBrush x:Key="HintTextBrush" Color="#8B9FFF"/>
         <SolidColorBrush x:Key="AccentBrushLight" Color="#00D9FF"/>
-        
+
         <!-- 深蓝紫色调 -->
         <SolidColorBrush x:Key="PanelBackgroundBrush" Color="#1A1F3A"/>
         <SolidColorBrush x:Key="SubPanelBackgroundBrush" Color="#151A2E"/>
@@ -323,7 +323,7 @@
         <SolidColorBrush x:Key="TitleBrush" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="SubtitleBrush" Color="#B8C5FF"/>
         <SolidColorBrush x:Key="AccentBrush" Color="#00D9FF"/>
-        
+
         <DropShadowEffect x:Key="CardShadow" 
                           Color="#6B4FFF" 
                           Direction="270" 
@@ -673,6 +673,74 @@
             </Setter>
             <Setter Property="BorderBrush" Value="#E07070"/>
         </Style>
+
+        <!-- Screen Toggle Style (based on SuspendModeToggleStyle) -->
+        <Style x:Key="ScreenToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource SuspendModeToggleStyle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Root"
+                               CornerRadius="18"
+                               Background="#3A4A5E">
+                            <Grid x:Name="LayoutRoot"
+                                 ClipToBounds="True"
+                                 Margin="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Selection highlight (half) -->
+                                <Border x:Name="Selection"
+                                       Grid.Column="0"
+                                       Margin="0"
+                                       CornerRadius="16"
+                                       Background="#5B7FFF"/>
+
+                                <!-- Labels -->
+                                <TextBlock Text="{DynamicResource PlayMode_ScreenOn}"
+                                          Grid.Column="0"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          FontSize="12"
+                                          FontWeight="SemiBold"
+                                          Foreground="#FFFFFF"
+                                          Opacity="1"
+                                          x:Name="ScreenOnLabel"/>
+
+                                <TextBlock Text="{DynamicResource PlayMode_ScreenOff}"
+                                          Grid.Column="1"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          FontSize="12"
+                                          FontWeight="SemiBold"
+                                          Foreground="#FFFFFF"
+                                          Opacity="0.65"
+                                          x:Name="ScreenOffLabel"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <!-- Checked = Screen Off -->
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Selection" Property="Grid.Column" Value="1"/>
+                                <Setter TargetName="Selection" Property="Background" Value="#D84F4F"/>
+                                <Setter TargetName="ScreenOffLabel" Property="Opacity" Value="1"/>
+                                <Setter TargetName="ScreenOnLabel" Property="Opacity" Value="0.65"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.93"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Page.Resources>
 
     <Grid Margin="16">
@@ -719,126 +787,44 @@
         <!-- LEFT COLUMN -->
         <Grid Grid.Row="1" Grid.Column="0">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Playback Modes -->
-            <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
-                <StackPanel>
-                    <UniformGrid Columns="2">
-                        <TextBlock Text="{DynamicResource PlayMode_PlaybackModes}" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
-                        <ToggleButton x:Name="SuspendModeToggle"
-        HorizontalAlignment="Right"
-        Click="SuspendModeToggle_Click"
-        Style="{StaticResource SuspendModeToggleStyle}"
-         ToolTipService.ToolTip="{DynamicResource PlayMode_SuspendToggleTooltip}"
-        ToolTipService.InitialShowDelay="150"/>
-                    </UniformGrid>
-
-                    <!-- 🆕 关闭画面按钮（与Toggle尺寸一致） -->
-                    <Button x:Name="CloseScreenButton"
-                  Content="{DynamicResource PlayMode_CloseScreen}"
-                  Width="170"
-                  Height="34"
-                  HorizontalAlignment="Right"
-                  Margin="0,8,0,0"
-                  Foreground="White"
-                  Cursor="Hand"
-                  Click="CloseScreenButton_Click"
-                  ToolTipService.ToolTip="{DynamicResource PlayMode_CloseScreenTooltip}">
-                        <Button.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#5B7FFF" Offset="0"/>
-                                <GradientStop Color="#7B8FFF" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Button.Background>
-                        <Button.Template>
-                            <ControlTemplate TargetType="Button">
-                                <Border x:Name="Root"
-                              CornerRadius="18"
-                              Background="{TemplateBinding Background}"
-                              BorderBrush="#8B9FFF"
-                              BorderThickness="0"
-                              Padding="10,4">
-                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock FontFamily="Segoe MDL2 Assets" 
-                                         Text="&#xE7E8;" 
-                                         Margin="0,0,6,0"
-                                         FontSize="12"
-                                         FontWeight="SemiBold"
-                                         VerticalAlignment="Center"/>
-                                        <TextBlock Text="{TemplateBinding Content}"
-                                         FontSize="12"
-                                         FontWeight="SemiBold"
-                                         VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="Root" Property="Opacity" Value="0.93"/>
-                                    </Trigger>
-                                    <Trigger Property="IsPressed" Value="True">
-                                        <Setter TargetName="Root" Property="Opacity" Value="0.85"/>
-                                    </Trigger>
-                                    <Trigger Property="IsEnabled" Value="False">
-                                        <Setter TargetName="Root" Property="Opacity" Value="0.45"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Button.Template>
-                    </Button>
-                </StackPanel>
-            </Border>
-
-            <!-- Display Settings -->
-            <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
-                <Expander Header="{DynamicResource PlayMode_DisplaySettings}"  Style="{StaticResource ExpanderStyleMini}" IsExpanded="True">
-                    <StackPanel Margin="0,4,0,0">
-                        <TextBlock Text="{DynamicResource PlayMode_Rotation}"  FontSize="12" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
-                        <UniformGrid Columns="4" Margin="0,0,0,8">
-                            <Button x:Name="Rotation0Button" Content="0°" Tag="0" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
-                            <Button x:Name="Rotation90Button" Content="90°" Tag="90" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
-                            <Button x:Name="Rotation180Button" Content="180°" Tag="180" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
-                            <Button x:Name="Rotation270Button" Content="270°" Tag="270" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
-                        </UniformGrid>
-                        <TextBlock x:Name="CurrentRotationText" Text="Current: 0°" FontSize="11"
-                                   Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,10"/>
-                        <TextBlock Text="Brightness" FontSize="12" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
-                        <Slider x:Name="BrightnessSlider" Minimum="0" Maximum="100" Value="80"
-                                TickFrequency="10" IsSnapToTickEnabled="True"
-                                Margin="0,0,0,6"
-                                ValueChanged="BrightnessSlider_ValueChanged"/>
-                        <DockPanel LastChildFill="False" Margin="0,0,0,4">
-                            <TextBlock x:Name="BrightnessValueText"
-                                       Text="80%"
-                                       FontSize="11"
-                                       FontWeight="Medium"
-                                       Foreground="{StaticResource TitleBrush}"
-                                       Margin="0,0,8,0"
-                                       VerticalAlignment="Center"/>
-                            <StackPanel Orientation="Horizontal">
-                                <Button Content="25%" Tag="25" Width="40" Style="{StaticResource MiniButton}" Click="QuickBrightnessButton_Click"/>
-                                <Button Content="50%" Tag="50" Width="40" Style="{StaticResource MiniButton}" Click="QuickBrightnessButton_Click"/>
-                                <Button Content="100%" Tag="100" Width="50" Style="{StaticResource MiniButton}" Click="QuickBrightnessButton_Click"/>
-                            </StackPanel>
-                        </DockPanel>
-                    </StackPanel>
-                </Expander>
-            </Border>
-
-            <!-- Play Content -->
-            <Border Grid.Row="3" Style="{StaticResource CardBorderStyle}" Padding="14">
+            <!-- UPPER CARD: Playback Mode Toggle + Play Content -->
+            <Border Grid.Row="0" Style="{StaticResource CardBorderStyle}" Padding="10" Margin="0,0,0,12">
                 <DockPanel LastChildFill="True">
-                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-                        <DockPanel>
+                    <!-- Playback Mode Toggle Section -->
+                    <StackPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                        <UniformGrid Columns="2">
+                            <TextBlock Text="{DynamicResource PlayMode_PlaybackModes}" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                            <ToggleButton x:Name="SuspendModeToggle"
+                         HorizontalAlignment="Right"
+                         Click="SuspendModeToggle_Click"
+                         Style="{StaticResource SuspendModeToggleStyle}"
+                         ToolTipService.ToolTip="{DynamicResource PlayMode_SuspendToggleTooltip}"
+                         ToolTipService.InitialShowDelay="150"/>
+                        </UniformGrid>
+                    </StackPanel>
+
+                    <!-- Play Content Section - 改用 Grid 替代 DockPanel 以更好控制布局 -->
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <!-- 标题和按钮 -->
+                            <RowDefinition Height="Auto"/>
+                            <!-- 提示文本 -->
+                            <RowDefinition Height="*"/>
+                            <!-- 配置列表/离线内容 - 填充剩余空间 -->
+                        </Grid.RowDefinitions>
+
+                        <!-- 标题和按钮 -->
+                        <DockPanel Grid.Row="0" Margin="0,0,0,10">
                             <TextBlock x:Name="PlayContentTitleText"
-                           Text="{DynamicResource PlayMode_PlayContentTitle}"
-                           Style="{StaticResource SectionTitle}"
-                           Margin="0,0,8,0"
-                           DockPanel.Dock="Left"/>
+                         Text="{DynamicResource PlayMode_PlayContentTitle}"
+                         Style="{StaticResource SectionTitle}"
+                         Margin="0,0,8,0"
+                         DockPanel.Dock="Left"/>
                             <StackPanel x:Name="ConfigActionButtons" Orientation="Horizontal">
                                 <Button Style="{StaticResource PlayModePrimaryButton}" Click="AddConfigButton_Click" Margin="0,0,6,0">
                                     <StackPanel Orientation="Horizontal">
@@ -854,509 +840,581 @@
                                 </Button>
                             </StackPanel>
                         </DockPanel>
+
+                        <!-- 提示文本 -->
                         <TextBlock x:Name="PlayContentHintText"
-                        Text="{DynamicResource PlayMode_RealtimeHint}"
-                       Foreground="{StaticResource SubtitleBrush}"
-                       FontSize="11"/>
-                    </StackPanel>
+                     Grid.Row="1"
+                     Text="{DynamicResource PlayMode_RealtimeHint}"
+                     Foreground="{StaticResource SubtitleBrush}"
+                     FontSize="11"
+                     Margin="0,0,0,10"/>
 
-                    <!-- 配置列表容器 -->
-                    <Border x:Name="ConfigsContainer"
-        Background="{StaticResource CardBgAlt}"
-        BorderBrush="{StaticResource CardBorder}"
-        BorderThickness="1"
-        CornerRadius="10"
-        Padding="6"
-        Visibility="Collapsed">
-                        <Grid>
-                            <ScrollViewer VerticalScrollBarVisibility="Auto" Style="{StaticResource ConfigListScrollViewerStyle}">
-                                <ItemsControl x:Name="ConfigSequenceListBox"
-                          ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
-                                    <ItemsControl.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Background="#242A45" CornerRadius="8" Padding="8" Margin="0,0,0,8">
-                                                <DockPanel LastChildFill="False">
-                                                    <StackPanel DockPanel.Dock="Left" Width="300">
-                                                        <TextBlock Text="{Binding DisplayName}"
-                                               FontSize="13" FontWeight="SemiBold"
-                                               Foreground="{StaticResource TitleBrush}"
-                                               TextTrimming="CharacterEllipsis"/>
-                                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                                            <TextBlock Text="{DynamicResource PlayMode_DurationLabel}"
-                                                   FontSize="11" Foreground="{StaticResource SubtitleBrush}"
-                                                   VerticalAlignment="Center" Margin="0,0,4,0"/>
-                                                            <TextBox Width="56"
-                                                 Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}"
-                                                 IsEnabled="{Binding IsDurationEditable}"
-                                                 HorizontalContentAlignment="Center"
-                                                 PreviewTextInput="DurationTextBox_PreviewTextInput"
-                                                 MaxLength="4">
-                                                                <TextBox.Style>
-                                                                    <Style TargetType="TextBox">
-                                                                        <Setter Property="Background" Value="#1A1F3A"/>
-                                                                        <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
-                                                                        <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
-                                                                        <Setter Property="BorderThickness" Value="1"/>
-                                                                        <Setter Property="Padding" Value="4,2"/>
-                                                                        <Style.Triggers>
-                                                                            <Trigger Property="IsEnabled" Value="False">
-                                                                                <Setter Property="Opacity" Value="0.5"/>
-                                                                            </Trigger>
-                                                                        </Style.Triggers>
-                                                                    </Style>
-                                                                </TextBox.Style>
-                                                            </TextBox>
-                                                            <TextBlock Text="{DynamicResource PlayMode_SecondsSuffix}"
-                                                   FontSize="11" Foreground="{StaticResource SubtitleBrush}"
-                                                   Margin="4,0,0,0" VerticalAlignment="Center"/>
+                        <!-- 配置列表容器 - 自动填充所有可用空间（垂直和水平） -->
+                        <Border x:Name="ConfigsContainer"
+                     Grid.Row="2"
+                     Background="{StaticResource CardBgAlt}"
+                     BorderBrush="{StaticResource CardBorder}"
+                     BorderThickness="1"
+                     CornerRadius="10"
+                     Padding="6"
+                     MinHeight="200"
+                     HorizontalAlignment="Stretch"
+                     VerticalAlignment="Stretch"
+                     Visibility="Visible">
+                            <Grid>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" 
+                                     HorizontalScrollBarVisibility="Disabled"
+                                     Style="{StaticResource ConfigListScrollViewerStyle}">
+                                    <ItemsControl x:Name="ConfigSequenceListBox"
+                                 ItemsSource="{Binding ConfigSequence, RelativeSource={RelativeSource AncestorType=Page}}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#242A45" CornerRadius="8" Padding="8" Margin="0,0,0,8">
+                                                    <DockPanel LastChildFill="False">
+                                                        <StackPanel DockPanel.Dock="Left" Width="300">
+                                                            <TextBlock Text="{Binding DisplayName}"
+                                                         FontSize="13" FontWeight="SemiBold"
+                                                         Foreground="{StaticResource TitleBrush}"
+                                                         TextTrimming="CharacterEllipsis"/>
+                                                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                                                <TextBlock Text="{DynamicResource PlayMode_DurationLabel}"
+                                                             FontSize="11" Foreground="{StaticResource SubtitleBrush}"
+                                                             VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                                <TextBox Width="56"
+                                                             Text="{Binding DurationSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                                             IsEnabled="{Binding IsDurationEditable}"
+                                                             HorizontalContentAlignment="Center"
+                                                             PreviewTextInput="DurationTextBox_PreviewTextInput"
+                                                             MaxLength="4">
+                                                                    <TextBox.Style>
+                                                                        <Style TargetType="TextBox">
+                                                                            <Setter Property="Background" Value="#1A1F3A"/>
+                                                                            <Setter Property="Foreground" Value="{StaticResource TitleBrush}"/>
+                                                                            <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
+                                                                            <Setter Property="BorderThickness" Value="1"/>
+                                                                            <Setter Property="Padding" Value="4,2"/>
+                                                                            <Style.Triggers>
+                                                                                <Trigger Property="IsEnabled" Value="False">
+                                                                                    <Setter Property="Opacity" Value="0.5"/>
+                                                                                </Trigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBox.Style>
+                                                                </TextBox>
+                                                                <TextBlock Text="{DynamicResource PlayMode_SecondsSuffix}"
+                                                             FontSize="11" Foreground="{StaticResource SubtitleBrush}"
+                                                             Margin="4,0,0,0" VerticalAlignment="Center"/>
+                                                            </StackPanel>
                                                         </StackPanel>
-                                                    </StackPanel>
 
-                                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                                                        <Button Content="▲" Width="34" Style="{StaticResource MiniButton}"
-                                            Tag="{Binding}" Click="MoveConfigUp_Click"/>
-                                                        <Button Content="▼" Width="34" Style="{StaticResource MiniButton}"
-                                            Tag="{Binding}" Margin="4,0,0,0" Click="MoveConfigDown_Click"/>
-                                                        <Button Content="✖" Width="34" Style="{StaticResource MiniButton}"
-                                            Tag="{Binding}" Margin="4,0,0,0" Click="RemoveConfig_Click"/>
-                                                    </StackPanel>
-                                                </DockPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
-                            </ScrollViewer>
+                                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                                            <Button Content="▲" Width="34" Style="{StaticResource MiniButton}"
+                                                         Tag="{Binding}" Click="MoveConfigUp_Click"/>
+                                                            <Button Content="▼" Width="34" Style="{StaticResource MiniButton}"
+                                                         Tag="{Binding}" Margin="4,0,0,0" Click="MoveConfigDown_Click"/>
+                                                            <Button Content="✖" Width="34" Style="{StaticResource MiniButton}"
+                                                         Tag="{Binding}" Margin="4,0,0,0" Click="RemoveConfig_Click"/>
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
 
-                            <!-- 空状态占位符 -->
-                            <StackPanel x:Name="NoConfigsPlaceholder"
-                    Visibility="Collapsed"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Opacity="0.85"
-                    Margin="12"
-                    MaxWidth="340">
-                                <TextBlock Text="{DynamicResource PlayMode_NoConfigsTitle}" 
-                       FontSize="15"
-                       FontWeight="SemiBold"
-                       Foreground="{StaticResource TitleBrush}"
-                       HorizontalAlignment="Center"/>
-                                <TextBlock Text="{DynamicResource PlayMode_NoConfigsDesc}"
-                       TextWrapping="Wrap"
-                       Margin="0,6,0,10"
-                       FontSize="11"
-                       Foreground="{StaticResource SubtitleBrush}"
-                       HorizontalAlignment="Center"/>
-                                <Button Width="140"
-          HorizontalAlignment="Center"
-          Style="{StaticResource PlayModePrimaryButton}"
-          Click="AddConfigButton_Click">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE710;" Margin="0,0,4,0"/>
-                                        <TextBlock Text="{DynamicResource PlayMode_AddConfigBtn}"/>
+                                <!-- 空状态占位符 -->
+                                <StackPanel x:Name="NoConfigsPlaceholder"
+                             Visibility="Collapsed"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center"
+                             Opacity="0.85"
+                             Margin="12"
+                             MaxWidth="340">
+                                    <TextBlock Text="{DynamicResource PlayMode_NoConfigsTitle}" 
+                                 FontSize="15"
+                                 FontWeight="SemiBold"
+                                 Foreground="{StaticResource TitleBrush}"
+                                 HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{DynamicResource PlayMode_NoConfigsDesc}"
+                                 TextWrapping="Wrap"
+                                 Margin="0,6,0,10"
+                                 FontSize="11"
+                                 Foreground="{StaticResource SubtitleBrush}"
+                                 HorizontalAlignment="Center"/>
+                                    <Button Width="140"
+                                 HorizontalAlignment="Center"
+                                 Style="{StaticResource PlayModePrimaryButton}"
+                                 Click="AddConfigButton_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock FontFamily="Segoe MDL2 Assets" Text="&#xE710;" Margin="0,0,4,0"/>
+                                            <TextBlock Text="{DynamicResource PlayMode_AddConfigBtn}"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- 暂停/离线模式内容 -->
+                        <Border x:Name="SuspendModeContentArea"
+                            CornerRadius="6"
+                            Padding="12"
+                            Visibility="Collapsed"
+                           
+                            Margin="0,0,0,0">
+                            <Grid>
+                                <StackPanel x:Name="SuspendMediaPanel">
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="&#xE8FD;"
+                                            FontFamily="Segoe MDL2 Assets"
+                                            FontSize="14"
+                                            Foreground="#4CAF50"
+                                            VerticalAlignment="Center"
+                                            Margin="0,0,6,0"/>
+                                        <TextBlock Text="{DynamicResource SuspendMediaFilesHeader}"
+                                            FontSize="12"
+                                            FontWeight="SemiBold"
+                                            Foreground="{StaticResource SecondaryTextBrush}"/>
+                                        <TextBlock Text="{DynamicResource SuspendMediaHint}"
+                                            FontSize="10"
+                                            Foreground="{StaticResource HintTextBrush}"
+                                            Margin="8,0,0,0"
+                                            VerticalAlignment="Center"/>
                                     </StackPanel>
-                                </Button>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
 
-                    <!-- 暂停/离线模式内容 -->
-                    <Border x:Name="SuspendModeContentArea"                                            
-                                            CornerRadius="6"
-                                            Padding="12"
-                                            Visibility="Visible"
-                                            Margin="0,12,0,0">
-                        <Grid>
-                            <StackPanel x:Name="SuspendMediaPanel">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                                    <TextBlock Text="&#xE8FD;"
-                                                               FontFamily="Segoe MDL2 Assets"
-                                                               FontSize="14"
-                                                               Foreground="#4CAF50"
-                                                               VerticalAlignment="Center"
-                                                               Margin="0,0,6,0"/>
-                                    <TextBlock Text="{DynamicResource SuspendMediaFilesHeader}"
-                                                               FontSize="12"
-                                                               FontWeight="SemiBold"
-                                                               Foreground="{StaticResource SecondaryTextBrush}"/>
-                                    <TextBlock Text="{DynamicResource SuspendMediaHint}"
-                                                               FontSize="10"
-                                                               Foreground="{StaticResource HintTextBrush}"
-                                                               Margin="8,0,0,0"
-                                                               VerticalAlignment="Center"/>
+                                    <UniformGrid x:Name="SuspendMediaGrid" 
+                                        Rows="1" 
+                                        Columns="5"
+                                        Margin="0,8,0,0">
+                                        <!-- Media Slots (keeping all 5 slots as in original) -->
+                                        <Border x:Name="MediaSlot1"
+                                            Background="{StaticResource SubPanelBackgroundBrush}"
+                                            BorderBrush="#444444"
+                                            BorderThickness="2"
+                                            CornerRadius="8"
+                                            Margin="2"
+                                            Height="80"
+                                            Width="80"
+                                            Cursor="Hand"
+                                            MouseLeftButtonUp="MediaSlot_Click"
+                                            Tag="0">
+                                            <Grid>
+                                                <Image x:Name="MediaThumbnail1"
+                                                    Stretch="UniformToFill"
+                                                    Visibility="Collapsed"/>
+                                                <StackPanel x:Name="AddMediaPlaceholder1"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                                    <TextBlock Text="&#xE710;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="20"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{DynamicResource AddMediaText}"
+                                                        FontSize="9"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"
+                                                        Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <Border x:Name="MediaInfoOverlay1"
+                                                    Background="#80000000"
+                                                    VerticalAlignment="Bottom"
+                                                    CornerRadius="0,0,6,6"
+                                                    Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2">
+                                                        <TextBlock x:Name="MediaFileName1"
+                                                            Text="media1.mp4"
+                                                            FontSize="8"
+                                                            Foreground="White"
+                                                            TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{DynamicResource ActiveStatusText}"
+                                                            FontSize="7"
+                                                            Foreground="#4CAF50"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Button x:Name="RemoveMediaButton1"
+                                                    Width="16" Height="16"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="2"
+                                                    Background="#F44336"
+                                                    BorderBrush="Transparent"
+                                                    Padding="0"
+                                                    Visibility="Collapsed"
+                                                    Click="RemoveMedia_Click"
+                                                    Tag="0">
+                                                    <TextBlock Text="&#xE711;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="8"
+                                                        Foreground="White"/>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border x:Name="MediaSlot2"
+                                            Background="{StaticResource SubPanelBackgroundBrush}"
+                                            BorderBrush="#444444"
+                                            BorderThickness="2"
+                                            CornerRadius="8"
+                                            Margin="2"
+                                            Height="80"
+                                            Width="80"
+                                            Cursor="Hand"
+                                            MouseLeftButtonUp="MediaSlot_Click"
+                                            Tag="1">
+                                            <Grid>
+                                                <Image x:Name="MediaThumbnail2"
+                                                    Stretch="UniformToFill"
+                                                    Visibility="Collapsed"/>
+                                                <StackPanel x:Name="AddMediaPlaceholder2"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                                    <TextBlock Text="&#xE710;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="20"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{DynamicResource AddMediaText}" 
+                                                        FontSize="9"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"
+                                                        Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <Border x:Name="MediaInfoOverlay2"
+                                                    Background="#80000000"
+                                                    VerticalAlignment="Bottom"
+                                                    CornerRadius="0,0,6,6"
+                                                    Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2">
+                                                        <TextBlock x:Name="MediaFileName2"
+                                                            Text="media2.mp4"
+                                                            FontSize="8"
+                                                            Foreground="White"
+                                                            TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{DynamicResource ActiveStatusText}"
+                                                            FontSize="7"
+                                                            Foreground="#4CAF50"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Button x:Name="RemoveMediaButton2"
+                                                    Width="16" Height="16"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="2"
+                                                    Background="#F44336"
+                                                    BorderBrush="Transparent"
+                                                    Padding="0"
+                                                    Visibility="Collapsed"
+                                                    Click="RemoveMedia_Click"
+                                                    Tag="1">
+                                                    <TextBlock Text="&#xE711;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="8"
+                                                        Foreground="White"/>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border x:Name="MediaSlot3"
+                                            Background="{StaticResource SubPanelBackgroundBrush}"
+                                            BorderBrush="#444444"
+                                            BorderThickness="2"
+                                            CornerRadius="8"
+                                            Margin="2"
+                                            Height="80"
+                                            Width="80"
+                                            Cursor="Hand"
+                                            MouseLeftButtonUp="MediaSlot_Click"
+                                            Tag="2">
+                                            <Grid>
+                                                <Image x:Name="MediaThumbnail3"
+                                                    Stretch="UniformToFill"
+                                                    Visibility="Collapsed"/>
+                                                <StackPanel x:Name="AddMediaPlaceholder3"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                                    <TextBlock Text="&#xE710;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="20"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{DynamicResource AddMediaText}"
+                                                        FontSize="9"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"
+                                                        Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <Border x:Name="MediaInfoOverlay3"
+                                                    Background="#80000000"
+                                                    VerticalAlignment="Bottom"
+                                                    CornerRadius="0,0,6,6"
+                                                    Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2">
+                                                        <TextBlock x:Name="MediaFileName3"
+                                                            Text="media3.mp4"
+                                                            FontSize="8"
+                                                            Foreground="White"
+                                                            TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock Text="{DynamicResource ActiveStatusText}"
+                                                            FontSize="7"
+                                                            Foreground="#4CAF50"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Button x:Name="RemoveMediaButton3"
+                                                    Width="16" Height="16"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="2"
+                                                    Background="#F44336"
+                                                    BorderBrush="Transparent"
+                                                    Padding="0"
+                                                    Visibility="Collapsed"
+                                                    Click="RemoveMedia_Click"
+                                                    Tag="2">
+                                                    <TextBlock Text="&#xE711;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="8"
+                                                        Foreground="White"/>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border x:Name="MediaSlot4"
+                                            Background="{StaticResource SubPanelBackgroundBrush}"
+                                            BorderBrush="#444444"
+                                            BorderThickness="2"
+                                            CornerRadius="8"
+                                            Margin="2"
+                                            Height="80"
+                                            Width="80"
+                                            Cursor="Hand"
+                                            MouseLeftButtonUp="MediaSlot_Click"
+                                            Tag="3">
+                                            <Grid>
+                                                <Image x:Name="MediaThumbnail4"
+                                                    Stretch="UniformToFill"
+                                                    Visibility="Collapsed"/>
+                                                <StackPanel x:Name="AddMediaPlaceholder4"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                                    <TextBlock Text="&#xE710;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="20"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"/>
+                                                    <TextBlock  Text="{DynamicResource AddMediaText}" 
+                                                        FontSize="9"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"
+                                                        Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <Border x:Name="MediaInfoOverlay4"
+                                                    Background="#80000000"
+                                                    VerticalAlignment="Bottom"
+                                                    CornerRadius="0,0,6,6"
+                                                    Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2">
+                                                        <TextBlock x:Name="MediaFileName4"
+                                                            Text="media4.mp4"
+                                                            FontSize="8"
+                                                            Foreground="White"
+                                                            TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock  Text="{DynamicResource ActiveStatusText}"
+                                                            FontSize="7"
+                                                            Foreground="#4CAF50"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Button x:Name="RemoveMediaButton4"
+                                                    Width="16" Height="16"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="2"
+                                                    Background="#F44336"
+                                                    BorderBrush="Transparent"
+                                                    Padding="0"
+                                                    Visibility="Collapsed"
+                                                    Click="RemoveMedia_Click"
+                                                    Tag="3">
+                                                    <TextBlock Text="&#xE711;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="8"
+                                                        Foreground="White"/>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+
+                                        <Border x:Name="MediaSlot5"
+                                            Background="{StaticResource SubPanelBackgroundBrush}"
+                                            BorderBrush="#444444"
+                                            BorderThickness="2"
+                                            CornerRadius="8"
+                                            Margin="2"
+                                            Height="80"
+                                            Width="80"
+                                            Cursor="Hand"
+                                            MouseLeftButtonUp="MediaSlot_Click"
+                                            Tag="4">
+                                            <Grid>
+                                                <Image x:Name="MediaThumbnail5"
+                                                    Stretch="UniformToFill"
+                                                    Visibility="Collapsed"/>
+                                                <StackPanel x:Name="AddMediaPlaceholder5"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center">
+                                                    <TextBlock Text="&#xE710;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="20"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{DynamicResource AddMediaText}"
+                                                        FontSize="9"
+                                                        Foreground="#666666"
+                                                        HorizontalAlignment="Center"
+                                                        Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                                <Border x:Name="MediaInfoOverlay5"
+                                                    Background="#80000000"
+                                                    VerticalAlignment="Bottom"
+                                                    CornerRadius="0,0,6,6"
+                                                    Visibility="Collapsed">
+                                                    <StackPanel Margin="4,2">
+                                                        <TextBlock x:Name="MediaFileName5"
+                                                            Text="media5.mp4"
+                                                            FontSize="8"
+                                                            Foreground="White"
+                                                            TextTrimming="CharacterEllipsis"/>
+                                                        <TextBlock  Text="{DynamicResource ActiveStatusText}"
+                                                            FontSize="7"
+                                                            Foreground="#4CAF50"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <Button x:Name="RemoveMediaButton5"
+                                                    Width="16" Height="16"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="2"
+                                                    Background="#F44336"
+                                                    BorderBrush="Transparent"
+                                                    Padding="0"
+                                                    Visibility="Collapsed"
+                                                    Click="RemoveMedia_Click"
+                                                    Tag="4">
+                                                    <TextBlock Text="&#xE711;"
+                                                        FontFamily="Segoe MDL2 Assets"
+                                                        FontSize="8"
+                                                        Foreground="White"/>
+                                                </Button>
+                                            </Grid>
+                                        </Border>
+                                    </UniformGrid>
+
+                                    <StackPanel Orientation="Horizontal" 
+                                        HorizontalAlignment="Right" 
+                                        Margin="0,8,0,0">
+                                        <Button x:Name="AddAllMediaButton"
+                                            Background="#4CAF50"
+                                            Foreground="White"
+                                            BorderBrush="Transparent"
+                                            Visibility="Collapsed"
+                                            Padding="8,4"
+                                            Margin="0,0,4,0"
+                                            Click="AddAllMedia_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE710;"
+                                                    FontFamily="Segoe MDL2 Assets"
+                                                    FontSize="12"
+                                                    Margin="0,0,4,0"/>
+                                                <TextBlock Text="{DynamicResource AddMultipleButton}"
+                                                    FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button x:Name="ClearAllMediaButton"
+                                            Background="#F44336"
+                                            Foreground="White"
+                                            BorderBrush="Transparent"
+                                            Padding="8,4"
+                                            Click="ClearAllMedia_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="&#xE74D;"
+                                                    FontFamily="Segoe MDL2 Assets"
+                                                    FontSize="12"
+                                                    Margin="0,0,4,0"/>
+                                                <TextBlock Text="{DynamicResource ClearAllButtonText}"
+                                                    FontSize="10"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
                                 </StackPanel>
+                            </Grid>
+                        </Border>
 
-                                <UniformGrid x:Name="SuspendMediaGrid" 
-                                                             Rows="1" 
-                                                             Columns="5"
-                                                             Margin="0,8,0,0">
-                                    <!-- Media Slots -->
-                                    <Border x:Name="MediaSlot1"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="0">
-                                        <Grid>
-                                            <Image x:Name="MediaThumbnail1"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                            <StackPanel x:Name="AddMediaPlaceholder1"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                <TextBlock Text="{DynamicResource AddMediaText}"
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
-                                            </StackPanel>
-                                            <Border x:Name="MediaInfoOverlay1"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
-                                                <StackPanel Margin="4,2">
-                                                    <TextBlock x:Name="MediaFileName1"
-                                                                              Text="media1.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{DynamicResource ActiveStatusText}"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Button x:Name="RemoveMediaButton1"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="0">
-                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
-                                            </Button>
-                                        </Grid>
-                                    </Border>
-
-                                    <Border x:Name="MediaSlot2"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="1">
-                                        <Grid>
-                                            <Image x:Name="MediaThumbnail2"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                            <StackPanel x:Name="AddMediaPlaceholder2"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                <TextBlock Text="{DynamicResource AddMediaText}" 
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
-                                            </StackPanel>
-                                            <Border x:Name="MediaInfoOverlay2"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
-                                                <StackPanel Margin="4,2">
-                                                    <TextBlock x:Name="MediaFileName2"
-                                                                              Text="media2.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{DynamicResource ActiveStatusText}"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Button x:Name="RemoveMediaButton2"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="1">
-                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
-                                            </Button>
-                                        </Grid>
-                                    </Border>
-
-                                    <Border x:Name="MediaSlot3"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="2">
-                                        <Grid>
-                                            <Image x:Name="MediaThumbnail3"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                            <StackPanel x:Name="AddMediaPlaceholder3"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                <TextBlock Text="{DynamicResource AddMediaText}"
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
-                                            </StackPanel>
-                                            <Border x:Name="MediaInfoOverlay3"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
-                                                <StackPanel Margin="4,2">
-                                                    <TextBlock x:Name="MediaFileName3"
-                                                                              Text="media3.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock Text="{DynamicResource ActiveStatusText}"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Button x:Name="RemoveMediaButton3"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="2">
-                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
-                                            </Button>
-                                        </Grid>
-                                    </Border>
-
-                                    <Border x:Name="MediaSlot4"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="3">
-                                        <Grid>
-                                            <Image x:Name="MediaThumbnail4"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                            <StackPanel x:Name="AddMediaPlaceholder4"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                <TextBlock  Text="{DynamicResource AddMediaText}" 
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
-                                            </StackPanel>
-                                            <Border x:Name="MediaInfoOverlay4"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
-                                                <StackPanel Margin="4,2">
-                                                    <TextBlock x:Name="MediaFileName4"
-                                                                              Text="media4.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock  Text="{DynamicResource ActiveStatusText}"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Button x:Name="RemoveMediaButton4"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="3">
-                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
-                                            </Button>
-                                        </Grid>
-                                    </Border>
-
-                                    <Border x:Name="MediaSlot5"
-                                                            Background="{StaticResource SubPanelBackgroundBrush}"
-                                                            BorderBrush="#444444"
-                                                            BorderThickness="2"
-                                                            CornerRadius="8"
-                                                            Margin="2"
-                                                            Height="80"
-                                                            Width="80"
-                                                            Cursor="Hand"
-                                                            MouseLeftButtonUp="MediaSlot_Click"
-                                                            Tag="4">
-                                        <Grid>
-                                            <Image x:Name="MediaThumbnail5"
-                                                                   Stretch="UniformToFill"
-                                                                   Visibility="Collapsed"/>
-                                            <StackPanel x:Name="AddMediaPlaceholder5"
-                                                                       HorizontalAlignment="Center"
-                                                                       VerticalAlignment="Center">
-                                                <TextBlock Text="&#xE710;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="20"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"/>
-                                                <TextBlock Text="{DynamicResource AddMediaText}"
-                                                                          FontSize="9"
-                                                                          Foreground="#666666"
-                                                                          HorizontalAlignment="Center"
-                                                                          Margin="0,2,0,0"/>
-                                            </StackPanel>
-                                            <Border x:Name="MediaInfoOverlay5"
-                                                                   Background="#80000000"
-                                                                   VerticalAlignment="Bottom"
-                                                                   CornerRadius="0,0,6,6"
-                                                                   Visibility="Collapsed">
-                                                <StackPanel Margin="4,2">
-                                                    <TextBlock x:Name="MediaFileName5"
-                                                                              Text="media5.mp4"
-                                                                              FontSize="8"
-                                                                              Foreground="White"
-                                                                              TextTrimming="CharacterEllipsis"/>
-                                                    <TextBlock  Text="{DynamicResource ActiveStatusText}"
-                                                                              FontSize="7"
-                                                                              Foreground="#4CAF50"/>
-                                                </StackPanel>
-                                            </Border>
-                                            <Button x:Name="RemoveMediaButton5"
-                                                                   Width="16" Height="16"
-                                                                   HorizontalAlignment="Right"
-                                                                   VerticalAlignment="Top"
-                                                                   Margin="2"
-                                                                   Background="#F44336"
-                                                                   BorderBrush="Transparent"
-                                                                   Padding="0"
-                                                                   Visibility="Collapsed"
-                                                                   Click="RemoveMedia_Click"
-                                                                   Tag="4">
-                                                <TextBlock Text="&#xE711;"
-                                                                          FontFamily="Segoe MDL2 Assets"
-                                                                          FontSize="8"
-                                                                          Foreground="White"/>
-                                            </Button>
-                                        </Grid>
-                                    </Border>
-                                </UniformGrid>
-
-                                <StackPanel Orientation="Horizontal" 
-                                                           HorizontalAlignment="Right" 
-                                                           Margin="0,8,0,0">
-                                    <Button x:Name="AddAllMediaButton"
-                                                           Background="#4CAF50"
-                                                           Foreground="White"
-                                                           BorderBrush="Transparent"
-                                                           Visibility="Collapsed"
-                                                           Padding="8,4"
-                                                           Margin="0,0,4,0"
-                                                           Click="AddAllMedia_Click">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE710;"
-                                                                      FontFamily="Segoe MDL2 Assets"
-                                                                      FontSize="12"
-                                                                      Margin="0,0,4,0"/>
-                                            <TextBlock Text="{DynamicResource AddMultipleButton}"
-                                                                      FontSize="10"/>
-                                        </StackPanel>
-                                    </Button>
-                                    <Button x:Name="ClearAllMediaButton"
-                                                           Background="#F44336"
-                                                           Foreground="White"
-                                                           BorderBrush="Transparent"
-                                                           Padding="8,4"
-                                                           Click="ClearAllMedia_Click">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="&#xE74D;"
-                                                                      FontFamily="Segoe MDL2 Assets"
-                                                                      FontSize="12"
-                                                                      Margin="0,0,4,0"/>
-                                            <TextBlock Text="{DynamicResource ClearAllButtonText}"
-                                                                      FontSize="10"/>
-                                        </StackPanel>
-                                    </Button>
-                                </StackPanel>
-                            </StackPanel>
-                        </Grid>
-                    </Border>
-
-                    <!-- Hidden legacy list (compatibility) -->
-                    <ListBox x:Name="DevicesListBox"
-                 Visibility="Collapsed"
-                 Height="0"
-                 Width="0"/>
+                        <!-- Hidden legacy list (compatibility) -->
+                        <ListBox x:Name="DevicesListBox"
+                            Visibility="Collapsed"
+                            Height="0"
+                            Width="0"/>
+                    </Grid>
                 </DockPanel>
+            </Border>
+
+            <!-- LOWER CARD: Screen Toggle + Display Settings -->
+            <Border Grid.Row="1" Style="{StaticResource CardBorderStyle}" Padding="10" Height="280">
+                <StackPanel>
+                    <!-- Screen Toggle Section -->
+                    <DockPanel Margin="0,0,0,12">
+                        <TextBlock Text="{DynamicResource PlayMode_ScreenControl}" 
+                            Style="{StaticResource SectionTitle}" 
+                            Margin="0,0,0,0"
+                            DockPanel.Dock="Left"/>
+                        <ToggleButton x:Name="ScreenToggle"
+                            Width="170"
+                            Height="34"
+                            HorizontalAlignment="Right"
+                            Margin="0,0,0,0"
+                            Click="ScreenToggle_Click"
+                            Style="{StaticResource ScreenToggleStyle}"
+                            ToolTipService.ToolTip="{DynamicResource PlayMode_ScreenToggleTooltip}"
+                            ToolTipService.InitialShowDelay="150"/>
+                    </DockPanel>
+
+                    <!-- Display Settings Expander -->
+                    <Expander Header="{DynamicResource PlayMode_DisplaySettings}" 
+                        Style="{StaticResource ExpanderStyleMini}" 
+                        IsExpanded="True">
+                        <StackPanel Margin="0,4,0,0">
+                            <TextBlock Text="{DynamicResource PlayMode_Rotation}" 
+                                FontSize="12" 
+                                Foreground="{StaticResource SubtitleBrush}" 
+                                Margin="0,0,0,4"/>
+                            <UniformGrid Columns="4" Margin="0,0,0,8">
+                                <Button x:Name="Rotation0Button" Content="0°" Tag="0" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
+                                <Button x:Name="Rotation90Button" Content="90°" Tag="90" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
+                                <Button x:Name="Rotation180Button" Content="180°" Tag="180" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
+                                <Button x:Name="Rotation270Button" Content="270°" Tag="270" Click="RotationButton_Click" Style="{StaticResource MiniButton}"/>
+                            </UniformGrid>
+                            <TextBlock x:Name="CurrentRotationText" Text="Current: 0°" FontSize="11"
+                                Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,10"/>
+                            <TextBlock Text="Brightness" FontSize="12" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
+                            <Slider x:Name="BrightnessSlider" Minimum="0" Maximum="100" Value="80"
+                                TickFrequency="10" IsSnapToTickEnabled="True"
+                                Margin="0,0,0,6"
+                                ValueChanged="BrightnessSlider_ValueChanged"/>
+                            <DockPanel LastChildFill="False" Margin="0,0,0,4">
+                                <TextBlock x:Name="BrightnessValueText"
+                                    Text="80%"
+                                    FontSize="11"
+                                    FontWeight="Medium"
+                                    Foreground="{StaticResource TitleBrush}"
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="25%" Tag="25" Width="40" Style="{StaticResource MiniButton}" Click="QuickBrightnessButton_Click"/>
+                                    <Button Content="50%" Tag="50" Width="40" Style="{StaticResource MiniButton}" Click="QuickBrightnessButton_Click"/>
+                                    <Button Content="100%" Tag="100" Width="50" Style="{StaticResource MiniButton}" Click="QuickBrightnessButton_Click"/>
+                                </StackPanel>
+                            </DockPanel>
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
             </Border>
         </Grid>
 
@@ -1455,7 +1513,77 @@
                         </StackPanel>
                     </Grid>
                 </Grid>
+                <!-- 🆕 Offline Mode Overlay -->
+                <Border x:Name="OfflineModeOverlay"
+           Grid.Row="0"
+           Grid.RowSpan="2"
+           Background="{StaticResource OverlayMaskBrush}"
+           Visibility="Collapsed"
+           Panel.ZIndex="100">
+                    <StackPanel HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   Background="{StaticResource ElevatedPanelBrush}"
+                 
+                   MaxWidth="400">
+                        <Border Background="{StaticResource CardBgAlt}"
+                   BorderBrush="{StaticResource CardBorder}"
+                   BorderThickness="2"
+                   CornerRadius="12"
+                   Padding="20">
+                            <StackPanel>
+                                <!-- Icon -->
+                                <TextBlock Text="&#xE7C3;"
+                             FontFamily="Segoe MDL2 Assets"
+                             FontSize="48"
+                             Foreground="{StaticResource AccentBrushLight}"
+                             HorizontalAlignment="Center"
+                             Margin="0,0,0,16"/>
 
+                                <!-- Title -->
+                                <TextBlock Text="{DynamicResource PlayMode_OfflineModeTitle}"
+                             FontSize="20"
+                             FontWeight="Bold"
+                             Foreground="{StaticResource TitleBrush}"
+                             HorizontalAlignment="Center"
+                             TextWrapping="Wrap"
+                             Margin="0,0,0,12"/>
+
+                                <!-- Message -->
+                                <TextBlock Text="{DynamicResource PlayMode_OfflineModeMessage}"
+                             FontSize="14"
+                             Foreground="{StaticResource SubtitleBrush}"
+                             HorizontalAlignment="Center"
+                             TextWrapping="Wrap"
+                             TextAlignment="Center"
+                             LineHeight="20"/>
+
+                                <!-- Loading indicator -->
+                                <Grid Width="40" Height="40" Margin="0,20,0,0">
+                                    <Ellipse Stroke="{StaticResource AccentBrushLight}" 
+                               StrokeThickness="4" 
+                               StrokeDashArray="25,25" 
+                               RenderTransformOrigin="0.5,0.5">
+                                        <Ellipse.RenderTransform>
+                                            <RotateTransform x:Name="OfflineLoadingRotation"/>
+                                        </Ellipse.RenderTransform>
+                                        <Ellipse.Triggers>
+                                            <EventTrigger RoutedEvent="Loaded">
+                                                <BeginStoryboard>
+                                                    <Storyboard RepeatBehavior="Forever">
+                                                        <DoubleAnimation Storyboard.TargetName="OfflineLoadingRotation"
+                                                           Storyboard.TargetProperty="Angle"
+                                                           From="0" To="360"
+                                                           Duration="0:0:2"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                        </Ellipse.Triggers>
+                                    </Ellipse>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
                 <Border Grid.Row="2"
                         Margin="0,12,0,0"
                         Background="{StaticResource CardBgAlt}"

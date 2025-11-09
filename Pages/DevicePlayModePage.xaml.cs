@@ -405,29 +405,7 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        private void UpdatePlayModeUI()
-        {
-            bool isRealtime = _currentPlayMode == PlaybackMode.RealtimeConfig;
-
-            // binding the SuspendModeToggle state from current mode
-            SuspendModeToggle.IsChecked = !isRealtime;
-
-            ConfigsContainer.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
-            SuspendModeContentArea.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
-
-            // 原来的 ConfigActionButtons / VideoActionButtons 如果只包含 Start/Stop，可在 XAML 中移除或设置 Visibility=Collapsed
-            ConfigActionButtons.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
-            //VideoActionButtons.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
-
-            PlayContentTitleText.Text = isRealtime ? "Play Content" : "Video Playback";
-            PlayContentHintText.Text = isRealtime
-                ? "Add configs to auto play (loop). Remove all to stop automatically."
-                : "Select an MP4 file to auto start playback. Clear to stop.";
-            UpdateLivePreviewAvailability(); // NEW
-
-            ApplyPlayModeLocalization();
-
-        }
+   
         private void UpdateLivePreviewAvailability()
         {
             bool suspendMode = _currentPlayMode == PlaybackMode.OfflineVideo;
@@ -464,70 +442,7 @@ namespace CMDevicesManager.Pages
             //    _ = StartVideoPlaybackInternalAsync();
         }
 
-        private async void SuspendModeToggle_Click(object sender, RoutedEventArgs e)
-        {
-            if (!IsHidServiceReady || _hidDeviceService == null) return;
-
-
-            var toggle = sender as ToggleButton;
-            //var toggle = sender as ToggleButton;
-            if (toggle == null) return;
-
-            bool isActivated = toggle.IsChecked == true;
-
-            // No confirmation dialog needed - tooltip provides the info
-            try
-            {
-                SetLoadingState(true, LR(isActivated ? "PlayMode_ActivatingSuspend" : "PlayMode_ActivatingRealtime",
-                         isActivated ? "Activating offline mode..." : "Activating realtime mode..."));
-
-                await RestoreBrightnessFromServiceAsync();
-                var results = await _hidDeviceService.SetRealTimeDisplayAsync(!isActivated);
-                var successCount = results.Values.Count(r => r);
-
-                if (successCount > 0)
-                {
-                    ShowNotification(isActivated ? "Suspend mode activated successfully." : "RealTime mode activated successfully.");
-
-                    _currentPlayMode = isActivated ? PlaybackMode.OfflineVideo : PlaybackMode.RealtimeConfig;
-                    SavePlaybackModeToService(); // Save to offline data service
-                    UpdatePlayModeUI();
-                    // Update suspend mode display based on new state
-                    if (isActivated)
-                    {
-                        SuspendModeEnabled();
-                        // When activating suspend mode, refresh the display
-                        await RefreshSuspendMediaDisplay();
-                    }
-                    else
-                    {
-                        RealtimeStreamingEnabled();
-                        // When clearing suspend mode, hide all suspend content
-                        HideSuspendModeContent();
-
-                        // Refresh status to update display
-                        //await RefreshDeviceStatus();
-                    }
-                }
-                else
-                {
-                    ShowNotification($"Failed to {(isActivated ? "activate" : "clear")} suspend mode. Please try again.", true);
-                    // Revert toggle state on failure
-                    toggle.IsChecked = !isActivated;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to {(isActivated ? "activate" : "clear")} suspend mode: {ex.Message}");
-                ShowNotification($"Failed to {(isActivated ? "activate" : "clear")} suspend mode: {ex.Message}", true);
-                // Revert toggle state on exception
-                toggle.IsChecked = !isActivated;
-            }
-            finally
-            {
-                SetLoadingState(false);
-            }
-        }
+     
 
 
         // 在 UpdateButtonStates 内（如果保留）增加模式适配（可选）
@@ -1060,6 +975,73 @@ namespace CMDevicesManager.Pages
             catch
             {
                 return null;
+            }
+        }
+
+        private async void ScreenToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null) return;
+            if (sender is ToggleButton toggle)
+            {
+                bool isScreenOff = toggle.IsChecked == true;
+            // Implement your screen on/off logic here
+
+           
+                if (isScreenOff)
+                {
+                    // Turn screen off
+                }
+                else
+                {
+                    // Turn screen on
+
+                    try
+                    {
+                        SetLoadingState(true, LR("PlayMode_ClosingScreen", "Closing screen..."));
+                        // save current brightness level before turning off
+                        SaveCurrentBrightnessToService();
+
+                        // Set display brightness to 0 to turn off screen
+                        var results = await _hidDeviceService.SetBrightnessAsync(0);
+                        var successCount = results.Values.Count(r => r);
+
+                        if (successCount > 0)
+                        {
+                            _currentBrightness = 0;
+                            ApplyBrightnessToUi(_currentBrightness);
+                            ShowNotification(
+                                LR("PlayMode_ScreenClosedSuccess", "Screen closed successfully."),
+                                false,
+                                3000);
+
+                            Logger.Info($"Screen closed for {successCount} device(s)");
+                        }
+                        else
+                        {
+                            ShowNotification(
+                                LR("PlayMode_ScreenClosedFailed", "Failed to close screen. Please try again."),
+                                true,
+                                3000);
+
+                            Logger.Warn("Failed to close screen on all devices");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to close screen: {ex.Message}");
+                        Logger.Error($"Failed to close screen: {ex.Message}", ex);
+                        ShowNotification(
+                            string.Format(
+                                LR("PlayMode_ScreenClosedError", "Failed to close screen: {0}"),
+                                ex.Message),
+                            true,
+                            4000);
+                    }
+                    finally
+                    {
+                        SetLoadingState(false);
+                    }
+                }
             }
         }
         // 🆕 新增辅助方法：从左上角 X 坐标计算 TranslateTransform.X
@@ -3608,6 +3590,161 @@ namespace CMDevicesManager.Pages
             };
         }
 
+        private void UpdatePlayModeUI()
+        {
+            bool isRealtime = _currentPlayMode == PlaybackMode.RealtimeConfig;
+
+            // binding the SuspendModeToggle state from current mode
+            SuspendModeToggle.IsChecked = !isRealtime;
+
+            // ✅ 关键修复：确保两个容器的可见性正确切换
+            if (ConfigsContainer != null)
+            {
+                ConfigsContainer.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            if (SuspendModeContentArea != null)
+            {
+                SuspendModeContentArea.Visibility = isRealtime ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            // 更新按钮组可见性
+            if (ConfigActionButtons != null)
+            {
+                ConfigActionButtons.Visibility = isRealtime ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            // 更新标题和提示文本
+            if (PlayContentTitleText != null)
+            {
+                PlayContentTitleText.Text = isRealtime ? "Play Content" : "Offline Media";
+            }
+
+            if (PlayContentHintText != null)
+            {
+                PlayContentHintText.Text = isRealtime
+                    ? "Add configs to auto play (loop). Remove all to stop automatically."
+                    : "Configure offline media files below. Up to 5 media files can be added.";
+            }
+
+            // 🆕 Control overlay visibility
+            UpdateOfflineModeOverlay(!isRealtime);
+
+            UpdateLivePreviewAvailability();
+            ApplyPlayModeLocalization();
+
+            // ✅ 强制刷新布局
+            Dispatcher.InvokeAsync(() =>
+            {
+                if (ConfigsContainer != null) ConfigsContainer.UpdateLayout();
+                if (SuspendModeContentArea != null) SuspendModeContentArea.UpdateLayout();
+            }, System.Windows.Threading.DispatcherPriority.Render);
+        }
+
+        /// <summary>
+        /// Show or hide the offline mode overlay with animation
+        /// </summary>
+        private void UpdateOfflineModeOverlay(bool showOverlay)
+        {
+            if (OfflineModeOverlay == null) return;
+
+            if (showOverlay)
+            {
+                // Show overlay when switching to offline mode
+                OfflineModeOverlay.Visibility = Visibility.Visible;
+
+                // Optional: Auto-hide after a few seconds
+                var timer = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(3)
+                };
+                timer.Tick += (s, e) =>
+                {
+                    timer.Stop();
+                    if (_currentPlayMode == PlaybackMode.OfflineVideo)
+                    {
+                        // Fade out the overlay
+                        var fadeOut = new System.Windows.Media.Animation.DoubleAnimation
+                        {
+                            From = 1.0,
+                            To = 0.0,
+                            Duration = TimeSpan.FromSeconds(0.5)
+                        };
+                        fadeOut.Completed += (_, __) => OfflineModeOverlay.Visibility = Visibility.Collapsed;
+                        OfflineModeOverlay.BeginAnimation(UIElement.OpacityProperty, fadeOut);
+                    }
+                };
+                timer.Start();
+            }
+            else
+            {
+                // Hide overlay when switching back to realtime mode
+                OfflineModeOverlay.Visibility = Visibility.Collapsed;
+                OfflineModeOverlay.Opacity = 1.0; // Reset opacity
+            }
+        }
+
+        private async void SuspendModeToggle_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null) return;
+
+            var toggle = sender as ToggleButton;
+            if (toggle == null) return;
+
+            bool isActivated = toggle.IsChecked == true;
+
+            try
+            {
+                SetLoadingState(true, LR(isActivated ? "PlayMode_ActivatingSuspend" : "PlayMode_ActivatingRealtime",
+                         isActivated ? "Activating offline mode..." : "Activating realtime mode..."));
+
+                await RestoreBrightnessFromServiceAsync();
+                var results = await _hidDeviceService.SetRealTimeDisplayAsync(!isActivated);
+                var successCount = results.Values.Count(r => r);
+
+                if (successCount > 0)
+                {
+                    ShowNotification(isActivated ? "Suspend mode activated successfully." : "RealTime mode activated successfully.");
+
+                    // ✅ 关键：先更新模式状态
+                    _currentPlayMode = isActivated ? PlaybackMode.OfflineVideo : PlaybackMode.RealtimeConfig;
+                    SavePlaybackModeToService();
+
+                    // ✅ 然后更新UI - 这会根据新的 _currentPlayMode 来切换显示
+                    UpdatePlayModeUI();
+
+                    // ✅ 最后执行模式特定的操作
+                    if (isActivated)
+                    {
+                        SuspendModeEnabled();
+                        await RefreshSuspendMediaDisplay();
+                    }
+                    else
+                    {
+                        RealtimeStreamingEnabled();
+                        HideSuspendModeContent();
+                    }
+                }
+                else
+                {
+                    ShowNotification($"Failed to {(isActivated ? "activate" : "clear")} suspend mode. Please try again.", true);
+                    // ✅ 失败时恢复 toggle 状态
+                    toggle.IsChecked = !isActivated;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to {(isActivated ? "activate" : "clear")} suspend mode: {ex.Message}");
+                ShowNotification($"Failed to {(isActivated ? "activate" : "clear")} suspend mode: {ex.Message}", true);
+                // ✅ 异常时恢复 toggle 状态
+                toggle.IsChecked = !isActivated;
+            }
+            finally
+            {
+                SetLoadingState(false);
+            }
+        }
+
         /// <summary>
         /// Fetches the stored brightness value from the offline data service
         /// </summary>
@@ -3633,59 +3770,6 @@ namespace CMDevicesManager.Pages
         }
 
 
-        /// <summary>
-        /// Handle close screen button click to turn off the display
-        /// </summary>
-        private async void CloseScreenButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (!IsHidServiceReady || _hidDeviceService == null) return;
-
-            try
-            {
-                SetLoadingState(true, LR("PlayMode_ClosingScreen", "Closing screen..."));
-                // save current brightness level before turning off
-                SaveCurrentBrightnessToService();
-
-                // Set display brightness to 0 to turn off screen
-                var results = await _hidDeviceService.SetBrightnessAsync(0);
-                var successCount = results.Values.Count(r => r);
-
-                if (successCount > 0)
-                {
-                    _currentBrightness = 0;
-                    ApplyBrightnessToUi(_currentBrightness);
-                    ShowNotification(
-                        LR("PlayMode_ScreenClosedSuccess", "Screen closed successfully."),
-                        false,
-                        3000);
-
-                    Logger.Info($"Screen closed for {successCount} device(s)");
-                }
-                else
-                {
-                    ShowNotification(
-                        LR("PlayMode_ScreenClosedFailed", "Failed to close screen. Please try again."),
-                        true,
-                        3000);
-
-                    Logger.Warn("Failed to close screen on all devices");
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Failed to close screen: {ex.Message}");
-                Logger.Error($"Failed to close screen: {ex.Message}", ex);
-                ShowNotification(
-                    string.Format(
-                        LR("PlayMode_ScreenClosedError", "Failed to close screen: {0}"),
-                        ex.Message),
-                    true,
-                    4000);
-            }
-            finally
-            {
-                SetLoadingState(false);
-            }
-        }
+      
     }
 }

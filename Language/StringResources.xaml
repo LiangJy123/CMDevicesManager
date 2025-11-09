@@ -343,4 +343,13 @@
     <sys:String x:Key="PlayMode_ScreenClosedFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭画面失败，请重试</sys:String>
     <sys:String x:Key="PlayMode_ScreenClosedError" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭画面失败：{0}</sys:String>
 
+    <sys:String x:Key="PlayMode_ScreenOn" xmlns:sys="clr-namespace:System;assembly=mscorlib">开启画面</sys:String>
+    <sys:String x:Key="PlayMode_ScreenOff" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭画面</sys:String>
+    <sys:String x:Key="PlayMode_ScreenToggleTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">切换画面开关</sys:String>
+
+
+
+    <sys:String x:Key="PlayMode_OfflineModeTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">切换到离线模式</sys:String>
+    <sys:String x:Key="PlayMode_OfflineModeMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">请在下方配置离线媒体文件。离线模式下预览功能将被停用。</sys:String>
+
 </ResourceDictionary>

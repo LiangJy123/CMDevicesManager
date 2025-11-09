@@ -10,10 +10,13 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using CMDevicesManager.Pages;
 using static CMDevicesManager.Pages.DeviceConfigPage;
+using Application = System.Windows.Application;
 using Brush = System.Windows.Media.Brush;
 using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
+using FontFamily = System.Windows.Media.FontFamily;
 using Image = System.Windows.Controls.Image;
+using Panel = System.Windows.Controls.Panel;
 using Path = System.IO.Path;
 using Point = System.Windows.Point;
 using Rectangle = System.Windows.Shapes.Rectangle;
@@ -109,10 +112,10 @@ namespace CMDevicesManager.Services
 
 
         public RenderResult Apply(
-            CanvasConfiguration cfg,
-            RenderContext ctx,
-            Func<double>? getCpuPercent = null,
-            Func<double>? getGpuPercent = null)
+    CanvasConfiguration cfg,
+    RenderContext ctx,
+    Func<double>? getCpuPercent = null,
+    Func<double>? getGpuPercent = null)
         {
             var usage = new List<UsageVisualItem>();
             var moving = new Dictionary<Border, (double dx, double dy)>();
@@ -123,6 +126,14 @@ namespace CMDevicesManager.Services
             int canvasSize = cfg.CanvasSize > 0 ? cfg.CanvasSize : 512;
             designCanvas.Width = designCanvas.Height = canvasSize;
             double moveSpeed = cfg.MoveSpeed > 0 ? cfg.MoveSpeed : 100;
+
+            // ✅ 优化 Canvas 本身
+            ApplyRenderingOptimizations(designCanvas);
+
+            // ✅ 强制 Canvas 立即布局（关键修复）
+            designCanvas.Measure(new Size(canvasSize, canvasSize));
+            designCanvas.Arrange(new Rect(0, 0, canvasSize, canvasSize));
+            designCanvas.UpdateLayout();
 
             // Background color
             try
@@ -159,9 +170,13 @@ namespace CMDevicesManager.Services
             }
             else ctx.BgImage.Source = null;
 
+            designCanvas.Measure(new Size(canvasSize, canvasSize));
+            designCanvas.Arrange(new Rect(0, 0, canvasSize, canvasSize));
+            designCanvas.UpdateLayout();
+
             foreach (var elem in cfg.Elements.OrderBy(e => e.ZIndex))
             {
-                var elemCopy = elem; // 用于闭包（移动方向等）
+                var elemCopy = elem;
 
                 FrameworkElement? inner = null;
                 Border? host = null;
@@ -187,6 +202,8 @@ namespace CMDevicesManager.Services
 
                 if (inner == null) continue;
 
+                ApplyRenderingOptimizations(inner);
+
                 if (!usageVisual)
                 {
                     host = new Border
@@ -196,17 +213,22 @@ namespace CMDevicesManager.Services
                         RenderTransformOrigin = new Point(0.5, 0.5),
                         Opacity = elem.Opacity <= 0 ? 1 : elem.Opacity
                     };
+                    ApplyRenderingOptimizations(host);
                 }
                 else
                 {
                     host = usage.LastOrDefault()?.HostBorder;
                     if (host != null)
+                    {
+                        ApplyRenderingOptimizations(host);
                         host.Opacity = elem.Opacity <= 0 ? 1 : elem.Opacity;
+                    }
+
                 }
 
                 if (host == null) continue;
 
-                // ✅ Transform: 直接使用配置中的值（无需转换）
+                // Transform
                 var tg = new TransformGroup();
                 double scaleFactor = elem.Scale <= 0 ? 1.0 : elem.Scale;
                 var scaleTransform = new ScaleTransform(scaleFactor, scaleFactor);
@@ -217,13 +239,16 @@ namespace CMDevicesManager.Services
                 if (elem.Rotation.HasValue && Math.Abs(elem.Rotation.Value) > 0.01)
                     tg.Children.Add(new RotateTransform(elem.Rotation.Value));
 
-                // ✅ 直接使用保存的 TranslateTransform 值
                 var translate = new TranslateTransform(elem.X, elem.Y);
                 tg.Children.Add(translate);
 
                 host.RenderTransform = tg;
                 Canvas.SetZIndex(host, elem.ZIndex);
                 designCanvas.Children.Add(host);
+
+                // ✅ 关键修复：立即测量每个元素
+                host.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                host.Arrange(new Rect(host.DesiredSize));
 
                 // moving
                 if ((elem.Type == "Text" || elem.Type == "LiveText")
@@ -234,22 +259,32 @@ namespace CMDevicesManager.Services
                 }
             }
 
+            // ✅ 最终布局刷新
+            designCanvas.UpdateLayout();
+            designCanvas.InvalidateVisual();
+
             return new RenderResult(usage, moving, canvasSize, moveSpeed);
         }
 
+       
+
+
         #region Element builders
         private FrameworkElement BuildText(ElementConfiguration e)
-        {
-            var tb = new TextBlock
-            {
-                Text = e.Text ?? "Text",
-                FontSize = e.FontSize ?? 24,
-                FontWeight = FontWeights.SemiBold
-            };
-            tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
-            ApplyTextColors(tb, e.UseTextGradient, e.TextColor, e.TextColor2);
-            return tb;
-        }
+{
+    var tb = new TextBlock
+    {
+        Text = e.Text ?? "Text",
+        FontSize = e.FontSize ?? 24,
+        FontWeight = FontWeights.SemiBold
+    };
+    
+    // ✅ 最终修复：使用 SetResourceReference 而不是 TryFindResource
+    tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+    
+    ApplyTextColors(tb, e.UseTextGradient, e.TextColor, e.TextColor2);
+    return tb;
+}
 
         private FrameworkElement BuildLive(
             ElementConfiguration e,
@@ -315,6 +350,10 @@ namespace CMDevicesManager.Services
                     BorderBrush = new SolidColorBrush(Color.FromRgb(70, 80, 96)),
                     BorderThickness = new Thickness(1)
                 };
+
+                // ✅ 优化 Border
+                ApplyRenderingOptimizations(bg);
+
                 var fill = new Rectangle
                 {
                     Margin = margin,
@@ -325,6 +364,10 @@ namespace CMDevicesManager.Services
                     Fill = new LinearGradientBrush(startColor, endColor, 0),
                     Width = 0
                 };
+
+                // ✅ 优化 Rectangle
+                ApplyRenderingOptimizations(fill);
+
                 tb.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
                 tb.VerticalAlignment = System.Windows.VerticalAlignment.Bottom;
                 tb.FontSize = 14;
@@ -336,6 +379,9 @@ namespace CMDevicesManager.Services
                 layer.Children.Add(fill);
                 container.Children.Add(layer);
                 container.Children.Add(tb);
+
+                // ✅ 优化容器
+                ApplyRenderingOptimizations(container);
 
                 var item = new UsageVisualItem
                 {
@@ -351,12 +397,19 @@ namespace CMDevicesManager.Services
 
                 var host = new Border { Child = container };
                 item.HostBorder = host;
+
+                // ✅ 优化 host
+                ApplyRenderingOptimizations(host);
+
                 return container;
             }
             else // Gauge
             {
                 var container = new Grid { Width = 160, Height = 120 };
                 var canvas = new Canvas { Width = 160, Height = 120 };
+
+                // ✅ 优化 Canvas（包括所有刻度线）
+                ApplyRenderingOptimizations(canvas);
 
                 for (int p = 0; p <= 100; p += GaugeMinorStep)
                 {
@@ -381,6 +434,10 @@ namespace CMDevicesManager.Services
                         StrokeEndLineCap = PenLineCap.Round,
                         Stroke = new SolidColorBrush(Color.FromRgb(120, 160, 120))
                     };
+
+                    // ✅ 优化每条刻度线
+                    ApplyRenderingOptimizations(tick);
+
                     canvas.Children.Add(tick);
                 }
 
@@ -397,6 +454,10 @@ namespace CMDevicesManager.Services
                 };
                 var rt = new RotateTransform(GaugeRotationFromPercent(0), GaugeCenterX, GaugeCenterY);
                 needle.RenderTransform = rt;
+
+                // ✅ 优化指针
+                ApplyRenderingOptimizations(needle);
+
                 canvas.Children.Add(needle);
 
                 var cap = new Ellipse
@@ -409,6 +470,10 @@ namespace CMDevicesManager.Services
                 };
                 Canvas.SetLeft(cap, GaugeCenterX - 9);
                 Canvas.SetTop(cap, GaugeCenterY - 9);
+
+                // ✅ 优化中心圆
+                ApplyRenderingOptimizations(cap);
+
                 canvas.Children.Add(cap);
 
                 tb.HorizontalAlignment = System.Windows.HorizontalAlignment.Center;
@@ -416,6 +481,9 @@ namespace CMDevicesManager.Services
                 tb.FontSize = 18;
                 container.Children.Add(canvas);
                 container.Children.Add(tb);
+
+                // ✅ 优化容器
+                ApplyRenderingOptimizations(container);
 
                 var item = new UsageVisualItem
                 {
@@ -430,6 +498,10 @@ namespace CMDevicesManager.Services
                 usageCollector.Add(item);
                 var host = new Border { Child = container };
                 item.HostBorder = host;
+
+                // ✅ 优化 host
+                ApplyRenderingOptimizations(host);
+
                 return container;
             }
         }
@@ -452,6 +524,49 @@ namespace CMDevicesManager.Services
             catch { return null; }
         }
 
+        private static void ApplyRenderingOptimizations(UIElement element)
+        {
+            if (element == null) return;
+
+            // ✅ 为所有元素设置基础渲染优化
+            if (element is FrameworkElement fe)
+            {
+                fe.Visibility = Visibility.Visible;
+                fe.UseLayoutRounding = true;
+                fe.SnapsToDevicePixels = true;
+            }
+
+            RenderOptions.SetBitmapScalingMode(element, BitmapScalingMode.HighQuality);
+            RenderOptions.SetEdgeMode(element, EdgeMode.Aliased);
+
+            // ✅ 图片特别优化
+            if (element is Image img)
+            {
+                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+            }
+
+            // ✅ 关键修复：递归处理所有子元素
+            if (element is Panel panel)
+            {
+                foreach (UIElement child in panel.Children)
+                {
+                    ApplyRenderingOptimizations(child);
+                }
+            }
+            else if (element is Border border && border.Child != null)
+            {
+                ApplyRenderingOptimizations(border.Child);
+            }
+            else if (element is ContentControl cc && cc.Content is UIElement contentElement)
+            {
+                ApplyRenderingOptimizations(contentElement);
+            }
+            else if (element is Decorator decorator && decorator.Child != null)
+            {
+                ApplyRenderingOptimizations(decorator.Child);
+            }
+        }
+
         private FrameworkElement BuildVideoPlaceholder()
         {
             var tb = new TextBlock
@@ -463,7 +578,10 @@ namespace CMDevicesManager.Services
                 Background = new SolidColorBrush(Color.FromArgb(60, 0, 0, 0)),
                 Padding = new Thickness(10)
             };
+
+            // ✅ 修复：直接设置字体
             tb.SetResourceReference(TextBlock.FontFamilyProperty, "AppFontFamily");
+
             return tb;
         }
         #endregion

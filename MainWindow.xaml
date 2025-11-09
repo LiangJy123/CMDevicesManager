@@ -237,7 +237,7 @@
                                               Opacity="0.3" 
                                               BlurRadius="16"/>
                         </Border.Effect>
-                        
+
                         <Grid Width="90">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="*"/>
@@ -336,93 +336,115 @@
                     <!-- 内容区域 -->
                     <Grid Grid.Column="1" Margin="4,12,12,12">
                         <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" Background="Transparent"/>
+                        <!-- ✅ 改用 Collapsed 而不是 Hidden -->
+                        <Grid x:Name="GlobalMirrorHost"
+                        Visibility="Collapsed" 
+                        Opacity="1"
+                        IsHitTestVisible="False"  Panel.ZIndex="9">
+
+
+                            <!-- 关键修改 3 -->
+
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="32"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+
+                                <DockPanel Grid.Row="0">
+                                    <TextBlock Text="Mirror Preview (512x512)" 
+                     Foreground="White"
+                     FontSize="14"
+                     FontWeight="SemiBold"
+                     VerticalAlignment="Center"/>
+                                    <Button Content="✕"
+                  Width="32"
+                  Height="24"
+                  HorizontalAlignment="Right"
+                  DockPanel.Dock="Right"
+                  Margin="4,0,0,0"
+                  Click="CloseMirrorPreview_Click"
+                  Style="{StaticResource TitleBarButtonStyle}"/>
+                                </DockPanel>
+
+                                <Grid Grid.Row="1" 
+            HorizontalAlignment="Center" 
+            VerticalAlignment="Center">
+
+                                    <Grid x:Name="MirrorRoot" 
+      Width="512" 
+      Height="512"
+      Opacity="1"  
+      UseLayoutRounding="True"
+      SnapsToDevicePixels="True"
+      RenderOptions.BitmapScalingMode="HighQuality"
+      RenderOptions.EdgeMode="Aliased">
+                                        <!-- ❌ 移除所有 TextOptions 设置！ -->
+
+                                        <Grid>
+                                            <Rectangle x:Name="MirrorBgRect"
+                   UseLayoutRounding="True"
+                   SnapsToDevicePixels="True"/>
+
+                                            <Image x:Name="MirrorBgImage" 
+               Stretch="UniformToFill"
+               UseLayoutRounding="True"
+               SnapsToDevicePixels="True"
+               RenderOptions.BitmapScalingMode="HighQuality"/>
+                                        </Grid>
+
+                                        <Canvas x:Name="MirrorDesignCanvas"
+            Width="512"
+            Height="512"
+            Background="Transparent"
+            ClipToBounds="True"
+            Panel.ZIndex="1"
+            UseLayoutRounding="True"
+            SnapsToDevicePixels="True"
+            RenderOptions.BitmapScalingMode="HighQuality"
+            RenderOptions.EdgeMode="Aliased">
+                                            <!-- ❌ 移除 TextFormattingMode/TextRenderingMode/TextHintingMode！ -->
+
+                                            <!-- ✅ 只保留通用的渲染优化 -->
+                                            <Canvas.Resources>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="UseLayoutRounding" Value="True"/>
+                                                    <Setter Property="SnapsToDevicePixels" Value="True"/>
+                                                    <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality"/>
+                                                    <Setter Property="RenderOptions.EdgeMode" Value="Aliased"/>
+                                                </Style>
+
+                                                <Style TargetType="Border">
+                                                    <Setter Property="UseLayoutRounding" Value="True"/>
+                                                    <Setter Property="SnapsToDevicePixels" Value="True"/>
+                                                    <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality"/>
+                                                    <Setter Property="RenderOptions.EdgeMode" Value="Aliased"/>
+                                                </Style>
+
+                                                <Style TargetType="Shape">
+                                                    <Setter Property="UseLayoutRounding" Value="True"/>
+                                                    <Setter Property="SnapsToDevicePixels" Value="True"/>
+                                                    <Setter Property="RenderOptions.EdgeMode" Value="Aliased"/>
+                                                </Style>
+
+                                                <Style TargetType="Image">
+                                                    <Setter Property="UseLayoutRounding" Value="True"/>
+                                                    <Setter Property="SnapsToDevicePixels" Value="True"/>
+                                                    <Setter Property="RenderOptions.BitmapScalingMode" Value="HighQuality"/>
+                                                </Style>
+                                            </Canvas.Resources>
+                                        </Canvas>
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+
+                        </Grid>
                     </Grid>
                 </Grid>
             </Grid>
         </Border>
 
-        <!-- Mirror Preview 弹窗 - 深蓝紫渐变 -->
-        <Grid x:Name="GlobalMirrorHost"
-              Visibility="Hidden"
-              Opacity="0"
-              IsHitTestVisible="False">
-            <!-- 半透明遮罩 -->
-            <Border Background="#40000000"/>
 
-            <Border Width="560"
-                    Height="560"
-                    CornerRadius="16"
-                    BorderThickness="1.5"
-                    Padding="12"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,50,16,0">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1" Opacity="0.92">
-                        <GradientStop Color="#1A1F3A" Offset="0.0"/>
-                        <GradientStop Color="#2D1B3D" Offset="1.0"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-                <Border.BorderBrush>
-                    <SolidColorBrush Color="#5B7FFF" Opacity="0.5"/>
-                </Border.BorderBrush>
-                <Border.Effect>
-                    <DropShadowEffect Color="#6B4FFF" 
-                                      Direction="270" 
-                                      ShadowDepth="6" 
-                                      Opacity="0.5" 
-                                      BlurRadius="20"/>
-                </Border.Effect>
-
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="32"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <DockPanel Grid.Row="0">
-                        <TextBlock Text="Mirror Preview (512x512)" 
-                                   Foreground="White"
-                                   FontSize="14"
-                                   FontWeight="SemiBold"
-                                   VerticalAlignment="Center">
-                            <TextBlock.Effect>
-                                <DropShadowEffect Color="#00D9FF" 
-                                                  ShadowDepth="0" 
-                                                  BlurRadius="8" 
-                                                  Opacity="0.4"/>
-                            </TextBlock.Effect>
-                        </TextBlock>
-                        <Button Content="✕"
-                                Width="32"
-                                Height="24"
-                                HorizontalAlignment="Right"
-                                DockPanel.Dock="Right"
-                                Margin="4,0,0,0"
-                                Click="CloseMirrorPreview_Click"
-                                Style="{StaticResource TitleBarButtonStyle}"/>
-                    </DockPanel>
-
-                    <!-- 镜像根容器 -->
-                    <Grid Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <Border BorderThickness="1.5" CornerRadius="8" Background="White">
-                            <Border.BorderBrush>
-                                <SolidColorBrush Color="#5B7FFF" Opacity="0.4"/>
-                            </Border.BorderBrush>
-                            <Grid x:Name="MirrorRoot" Width="512" Height="512">
-                                <Rectangle x:Name="MirrorBgRect"/>
-                                <Image x:Name="MirrorBgImage" Stretch="UniformToFill"/>
-                                <Canvas x:Name="MirrorDesignCanvas"
-                                        Width="512"
-                                        Height="512"
-                                        Background="Transparent"
-                                        ClipToBounds="True"/>
-                            </Grid>
-                        </Border>
-                    </Grid>
-                </Grid>
-            </Border>
-        </Grid>
     </Grid>
 
     <!-- 动画 - 改为青色到蓝紫色流动 -->

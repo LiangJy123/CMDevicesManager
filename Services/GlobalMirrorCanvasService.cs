@@ -144,7 +144,32 @@ namespace CMDevicesManager.Services
             _bgRect = bgRect;
             _bgImage = bgImage;
             _designCanvas = designCanvas;
+
+            ApplyHighQualityRendering(_rootVisual);
+            ApplyHighQualityRendering(_designCanvas);
+            ApplyHighQualityRendering(bgRect);
+            ApplyHighQualityRendering(bgImage);
+
+
             _initialized = true;
+        }
+        private static void ApplyHighQualityRendering(UIElement element)
+        {
+            if (element == null) return;
+
+            RenderOptions.SetBitmapScalingMode(element, BitmapScalingMode.HighQuality);
+            RenderOptions.SetEdgeMode(element, EdgeMode.Aliased);
+            RenderOptions.SetClearTypeHint(element, ClearTypeHint.Enabled);
+
+            TextOptions.SetTextFormattingMode(element, TextFormattingMode.Display);
+            TextOptions.SetTextRenderingMode(element, TextRenderingMode.ClearType);
+            TextOptions.SetTextHintingMode(element, TextHintingMode.Fixed);
+
+            if (element is FrameworkElement fe)
+            {
+                fe.UseLayoutRounding = true;
+                fe.SnapsToDevicePixels = true;
+            }
         }
 
         private static string NormalizeColorOrWhite(string? input)
@@ -464,7 +489,49 @@ namespace CMDevicesManager.Services
 
             _hasActiveContent = (cfg.Elements?.Count ?? 0) > 0;
 
-           
+            // ✅ 新方案：完全不使用 Glyph 预渲染，改用 CachingHint
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _designCanvas.UpdateLayout();
+
+                // ✅ 为 Canvas 设置缓存模式
+                RenderOptions.SetCachingHint(_designCanvas, CachingHint.Cache);
+                RenderOptions.SetCacheInvalidationThresholdMinimum(_designCanvas, 0.5);
+                RenderOptions.SetCacheInvalidationThresholdMaximum(_designCanvas, 2.0);
+
+                // 强制每个子元素使用高质量渲染
+                foreach (UIElement child in _designCanvas.Children)
+                {
+                    if (child is FrameworkElement fe)
+                    {
+                        // ✅ 设置缓存提示
+                        RenderOptions.SetCachingHint(fe, CachingHint.Cache);
+
+                        fe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                        fe.Arrange(new Rect(fe.DesiredSize));
+
+                        if (fe is Border border && border.Child is FrameworkElement childFe)
+                        {
+                            RenderOptions.SetCachingHint(childFe, CachingHint.Cache);
+
+                            childFe.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                            childFe.Arrange(new Rect(childFe.DesiredSize));
+
+                            if (childFe is TextBlock tb)
+                            {
+                                // ✅ 强制设置文本优化
+                                RenderOptions.SetCachingHint(tb, CachingHint.Cache);
+                                tb.InvalidateVisual();
+                            }
+                        }
+                    }
+                }
+
+                _designCanvas.InvalidateVisual();
+                _designCanvas.UpdateLayout();
+
+            }, System.Windows.Threading.DispatcherPriority.Render);
+
             StartTimers();
             SetupVideoElements(cfg);
         }
@@ -1597,16 +1664,23 @@ namespace CMDevicesManager.Services
             {
                 using var _ = freezeMovement ? FreezeMovementScope() : null;
 
-                // 冻结逻辑下再手动更新一次布局
                 ForceCanvasLayoutRefresh();
                 Application.Current.Dispatcher.Invoke(() => { }, DispatcherPriority.Render);
 
                 int size = _canvasSize > 0 ? _canvasSize : 512;
-                var rtb = new RenderTargetBitmap(size, size, 96, 96, PixelFormats.Pbgra32);
+
+                // ✅ 关键修改：获取真实 DPI
+                var dpiInfo = VisualTreeHelper.GetDpi(_designCanvas);
+                double dpiX = 96 * dpiInfo.DpiScaleX;
+                double dpiY = 96 * dpiInfo.DpiScaleY;
+                int pixelW = (int)Math.Round(size * dpiInfo.DpiScaleX);
+                int pixelH = (int)Math.Round(size * dpiInfo.DpiScaleY);
+
+                var rtb = new RenderTargetBitmap(pixelW, pixelH, dpiX, dpiY, PixelFormats.Pbgra32);
 
                 if (includeBackground && _rootVisual != null && _bgRect != null)
                 {
-                    // 合成背景 + 设计层：用 DrawingVisual 减少依赖 root 可见性
+                    // ✅ 不使用 VisualBrush，改用 DrawingVisual 直接渲染
                     var dv = new DrawingVisual();
                     using (var dc = dv.RenderOpen())
                     {
@@ -1622,33 +1696,69 @@ namespace CMDevicesManager.Services
                             dc.Pop();
                         }
 
-                        // 设计层
-                        var vb = new VisualBrush(_designCanvas) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top };
-                        dc.DrawRectangle(vb, null, new Rect(0, 0, size, size));
+                        // ✅ 手动渲染每个子元素，避免 VisualBrush
+                        foreach (UIElement child in _designCanvas.Children)
+                        {
+                            if (child is Border border)
+                            {
+                                var bounds = VisualTreeHelper.GetDescendantBounds(border);
+                                var transform = border.TransformToAncestor(_designCanvas);
+                                var offset = transform.Transform(new Point(0, 0));
+
+                                dc.PushTransform(new TranslateTransform(offset.X, offset.Y));
+
+                                // 渲染 Border 内容
+                                var vt = border.RenderTransform;
+                                if (vt != null)
+                                    dc.PushTransform(vt);
+
+                                // 创建临时 VisualBrush（仅针对单个元素，影响较小）
+                                var elementBrush = new VisualBrush(border)
+                                {
+                                    Stretch = Stretch.None,
+                                    ViewboxUnits = BrushMappingMode.Absolute,
+                                    Viewbox = new Rect(0, 0, border.ActualWidth, border.ActualHeight)
+                                };
+
+                                // ✅ 设置 VisualBrush 的渲染选项
+                                RenderOptions.SetCachingHint(elementBrush, CachingHint.Cache);
+                                RenderOptions.SetBitmapScalingMode(elementBrush, BitmapScalingMode.HighQuality);
+
+                                dc.DrawRectangle(elementBrush, null,
+                                    new Rect(0, 0, border.ActualWidth, border.ActualHeight));
+
+                                if (vt != null)
+                                    dc.Pop();
+                                dc.Pop();
+                            }
+                        }
                     }
                     rtb.Render(dv);
                 }
                 else
                 {
+                    // ✅ 直接渲染 Canvas
                     rtb.Render(_designCanvas);
                 }
 
                 BitmapEncoder encoder = Path.GetExtension(filePath).ToLowerInvariant() switch
                 {
-                    ".jpg" or ".jpeg" => new JpegBitmapEncoder(),
+                    ".jpg" or ".jpeg" => new JpegBitmapEncoder { QualityLevel = 95 },
                     ".bmp" => new BmpBitmapEncoder(),
                     _ => new PngBitmapEncoder()
                 };
                 encoder.Frames.Add(BitmapFrame.Create(rtb));
+
                 Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
                 using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
                 encoder.Save(fs);
-                Logger.Info($"[MoveDbg] Canvas snapshot saved: {filePath}");
+
+                Logger.Info($"[Canvas] Snapshot saved: {filePath} DPI: {dpiX:F1}x{dpiY:F1} Pixels: {pixelW}x{pixelH}");
                 return true;
             }
             catch (Exception ex)
             {
-                Logger.Info("[MoveDbg] Canvas snapshot failed: " + ex.Message);
+                Logger.Info("[Canvas] Snapshot failed: " + ex.Message);
                 return false;
             }
         }
