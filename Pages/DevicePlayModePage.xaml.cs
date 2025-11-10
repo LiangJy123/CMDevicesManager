@@ -990,6 +990,8 @@ namespace CMDevicesManager.Pages
                 if (isScreenOff)
                 {
                     // Turn screen off
+
+                    await RestoreBrightnessFromServiceAsync();
                 }
                 else
                 {
