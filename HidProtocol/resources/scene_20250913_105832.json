@@ -1,0 +1,87 @@
+{
+  "sceneName": "Exported Scene",
+  "exportDate": "2025-09-13T10:58:35.744637+08:00",
+  "version": "1.0",
+  "canvasWidth": 480,
+  "canvasHeight": 480,
+  "showTime": true,
+  "showDate": true,
+  "showSystemInfo": true,
+  "showAnimation": true,
+  "backgroundType": "Image",
+  "backgroundOpacity": 1,
+  "backgroundColor": {
+    "a": 255,
+    "r": 0,
+    "g": 64,
+    "b": 0
+  },
+  "backgroundGradientEndColor": {
+    "a": 255,
+    "r": 0,
+    "g": 128,
+    "b": 64
+  },
+  "backgroundScaleMode": "UniformToFill",
+  "gradientDirection": "TopToBottom",
+  "backgroundImagePath": "C:\\out\\MyLed\\CMDevicesManager\\HidProtocol\\resources\\osd3d-480.png",
+  "targetFPS": 30,
+  "jpegQuality": 85,
+  "elements": [
+    {
+      "id": "80ded705-8c77-41ab-82f4-c1c4b3c6c138",
+      "name": "MotionText_89691137-d62a-4dcc-bf03-9304a7746d0a",
+      "type": "Text",
+      "position": {
+        "x": 72.5,
+        "y": 147
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": {
+        "text": "Sample Text",
+        "fontSize": 46.52915,
+        "fontFamily": "Segoe UI",
+        "textColor": {
+          "a": 255,
+          "r": 103,
+          "g": 173,
+          "b": 198
+        },
+        "size": {
+          "width": 200,
+          "height": 50
+        }
+      },
+      "imageData": null,
+      "shapeData": null,
+      "liveData": null,
+      "motionData": {
+        "originalPosition": {
+          "x": 72.5,
+          "y": 147
+        },
+        "motionConfig": {
+          "motionType": "None",
+          "speed": 100,
+          "direction": {
+            "x": 0.57565075,
+            "y": -0.8176957
+          },
+          "center": {
+            "x": 160,
+            "y": 298
+          },
+          "radius": 50,
+          "respectBoundaries": true,
+          "showTrail": false,
+          "trailLength": 20,
+          "isPaused": false
+        },
+        "startTime": "2025-09-13T10:56:00.9715976+08:00",
+        "currentAngle": 0
+      }
+    }
+  ]
+}

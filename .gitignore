@@ -420,3 +420,9 @@ app.log
 *.msix
 *.msm
 *.msp
+
+
+ffmpeg.exe
+ffprobe.exe
+
+ini Setup/Output

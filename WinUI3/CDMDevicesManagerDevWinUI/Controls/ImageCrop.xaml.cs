@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
+using CommunityToolkit.WinUI.Controls;
 
 namespace CDMDevicesManagerDevWinUI.Controls
 {
@@ -26,7 +27,7 @@ namespace CDMDevicesManagerDevWinUI.Controls
             
             // Set default properties for the ImageCropper
             ImageCropper.AspectRatio = 1.0; // Square aspect ratio for 480x480
-            ImageCropper.CropShape = CommunityToolkit.WinUI.Controls.CropShape.Rectangular;
+            ImageCropper.CropShape = CropShape.Rectangular;
         }
 
         /// <summary>
@@ -92,7 +93,7 @@ namespace CDMDevicesManagerDevWinUI.Controls
         /// <summary>
         /// Gets or sets the crop shape
         /// </summary>
-        public CommunityToolkit.WinUI.Controls.CropShape CropShape
+        public CropShape CropShape
         {
             get => ImageCropper.CropShape;
             set => ImageCropper.CropShape = value;
@@ -178,7 +179,7 @@ namespace CDMDevicesManagerDevWinUI.Controls
                     try
                     {
                         // Try to save using the correct CommunityToolkit API
-                        await ImageCropper.SaveAsync(fileStream, CommunityToolkit.WinUI.Controls.BitmapFileFormat.Jpeg);
+                        await ImageCropper.SaveAsync(fileStream, BitmapFileFormat.Jpeg);
                     }
                     catch (Exception saveEx)
                     {
@@ -327,7 +328,7 @@ namespace CDMDevicesManagerDevWinUI.Controls
         /// <summary>
         /// Gets access to the underlying ImageCropper control for advanced operations
         /// </summary>
-        public CommunityToolkit.WinUI.Controls.ImageCropper ImageCropperControl => ImageCropper;
+        public ImageCropper ImageCropperControl => ImageCropper;
 
         /// <summary>
         /// Gets the original image file

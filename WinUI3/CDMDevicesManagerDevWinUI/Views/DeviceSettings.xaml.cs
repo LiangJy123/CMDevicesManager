@@ -563,7 +563,23 @@ namespace CDMDevicesManagerDevWinUI.Views
                         var croppedFile = await ShowImageCropDialogAsync(file, slotIndex);
                         if (croppedFile != null)
                         {
-                            fileToAdd = croppedFile;
+                            // How to resize  TODO::::
+
+                            // Save cropped file to app temp folder
+                            var tempFolder = ApplicationData.Current.TemporaryFolder;
+                            var tempFileName = $"cropped_slot_{slotIndex}_{Path.GetFileNameWithoutExtension(file.Name)}.jpg";
+                            var tempCroppedFile = await tempFolder.CreateFileAsync(tempFileName, CreationCollisionOption.ReplaceExisting);
+
+                            // Copy the cropped image to temp folder
+                            using (var sourceStream = await croppedFile.OpenReadAsync())
+                            using (var destStream = await tempCroppedFile.OpenAsync(FileAccessMode.ReadWrite))
+                            {
+                                await sourceStream.AsStreamForRead().CopyToAsync(destStream.AsStreamForWrite());
+                                await destStream.FlushAsync();
+                            }
+
+                            // Use the temp file for further processing
+                            fileToAdd = file;
                             Debug.WriteLine($"Using cropped image file: {croppedFile.Name}");
                         }
                         else
@@ -1982,17 +1998,17 @@ namespace CDMDevicesManagerDevWinUI.Views
             try
             {
                 var tempFolder = ApplicationData.Current.TemporaryFolder;
-                var fileName = $"resized_{slotIndex}_{Path.GetFileNameWithoutExtension(originalFile.Name)}.png";
+                var fileName = $"resized_{slotIndex}_{Path.GetFileNameWithoutExtension(originalFile.Name)}.jpg";
                 var tempFile = await tempFolder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
 
                 using (var originalStream = await originalFile.OpenReadAsync())
                 using (var outputStream = await tempFile.OpenAsync(FileAccessMode.ReadWrite))
                 {
                     // Decode original image
-                    var decoder = await BitmapDecoder.CreateAsync(originalStream);
+                    var decoder = await BitmapDecoder.CreateAsync(BitmapEncoder.JpegEncoderId,originalStream);
                     
                     // Create encoder for output
-                    var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, outputStream);
+                    var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.JpegEncoderId, outputStream);
                     
                     // Get pixel data
                     var pixelData = await decoder.GetPixelDataAsync();
@@ -2037,169 +2053,44 @@ namespace CDMDevicesManagerDevWinUI.Views
         {
             try
             {
-                // Create temporary cropped image file
-                var tempFolder = ApplicationData.Current.TemporaryFolder;
-                var croppedFileName = $"cropped_{slotIndex}_{Path.GetFileNameWithoutExtension(originalFile.Name)}.jpg";
-                var croppedImageFile = await tempFolder.CreateFileAsync(croppedFileName, CreationCollisionOption.ReplaceExisting);
-
-                // Create the ImageCrop UserControl
-                var imageCropControl = new CDMDevicesManagerDevWinUI.Controls.ImageCrop();
-
-                // Set up the control properties
-                imageCropControl.Width = 520;
-                imageCropControl.Height = 560; // Extra height for buttons
-                imageCropControl.AspectRatio = 1.0; // Square aspect ratio for 480x480
-                imageCropControl.CropShape = CommunityToolkit.WinUI.Controls.CropShape.Rectangular;
-
-                // Initialize the ImageCrop control with the files
-                await imageCropControl.InitializeAsync(originalFile, croppedImageFile);
-
-                // Create result tracking variables
-                bool? dialogResult = null;
-                StorageFile? resultFile = null;
-
-                // Subscribe to the ImageSaved event to capture the result
-                EventHandler<CDMDevicesManagerDevWinUI.Controls.ImageCropSavedEventArgs>? savedHandler = null;
-                savedHandler = (sender, args) =>
-                {
-                    dialogResult = true;
-                    resultFile = args.CroppedImageFile;
-                    Debug.WriteLine($"Image cropped and saved: {args.CroppedImagePath}");
-                };
-                imageCropControl.ImageSaved += savedHandler;
-
-                // Create the ContentDialog with ScrollViewer for better layout
-                var scrollViewer = new ScrollViewer
-                {
-                    Content = imageCropControl,
-                    ZoomMode = ZoomMode.Disabled,
-                    HorizontalScrollMode = ScrollMode.Disabled,
-                    VerticalScrollMode = ScrollMode.Auto,
-                    HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    MaxHeight = 600 // Limit dialog height
-                };
-
                 var cropDialog = new ContentDialog
                 {
-                    Title = "Crop Image for 480x480 Display",
-                    PrimaryButtonText = "Use Cropped Image",
-                    SecondaryButtonText = "Use Original",
-                    CloseButtonText = "Cancel",
+                    Title = "Crop Image",
+                    PrimaryButtonText = "Save",
+                    SecondaryButtonText = "Cancel",
                     DefaultButton = ContentDialogButton.Primary,
                     XamlRoot = this.XamlRoot,
-                    Content = scrollViewer
+                    FullSizeDesired = true
                 };
-
-                // Handle dialog closing to save the image if primary button is clicked
-                cropDialog.PrimaryButtonClick += async (s, args) =>
+                var imageCropControl = new ImageCropper();
+                imageCropControl.AspectRatio = 1.0; // Square crop
+                imageCropControl.CropShape = CropShape.Rectangular;
+                await imageCropControl.LoadImageFromFile(originalFile);
+                cropDialog.Content = imageCropControl;
+                var result = await cropDialog.ShowAsync();
+                if (result == ContentDialogResult.Primary)
                 {
-                    // Defer the dialog closing to allow save operation
-                    args.Cancel = true;
-                    
-                    try
+                    // User clicked Save, get the cropped image
+                    var someFile = await ApplicationData.Current.TemporaryFolder.CreateFileAsync($"cropped_{slotIndex}_{Path.GetFileNameWithoutExtension(originalFile.Name)}.jpg", CreationCollisionOption.ReplaceExisting);
+                    //Saves the cropped image to a stream.
+                    using (var fileStream = await someFile.OpenAsync(FileAccessMode.ReadWrite, StorageOpenOptions.None))
                     {
-                        // Trigger save operation
-                        var saveResult = await imageCropControl.SaveCroppedImageAsync();
-                        if (saveResult)
-                        {
-                            dialogResult = true;
-                            resultFile = croppedImageFile;
-                            Debug.WriteLine("Successfully saved cropped image");
-                        }
-                        else
-                        {
-                            dialogResult = false;
-                            Debug.WriteLine("Failed to save cropped image");
-                        }
+                        await imageCropControl.SaveAsync(fileStream, BitmapFileFormat.Jpeg);
+                        return someFile;
                     }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Error saving cropped image: {ex.Message}");
-                        dialogResult = false;
-                    }
-                    
-                    // Close the dialog after save operation
-                    cropDialog.Hide();
-                };
 
-                cropDialog.SecondaryButtonClick += (s, args) =>
-                {
-                    // User wants to use original image - create a copy
-                    dialogResult = null; // Special case: use original
-                };
-
-                cropDialog.CloseButtonClick += (s, args) =>
-                {
-                    dialogResult = false; // User cancelled
-                };
-
-                // Show the dialog
-                var contentDialogResult = await cropDialog.ShowAsync();
-
-                // Clean up event subscription
-                if (savedHandler != null)
-                {
-                    imageCropControl.ImageSaved -= savedHandler;
-                }
-
-                // Handle the different outcomes
-                if (dialogResult == true)
-                {
-                    // User saved cropped image
-                    if (resultFile != null && await resultFile.GetBasicPropertiesAsync() != null)
-                    {
-                        Debug.WriteLine($"Returning cropped image: {resultFile.Name}");
-                        return resultFile;
-                    }
-                    else
-                    {
-                        Debug.WriteLine("Cropped file is invalid, falling back to original");
-                        return await CreateResizedCopyOfOriginal(originalFile, slotIndex);
-                    }
-                }
-                else if (dialogResult == null && contentDialogResult == ContentDialogResult.Secondary)
-                {
-                    // User chose to use original image - create a resized copy
-                    Debug.WriteLine("User chose to use original image, creating resized copy");
-                    return await CreateResizedCopyOfOriginal(originalFile, slotIndex);
                 }
                 else
                 {
                     // User cancelled
-                    Debug.WriteLine("User cancelled image cropping");
-                    
-                    // Clean up the temporary file if it was created
-                    try
-                    {
-                        if (await tempFolder.TryGetItemAsync(croppedFileName) != null)
-                        {
-                            await croppedImageFile.DeleteAsync();
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Failed to clean up temporary file: {ex.Message}");
-                    }
-                    
+                    Debug.WriteLine("Image cropping cancelled by user.");
                     return null;
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in image crop dialog: {ex.Message}");
-                
-                // Fallback: try to create a resized copy of the original
-                try
-                {
-                    Debug.WriteLine("Attempting fallback: creating resized copy of original image");
-                    return await CreateResizedCopyOfOriginal(originalFile, slotIndex);
-                }
-                catch (Exception fallbackEx)
-                {
-                    Debug.WriteLine($"Fallback also failed: {fallbackEx.Message}");
-                    return null;
-                }
+                Debug.WriteLine($"Error during image cropping: {ex.Message}");
+                return null;
             }
         }
 

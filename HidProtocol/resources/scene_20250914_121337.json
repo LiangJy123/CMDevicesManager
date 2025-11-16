@@ -1,0 +1,125 @@
+{
+  "sceneName": "Exported Scene",
+  "exportDate": "2025-09-14T12:13:40.3098842+08:00",
+  "version": "1.0",
+  "canvasWidth": 480,
+  "canvasHeight": 480,
+  "showTime": true,
+  "showDate": true,
+  "showSystemInfo": true,
+  "showAnimation": true,
+  "backgroundType": "Image",
+  "backgroundOpacity": 0.5729167,
+  "backgroundColor": {
+    "a": 255,
+    "r": 30,
+    "g": 30,
+    "b": 60
+  },
+  "backgroundGradientEndColor": {
+    "a": 255,
+    "r": 10,
+    "g": 10,
+    "b": 30
+  },
+  "backgroundScaleMode": "UniformToFill",
+  "gradientDirection": "TopToBottom",
+  "backgroundImagePath": "C:\\out\\MyLed\\CMDevicesManager\\HidProtocol\\resources\\0 (7).jpg",
+  "targetFPS": 30,
+  "jpegQuality": 85,
+  "elements": [
+    {
+      "id": "9e88b7ef-95f1-4892-bbbb-9fed90cadd71",
+      "name": "Live Time",
+      "type": "LiveTime",
+      "position": {
+        "x": 90,
+        "y": 50
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": null,
+      "shapeData": null,
+      "liveData": {
+        "format": "",
+        "fontSize": 48,
+        "fontFamily": "Segoe UI",
+        "textColor": {
+          "a": 255,
+          "r": 255,
+          "g": 255,
+          "b": 255
+        },
+        "size": {
+          "width": 300,
+          "height": 60
+        }
+      },
+      "motionData": null
+    },
+    {
+      "id": "6c4e139e-3368-4aec-a642-53879940429f",
+      "name": "Live Date",
+      "type": "LiveDate",
+      "position": {
+        "x": 40,
+        "y": 120
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": null,
+      "shapeData": null,
+      "liveData": {
+        "format": "",
+        "fontSize": 24,
+        "fontFamily": "Segoe UI",
+        "textColor": {
+          "a": 255,
+          "r": 192,
+          "g": 192,
+          "b": 192
+        },
+        "size": {
+          "width": 400,
+          "height": 30
+        }
+      },
+      "motionData": null
+    },
+    {
+      "id": "ef6d6f09-46c7-4812-b87c-b4e034859987",
+      "name": "System Info",
+      "type": "SystemInfo",
+      "position": {
+        "x": 10,
+        "y": 450
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": null,
+      "shapeData": null,
+      "liveData": {
+        "format": "",
+        "fontSize": 16,
+        "fontFamily": "Consolas",
+        "textColor": {
+          "a": 255,
+          "r": 192,
+          "g": 192,
+          "b": 192
+        },
+        "size": {
+          "width": 200,
+          "height": 20
+        }
+      },
+      "motionData": null
+    }
+  ]
+}

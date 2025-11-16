@@ -1,0 +1,179 @@
+{
+  "sceneName": "Exported Scene",
+  "exportDate": "2025-09-14T11:54:57.6738476+08:00",
+  "version": "1.0",
+  "canvasWidth": 480,
+  "canvasHeight": 480,
+  "showTime": true,
+  "showDate": true,
+  "showSystemInfo": true,
+  "showAnimation": true,
+  "backgroundType": "Gradient",
+  "backgroundOpacity": 1,
+  "backgroundColor": {
+    "a": 255,
+    "r": 30,
+    "g": 30,
+    "b": 60
+  },
+  "backgroundGradientEndColor": {
+    "a": 255,
+    "r": 10,
+    "g": 10,
+    "b": 30
+  },
+  "backgroundScaleMode": "Stretch",
+  "gradientDirection": "TopToBottom",
+  "backgroundImagePath": null,
+  "targetFPS": 30,
+  "jpegQuality": 85,
+  "elements": [
+    {
+      "id": "87358e0b-03ec-476a-88b1-a50cb3046a26",
+      "name": "Live Date",
+      "type": "LiveDate",
+      "position": {
+        "x": 40,
+        "y": 120
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": null,
+      "shapeData": null,
+      "liveData": {
+        "format": "",
+        "fontSize": 24,
+        "fontFamily": "Segoe UI",
+        "textColor": {
+          "a": 255,
+          "r": 192,
+          "g": 192,
+          "b": 192
+        },
+        "size": {
+          "width": 400,
+          "height": 30
+        }
+      },
+      "motionData": null
+    },
+    {
+      "id": "3cfe7c37-4f53-4184-b9ca-be90096e9838",
+      "name": "System Info",
+      "type": "SystemInfo",
+      "position": {
+        "x": 10,
+        "y": 450
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": null,
+      "shapeData": null,
+      "liveData": {
+        "format": "",
+        "fontSize": 16,
+        "fontFamily": "Consolas",
+        "textColor": {
+          "a": 255,
+          "r": 192,
+          "g": 192,
+          "b": 192
+        },
+        "size": {
+          "width": 200,
+          "height": 20
+        }
+      },
+      "motionData": null
+    },
+    {
+      "id": "9bb08e35-7ec7-41a8-9481-55928104abbf",
+      "name": "MotionCircle_47699392-de4a-4974-a3fa-537819a0fe14",
+      "type": "Shape",
+      "position": {
+        "x": 72.5,
+        "y": 295
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": null,
+      "shapeData": {
+        "shapeType": "Circle",
+        "size": {
+          "width": 60,
+          "height": 60
+        },
+        "fillColor": {
+          "a": 255,
+          "r": 255,
+          "g": 100,
+          "b": 100
+        },
+        "strokeColor": {
+          "a": 255,
+          "r": 255,
+          "g": 255,
+          "b": 255
+        },
+        "strokeWidth": 1
+      },
+      "liveData": null,
+      "motionData": {
+        "originalPosition": {
+          "x": 72.5,
+          "y": 295
+        },
+        "motionConfig": {
+          "motionType": "None",
+          "speed": 100,
+          "direction": {
+            "x": -0.53474975,
+            "y": 0.84501046
+          },
+          "center": {
+            "x": 100,
+            "y": 100
+          },
+          "radius": 50,
+          "respectBoundaries": true,
+          "showTrail": false,
+          "trailLength": 20,
+          "isPaused": false
+        },
+        "startTime": "2025-09-14T11:53:55.4932683+08:00",
+        "currentAngle": 0
+      }
+    },
+    {
+      "id": "344dba5e-7b00-4334-9a14-b998f426fa7a",
+      "name": "Image_1",
+      "type": "Image",
+      "position": {
+        "x": 90,
+        "y": 50
+      },
+      "isVisible": true,
+      "isDraggable": true,
+      "zIndex": 0,
+      "textData": null,
+      "imageData": {
+        "imagePath": "suspend_0.jpg",
+        "size": {
+          "width": 100,
+          "height": 100
+        },
+        "scale": 2.6505928,
+        "rotation": 0
+      },
+      "shapeData": null,
+      "liveData": null,
+      "motionData": null
+    }
+  ]
+}

@@ -30,7 +30,7 @@ namespace CMDevicesManager.Services
 
         // KeepAlive timer functionality
         private Timer? _keepAliveTimer;
-        private bool _isRealTimeDisplayEnabled = false;
+        private volatile bool _isRealTimeDisplayEnabled = false;
         private readonly int _keepAliveIntervalMs = 4000; // 4 seconds
         private DateTime _lastKeepAliveTime = DateTime.MinValue;
 
@@ -94,7 +94,7 @@ namespace CMDevicesManager.Services
                 if (_isRealTimeDisplayEnabled != value)
                 {
                     _isRealTimeDisplayEnabled = value;
-                    Logger.Info($"Real-time display mode {(value ? "enabled" : "disabled")}");
+                    Debug.WriteLine($"Real-time display mode {(value ? "enabled" : "disabled")}");
                     RealTimeDisplayModeChanged?.Invoke(this, new RealTimeDisplayEventArgs(value));
                     
                     if (value)
@@ -893,7 +893,7 @@ namespace CMDevicesManager.Services
                 StopKeepAliveTimer();
             }
 
-            Logger.Info($"Starting KeepAlive timer with {_keepAliveIntervalMs}ms interval");
+            Debug.WriteLine($"Starting KeepAlive timer with {_keepAliveIntervalMs}ms interval");
             
             _keepAliveTimer = new Timer(
                 callback: async _ => await SendKeepAliveToFilteredDevices(),
@@ -910,7 +910,7 @@ namespace CMDevicesManager.Services
         {
             if (_keepAliveTimer != null)
             {
-                Logger.Info("Stopping KeepAlive timer");
+                Debug.WriteLine("Stopping KeepAlive timer");
                 _keepAliveTimer.Dispose();
                 _keepAliveTimer = null;
             }
@@ -983,19 +983,18 @@ namespace CMDevicesManager.Services
                     var dispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
                     if (dispatcherQueue != null)
                     {
-                        dispatcherQueue.TryEnqueue(() =>
-                        {
-                            ConnectedDevices.Add(e.Device);
-                        });
-                    }
-                    else
-                    {
                         ConnectedDevices.Add(e.Device);
                     }
 
                     Logger.Info($"Device connected: {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
                     DeviceConnected?.Invoke(this, new DeviceEventArgs(e.Device));
                     DeviceListChanged?.Invoke(this, new DeviceEventArgs(e.Device));
+
+                    // if real-time display is enabled, start keepalive
+                    if (IsRealTimeDisplayEnabled && ConnectedDeviceCount > 0)
+                    {
+                        StartKeepAliveTimer();
+                    }
                 }
             }
         }
@@ -1013,12 +1012,8 @@ namespace CMDevicesManager.Services
                     {
                         dispatcherQueue.TryEnqueue(() =>
                         {
-                            ConnectedDevices.Remove(e.Device);
+                            ConnectedDevices.Remove(deviceToRemove);
                         });
-                    }
-                    else
-                    {
-                        ConnectedDevices.Remove(e.Device);
                     }
 
                     // Keep _filteredDevicePaths intact - don't remove disconnected devices from filter
@@ -1027,6 +1022,13 @@ namespace CMDevicesManager.Services
                     Logger.Info($"Device disconnected: {e.Device.ProductString} (Serial: {e.Device.SerialNumber})");
                     DeviceDisconnected?.Invoke(this, new DeviceEventArgs(e.Device));
                     DeviceListChanged?.Invoke(this, new DeviceEventArgs(e.Device));
+
+                    // if not device connected, stop keepalive
+                    if (ConnectedDeviceCount == 0)
+                    {
+                        StopKeepAliveTimer();
+                        IsRealTimeDisplayEnabled = false;
+                    }
                 }
             }
         }
@@ -1056,8 +1058,7 @@ namespace CMDevicesManager.Services
                 ClearDevicePathFilter();
                 
                 _multiDeviceManager?.StopMonitoring();
-                
-                // Use DispatcherQueue for WinUI 3 to ensure UI thread safety
+
                 var dispatcherQueue = Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread();
                 if (dispatcherQueue != null)
                 {
@@ -1065,10 +1066,6 @@ namespace CMDevicesManager.Services
                     {
                         ConnectedDevices.Clear();
                     });
-                }
-                else
-                {
-                    ConnectedDevices.Clear();
                 }
 
                 IsInitialized = false;
