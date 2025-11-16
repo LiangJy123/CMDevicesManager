@@ -1,1077 +1,1123 @@
-﻿using DevWinUIGallery.Services;
-using Microsoft.Graphics.Canvas;
-using Microsoft.Graphics.Canvas.UI.Xaml;
-using Microsoft.UI;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Numerics;
+using System.Text.Json;
+using System.Threading.Tasks;
+using CMDevicesManager.Models;
+using CMDevicesManager.Services;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Threading.Tasks;
+using Microsoft.UI.Xaml.Shapes;
+using SkiaSharp;
+using Windows.Foundation;
 using Windows.Storage;
 using Windows.Storage.Pickers;
-using System.Runtime.InteropServices.WindowsRuntime;
-using System.Linq;
+using WinUIColor = Windows.UI.Color;
+using Point = Windows.Foundation.Point;
 
 namespace CDMDevicesManagerDevWinUI.Views
 {
-    /// <summary>
-    /// DesignLCD demonstrates the new background rendering architecture where:
-    /// - CanvasControl rendering happens in a background service (BackgroundRenderingService)
-    /// - UI displays rendered images via Image element instead of direct CanvasControl
-    /// - Service provides offscreen rendering with configurable size and FPS
-    /// - Service can run independently of UI thread for better performance
-    /// - Enhanced with HID device integration for real-time JPEG streaming
-    /// </summary>
     public sealed partial class DesignLCD : Page
     {
-        private BackgroundRenderingService _renderingService;
-        private bool _isRendering = false;
-        private readonly List<int> _elementIds = new();
-        private int _fpsCounter = 0;
-        private DateTime _lastFpsUpdate = DateTime.Now;
-        private CanvasBitmap _sampleImage;
-        private int _hidFramesSent = 0;
+        private const int CanvasWidth = 480;
+        private const int CanvasHeight = 480;
+
+        private readonly InteractiveSkiaRenderingService _renderService = new();
+        private readonly ObservableCollection<string> _assets = new();
+        private readonly List<WinUIColor> _quickColors = new()
+        {
+            WinUIColor.FromArgb(255, 255, 255, 255),
+            WinUIColor.FromArgb(255, 240, 240, 240),
+            WinUIColor.FromArgb(255, 52, 152, 219),
+            WinUIColor.FromArgb(255, 46, 204, 113),
+            WinUIColor.FromArgb(255, 155, 89, 182),
+            WinUIColor.FromArgb(255, 230, 126, 34),
+            WinUIColor.FromArgb(255, 231, 76, 60),
+            WinUIColor.FromArgb(255, 41, 128, 185),
+            WinUIColor.FromArgb(255, 26, 188, 156),
+            WinUIColor.FromArgb(255, 243, 156, 18)
+        };
+        private readonly Random _random = new();
+        private readonly DispatcherQueue _dispatcherQueue;
+
+        private RenderElement? _currentElement;
+        private RenderElement? _draggedElement;
+        private bool _isDragging;
+        private Point _dragStart;
+        private Point _elementStart;
+
+        private WinUIColor _primaryColor = WinUIColor.FromArgb(255, 255, 255, 255);
+        private WinUIColor _shapeColor = WinUIColor.FromArgb(255, 52, 152, 219);
+        private string? _selectedImagePath;
+
+    private Guid? _sceneId;
 
         public DesignLCD()
         {
-            this.InitializeComponent();
-            this.Loaded +=DesignLCD_Loaded;
-            
+            InitializeComponent();
+
+            _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
+
+            ElementsListView.DisplayMemberPath = nameof(ElementListItem.DisplayName);
+            AssetsListView.ItemsSource = _assets;
+            ElementTypeComboBox.SelectionChanged += ElementTypeComboBox_SelectionChanged;
+
+            InitializeQuickColors();
+            UpdatePrimaryColorPreview();
+            UpdateShapeColorPreview();
+            UpdatePropertyEditorVisibility();
+
+            Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
         }
 
-        private void DesignLCD_Loaded(object sender, RoutedEventArgs e)
+        private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-            InitializeService();
+            Loaded -= OnLoaded;
+            await InitializeDesignerAsync();
         }
 
-        private async void InitializeService()
+        private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                _renderingService = new BackgroundRenderingService();
-                _renderingService.FrameReady += OnFrameReady;
-                _renderingService.StatusChanged += OnStatusChanged;
-                _renderingService.FpsUpdated += OnFpsUpdated;
-                _renderingService.HidFrameSent += OnHidFrameSent;
+            _renderService.ImageRendered -= OnImageRendered;
+            _renderService.ElementSelected -= OnElementSelected;
+            _renderService.ElementMoved -= OnElementMoved;
+            _renderService.RenderingError -= OnRenderingError;
+            _renderService.BackgroundChanged -= OnBackgroundChanged;
 
-                await _renderingService.InitializeAsync();
-
-                // Load sample image directly using the service's canvas
-                await LoadSampleImageAsync();
-
-                // Start FPS counter
-                var fpsTimer = new DispatcherTimer();
-                fpsTimer.Interval = TimeSpan.FromSeconds(1);
-                fpsTimer.Tick += UpdateFpsCounter;
-                fpsTimer.Start();
-
-                UpdateUI();
-            }
-            catch (Exception ex)
-            {
-                SafeUpdateStatusText($"Failed to initialize service: {ex.Message}");
-            }
+            _renderService.StopAutoRendering();
+            _renderService.Dispose();
         }
 
-        private async Task LoadSampleImageAsync()
+        private async Task InitializeDesignerAsync()
         {
             try
             {
-                // We'll load the sample image using a temporary CanvasDevice
-                // since we need a device context to load CanvasBitmap
-                var device = CanvasDevice.GetSharedDevice();
-                var uri = new Uri("ms-appx:///Assets/sample.jpg");
-                _sampleImage = await CanvasBitmap.LoadAsync(device, uri);
-                SafeUpdateStatusText("Background rendering service ready - you can start adding elements!");
+                UpdateStatus("Initializing renderer...");
+                await _renderService.InitializeAsync(CanvasWidth, CanvasHeight);
+
+                _renderService.ImageRendered += OnImageRendered;
+                _renderService.ElementSelected += OnElementSelected;
+                _renderService.ElementMoved += OnElementMoved;
+                _renderService.RenderingError += OnRenderingError;
+                _renderService.BackgroundChanged += OnBackgroundChanged;
+
+                await _renderService.ResetBackgroundToDefaultAsync();
+                await _renderService.RenderFrameAsync();
+
+                UpdateElementsList();
+                UpdateStatus("Designer ready");
             }
             catch (Exception ex)
             {
-                // Sample image not available, we'll handle this gracefully
-                SafeUpdateStatusText($"Background rendering service ready - sample image loading failed: {ex.Message}");
+                UpdateStatus($"Failed to initialize renderer: {ex.Message}", isError: true);
             }
         }
 
-        private void OnFrameReady(object sender, WriteableBitmap bitmap)
-        {
-            // Debug: Log that a frame was received
-            var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        #region Event plumbing
 
-            // Update the display image on UI thread
-            DispatcherQueue.TryEnqueue(() =>
+        private void OnImageRendered(WriteableBitmap bitmap)
+        {
+            _dispatcherQueue.TryEnqueue(() => CanvasDisplay.Source = bitmap);
+        }
+
+        private void OnElementSelected(RenderElement element)
+        {
+            _dispatcherQueue.TryEnqueue(() =>
             {
-                try
+                _currentElement = element;
+                UpdateEditorFromElement(element);
+                SelectElementInList(element);
+            });
+        }
+
+        private void OnElementMoved(RenderElement element)
+        {
+            _dispatcherQueue.TryEnqueue(() =>
+            {
+                if (_currentElement?.Id == element.Id)
                 {
-                    if (RenderDisplay != null)
-                    {
-                        RenderDisplay.Source = bitmap;
-                    }
-                    SafeUpdateStatusText($"Frame updated at {timestamp} - Size: {bitmap?.PixelWidth}x{bitmap?.PixelHeight} | HID Frames: {_hidFramesSent}");
+                    UpdateEditorFromElement(element, suppressTypeUpdate: true);
                 }
-                catch (Exception ex)
+                UpdateElementsList();
+            });
+        }
+
+        private void OnRenderingError(Exception ex)
+        {
+            _dispatcherQueue.TryEnqueue(() => UpdateStatus(ex.Message, isError: true));
+        }
+
+        private void OnBackgroundChanged(string message)
+        {
+            _dispatcherQueue.TryEnqueue(() => UpdateStatus(message));
+        }
+
+        #endregion
+
+        #region UI Helpers
+
+        private void UpdateStatus(string message, bool isError = false)
+        {
+            StatusLabel.Text = message;
+            StatusLabel.Foreground = isError
+                ? new SolidColorBrush(WinUIColor.FromArgb(255, 231, 76, 60))
+                : new SolidColorBrush(WinUIColor.FromArgb(255, 46, 204, 113));
+        }
+
+        private void UpdatePrimaryColorPreview()
+        {
+            PrimaryColorPreview.Fill = new SolidColorBrush(_primaryColor);
+        }
+
+        private void UpdateShapeColorPreview()
+        {
+            ShapeColorPreview.Fill = new SolidColorBrush(_shapeColor);
+        }
+
+        private void InitializeQuickColors()
+        {
+            QuickColorItems.Items.Clear();
+            foreach (var color in _quickColors)
+            {
+                var button = new Button
                 {
-                    SafeUpdateStatusText($"Error setting frame: {ex.Message}");
-                }
-            });
-        }
-
-        private void OnStatusChanged(object sender, string status)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                SafeUpdateStatusText(status);
-            });
-        }
-
-        private void OnFpsUpdated(object sender, int fps)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                FpsText.Text = $"FPS: {fps}";
-            });
-        }
-
-        private void OnHidFrameSent(object sender, HidFrameSentEventArgs e)
-        {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                _hidFramesSent++;
-                var status = $"HID Frame #{_hidFramesSent}: {e.FrameSize:N0} bytes sent to {e.DevicesSucceeded}/{e.DevicesTotal} devices at {e.Timestamp:HH:mm:ss.fff}";
-                SafeUpdateStatusText(status);
-            });
-        }
-
-        private async void OnStartStopClick(object sender, RoutedEventArgs e)
-        {
-            if (_isRendering)
-            {
-                await StopRenderingAsync();
-            }
-            else
-            {
-                await StartRenderingAsync();
-            }
-        }
-
-        private async Task StartRenderingAsync()
-        {
-            try
-            {
-                // Start with HID real-time mode enabled by default
-                await _renderingService.StartRenderingAsync(enableHidRealTime: true);
-                _isRendering = true;
-                StartStopButton.Content = "Stop Rendering";
-                UpdateUI();
-            }
-            catch (Exception ex)
-            {
-                SafeUpdateStatusText($"Failed to start rendering: {ex.Message}");
-            }
-        }
-
-        private async Task StopRenderingAsync()
-        {
-            // First disable HID real-time mode if enabled
-            if (_renderingService.IsHidRealTimeModeEnabled)
-            {
-                await _renderingService.SetHidRealTimeModeAsync(false);
-            }
-            
-            _renderingService.StopRendering();
-            _isRendering = false;
-            StartStopButton.Content = "Start Rendering";
-            UpdateUI();
-        }
-
-        private async void OnCaptureFrameClick(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var bitmap = await _renderingService.CaptureFrameAsync();
-                if (bitmap != null)
+                    Width = 32,
+                    Height = 32,
+                    Margin = new Thickness(4),
+                    Background = new SolidColorBrush(color),
+                    BorderBrush = new SolidColorBrush(WinUIColor.FromArgb(64, 0, 0, 0)),
+                    Tag = color
+                };
+                button.Click += (s, _) =>
                 {
-                    // Optionally save the captured frame
-                    var picker = new FileSavePicker();
-                    picker.DefaultFileExtension = ".png";
-                    picker.FileTypeChoices.Add("PNG Image", new List<string> { ".png" });
-                    picker.FileTypeChoices.Add("JPEG Image", new List<string> { ".jpg", ".jpeg" });
-
-                    var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-                    WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
-
-                    var file = await picker.PickSaveFileAsync();
-                    if (file != null)
-                    {
-                        if (file.FileType.ToLower() == ".png")
-                        {
-                            await SaveWriteableBitmapToFileAsync(bitmap, file);
-                        }
-                        else
-                        {
-                            await SaveWriteableBitmapAsJpegAsync(bitmap, file);
-                        }
-                        SafeUpdateStatusText($"Frame saved to {file.Name} (Quality: {_renderingService.JpegQuality}%)");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                SafeUpdateStatusText($"Error capturing frame: {ex.Message}");
+                    _primaryColor = color;
+                    UpdatePrimaryColorPreview();
+                };
+                QuickColorItems.Items.Add(button);
             }
         }
 
-        private void OnClearElementsClick(object sender, RoutedEventArgs e)
+        private void UpdatePropertyEditorVisibility()
         {
-            _renderingService.ClearElements();
-            _elementIds.Clear();
-            UpdateUI();
+            var type = GetSelectedElementType();
+            TextPropertiesPanel.Visibility = type == ElementType.Text || type == ElementType.LiveTime || type == ElementType.LiveDate || type == ElementType.SystemInfo
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            ImagePropertiesPanel.Visibility = type == ElementType.Image ? Visibility.Visible : Visibility.Collapsed;
+            ShapePropertiesPanel.Visibility = type == ElementType.Shape ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private void OnRenderSizeChanged(object sender, SelectionChangedEventArgs e)
+        private string GetSelectedFontFamily()
         {
-            if (_renderingService == null || RenderSizeComboBox.SelectedItem == null) return;
-
-            var selectedItem = (ComboBoxItem)RenderSizeComboBox.SelectedItem;
-            var sizeText = selectedItem.Content.ToString();
-
-            switch (sizeText)
+            if (FontFamilyComboBox.SelectedItem is ComboBoxItem combo && combo.Content is string value)
             {
-                case "480x480":
-                    _renderingService.SetRenderSize(480, 480);
-                    break;
-                case "800x600":
-                    _renderingService.SetRenderSize(800, 600);
-                    break;
-                case "1024x768":
-                    _renderingService.SetRenderSize(1024, 768);
-                    break;
-                case "1280x720":
-                    _renderingService.SetRenderSize(1280, 720);
-                    break;
+                return value;
             }
-
-            RenderSizeText.Text = $"Size: {sizeText}";
+            return "Segoe UI";
         }
 
-        private void OnFpsChanged(object sender, SelectionChangedEventArgs e)
+        private ElementType GetSelectedElementType()
         {
-            if (_renderingService == null || FpsComboBox.SelectedItem == null) return;
-
-            var selectedItem = (ComboBoxItem)FpsComboBox.SelectedItem;
-            var fpsText = selectedItem.Content.ToString();
-
-            if (int.TryParse(fpsText, out int fps))
+            if (ElementTypeComboBox.SelectedItem is ComboBoxItem combo)
             {
-                _renderingService.SetTargetFps(fps);
+                return combo.Content?.ToString() switch
+                {
+                    "Text" => ElementType.Text,
+                    "Image" => ElementType.Image,
+                    "Shape" => ElementType.Shape,
+                    "Live" => ElementType.LiveTime,
+                    _ => ElementType.Text
+                };
             }
+            return ElementType.Text;
         }
 
-        private void OnAddLiveTimeClick(object sender, RoutedEventArgs e)
+        private Point GetPositionFromInputs()
         {
-            // Use simplified config without referencing missing UI elements
-            var config = new LiveTextConfig
-            {
-                FontSize = 48,
-                TextColor = Colors.Cyan,
-                TimeFormat = "HH:mm:ss",
-                EnableGlow = true, // Default to true for demo
-                GlowRadius = 5,
-                GlowIntensity = 1.0f,
-                EnableBreathing = true, // Default to true for demo
-                BreathingSpeed = 2.0f,
-                MovementType = MovementType.Horizontal, // Default movement
-                MovementSpeed = 1.0f,
-                MovementAmplitude = 20.0f
-            };
-
-            var center = new Vector2(_renderingService.TargetWidth / 2f - 100, _renderingService.TargetHeight / 2f - 100);
-            var id = _renderingService.AddLiveTextElement("Current Time: {TIME}", center, config);
-
-            if (id >= 0)
-            {
-                _elementIds.Add(id);
-                UpdateUI();
-                SafeUpdateStatusText("Live time element added with glow and breathing effects.");
-            }
+            var x = double.TryParse(PositionXTextBox.Text, out var px) ? px : 40;
+            var y = double.TryParse(PositionYTextBox.Text, out var py) ? py : 40;
+            return new Point(Math.Clamp(px, 0, CanvasWidth), Math.Clamp(py, 0, CanvasHeight));
         }
 
-        private void OnAddFloatingTextClick(object sender, RoutedEventArgs e)
+        private void UpdatePositionInputs(Point point)
         {
-            var random = new Random();
-            var config = new LiveTextConfig
-            {
-                FontSize = 24,
-                TextColor = Colors.Yellow,
-                EnableGlow = true, // Default to true for demo
-                GlowRadius = 3,
-                EnableBreathing = true, // Default to true for demo
-                MovementType = MovementType.Circular, // Default to circular movement
-                MovementSpeed = 0.5f,
-                MovementAmplitude = 30.0f
-            };
-
-            var position = new Vector2(
-                random.Next(50, _renderingService.TargetWidth - 200),
-                random.Next(50, _renderingService.TargetHeight - 100));
-
-            var id = _renderingService.AddLiveTextElement($"Floating Text #{_elementIds.Count + 1}", position, config);
-
-            if (id >= 0)
-            {
-                _elementIds.Add(id);
-                UpdateUI();
-                SafeUpdateStatusText("Floating text element added with circular movement.");
-            }
+            PositionXTextBox.Text = ((int)point.X).ToString();
+            PositionYTextBox.Text = ((int)point.Y).ToString();
         }
 
-        private void OnAddSampleImageClick(object sender, RoutedEventArgs e)
+        private void UpdateOpacityLabel()
         {
-            if (_sampleImage == null)
+            if (OpacitySlider is null || OpacityValueLabel is null)
             {
-                SafeUpdateStatusText("No sample image available.");
                 return;
             }
 
-            var random = new Random();
-            var config = new ImageConfig
+            var value = OpacitySlider.Value;
+            if (double.IsNaN(value))
             {
-                Size = new Vector2(100, 100),
-                BaseOpacity = 0.8f,
-                EnablePulsing = true,
-                PulseSpeed = 1.5f,
-                RotationSpeed = 0.5f,
-                MovementType = MovementType.Figure8, // Default movement
-                MovementSpeed = 0.3f,
-                MovementAmplitude = 50.0f
-            };
-
-            var position = new Vector2(
-                random.Next(50, _renderingService.TargetWidth - 150),
-                random.Next(50, _renderingService.TargetHeight - 150));
-
-            var id = _renderingService.AddImageElement(_sampleImage, position, config);
-
-            if (id >= 0)
-            {
-                _elementIds.Add(id);
-                UpdateUI();
-                SafeUpdateStatusText("Sample image added with figure-8 movement.");
+                value = 1.0;
             }
+
+            value = Math.Clamp(value, OpacitySlider.Minimum, OpacitySlider.Maximum);
+            OpacityValueLabel.Text = $"{Math.Round(value * 100)}%";
         }
 
-        private void OnGlowEffectChanged(object sender, RoutedEventArgs e)
+        private void UpdateFontSizeLabel()
         {
-            SafeUpdateStatusText("Glow effect setting changed for new elements.");
-        }
-
-        private void OnBreathingEffectChanged(object sender, RoutedEventArgs e)
-        {
-            SafeUpdateStatusText("Breathing animation setting changed for new elements.");
-        }
-
-        private void OnMovementEffectChanged(object sender, RoutedEventArgs e)
-        {
-            SafeUpdateStatusText("Movement animation setting changed for new elements.");
-        }
-
-        private async void OnExportSettingsClick(object sender, RoutedEventArgs e)
-        {
-            try
+            if (FontSizeSlider is null || FontSizeValueLabel is null)
             {
-                var picker = new FileSavePicker();
-                picker.DefaultFileExtension = ".json";
-                picker.FileTypeChoices.Add("JSON Configuration", new List<string> { ".json" });
+                return;
+            }
 
-                var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
-                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+            var value = FontSizeSlider.Value;
+            if (double.IsNaN(value))
+            {
+                value = 32;
+            }
 
-                var file = await picker.PickSaveFileAsync();
-                if (file != null)
-                {
-                    // Export current renderer settings
-                    var settings = new
+            value = Math.Clamp(value, FontSizeSlider.Minimum, FontSizeSlider.Maximum);
+            FontSizeValueLabel.Text = ((int)value).ToString();
+        }
+
+        private void UpdateShapeSizeLabels()
+        {
+            ShapeWidthLabel.Text = ((int)ShapeWidthSlider.Value).ToString();
+            ShapeHeightLabel.Text = ((int)ShapeHeightSlider.Value).ToString();
+        }
+
+        private void UpdateImageLabels()
+        {
+            ImageScaleLabel.Text = $"{ImageScaleSlider.Value:F1}x";
+            ImageRotationLabel.Text = $"{ImageRotationSlider.Value:F0}°";
+        }
+
+        private void UpdateBackgroundOpacityLabel()
+        {
+            BackgroundOpacityLabel.Text = BackgroundOpacitySlider.Value.ToString("F2");
+        }
+
+        #endregion
+
+        #region Element management
+
+        private async void CreateElementButton_Click(object sender, RoutedEventArgs e)
+        {
+            var type = GetSelectedElementType();
+            var element = await CreateElementFromInputsAsync(type);
+            if (element == null)
+            {
+                return;
+            }
+
+            _renderService.AddElement(element);
+            _renderService.SelectElement(element);
+            UpdateElementsList();
+            await _renderService.RenderFrameAsync();
+            UpdateStatus($"Created {element.Type} element");
+        }
+
+        private async Task<RenderElement?> CreateElementFromInputsAsync(ElementType type)
+        {
+            var position = GetPositionFromInputs();
+            var isVisible = VisibleCheckBox.IsChecked ?? true;
+            var isDraggable = DraggableCheckBox.IsChecked ?? true;
+            var opacity = (float)Math.Clamp(OpacitySlider.Value, 0.0, 1.0);
+
+            switch (type)
+            {
+                case ElementType.Text:
+                    return new TextElement(GenerateElementName("Text"))
                     {
-                        ElementCount = _elementIds.Count,
-                        IsRendering = _isRendering,
-                        RenderSize = new { Width = _renderingService.TargetWidth, Height = _renderingService.TargetHeight },
-                        TargetFps = _renderingService.TargetFps,
-                        HidIntegration = new
-                        {
-                            RealTimeModeEnabled = _renderingService.IsHidRealTimeModeEnabled,
-                            JpegQuality = _renderingService.JpegQuality,
-                            HidFramesSent = _hidFramesSent
-                        },
-                        EffectsEnabled = new
-                        {
-                            Glow = true, // Default values since UI controls don't exist
-                            Breathing = true,
-                            Movement = true
-                        },
-                        ExportedAt = DateTime.Now
+                        Text = string.IsNullOrWhiteSpace(TextContentTextBox.Text) ? "Sample text" : TextContentTextBox.Text,
+                        Position = position,
+                        Size = new Size(240, 80),
+                        FontFamily = GetSelectedFontFamily(),
+                        FontSize = (float)FontSizeSlider.Value,
+                        TextColor = _primaryColor,
+                        IsVisible = isVisible,
+                        IsDraggable = isDraggable,
+                        Opacity = opacity
                     };
 
-                    var json = System.Text.Json.JsonSerializer.Serialize(settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                    await FileIO.WriteTextAsync(file, json);
-
-                    SafeUpdateStatusText($"Settings exported to {file.Name}");
-                }
-            }
-            catch (Exception ex)
-            {
-                SafeUpdateStatusText($"Error exporting settings: {ex.Message}");
-            }
-        }
-
-        private void OnJpegQualityChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_renderingService == null || sender is not ComboBox comboBox || comboBox.SelectedItem == null) return;
-
-            var selectedItem = (ComboBoxItem)comboBox.SelectedItem;
-            var qualityText = selectedItem.Content.ToString().Replace("%", "");
-
-            if (int.TryParse(qualityText, out int quality))
-            {
-                _renderingService.JpegQuality = quality;
-                SafeUpdateStatusText($"JPEG quality set to {quality}% for HID streaming");
-            }
-        }
-
-        private async void OnHidRealTimeModeChanged(object sender, RoutedEventArgs e)
-        {
-            if (_renderingService == null || sender is not CheckBox checkBox) return;
-
-            try
-            {
-                bool enableRealTime = checkBox.IsChecked == true;
-                bool success = await _renderingService.SetHidRealTimeModeAsync(enableRealTime);
-                
-                if (success)
-                {
-                    SafeUpdateStatusText($"HID real-time mode {(enableRealTime ? "enabled" : "disabled")} successfully");
-                }
-                else
-                {
-                    // Revert checkbox state if operation failed
-                    checkBox.IsChecked = !enableRealTime;
-                    SafeUpdateStatusText($"Failed to {(enableRealTime ? "enable" : "disable")} HID real-time mode");
-                }
-            }
-            catch (Exception ex)
-            {
-                // Revert checkbox state on exception
-                checkBox.IsChecked = !checkBox.IsChecked;
-                SafeUpdateStatusText($"Error changing HID real-time mode: {ex.Message}");
-            }
-        }
-
-        private void OnMotionSpeedChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-        {
-            // Update the text display
-            if (MotionSpeedText != null)
-            {
-                MotionSpeedText.Text = $"{e.NewValue:F0}";
-            }
-            
-            // Update status text to show the new speed value - use safe method
-            SafeUpdateStatusText($"Motion speed changed to {e.NewValue:F0} px/s (applies to new elements)");
-        }
-
-        private void OnTestSimpleTextClick(object sender, RoutedEventArgs e)
-        {
-            var id = _renderingService.AddSimpleText("Hello HID Devices! 🎨📱");
-
-            if (id >= 0)
-            {
-                _elementIds.Add(id);
-                UpdateUI();
-                SafeUpdateStatusText("Simple test text added for HID streaming.");
-            }
-            else
-            {
-                SafeUpdateStatusText("Failed to add simple text - check service initialization.");
-            }
-        }
-
-        private void OnAddParticleSystemClick(object sender, RoutedEventArgs e)
-        {
-            var random = new Random();
-            var config = new ParticleConfig
-            {
-                MaxParticles = 50,
-                ParticleLifetime = 3.0f,
-                MinParticleSize = 2.0f,
-                MaxParticleSize = 6.0f,
-                MinSpeed = 20.0f,
-                MaxSpeed = 80.0f,
-                EmissionRadius = 30.0f,
-                Gravity = new Vector2(0, 30.0f),
-                ParticleColor = Colors.Orange
-            };
-
-            var position = new Vector2(
-                random.Next(100, _renderingService.TargetWidth - 100),
-                random.Next(100, _renderingService.TargetHeight - 100));
-
-            var id = _renderingService.AddParticleSystem(position, config);
-
-            if (id >= 0)
-            {
-                _elementIds.Add(id);
-                UpdateUI();
-                SafeUpdateStatusText("Particle system added.");
-            }
-        }
-
-        // Motion Demo Methods
-
-        private void OnAddBouncingBallClick(object sender, RoutedEventArgs e)
-        {
-            var random = new Random();
-            var colors = new[] { 
-                Microsoft.UI.Colors.Red, Microsoft.UI.Colors.Blue, Microsoft.UI.Colors.Green, 
-                Microsoft.UI.Colors.Orange, Microsoft.UI.Colors.Purple, Microsoft.UI.Colors.Cyan 
-            };
-            
-            var position = new Vector2(
-                random.Next(50, _renderingService.TargetWidth - 100),
-                random.Next(50, _renderingService.TargetHeight - 100));
-            
-            var speed = (float)MotionSpeedSlider.Value + random.Next(-20, 20);
-            var color = colors[random.Next(colors.Length)];
-            
-            // Create bouncing motion config
-            var motionConfig = new ElementMotionConfig
-            {
-                MotionType = MotionType.Bounce,
-                Speed = speed,
-                Direction = new Vector2(
-                    (float)(random.NextDouble() - 0.5) * 2,
-                    (float)(random.NextDouble() - 0.5) * 2),
-                RespectBoundaries = true,
-                ShowTrail = false
-            };
-            
-            var ballId = _renderingService.AddCircleElementWithMotion(position, 15f, color, motionConfig);
-            
-            if (ballId >= 0)
-            {
-                _elementIds.Add(ballId);
-                UpdateUI();
-                SafeUpdateStatusText($"Added bouncing ball with speed {speed:F0} px/s");
-            }
-        }
-
-        private void OnAddRotatingTextClick(object sender, RoutedEventArgs e)
-        {
-            var center = new Vector2(_renderingService.TargetWidth / 2f, _renderingService.TargetHeight / 2f);
-            var speed = (float)MotionSpeedSlider.Value / 100f; // Convert to rotations per second
-            var radius = 80f + (_elementIds.Count % 3) * 20f; // Vary radius for multiple rings
-            
-            var motionConfig = new ElementMotionConfig
-            {
-                MotionType = MotionType.Circular,
-                Speed = speed,
-                Center = center,
-                Radius = radius,
-                RespectBoundaries = false,
-                ShowTrail = false
-            };
-            
-            var textId = _renderingService.AddTextElementWithMotion(
-                text: $"Orbit #{_elementIds.Count + 1}",
-                position: center,
-                motionConfig: motionConfig);
-            
-            if (textId >= 0)
-            {
-                _elementIds.Add(textId);
-                UpdateUI();
-                SafeUpdateStatusText($"Added rotating text at radius {radius:F0} with speed {speed:F1} rot/s");
-            }
-        }
-
-        private void OnAddPulsatingTextClick(object sender, RoutedEventArgs e)
-        {
-            var random = new Random();
-            var position = new Vector2(
-                random.Next(100, _renderingService.TargetWidth - 100),
-                random.Next(100, _renderingService.TargetHeight - 100));
-            
-            var speed = (float)MotionSpeedSlider.Value / 50f; // Convert to oscillations per second
-            var amplitude = 25f + random.Next(0, 20);
-            
-            var motionConfig = new ElementMotionConfig
-            {
-                MotionType = MotionType.Oscillate,
-                Speed = speed,
-                Direction = new Vector2(1, 0), // Horizontal oscillation
-                Center = position,
-                Radius = amplitude,
-                RespectBoundaries = false,
-                ShowTrail = false
-            };
-            
-            var textId = _renderingService.AddTextElementWithMotion(
-                text: $"Pulse {_elementIds.Count + 1}",
-                position: position,
-                motionConfig: motionConfig);
-            
-            if (textId >= 0)
-            {
-                _elementIds.Add(textId);
-                UpdateUI();
-                SafeUpdateStatusText($"Added pulsating text with amplitude {amplitude:F0} and speed {speed:F1} osc/s");
-            }
-        }
-
-        private void OnAddSpiralTextClick(object sender, RoutedEventArgs e)
-        {
-            var random = new Random();
-            var center = new Vector2(
-                random.Next(150, _renderingService.TargetWidth - 150),
-                random.Next(150, _renderingService.TargetHeight - 150));
-            
-            var speed = (float)MotionSpeedSlider.Value / 100f;
-            var initialRadius = 20f + random.Next(0, 15);
-            
-            var motionConfig = new ElementMotionConfig
-            {
-                MotionType = MotionType.Spiral,
-                Speed = speed,
-                Center = center,
-                Radius = initialRadius,
-                RespectBoundaries = false,
-                ShowTrail = true
-            };
-            
-            var textId = _renderingService.AddTextElementWithMotion(
-                text: $"Spiral {_elementIds.Count + 1}",
-                position: center,
-                motionConfig: motionConfig);
-            
-            if (textId >= 0)
-            {
-                _elementIds.Add(textId);
-                UpdateUI();
-                SafeUpdateStatusText($"Added spiral text starting at radius {initialRadius:F0} with speed {speed:F1}");
-            }
-        }
-
-        private void OnAddLinearTrailClick(object sender, RoutedEventArgs e)
-        {
-            var random = new Random();
-            var position = new Vector2(
-                random.Next(50, _renderingService.TargetWidth - 200),
-                random.Next(50, _renderingService.TargetHeight - 50));
-            
-            // Random direction
-            var angle = random.NextDouble() * Math.PI * 2;
-            var direction = new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle));
-            
-            var speed = (float)MotionSpeedSlider.Value;
-            
-            var motionConfig = new ElementMotionConfig
-            {
-                MotionType = MotionType.Linear,
-                Speed = speed,
-                Direction = direction,
-                RespectBoundaries = true,
-                ShowTrail = true
-            };
-            
-            var textId = _renderingService.AddTextElementWithMotion(
-                text: $"Trail {_elementIds.Count + 1}",
-                position: position,
-                motionConfig: motionConfig);
-            
-            if (textId >= 0)
-            {
-                _elementIds.Add(textId);
-                UpdateUI();
-                SafeUpdateStatusText($"Added linear motion with trail, direction ({direction.X:F2}, {direction.Y:F2})");
-            }
-        }
-
-        private void OnAddRandomMovementClick(object sender, RoutedEventArgs e)
-        {
-            var random = new Random();
-            var position = new Vector2(
-                random.Next(100, _renderingService.TargetWidth - 100),
-                random.Next(100, _renderingService.TargetHeight - 100));
-            
-            var speed = (float)MotionSpeedSlider.Value * 0.5f; // Slower for random movement
-            
-            var motionConfig = new ElementMotionConfig
-            {
-                MotionType = MotionType.Random,
-                Speed = speed,
-                RespectBoundaries = true,
-                ShowTrail = false
-            };
-            
-            var textId = _renderingService.AddTextElementWithMotion(
-                text: $"Random {_elementIds.Count + 1}",
-                position: position,
-                motionConfig: motionConfig);
-            
-            if (textId >= 0)
-            {
-                _elementIds.Add(textId);
-                UpdateUI();
-                SafeUpdateStatusText($"Added random movement with speed {speed:F0} px/s");
-            }
-        }
-
-        private void OnAddMotionShowcaseClick(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var centerX = _renderingService.TargetWidth / 2f;
-                var centerY = _renderingService.TargetHeight / 2f;
-                var baseSpeed = (float)MotionSpeedSlider.Value;
-                
-                // Add a variety of motion elements to create a showcase
-                
-                // Central rotating text
-                var rotatingConfig = new ElementMotionConfig
-                {
-                    MotionType = MotionType.Circular,
-                    Speed = baseSpeed / 100f,
-                    Center = new Vector2(centerX, centerY),
-                    Radius = 100f,
-                    RespectBoundaries = false,
-                    ShowTrail = false
-                };
-                
-                var rotatingId = _renderingService.AddTextElementWithMotion(
-                    "MOTION SHOWCASE", 
-                    new Vector2(centerX, centerY), 
-                    rotatingConfig);
-                _elementIds.Add(rotatingId);
-                
-                // Bouncing balls in corners
-                var corners = new[]
-                {
-                    new Vector2(80, 80),
-                    new Vector2(_renderingService.TargetWidth - 80, 80),
-                    new Vector2(80, _renderingService.TargetHeight - 80),
-                    new Vector2(_renderingService.TargetWidth - 80, _renderingService.TargetHeight - 80)
-                };
-                
-                var ballColors = new[] { Microsoft.UI.Colors.Red, Microsoft.UI.Colors.Blue, Microsoft.UI.Colors.Green, Microsoft.UI.Colors.Purple };
-                var random = new Random();
-                
-                for (int i = 0; i < corners.Length; i++)
-                {
-                    var bounceConfig = new ElementMotionConfig
+                case ElementType.Shape:
+                    return new ShapeElement(GenerateElementName("Shape"))
                     {
-                        MotionType = MotionType.Bounce,
-                        Speed = baseSpeed * 1.2f,
-                        Direction = new Vector2(
-                            (float)(random.NextDouble() - 0.5) * 2,
-                            (float)(random.NextDouble() - 0.5) * 2),
-                        RespectBoundaries = true,
-                        ShowTrail = false
+                        Position = position,
+                        Size = new Size(ShapeWidthSlider.Value, ShapeHeightSlider.Value),
+                        ShapeType = GetSelectedShapeType(),
+                        FillColor = _shapeColor,
+                        StrokeColor = WinUIColor.FromArgb(255, 255, 255, 255),
+                        StrokeWidth = 2f,
+                        IsVisible = isVisible,
+                        IsDraggable = isDraggable,
+                        Opacity = opacity
                     };
-                    
-                    var ballId = _renderingService.AddCircleElementWithMotion(corners[i], 12f, ballColors[i], bounceConfig);
-                    _elementIds.Add(ballId);
-                }
-                
-                // Pulsating text around the center
-                var positions = new[]
-                {
-                    new Vector2(centerX, centerY - 150),
-                    new Vector2(centerX + 130, centerY),
-                    new Vector2(centerX, centerY + 150),
-                    new Vector2(centerX - 130, centerY)
-                };
-                
-                var pulseTexts = new[] { "PULSE N", "PULSE E", "PULSE S", "PULSE W" };
-                var directions = new[] { new Vector2(0, 1), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 0) };
-                
-                for (int i = 0; i < positions.Length; i++)
-                {
-                    var pulseConfig = new ElementMotionConfig
+
+                case ElementType.Image:
+                    if (string.IsNullOrWhiteSpace(_selectedImagePath))
                     {
-                        MotionType = MotionType.Oscillate,
-                        Speed = baseSpeed / 50f,
-                        Direction = directions[i],
-                        Center = positions[i],
-                        Radius = 20f,
-                        RespectBoundaries = false,
-                        ShowTrail = false
-                    };
-                    
-                    var pulseId = _renderingService.AddTextElementWithMotion(
-                        pulseTexts[i], 
-                        positions[i], 
-                        pulseConfig);
-                    _elementIds.Add(pulseId);
-                }
-                
-                // Spiral elements
-                var spiralPositions = new[]
-                {
-                    new Vector2(centerX - 200, centerY - 100),
-                    new Vector2(centerX + 200, centerY + 100)
-                };
-                
-                for (int i = 0; i < spiralPositions.Length; i++)
-                {
-                    var spiralConfig = new ElementMotionConfig
+                        UpdateStatus("Select an image before creating an image element", true);
+                        return null;
+                    }
+
+                    var imageSize = await GetImageSizeAsync(_selectedImagePath);
+                    return new ImageElement(GenerateElementName("Image"))
                     {
-                        MotionType = MotionType.Spiral,
-                        Speed = baseSpeed / 80f,
-                        Center = spiralPositions[i],
-                        Radius = 15f,
-                        RespectBoundaries = false,
-                        ShowTrail = true
+                        Position = position,
+                        Size = imageSize,
+                        ImagePath = _selectedImagePath,
+                        Scale = (float)ImageScaleSlider.Value,
+                        Rotation = (float)ImageRotationSlider.Value,
+                        IsVisible = isVisible,
+                        IsDraggable = isDraggable,
+                        Opacity = opacity
                     };
-                    
-                    var spiralId = _renderingService.AddTextElementWithMotion(
-                        $"Spiral {i + 1}", 
-                        spiralPositions[i], 
-                        spiralConfig);
-                    _elementIds.Add(spiralId);
-                }
-                
-                UpdateUI();
-                SafeUpdateStatusText($"Motion showcase created! Added {corners.Length + positions.Length + spiralPositions.Length + 1} animated elements.");
+
+                case ElementType.LiveTime:
+                case ElementType.LiveDate:
+                case ElementType.SystemInfo:
+                    return new LiveElement(type, GenerateElementName("Live"))
+                    {
+                        Position = position,
+                        Size = new Size(240, 64),
+                        FontFamily = GetSelectedFontFamily(),
+                        FontSize = (float)FontSizeSlider.Value,
+                        TextColor = _primaryColor,
+                        Format = "HH:mm:ss",
+                        IsVisible = isVisible,
+                        IsDraggable = isDraggable,
+                        Opacity = opacity
+                    };
             }
-            catch (Exception ex)
-            {
-                SafeUpdateStatusText($"Error creating motion showcase: {ex.Message}");
-            }
+
+            return null;
         }
 
-        private void OnStopAllMotionClick(object sender, RoutedEventArgs e)
+        private async void UpdateElementButton_Click(object sender, RoutedEventArgs e)
         {
-            // For demo purposes, we'll clear all elements and inform the user
-            var currentElementCount = _renderingService.ElementCount;
-            _renderingService.ClearElements();
-            _elementIds.Clear();
-            
-            SafeUpdateStatusText($"Cleared all {currentElementCount} elements (including motion)");
-            UpdateUI();
+            if (_currentElement == null)
+            {
+                UpdateStatus("Select an element to update", true);
+                return;
+            }
+
+            var properties = await BuildPropertyDictionaryAsync(_currentElement);
+            _renderService.UpdateElementProperties(_currentElement, properties);
+            await _renderService.RenderFrameAsync();
+            UpdateStatus($"Updated {_currentElement.Name}");
         }
 
-        private void OnResumeAllMotionClick(object sender, RoutedEventArgs e)
+        private async Task<Dictionary<string, object>> BuildPropertyDictionaryAsync(RenderElement element)
         {
-            // For this demo, add some default moving elements
-            var center = new Vector2(_renderingService.TargetWidth / 2f, _renderingService.TargetHeight / 2f);
-            
-            // Add a rotating text element
-            var rotatingConfig = new ElementMotionConfig
+            var dict = new Dictionary<string, object>
             {
-                MotionType = MotionType.Circular,
-                Speed = (float)MotionSpeedSlider.Value / 100f,
-                Center = center,
-                Radius = 60f,
-                RespectBoundaries = false,
-                ShowTrail = false
+                ["Position"] = GetPositionFromInputs(),
+                ["IsVisible"] = VisibleCheckBox.IsChecked ?? true,
+                ["IsDraggable"] = DraggableCheckBox.IsChecked ?? true,
+                ["Opacity"] = (float)Math.Clamp(OpacitySlider.Value, 0.0, 1.0)
             };
-            
-            var textId = _renderingService.AddTextElementWithMotion("Resumed Motion", center, rotatingConfig);
-            if (textId >= 0)
+
+            switch (element)
             {
-                _elementIds.Add(textId);
+                case TextElement:
+                case LiveElement:
+                    dict["Text"] = string.IsNullOrWhiteSpace(TextContentTextBox.Text) ? "Sample text" : TextContentTextBox.Text;
+                    dict["FontFamily"] = GetSelectedFontFamily();
+                    dict["FontSize"] = (float)FontSizeSlider.Value;
+                    dict["TextColor"] = _primaryColor;
+                    break;
+                case ShapeElement shape:
+                    dict["ShapeType"] = GetSelectedShapeType();
+                    dict["Size"] = new Size(ShapeWidthSlider.Value, ShapeHeightSlider.Value);
+                    dict["FillColor"] = _shapeColor;
+                    dict["StrokeWidth"] = shape.StrokeWidth;
+                    break;
+                case ImageElement:
+                    if (!string.IsNullOrWhiteSpace(_selectedImagePath))
+                    {
+                        dict["ImagePath"] = _selectedImagePath;
+                    }
+                    dict["Scale"] = (float)ImageScaleSlider.Value;
+                    dict["Rotation"] = (float)ImageRotationSlider.Value;
+                    dict["Size"] = await GetImageSizeAsync(((ImageElement)element).ImagePath);
+                    break;
             }
-            
-            UpdateUI();
-            SafeUpdateStatusText("Added default rotating motion element");
+
+            return dict;
         }
 
-        // Missing essential methods that need to be restored
-
-        private void UpdateFpsCounter(object sender, object e)
+        private async Task<Size> GetImageSizeAsync(string path)
         {
-            if (_isRendering)
+            return await Task.Run(() =>
             {
-                _fpsCounter++;
-                var now = DateTime.Now;
-                if ((now - _lastFpsUpdate).TotalSeconds >= 1.0)
+                try
                 {
-                    // FPS is now handled by the background service
-                    _fpsCounter = 0;
-                    _lastFpsUpdate = now;
+                    using var bitmap = SKBitmap.Decode(path);
+                    if (bitmap != null)
+                    {
+                        return new Size(bitmap.Width, bitmap.Height);
+                    }
+                }
+                catch
+                {
+                    // Ignore and fall back to default
+                }
+                return new Size(200, 200);
+            });
+        }
+
+        private ElementType GetElementType(RenderElement element) => element.Type;
+
+        private ShapeType GetSelectedShapeType()
+        {
+            if (ShapeTypeComboBox.SelectedItem is ComboBoxItem combo)
+            {
+                return combo.Content?.ToString() switch
+                {
+                    "Circle" => ShapeType.Circle,
+                    "Triangle" => ShapeType.Triangle,
+                    _ => ShapeType.Rectangle
+                };
+            }
+            return ShapeType.Rectangle;
+        }
+
+        private void DuplicateElementButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentElement == null)
+            {
+                UpdateStatus("Select an element to duplicate", true);
+                return;
+            }
+
+            var clone = CloneElement(_currentElement);
+            clone.Position = new Point(
+                Math.Clamp(_currentElement.Position.X + 20, 0, CanvasWidth - 10),
+                Math.Clamp(_currentElement.Position.Y + 20, 0, CanvasHeight - 10));
+
+            _renderService.AddElement(clone);
+            _renderService.SelectElement(clone);
+            UpdateElementsList();
+            UpdateStatus($"Duplicated {_currentElement.Name}");
+        }
+
+        private RenderElement CloneElement(RenderElement element)
+        {
+            switch (element)
+            {
+                case TextElement text:
+                    return new TextElement(GenerateElementName(text.Name))
+                    {
+                        Text = text.Text,
+                        FontFamily = text.FontFamily,
+                        FontSize = text.FontSize,
+                        TextColor = text.TextColor,
+                        Position = text.Position,
+                        Size = text.Size,
+                        Opacity = text.Opacity,
+                        IsVisible = text.IsVisible,
+                        IsDraggable = text.IsDraggable,
+                        ZIndex = text.ZIndex
+                    };
+                case ShapeElement shape:
+                    return new ShapeElement(GenerateElementName(shape.Name))
+                    {
+                        ShapeType = shape.ShapeType,
+                        Position = shape.Position,
+                        Size = shape.Size,
+                        FillColor = shape.FillColor,
+                        StrokeColor = shape.StrokeColor,
+                        StrokeWidth = shape.StrokeWidth,
+                        Opacity = shape.Opacity,
+                        IsVisible = shape.IsVisible,
+                        IsDraggable = shape.IsDraggable,
+                        ZIndex = shape.ZIndex
+                    };
+                case ImageElement image:
+                    return new ImageElement(GenerateElementName(image.Name))
+                    {
+                        ImagePath = image.ImagePath,
+                        Position = image.Position,
+                        Size = image.Size,
+                        Scale = image.Scale,
+                        Rotation = image.Rotation,
+                        Opacity = image.Opacity,
+                        IsVisible = image.IsVisible,
+                        IsDraggable = image.IsDraggable,
+                        ZIndex = image.ZIndex
+                    };
+                case LiveElement live:
+                    return new LiveElement(live.Type, GenerateElementName(live.Name))
+                    {
+                        Position = live.Position,
+                        Size = live.Size,
+                        FontFamily = live.FontFamily,
+                        FontSize = live.FontSize,
+                        TextColor = live.TextColor,
+                        Format = live.Format,
+                        Opacity = live.Opacity,
+                        IsVisible = live.IsVisible,
+                        IsDraggable = live.IsDraggable,
+                        ZIndex = live.ZIndex
+                    };
+            }
+
+            throw new NotSupportedException("Unsupported element type");
+        }
+
+        private void DeleteElementButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentElement == null)
+            {
+                UpdateStatus("No element selected", true);
+                return;
+            }
+
+            _renderService.RemoveElement(_currentElement);
+            _currentElement = null;
+            UpdateElementsList();
+            UpdateStatus("Element removed");
+        }
+
+        private void AddBouncingTextButton_Click(object sender, RoutedEventArgs e)
+        {
+            var text = new MotionTextElement(GenerateElementName("Bouncing"))
+            {
+                Text = "Bouncing text",
+                Position = new Point(100, 100),
+                FontFamily = "Segoe UI",
+                FontSize = 28,
+                TextColor = WinUIColor.FromArgb(255, 255, 215, 0),
+                Size = new Size(260, 72),
+                MotionConfig = new ElementMotionConfig
+                {
+                    MotionType = MotionType.Bounce,
+                    Speed = 150,
+                    RespectBoundaries = true
+                }
+            };
+
+            _renderService.AddElement(text);
+            _renderService.SelectElement(text);
+            UpdateElementsList();
+            UpdateStatus("Added bouncing text");
+        }
+
+        private void AddSampleShapeButton_Click(object sender, RoutedEventArgs e)
+        {
+            var shape = new ShapeElement(GenerateElementName("Shape"))
+            {
+                ShapeType = ShapeType.Circle,
+                Size = new Size(140, 140),
+                Position = new Point(220, 220),
+                FillColor = WinUIColor.FromArgb(255, 52, 152, 219),
+                Opacity = 0.85f
+            };
+
+            _renderService.AddElement(shape);
+            _renderService.SelectElement(shape);
+            UpdateElementsList();
+            UpdateStatus("Added sample shape");
+        }
+
+        private void AddSampleImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_selectedImagePath))
+            {
+                UpdateStatus("Select an image first", true);
+                return;
+            }
+
+            var image = new ImageElement(GenerateElementName("Image"))
+            {
+                ImagePath = _selectedImagePath,
+                Position = new Point(150, 150),
+                Size = new Size(200, 200),
+                Scale = 1.0f
+            };
+
+            _renderService.AddElement(image);
+            _renderService.SelectElement(image);
+            UpdateElementsList();
+            UpdateStatus("Added sample image");
+        }
+
+        private string GenerateElementName(string prefix)
+        {
+            var elements = _renderService.GetElements();
+            var index = 1;
+            string candidate;
+            do
+            {
+                candidate = $"{prefix}{index++}";
+            }
+            while (elements.Any(e => e.Name.Equals(candidate, StringComparison.OrdinalIgnoreCase)));
+
+            return candidate;
+        }
+
+        private void ElementsListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ElementsListView.SelectedItem is ElementListItem item)
+            {
+                _renderService.SelectElement(item.Element);
+            }
+        }
+
+        private void UpdateElementsList()
+        {
+            var elements = _renderService.GetElements()
+                .OrderBy(e => e.ZIndex)
+                .Select(e => new ElementListItem(e))
+                .ToList();
+
+            ElementsListView.ItemsSource = elements;
+            ElementCountLabel.Text = $"Elements: {elements.Count}";
+
+            if (_currentElement != null)
+            {
+                var match = elements.FirstOrDefault(e => e.Id == _currentElement.Id);
+                if (match != null)
+                {
+                    ElementsListView.SelectedItem = match;
                 }
             }
-            else
+        }
+
+        private void SelectElementInList(RenderElement element)
+        {
+            if (ElementsListView.ItemsSource is IEnumerable<ElementListItem> list)
             {
-                if (FpsText != null)
+                var match = list.FirstOrDefault(i => i.Id == element.Id);
+                if (match != null)
                 {
-                    FpsText.Text = "FPS: 0";
+                    ElementsListView.SelectedItem = match;
                 }
             }
         }
 
-        private void UpdateUI()
+        private void MoveElementUpButton_Click(object sender, RoutedEventArgs e) => AdjustZIndex(1);
+
+        private void MoveElementDownButton_Click(object sender, RoutedEventArgs e) => AdjustZIndex(-1);
+
+        private void DeleteSelectedElementButton_Click(object sender, RoutedEventArgs e) => DeleteElementButton_Click(sender, e);
+
+        private void AdjustZIndex(int delta)
         {
-            if (ElementCountText != null)
+            if (_currentElement == null)
             {
-                ElementCountText.Text = $"Elements: {_renderingService?.ElementCount ?? 0}";
+                UpdateStatus("Select an element", true);
+                return;
             }
-            
-            if (CaptureButton != null)
+
+            var properties = new Dictionary<string, object>
             {
-                CaptureButton.IsEnabled = _isRendering;
-            }
-            
-            // Update HID status display
-            if (_renderingService?.IsHidRealTimeModeEnabled == true)
+                ["ZIndex"] = _currentElement.ZIndex + delta
+            };
+            _renderService.UpdateElementProperties(_currentElement, properties);
+            UpdateElementsList();
+        }
+
+        #endregion
+
+        #region Canvas interaction
+
+        private void CanvasDisplay_PointerPressed(object sender, PointerRoutedEventArgs e) => HandlePointerPressed(e);
+        private void CanvasDisplay_PointerReleased(object sender, PointerRoutedEventArgs e) => HandlePointerReleased(e);
+        private void CanvasDisplay_PointerMoved(object sender, PointerRoutedEventArgs e) => HandlePointerMoved(e);
+        private void CanvasOverlay_PointerPressed(object sender, PointerRoutedEventArgs e) => HandlePointerPressed(e);
+        private void CanvasOverlay_PointerReleased(object sender, PointerRoutedEventArgs e) => HandlePointerReleased(e);
+        private void CanvasOverlay_PointerMoved(object sender, PointerRoutedEventArgs e) => HandlePointerMoved(e);
+
+        private void HandlePointerPressed(PointerRoutedEventArgs e)
+        {
+            var point = e.GetCurrentPoint(InteractionOverlay).Position;
+            MousePositionLabel.Text = $"Mouse: ({(int)point.X}, {(int)point.Y})";
+
+            var element = _renderService.HitTest(point);
+            if (element != null)
             {
-                SafeUpdateStatusText($"Elements: {_renderingService.ElementCount} | HID: Real-time ACTIVE | Quality: {_renderingService.JpegQuality}%");
+                _renderService.SelectElement(element);
+                _draggedElement = element;
+                _elementStart = element.Position;
+                _dragStart = point;
+                _isDragging = true;
+                InteractionOverlay.CapturePointer(e.Pointer);
             }
         }
 
-        /// <summary>
-        /// Safely updates the status text with null checks
-        /// </summary>
-        /// <param name="message">The message to display</param>
-        private void SafeUpdateStatusText(string message)
+        private void HandlePointerReleased(PointerRoutedEventArgs e)
         {
-            if (StatusText != null)
+            if (_isDragging)
             {
-                StatusText.Text = message;
+                _isDragging = false;
+                InteractionOverlay.ReleasePointerCapture(e.Pointer);
             }
         }
 
-        private async Task SaveWriteableBitmapToFileAsync(WriteableBitmap bitmap, StorageFile file)
+        private void HandlePointerMoved(PointerRoutedEventArgs e)
         {
-            using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
+            var point = e.GetCurrentPoint(InteractionOverlay).Position;
+            MousePositionLabel.Text = $"Mouse: ({(int)point.X}, {(int)point.Y})";
+
+            if (_isDragging && _draggedElement != null)
             {
-                var encoder = await Windows.Graphics.Imaging.BitmapEncoder.CreateAsync(
-                    Windows.Graphics.Imaging.BitmapEncoder.PngEncoderId, stream);
+                var delta = new Point(point.X - _dragStart.X, point.Y - _dragStart.Y);
+                var newPosition = new Point(
+                    Math.Clamp(_elementStart.X + delta.X, 0, CanvasWidth),
+                    Math.Clamp(_elementStart.Y + delta.Y, 0, CanvasHeight));
 
-                // Get pixel data from WriteableBitmap
-                var pixelBuffer = bitmap.PixelBuffer;
-                var pixels = pixelBuffer.ToArray();
-
-                encoder.SetPixelData(
-                    Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8,
-                    Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied,
-                    (uint)bitmap.PixelWidth,
-                    (uint)bitmap.PixelHeight,
-                    96, 96, pixels);
-
-                await encoder.FlushAsync();
+                _renderService.MoveElement(_draggedElement, newPosition);
+                UpdatePositionInputs(newPosition);
             }
         }
 
-        private async Task SaveWriteableBitmapAsJpegAsync(WriteableBitmap bitmap, StorageFile file)
+        #endregion
+
+        #region Rendering controls
+
+        private void StartRenderingButton_Click(object sender, RoutedEventArgs e)
         {
-            using (var stream = await file.OpenAsync(FileAccessMode.ReadWrite))
+            if (!int.TryParse(FpsLabel.Text, out var fps))
             {
-                var encoder = await Windows.Graphics.Imaging.BitmapEncoder.CreateAsync(
-                    Windows.Graphics.Imaging.BitmapEncoder.JpegEncoderId, stream);
+                fps = 30;
+            }
+            _renderService.TargetFPS = fps;
+            _renderService.StartAutoRendering(fps);
+            UpdateStatus($"Rendering at {fps} FPS");
+        }
 
-                // Get pixel data from WriteableBitmap
-                var pixelBuffer = bitmap.PixelBuffer;
-                var pixels = pixelBuffer.ToArray();
+        private void StopRenderingButton_Click(object sender, RoutedEventArgs e)
+        {
+            _renderService.StopAutoRendering();
+            UpdateStatus("Rendering paused");
+        }
 
-                encoder.SetPixelData(
-                    Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8,
-                    Windows.Graphics.Imaging.BitmapAlphaMode.Premultiplied,
-                    (uint)bitmap.PixelWidth,
-                    (uint)bitmap.PixelHeight,
-                    96, 96, pixels);
+        private void ClearCanvasButton_Click(object sender, RoutedEventArgs e)
+        {
+            _renderService.ClearElements();
+            _currentElement = null;
+            UpdateElementsList();
+            UpdateStatus("Canvas cleared");
+        }
 
-                // Note: WinRT BitmapEncoder doesn't support SetPropertiesAsync for JPEG quality in the same way
-                // The quality setting would need to be handled differently if precise control is needed
-                
-                await encoder.FlushAsync();
+        private async void CreateSceneButton_Click(object sender, RoutedEventArgs e)
+        {
+            ClearCanvasButton_Click(sender, e);
+            AddBouncingTextButton_Click(sender, e);
+            AddSampleShapeButton_Click(sender, e);
+            if (!string.IsNullOrWhiteSpace(_selectedImagePath))
+            {
+                AddSampleImageButton_Click(sender, e);
+            }
+            await _renderService.RenderFrameAsync();
+            UpdateStatus("Sample scene created");
+        }
+
+        private void FpsSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            FpsLabel.Text = ((int)e.NewValue).ToString();
+        }
+
+        #endregion
+
+        #region Property editors
+
+        private void ElementTypeComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdatePropertyEditorVisibility();
+        }
+
+        private void OpacitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            UpdateOpacityLabel();
+        }
+
+        private void FontSizeSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            UpdateFontSizeLabel();
+        }
+
+        private async void PrimaryColorButton_Click(object sender, RoutedEventArgs e)
+        {
+            var color = await PickColorAsync(_primaryColor);
+            if (color.HasValue)
+            {
+                _primaryColor = color.Value;
+                UpdatePrimaryColorPreview();
             }
         }
 
-        private void Page_Unloaded(object sender, RoutedEventArgs e)
+        private async void ShapeColorButton_Click(object sender, RoutedEventArgs e)
         {
-            _renderingService?.Dispose();
-        }
-
-        // Drag functionality event handlers
-        private void OnRenderDisplayPointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
-        {
-            if (_renderingService == null) return;
-
-            var image = sender as Image;
-            var position = e.GetCurrentPoint(image).Position;
-
-            // Convert UI coordinates to render target coordinates
-            var renderPosition = ConvertUIToRenderCoordinates(position, image);
-
-            if (_renderingService.OnPointerPressed(renderPosition))
+            var color = await PickColorAsync(_shapeColor);
+            if (color.HasValue)
             {
-                image.CapturePointer(e.Pointer);
-                e.Handled = true;
+                _shapeColor = color.Value;
+                UpdateShapeColorPreview();
             }
         }
 
-        private void OnRenderDisplayPointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        private async Task<WinUIColor?> PickColorAsync(WinUIColor initial)
         {
-            if (_renderingService == null || !_renderingService.IsDragging) return;
-
-            var image = sender as Image;
-            var position = e.GetCurrentPoint(image).Position;
-
-            // Convert UI coordinates to render target coordinates
-            var renderPosition = ConvertUIToRenderCoordinates(position, image);
-
-            if (_renderingService.OnPointerMoved(renderPosition))
+            var picker = new ColorPicker
             {
-                e.Handled = true;
+                IsMoreButtonVisible = false,
+                IsHexInputVisible = true,
+                Color = initial
+            };
+
+            var dialog = new ContentDialog
+            {
+                Title = "Select color",
+                PrimaryButtonText = "Apply",
+                CloseButtonText = "Cancel",
+                XamlRoot = XamlRoot,
+                Content = picker
+            };
+
+            var result = await dialog.ShowAsync();
+            return result == ContentDialogResult.Primary ? picker.Color : null;
+        }
+
+        private void ShapeSizeSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            UpdateShapeSizeLabels();
+        }
+
+        private void ImageScaleSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            UpdateImageLabels();
+        }
+
+        private void ImageRotationSlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            UpdateImageLabels();
+        }
+
+        private async void SelectImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new FileOpenPicker();
+            picker.FileTypeFilter.Add(".png");
+            picker.FileTypeFilter.Add(".jpg");
+            picker.FileTypeFilter.Add(".jpeg");
+            picker.FileTypeFilter.Add(".bmp");
+            picker.FileTypeFilter.Add(".gif");
+            InitializePicker(picker);
+            var file = await picker.PickSingleFileAsync();
+            if (file == null) return;
+
+            _selectedImagePath = file.Path;
+            SelectedImageText.Text = file.Name;
+            UpdateStatus($"Image loaded: {file.Name}");
+        }
+
+        private async void OpenColorPickerButton_Click(object sender, RoutedEventArgs e)
+        {
+            var color = await PickColorAsync(_primaryColor);
+            if (color.HasValue)
+            {
+                _primaryColor = color.Value;
+                UpdatePrimaryColorPreview();
             }
         }
 
-        private void OnRenderDisplayPointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+        #endregion
+
+        #region Background controls
+
+        private async void SetSolidBackgroundButton_Click(object sender, RoutedEventArgs e)
         {
-            if (_renderingService == null) return;
+            await _renderService.SetBackgroundColorAsync(ToSkColor(_primaryColor), (float)BackgroundOpacitySlider.Value);
+            await _renderService.RenderFrameAsync();
+        }
 
-            var image = sender as Image;
+        private async void SetGradientBackgroundButton_Click(object sender, RoutedEventArgs e)
+        {
+            var secondary = _quickColors[_random.Next(_quickColors.Count)];
+            await _renderService.SetBackgroundGradientAsync(ToSkColor(_primaryColor), ToSkColor(secondary), BackgroundGradientDirection.DiagonalTopLeftToBottomRight, (float)BackgroundOpacitySlider.Value);
+            await _renderService.RenderFrameAsync();
+        }
 
-            if (_renderingService.OnPointerReleased())
+        private async void LoadBackgroundImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new FileOpenPicker();
+            picker.FileTypeFilter.Add(".png");
+            picker.FileTypeFilter.Add(".jpg");
+            picker.FileTypeFilter.Add(".jpeg");
+            picker.FileTypeFilter.Add(".bmp");
+            InitializePicker(picker);
+            var file = await picker.PickSingleFileAsync();
+            if (file == null) return;
+
+            await _renderService.SetBackgroundImageAsync(file.Path, BackgroundScaleMode.UniformToFill, (float)BackgroundOpacitySlider.Value);
+            await _renderService.RenderFrameAsync();
+        }
+
+        private async void ClearBackgroundButton_Click(object sender, RoutedEventArgs e)
+        {
+            await _renderService.ResetBackgroundToDefaultAsync();
+            await _renderService.RenderFrameAsync();
+        }
+
+        private void BackgroundOpacitySlider_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            UpdateBackgroundOpacityLabel();
+            _renderService.SetBackgroundOpacity((float)e.NewValue);
+        }
+
+    private static SKColor ToSkColor(WinUIColor color) => new(color.R, color.G, color.B, color.A);
+
+        #endregion
+
+        #region Scene & export
+
+        private async void ImportSceneButton_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new FileOpenPicker();
+            picker.FileTypeFilter.Add(".json");
+            InitializePicker(picker);
+            var file = await picker.PickSingleFileAsync();
+            if (file == null) return;
+
+            var json = await FileIO.ReadTextAsync(file);
+            await _renderService.ImportSceneFromJsonAsync(json);
+            UpdateElementsList();
+            UpdateStatus($"Imported scene {file.Name}");
+        }
+
+        private async void ExportSceneButton_Click(object sender, RoutedEventArgs e)
+        {
+            _sceneId ??= Guid.NewGuid();
+            var picker = new FileSavePicker
             {
-                image.ReleasePointerCapture(e.Pointer);
-                e.Handled = true;
+                SuggestedFileName = $"scene_{DateTime.Now:yyyyMMdd_HHmmss}"
+            };
+            picker.FileTypeChoices.Add("Scene", new List<string> { ".json" });
+            InitializePicker(picker);
+            var file = await picker.PickSaveFileAsync();
+            if (file == null) return;
+
+            var json = await _renderService.ExportSceneToJsonAsync(_sceneId.Value.ToString());
+            await FileIO.WriteTextAsync(file, json);
+            UpdateStatus($"Scene exported to {file.Name}");
+        }
+
+        private async void SaveImageButton_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new FileSavePicker
+            {
+                SuggestedFileName = $"render_{DateTime.Now:yyyyMMdd_HHmmss}"
+            };
+            picker.FileTypeChoices.Add("PNG", new List<string> { ".png" });
+            InitializePicker(picker);
+            var file = await picker.PickSaveFileAsync();
+            if (file == null) return;
+
+            await _renderService.SaveRenderedImageAsync(file.Path);
+            UpdateStatus($"Saved image to {file.Name}");
+        }
+
+        #endregion
+
+        #region Assets
+
+        private async void ImportAssetButton_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new FileOpenPicker();
+            picker.FileTypeFilter.Add(".png");
+            picker.FileTypeFilter.Add(".jpg");
+            picker.FileTypeFilter.Add(".jpeg");
+            picker.FileTypeFilter.Add(".gif");
+            InitializePicker(picker);
+            var file = await picker.PickSingleFileAsync();
+            if (file == null) return;
+
+            if (!_assets.Contains(file.Path))
+            {
+                _assets.Add(file.Path);
             }
         }
 
-        /// <summary>
-        /// Converts UI coordinates to render target coordinates
-        /// </summary>
-        /// <param name="uiPosition">Position in UI coordinates</param>
-        /// <param name="image">The image element</param>
-        /// <returns>Position in render target coordinates</returns>
-        private Vector2 ConvertUIToRenderCoordinates(Windows.Foundation.Point uiPosition, Image image)
+        private void RemoveAssetButton_Click(object sender, RoutedEventArgs e)
         {
-            if (image.Source is not WriteableBitmap bitmap)
-                return new Vector2((float)uiPosition.X, (float)uiPosition.Y);
+            if (AssetsListView.SelectedItem is string asset)
+            {
+                _assets.Remove(asset);
+            }
+        }
 
-            // Get the actual image size and display size
-            var imageWidth = bitmap.PixelWidth;
-            var imageHeight = bitmap.PixelHeight;
-            var displayWidth = image.ActualWidth;
-            var displayHeight = image.ActualHeight;
+        #endregion
 
-            // Calculate scaling factors considering Stretch="Uniform"
-            var scaleX = displayWidth / imageWidth;
-            var scaleY = displayHeight / imageHeight;
-            var scale = Math.Min(scaleX, scaleY); // Uniform scaling uses the smaller scale
+        private void UpdateEditorFromElement(RenderElement element, bool suppressTypeUpdate = false)
+        {
+            _currentElement = element;
+            ElementNameText.Text = element.Name;
+            ElementTypeText.Text = element.Type.ToString();
+            VisibleCheckBox.IsChecked = element.IsVisible;
+            DraggableCheckBox.IsChecked = element.IsDraggable;
+            OpacitySlider.Value = element.Opacity;
+            UpdateOpacityLabel();
+            UpdatePositionInputs(element.Position);
 
-            // Calculate the actual displayed image area
-            var displayedImageWidth = imageWidth * scale;
-            var displayedImageHeight = imageHeight * scale;
+            if (!suppressTypeUpdate)
+            {
+                ElementTypeComboBox.SelectedIndex = element.Type switch
+                {
+                    ElementType.Text => 0,
+                    ElementType.Image => 1,
+                    ElementType.Shape => 2,
+                    _ => 0
+                };
+            }
 
-            // Calculate offsets for centering
-            var offsetX = (displayWidth - displayedImageWidth) / 2;
-            var offsetY = (displayHeight - displayedImageHeight) / 2;
+            switch (element)
+            {
+                case TextElement text:
+                    TextContentTextBox.Text = text.Text;
+                    FontSizeSlider.Value = text.FontSize;
+                    UpdateFontSizeLabel();
+                    _primaryColor = text.TextColor;
+                    UpdatePrimaryColorPreview();
+                    break;
+                case ShapeElement shape:
+                    ShapeWidthSlider.Value = shape.Size.Width;
+                    ShapeHeightSlider.Value = shape.Size.Height;
+                    UpdateShapeSizeLabels();
+                    _shapeColor = shape.FillColor;
+                    UpdateShapeColorPreview();
+                    break;
+                case ImageElement image:
+                    ImageScaleSlider.Value = image.Scale;
+                    ImageRotationSlider.Value = image.Rotation;
+                    UpdateImageLabels();
+                    SelectedImageText.Text = System.IO.Path.GetFileName(image.ImagePath);
+                    _selectedImagePath = image.ImagePath;
+                    break;
+            }
 
-            // Convert UI position to render coordinates
-            var renderX = (uiPosition.X - offsetX) / scale;
-            var renderY = (uiPosition.Y - offsetY) / scale;
+            UpdatePropertyEditorVisibility();
+        }
 
-            return new Vector2((float)renderX, (float)renderY);
+        private static void InitializePicker(object picker)
+        {
+            var hwnd = App.Hwnd;
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        }
+
+        private sealed record ElementListItem(RenderElement Element)
+        {
+            public Guid Id => Element.Id;
+            public string DisplayName => $"{Element.Name} ({Element.Type})";
         }
     }
 }

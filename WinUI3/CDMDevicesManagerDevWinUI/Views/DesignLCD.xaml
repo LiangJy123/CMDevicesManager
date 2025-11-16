@@ -3,180 +3,377 @@
     x:Class="CDMDevicesManagerDevWinUI.Views.DesignLCD"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:CDMDevicesManagerDevWinUI.Views"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:dev="using:DevWinUI"
     mc:Ignorable="d">
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Page.Resources>
+        <Style x:Key="ModernButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="4" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Background" Value="#FF3A7AFE" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="BorderBrush" Value="#FF1F5CD6" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
 
-        <!-- Header -->
-        <Border Grid.Row="0" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                CornerRadius="8" Margin="10,10,10,5" Padding="20">
-            <StackPanel>
-                <TextBlock Text="Background Rendering Service Demo" 
-                           Style="{ThemeResource TitleTextBlockStyle}" 
-                           HorizontalAlignment="Center"/>
-                <TextBlock Text="Offscreen rendering with image display - real-time rendering with live text, images, and particle effects" 
-                           Style="{ThemeResource CaptionTextBlockStyle}" 
-                           HorizontalAlignment="Center" 
-                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                           Margin="0,5,0,0"/>
-            </StackPanel>
-        </Border>
+        <Style x:Key="ActionButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#FF2ECC71" />
+            <Setter Property="BorderBrush" Value="#FF27AE60" />
+        </Style>
 
-        <!-- Main Display Area -->
-        <Border Grid.Row="1" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                CornerRadius="8" Margin="10,5" Padding="10">
-            <Grid>
-                <!-- Rendered Image Display -->
-                <Border Background="Black" CornerRadius="8">
-                    <Image x:Name="RenderDisplay" 
-                           Stretch="Uniform"
-                           HorizontalAlignment="Stretch"
-                           VerticalAlignment="Stretch"
-                           PointerPressed="OnRenderDisplayPointerPressed"
-                           PointerMoved="OnRenderDisplayPointerMoved"
-                           PointerReleased="OnRenderDisplayPointerReleased"
-                           PointerCaptureLost="OnRenderDisplayPointerReleased"/>
-                </Border>
+        <Style x:Key="WarningButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Background" Value="#FFE74C3C" />
+            <Setter Property="BorderBrush" Value="#FFC0392B" />
+        </Style>
 
-                <!-- Overlay Controls -->
-                <ScrollViewer HorizontalAlignment="Right" VerticalAlignment="Top" 
-                             Margin="20" 
-                             MaxHeight="600"
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Disabled"
-                             ZoomMode="Disabled">
-                    <StackPanel Spacing="10" Background="{ThemeResource AcrylicBackgroundFillColorDefaultBrush}"
-                                Padding="15" CornerRadius="8">
-                        <TextBlock Text="Renderer Controls" Style="{ThemeResource SubtitleTextBlockStyle}"/>
+        <Style x:Key="CompactButtonStyle" TargetType="Button" BasedOn="{StaticResource ModernButtonStyle}">
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="MinHeight" Value="26" />
+            <Setter Property="FontSize" Value="11" />
+        </Style>
 
-                        <Button x:Name="StartStopButton" Content="Start Rendering" Click="OnStartStopClick"/>
-                        <Button x:Name="CaptureButton" Content="Capture Frame" Click="OnCaptureFrameClick"/>
-                        <Button x:Name="ClearButton" Content="Clear Elements" Click="OnClearElementsClick"/>
+        <Style x:Key="PropertyLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="#FF2C3E50" />
+            <Setter Property="Margin" Value="0,8,0,4" />
+        </Style>
 
-                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
+        <Style x:Key="PropertyInputStyle" TargetType="TextBox">
+            <Setter Property="Margin" Value="0,2,0,6" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="BorderBrush" Value="#FFBDC3C7" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
 
-                        <TextBlock Text="🔗 HID Device Integration" Style="{ThemeResource BodyStrongTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                        <TextBlock Text="Real-time JPEG streaming to connected HID devices" 
-                                   Style="{ThemeResource CaptionTextBlockStyle}" 
-                                   TextWrapping="Wrap"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <TextBlock Text="JPEG Quality:" VerticalAlignment="Center"/>
-                            <ComboBox x:Name="JpegQualityComboBox" SelectedIndex="2" SelectionChanged="OnJpegQualityChanged" Width="80">
-                                <ComboBoxItem Content="50%"/>
-                                <ComboBoxItem Content="75%"/>
-                                <ComboBoxItem Content="85%"/>
-                                <ComboBoxItem Content="95%"/>
+        <Style x:Key="ModernSliderStyle" TargetType="Slider">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Margin" Value="0,2,0,6" />
+        </Style>
+
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="#FF2C3E50" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+
+        <Style x:Key="PanelHeaderStyle" TargetType="Border">
+            <Setter Property="Background" Value="#FF34495E" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="Margin" Value="0,0,0,16" />
+        </Style>
+
+        <Style x:Key="ExpanderStyle" TargetType="Expander">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#FFECF0F1" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+        </Style>
+    </Page.Resources>
+
+    <Grid Background="#FFF8F9FA">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="380" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="360" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Left panel -->
+        <Border Grid.Column="0" Background="White" BorderBrush="#FFECF0F1" BorderThickness="0,0,1,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Design Studio" Style="{StaticResource SectionHeaderStyle}" />
+
+                    <Expander Header="🎨 Element Properties" IsExpanded="True" Style="{StaticResource ExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <TextBlock Text="Element type" Style="{StaticResource PropertyLabelStyle}" />
+                            <ComboBox x:Name="ElementTypeComboBox" SelectedIndex="0">
+                                <ComboBoxItem Content="Text" />
+                                <ComboBoxItem Content="Image" />
+                                <ComboBoxItem Content="Shape" />
+                                <ComboBoxItem Content="Live" />
                             </ComboBox>
+
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="CreateElementButton" Content="Create" Grid.Column="0" Style="{StaticResource ActionButtonStyle}" Click="CreateElementButton_Click" />
+                                <Button x:Name="UpdateElementButton" Content="Update" Grid.Column="1" Style="{StaticResource ModernButtonStyle}" Click="UpdateElementButton_Click" />
+                            </Grid>
+
+                            <TextBlock x:Name="ElementNameText" Text="No element selected" FontWeight="Bold" Margin="0,12,0,2" />
+                            <TextBlock x:Name="ElementTypeText" Text="Choose an element to edit" Foreground="#FF7F8C8D" />
+
+                            <TextBlock Text="Position" Style="{StaticResource PropertyLabelStyle}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="PositionXTextBox" Grid.Column="0" PlaceholderText="X" Style="{StaticResource PropertyInputStyle}" />
+                                <TextBox x:Name="PositionYTextBox" Grid.Column="1" PlaceholderText="Y" Margin="8,2,0,6" Style="{StaticResource PropertyInputStyle}" />
+                            </Grid>
+
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox x:Name="VisibleCheckBox" Content="Visible" IsChecked="True" Margin="0,0,16,0" />
+                                <CheckBox x:Name="DraggableCheckBox" Content="Draggable" IsChecked="True" />
+                            </StackPanel>
+
+                            <TextBlock Text="Opacity" Style="{StaticResource PropertyLabelStyle}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="60" />
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="OpacitySlider" Minimum="0" Maximum="1" Value="1" TickFrequency="0.1" Style="{StaticResource ModernSliderStyle}" ValueChanged="OpacitySlider_ValueChanged" />
+                                <TextBlock x:Name="OpacityValueLabel" Text="100%" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                            </Grid>
+
+                            <StackPanel x:Name="TextPropertiesPanel" Margin="0,12,0,0">
+                                <TextBlock Text="Text content" Style="{StaticResource PropertyLabelStyle}" />
+                                <TextBox x:Name="TextContentTextBox" PlaceholderText="Sample text" Style="{StaticResource PropertyInputStyle}" />
+
+                                <TextBlock Text="Font size" Style="{StaticResource PropertyLabelStyle}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="60" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider x:Name="FontSizeSlider" Minimum="8" Maximum="96" Value="32" Style="{StaticResource ModernSliderStyle}" ValueChanged="FontSizeSlider_ValueChanged" />
+                                    <TextBlock x:Name="FontSizeValueLabel" Grid.Column="1" Text="32" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                </Grid>
+
+                                <TextBlock Text="Font family" Style="{StaticResource PropertyLabelStyle}" />
+                                <ComboBox x:Name="FontFamilyComboBox" SelectedIndex="0">
+                                    <ComboBoxItem Content="Segoe UI" />
+                                    <ComboBoxItem Content="Arial" />
+                                    <ComboBoxItem Content="Consolas" />
+                                </ComboBox>
+
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Button x:Name="PrimaryColorButton" Content="Primary color" Style="{StaticResource CompactButtonStyle}" Click="PrimaryColorButton_Click" />
+                                    <Rectangle x:Name="PrimaryColorPreview" Width="24" Height="24" Fill="#FFFFFFFF" Stroke="#FFBDC3C7" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel x:Name="ShapePropertiesPanel" Margin="0,12,0,0" Visibility="Collapsed">
+                                <TextBlock Text="Shape type" Style="{StaticResource PropertyLabelStyle}" />
+                                <ComboBox x:Name="ShapeTypeComboBox" SelectedIndex="0">
+                                    <ComboBoxItem Content="Rectangle" />
+                                    <ComboBoxItem Content="Circle" />
+                                    <ComboBoxItem Content="Triangle" />
+                                </ComboBox>
+
+                                <TextBlock Text="Width / Height" Style="{StaticResource PropertyLabelStyle}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider x:Name="ShapeWidthSlider" Minimum="20" Maximum="400" Value="120" Grid.Column="0" Style="{StaticResource ModernSliderStyle}" ValueChanged="ShapeSizeSlider_ValueChanged" />
+                                    <Slider x:Name="ShapeHeightSlider" Minimum="20" Maximum="400" Value="120" Grid.Column="1" Margin="8,0,0,0" Style="{StaticResource ModernSliderStyle}" ValueChanged="ShapeSizeSlider_ValueChanged" />
+                                </Grid>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock x:Name="ShapeWidthLabel" Text="120" Margin="0,0,16,0" />
+                                    <TextBlock x:Name="ShapeHeightLabel" Text="120" />
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,6,0,0">
+                                    <Button x:Name="ShapeColorButton" Content="Fill color" Style="{StaticResource CompactButtonStyle}" Click="ShapeColorButton_Click" />
+                                    <Rectangle x:Name="ShapeColorPreview" Width="24" Height="24" Fill="#FF3498DB" Stroke="#FFBDC3C7" Margin="8,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel x:Name="ImagePropertiesPanel" Margin="0,12,0,0" Visibility="Collapsed">
+                                <Button x:Name="SelectImageButton" Content="Select image" Style="{StaticResource ModernButtonStyle}" Click="SelectImageButton_Click" />
+                                <TextBlock x:Name="SelectedImageText" Text="No file selected" FontSize="11" Foreground="#FF7F8C8D" />
+
+                                <TextBlock Text="Scale" Style="{StaticResource PropertyLabelStyle}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="60" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider x:Name="ImageScaleSlider" Minimum="0.1" Maximum="3" Value="1" Style="{StaticResource ModernSliderStyle}" ValueChanged="ImageScaleSlider_ValueChanged" />
+                                    <TextBlock x:Name="ImageScaleLabel" Grid.Column="1" Text="1.0x" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                </Grid>
+
+                                <TextBlock Text="Rotation" Style="{StaticResource PropertyLabelStyle}" />
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="60" />
+                                    </Grid.ColumnDefinitions>
+                                    <Slider x:Name="ImageRotationSlider" Minimum="0" Maximum="360" Value="0" Style="{StaticResource ModernSliderStyle}" ValueChanged="ImageRotationSlider_ValueChanged" />
+                                    <TextBlock x:Name="ImageRotationLabel" Grid.Column="1" Text="0°" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                </Grid>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch" Margin="0,16,0,0">
+                                <Button x:Name="DuplicateElementButton" Content="Duplicate" Style="{StaticResource CompactButtonStyle}" Click="DuplicateElementButton_Click" />
+                                <Button x:Name="DeleteElementButton" Content="Delete" Style="{StaticResource CompactButtonStyle}" Margin="8,0,0,0" Click="DeleteElementButton_Click" />
+                            </StackPanel>
                         </StackPanel>
-                        
-                        <CheckBox x:Name="HidRealTimeModeCheckBox" Content="Enable HID Real-time Mode" 
-                                  Checked="OnHidRealTimeModeChanged" Unchecked="OnHidRealTimeModeChanged"
-                                  IsChecked="True"/>
+                    </Expander>
 
-                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-
-                        <TextBlock Text="💡 Interaction Tip" Style="{ThemeResource BodyStrongTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                        <TextBlock Text="Click and drag elements to move them around!" 
-                                   Style="{ThemeResource CaptionTextBlockStyle}" 
-                                   TextWrapping="Wrap"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-
-                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-
-                        <TextBlock Text="Render Settings" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <TextBlock Text="Size:" VerticalAlignment="Center"/>
-                            <ComboBox x:Name="RenderSizeComboBox" SelectedIndex="0" SelectionChanged="OnRenderSizeChanged">
-                                <ComboBoxItem Content="480x480"/>
-                            </ComboBox>
+                    <Expander Header="⚡ Quick Actions" IsExpanded="False" Style="{StaticResource ExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <Button x:Name="AddBouncingTextButton" Content="Add animated text" Style="{StaticResource ModernButtonStyle}" Click="AddBouncingTextButton_Click" />
+                            <Button x:Name="AddSampleShapeButton" Content="Add sample shape" Style="{StaticResource ModernButtonStyle}" Click="AddSampleShapeButton_Click" />
+                            <Button x:Name="AddSampleImageButton" Content="Add sample image" Style="{StaticResource ModernButtonStyle}" Click="AddSampleImageButton_Click" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <TextBlock Text="FPS:" VerticalAlignment="Center"/>
-                            <ComboBox x:Name="FpsComboBox" SelectedIndex="0" SelectionChanged="OnFpsChanged">
-                                <ComboBoxItem Content="15"/>
-                                <ComboBoxItem Content="30"/>
-                                <ComboBoxItem Content="60"/>
-                            </ComboBox>
+                    </Expander>
+
+                    <Expander Header="🎨 Quick Colors" IsExpanded="False" Style="{StaticResource ExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <ItemsControl x:Name="QuickColorItems">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <Button Content="Custom color" Style="{StaticResource CompactButtonStyle}" Click="OpenColorPickerButton_Click" />
                         </StackPanel>
-
-                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-
-                        <TextBlock Text="Add Elements" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                        <Button Content="🧪 Test Simple Text" Click="OnTestSimpleTextClick" Background="LightBlue"/>
-                        <Button Content="Add Live Time" Click="OnAddLiveTimeClick"/>
-                        <Button Content="Add Floating Text" Click="OnAddFloatingTextClick"/>
-                        <Button Content="Add Particle System" Click="OnAddParticleSystemClick"/>
-                        <Button Content="Add Sample Image" Click="OnAddSampleImageClick"/>
-
-                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-
-                        <TextBlock Text="🎭 Motion Demos" Style="{ThemeResource BodyStrongTextBlockStyle}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
-                        <TextBlock Text="Explore different motion patterns and animations" 
-                                   Style="{ThemeResource CaptionTextBlockStyle}" 
-                                   TextWrapping="Wrap"
-                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        
-                        <Button Content="🏐 Bouncing Ball" Click="OnAddBouncingBallClick" Background="Orange"/>
-                        <Button Content="🔄 Rotating Text" Click="OnAddRotatingTextClick" Background="Cyan"/>
-                        <Button Content="💓 Pulsating Text" Click="OnAddPulsatingTextClick" Background="LimeGreen"/>
-                        <Button Content="🌀 Spiral Motion" Click="OnAddSpiralTextClick" Background="Magenta"/>
-                        <Button Content="➡️ Linear Trail" Click="OnAddLinearTrailClick" Background="Yellow"/>
-                        <Button Content="🎲 Random Movement" Click="OnAddRandomMovementClick" Background="HotPink"/>
-                        <Button Content="🎨 Motion Showcase" Click="OnAddMotionShowcaseClick" Background="Gold"/>
-
-                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-
-                        <TextBlock Text="Motion Controls" Style="{ThemeResource BodyStrongTextBlockStyle}"/>
-                        <StackPanel Orientation="Horizontal" Spacing="5">
-                            <TextBlock Text="Speed:" VerticalAlignment="Center"/>
-                            <Slider x:Name="MotionSpeedSlider" 
-                                    Minimum="10" Maximum="300" Value="100" 
-                                    Width="100" 
-                                    ValueChanged="OnMotionSpeedChanged"/>
-                            <TextBlock x:Name="MotionSpeedText" Text="100" VerticalAlignment="Center" Width="30"/>
-                        </StackPanel>
-                        
-                        <Button Content="⏸️ Stop All Motion" Click="OnStopAllMotionClick" Background="Red"/>
-                        <Button Content="▶️ Resume All Motion" Click="OnResumeAllMotionClick" Background="Green"/>
-
-                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,5"/>
-                    </StackPanel>
-                </ScrollViewer>
-            </Grid>
-        </Border>
-
-        <!-- Status Bar -->
-        <Border Grid.Row="2" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" 
-                CornerRadius="8" Margin="10,5,10,10" Padding="15">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <TextBlock x:Name="StatusText" Text="Ready to initialize background rendering service..." 
-                           VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="20" Margin="20,0">
-                    <TextBlock x:Name="ElementCountText" Text="Elements: 0" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="FpsText" Text="FPS: 0" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="RenderSizeText" Text="Size: 800x600" VerticalAlignment="Center"/>
+                    </Expander>
                 </StackPanel>
+            </ScrollViewer>
+        </Border>
 
-                <Button Grid.Column="2" Content="Export Settings" Click="OnExportSettingsClick"/>
+        <!-- Center panel -->
+        <Grid Grid.Column="1" Padding="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border Style="{StaticResource PanelHeaderStyle}" Grid.Row="0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🎯" FontSize="20" Margin="0,0,8,0" />
+                        <TextBlock Text="Interactive canvas" Foreground="White" FontSize="16" FontWeight="SemiBold" />
+                        <TextBlock Text="(480 × 480)" Foreground="#FFBDC3C7" Margin="12,0,0,0" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Grid.Column="1">
+                        <TextBlock x:Name="ElementCountLabel" Text="Elements: 0" Foreground="#FFBDC3C7" Margin="0,0,16,0" />
+                        <TextBlock x:Name="StatusLabel" Text="Ready" Foreground="#FF2ECC71" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Background="White" BorderBrush="#FFECF0F1" BorderThickness="1" Padding="12" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="StartRenderingButton" Content="Start" Style="{StaticResource ActionButtonStyle}" Click="StartRenderingButton_Click" />
+                        <Button x:Name="StopRenderingButton" Content="Stop" Style="{StaticResource WarningButtonStyle}" Click="StopRenderingButton_Click" Margin="8,0,0,0" />
+                        <Button x:Name="ClearCanvasButton" Content="Clear" Style="{StaticResource CompactButtonStyle}" Margin="8,0,0,0" Click="ClearCanvasButton_Click" />
+                        <Button x:Name="CreateSceneButton" Content="Create sample scene" Style="{StaticResource CompactButtonStyle}" Margin="8,0,0,0" Click="CreateSceneButton_Click" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Grid.Column="1">
+                        <TextBlock Text="FPS:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                        <Slider x:Name="FpsSlider" Width="90" Minimum="5" Maximum="120" Value="30" Style="{StaticResource ModernSliderStyle}" ValueChanged="FpsSlider_ValueChanged" />
+                        <TextBlock x:Name="FpsLabel" Text="30" VerticalAlignment="Center" Margin="8,0,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2">
+                <Border Background="#FF000000" HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="#FF34495E" BorderThickness="3">
+                    <Grid>
+                        <Image x:Name="CanvasDisplay" Width="480" Height="480" Stretch="Fill" PointerPressed="CanvasDisplay_PointerPressed" PointerReleased="CanvasDisplay_PointerReleased" PointerMoved="CanvasDisplay_PointerMoved" />
+                        <Canvas x:Name="InteractionOverlay" Width="480" Height="480" Background="Transparent" PointerPressed="CanvasOverlay_PointerPressed" PointerReleased="CanvasOverlay_PointerReleased" PointerMoved="CanvasOverlay_PointerMoved" />
+                    </Grid>
+                </Border>
             </Grid>
+
+            <Border Grid.Row="3" Background="#FFECF0F1" Padding="12" Margin="0,16,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="MousePositionLabel" Text="Mouse: (0,0)" />
+                        <TextBlock x:Name="RenderInfoLabel" Text="Idle" Margin="16,0,0,0" />
+                    </StackPanel>
+                    <TextBlock x:Name="TimelineLabel" Text="Timeline: 0%" Grid.Column="1" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Right panel -->
+        <Border Grid.Column="2" Background="White" BorderBrush="#FFECF0F1" BorderThickness="1,0,0,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Scene manager" Style="{StaticResource SectionHeaderStyle}" />
+
+                    <Expander Header="📋 Elements" IsExpanded="True" Style="{StaticResource ExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <ListView x:Name="ElementsListView" Height="220" DisplayMemberPath="DisplayName" SelectionChanged="ElementsListView_SelectionChanged" />
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button x:Name="MoveElementUpButton" Content="Up" Style="{StaticResource CompactButtonStyle}" Click="MoveElementUpButton_Click" />
+                                <Button x:Name="MoveElementDownButton" Content="Down" Style="{StaticResource CompactButtonStyle}" Margin="8,0,0,0" Click="MoveElementDownButton_Click" />
+                                <Button x:Name="DeleteSelectedElementButton" Content="Delete" Style="{StaticResource CompactButtonStyle}" Margin="8,0,0,0" Click="DeleteSelectedElementButton_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+
+                    <Expander Header="🌄 Background" IsExpanded="True" Style="{StaticResource ExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="SetSolidBackgroundButton" Content="Solid" Style="{StaticResource CompactButtonStyle}" Click="SetSolidBackgroundButton_Click" />
+                                <Button x:Name="SetGradientBackgroundButton" Content="Gradient" Style="{StaticResource CompactButtonStyle}" Margin="8,0,0,0" Click="SetGradientBackgroundButton_Click" />
+                                <Button x:Name="LoadBackgroundImageButton" Content="Image" Style="{StaticResource CompactButtonStyle}" Margin="8,0,0,0" Click="LoadBackgroundImageButton_Click" />
+                            </StackPanel>
+                            <Button x:Name="ClearBackgroundButton" Content="Clear background" Style="{StaticResource CompactButtonStyle}" Margin="0,8,0,0" Click="ClearBackgroundButton_Click" />
+                            <TextBlock Text="Opacity" Style="{StaticResource PropertyLabelStyle}" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="50" />
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="BackgroundOpacitySlider" Minimum="0" Maximum="1" Value="1" Style="{StaticResource ModernSliderStyle}" ValueChanged="BackgroundOpacitySlider_ValueChanged" />
+                                <TextBlock x:Name="BackgroundOpacityLabel" Grid.Column="1" Text="1.00" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                            </Grid>
+                        </StackPanel>
+                    </Expander>
+
+                    <Expander Header="🗂️ Scenes" IsExpanded="False" Style="{StaticResource ExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <Button x:Name="ImportSceneButton" Content="Import scene" Style="{StaticResource ModernButtonStyle}" Click="ImportSceneButton_Click" />
+                            <Button x:Name="ExportSceneButton" Content="Export scene" Style="{StaticResource ModernButtonStyle}" Margin="0,8,0,0" Click="ExportSceneButton_Click" />
+                            <Button x:Name="SaveImageButton" Content="Save as image" Style="{StaticResource ModernButtonStyle}" Margin="0,8,0,0" Click="SaveImageButton_Click" />
+                        </StackPanel>
+                    </Expander>
+
+                    <Expander Header="📦 Assets" IsExpanded="False" Style="{StaticResource ExpanderStyle}">
+                        <StackPanel Margin="12,8">
+                            <ListView x:Name="AssetsListView" Height="160" />
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button x:Name="ImportAssetButton" Content="Import" Style="{StaticResource CompactButtonStyle}" Click="ImportAssetButton_Click" />
+                                <Button x:Name="RemoveAssetButton" Content="Remove" Style="{StaticResource CompactButtonStyle}" Margin="8,0,0,0" Click="RemoveAssetButton_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Expander>
+                </StackPanel>
+            </ScrollViewer>
         </Border>
     </Grid>
 </Page>
