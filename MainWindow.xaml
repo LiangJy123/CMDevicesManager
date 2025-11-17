@@ -336,9 +336,9 @@
                     <!-- 内容区域 -->
                     <Grid Grid.Column="1" Margin="4,12,12,12">
                         <Frame x:Name="MainFrame" NavigationUIVisibility="Hidden" Background="Transparent"/>
-                        <!-- ✅ 改用 Collapsed 而不是 Hidden -->
+                      
                         <Grid x:Name="GlobalMirrorHost"
-                        Visibility="Collapsed" 
+                        Visibility="Hidden" 
                         Opacity="1"
                         IsHitTestVisible="False"  Panel.ZIndex="9">
 

@@ -1,7 +1,7 @@
 ﻿#define MyAppName        "LCDMaster"
 #define MyAppExeName     "LCDMaster.exe"
 #define MyCompany        "ELINK"
-#define MyAppVersion     "0.0.4"
+#define MyAppVersion     "0.0.5"
 #define MyPublishDir     "..\\bin\\release\\net8.0-windows10.0.19041.0\\publish"
 
 [Setup]
@@ -73,11 +73,12 @@ Name: "{group}\\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
 
 [Registry]
 Root: HKCU; Subkey: "Software\\Microsoft\\Windows\\CurrentVersion\\Run"; \
-    ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\\{#MyAppExeName}"""; Tasks: autostart
+    ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Tasks: autostart
 
 [Run]
-; 使用多语言描述
-Filename: "{app}\\{#MyAppExeName}"; Description: "{cm:LaunchApp}"; Flags: nowait postinstall skipifsilent
+; 使用多语言描述，并以管理员权限启动
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchApp}"; Flags: nowait postinstall skipifsilent shellexec
+
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{localappdata}\\{#MyCompany}\\{#MyAppName}"

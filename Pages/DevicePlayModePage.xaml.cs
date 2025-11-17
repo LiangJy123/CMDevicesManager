@@ -454,6 +454,43 @@ namespace CMDevicesManager.Pages
             await LoadCurrentDeviceDisplaySettingsAsync();
             UpdatePlayModeUI();
             await RefreshSuspendMediaDisplay();
+
+
+            // ✅ 初始化 ScreenToggle 状态
+            InitializeScreenToggleState();
+        }
+        /// <summary>
+        /// Initialize the ScreenToggle state based on saved brightness from offline data service
+        /// </summary>
+    
+        private void InitializeScreenToggleState()
+        {
+            if (_deviceInfo?.SerialNumber == null || !ServiceLocator.IsOfflineMediaServiceInitialized)
+                return;
+
+            try
+            {
+                var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                var settings = offlineDataService.GetDeviceSettings(_deviceInfo.SerialNumber);
+                var savedBrightness = settings.Brightness;
+
+                // ✅ 修正：亮度 > 0 表示屏幕开启，toggle 应该是 checked
+                bool isScreenOn = savedBrightness > 0;
+
+                if (ScreenToggle != null)
+                {
+                    // 暂时移除事件处理程序，避免触发 Click 事件
+                    ScreenToggle.Click -= ScreenToggle_Click;
+                    ScreenToggle.IsChecked = isScreenOn;
+                    ScreenToggle.Click += ScreenToggle_Click;
+
+                    Logger.Info($"Initialized ScreenToggle state: {(isScreenOn ? "ON (checked)" : "OFF (unchecked)")}, Saved brightness: {savedBrightness}%");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to initialize ScreenToggle state for device {_deviceInfo?.SerialNumber}: {ex.Message}");
+            }
         }
 
         private void InitializeDisplayControls()
@@ -984,23 +1021,15 @@ namespace CMDevicesManager.Pages
             if (sender is ToggleButton toggle)
             {
                 bool isScreenOff = toggle.IsChecked == true;
-            // Implement your screen on/off logic here
 
-           
                 if (isScreenOff)
                 {
-                    // Turn screen off
-
-                    await RestoreBrightnessFromServiceAsync();
-                }
-                else
-                {
-                    // Turn screen on
-
+                    // ✅ Turn screen off - save current brightness and set to 0
                     try
                     {
                         SetLoadingState(true, LR("PlayMode_ClosingScreen", "Closing screen..."));
-                        // save current brightness level before turning off
+
+                        // Save current brightness level before turning off
                         SaveCurrentBrightnessToService();
 
                         // Set display brightness to 0 to turn off screen
@@ -1011,30 +1040,59 @@ namespace CMDevicesManager.Pages
                         {
                             _currentBrightness = 0;
                             ApplyBrightnessToUi(_currentBrightness);
-                            ShowNotification(
-                                LR("PlayMode_ScreenClosedSuccess", "Screen closed successfully."),
-                                false,
-                                3000);
+                           
 
                             Logger.Info($"Screen closed for {successCount} device(s)");
                         }
                         else
                         {
-                            ShowNotification(
-                                LR("PlayMode_ScreenClosedFailed", "Failed to close screen. Please try again."),
-                                true,
-                                3000);
+                            // ✅ Revert toggle state on failure
+                            toggle.IsChecked = false;
+                          
 
                             Logger.Warn("Failed to close screen on all devices");
                         }
                     }
                     catch (Exception ex)
                     {
+                        // ✅ Revert toggle state on exception
+                        toggle.IsChecked = false;
                         Debug.WriteLine($"Failed to close screen: {ex.Message}");
                         Logger.Error($"Failed to close screen: {ex.Message}", ex);
                         ShowNotification(
                             string.Format(
                                 LR("PlayMode_ScreenClosedError", "Failed to close screen: {0}"),
+                                ex.Message),
+                            true,
+                            4000);
+                    }
+                    finally
+                    {
+                        SetLoadingState(false);
+                    }
+                }
+                else
+                {
+                    // ✅ Turn screen on - restore brightness (with minimum safety value)
+                    try
+                    {
+                        SetLoadingState(true, LR("PlayMode_OpeningScreen", "Opening screen..."));
+
+                        await RestoreBrightnessFromServiceAsync();
+
+                       
+
+                        Logger.Info("Screen opened and brightness restored");
+                    }
+                    catch (Exception ex)
+                    {
+                        // ✅ Revert toggle state on exception
+                        toggle.IsChecked = true;
+                        Debug.WriteLine($"Failed to open screen: {ex.Message}");
+                        Logger.Error($"Failed to open screen: {ex.Message}", ex);
+                        ShowNotification(
+                            string.Format(
+                                LR("PlayMode_ScreenOpenedError", "Failed to open screen: {0}"),
                                 ex.Message),
                             true,
                             4000);
@@ -3480,6 +3538,9 @@ namespace CMDevicesManager.Pages
         /// <summary>
         /// Restores brightness to the value saved in the offline data service
         /// </summary>
+        /// <summary>
+        /// Restores brightness to the value saved in the offline data service
+        /// </summary>
         private async Task RestoreBrightnessFromServiceAsync()
         {
             if (_deviceInfo?.SerialNumber == null || !ServiceLocator.IsOfflineMediaServiceInitialized)
@@ -3489,7 +3550,19 @@ namespace CMDevicesManager.Pages
             {
                 var offlineDataService = ServiceLocator.OfflineMediaDataService;
                 var settings = offlineDataService.GetDeviceSettings(_deviceInfo.SerialNumber);
-                var savedBrightness = Math.Clamp(settings.Brightness, 0, 100);
+                var savedBrightness = settings.Brightness;
+
+                // ✅ 关键修复：如果保存的亮度是 0，恢复时使用 100 作为安全默认值
+                if (savedBrightness <= 0)
+                {
+                    savedBrightness = 100;
+                    Logger.Info($"Saved brightness was {settings.Brightness}, using safe default value: 100");
+                }
+                else
+                {
+                    // Clamp to valid range
+                    savedBrightness = Math.Clamp(savedBrightness, 1, 100);
+                }
 
                 if (!IsHidServiceReady || _hidDeviceService == null)
                 {
@@ -3500,10 +3573,12 @@ namespace CMDevicesManager.Pages
 
                 var results = await _hidDeviceService.SetBrightnessAsync(savedBrightness);
                 int successCount = results.Values.Count(v => v);
+
                 if (successCount > 0)
                 {
                     _currentBrightness = savedBrightness;
                     ApplyBrightnessToUi(_currentBrightness);
+                    Logger.Info($"Brightness restored to {savedBrightness}% for device {_deviceInfo.SerialNumber}");
                 }
                 else
                 {
@@ -3747,6 +3822,8 @@ namespace CMDevicesManager.Pages
             }
         }
 
+
+
         /// <summary>
         /// Fetches the stored brightness value from the offline data service
         /// </summary>
@@ -3762,8 +3839,16 @@ namespace CMDevicesManager.Pages
                 var savedBrightness = Math.Clamp(settings.Brightness, 0, 100);
 
                 _currentBrightness = savedBrightness;
-
                 ApplyBrightnessToUi(_currentBrightness);
+
+                // ✅ 同步更新 ScreenToggle 状态
+                if (ScreenToggle != null)
+                {
+                    bool isScreenOn = savedBrightness > 0;
+                    ScreenToggle.Click -= ScreenToggle_Click;
+                    ScreenToggle.IsChecked = isScreenOn;
+                    ScreenToggle.Click += ScreenToggle_Click;
+                }
             }
             catch (Exception ex)
             {
@@ -3772,6 +3857,6 @@ namespace CMDevicesManager.Pages
         }
 
 
-      
+
     }
 }

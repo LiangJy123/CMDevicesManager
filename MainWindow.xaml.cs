@@ -203,64 +203,7 @@ namespace CMDevicesManager
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                // 🔍 诊断 MirrorRoot
-                var mirrorDpi = VisualTreeHelper.GetDpi(MirrorRoot);
-
-                // 🔍 诊断 PlayMode
-                var playModePage = GetDevicePlayModePage();
-                var playDpi = playModePage.DesignCanvas != null
-                    ? VisualTreeHelper.GetDpi(playModePage.DesignCanvas)
-                    : default;
-
-                System.Diagnostics.Debug.WriteLine($"========== COMPLETE DIAGNOSTIC ==========");
-                System.Diagnostics.Debug.WriteLine($"MirrorRoot DPI: {mirrorDpi.PixelsPerInchX} Scale: {mirrorDpi.DpiScaleX:F2}");
-                System.Diagnostics.Debug.WriteLine($"PlayMode DPI: {playDpi.PixelsPerInchX} Scale: {playDpi.DpiScaleX:F2}");
-
-                // 🔍 检查实际的渲染属性
-                System.Diagnostics.Debug.WriteLine($"\n=== MirrorDesignCanvas ===");
-                System.Diagnostics.Debug.WriteLine($"TextFormattingMode: {TextOptions.GetTextFormattingMode(MirrorDesignCanvas)}");
-                System.Diagnostics.Debug.WriteLine($"TextRenderingMode: {TextOptions.GetTextRenderingMode(MirrorDesignCanvas)}");
-                System.Diagnostics.Debug.WriteLine($"TextHintingMode: {TextOptions.GetTextHintingMode(MirrorDesignCanvas)}");
-                System.Diagnostics.Debug.WriteLine($"BitmapScalingMode: {RenderOptions.GetBitmapScalingMode(MirrorDesignCanvas)}");
-                System.Diagnostics.Debug.WriteLine($"EdgeMode: {RenderOptions.GetEdgeMode(MirrorDesignCanvas)}");
-                System.Diagnostics.Debug.WriteLine($"ClearTypeHint: {RenderOptions.GetClearTypeHint(MirrorDesignCanvas)}");
-                System.Diagnostics.Debug.WriteLine($"UseLayoutRounding: {MirrorDesignCanvas.UseLayoutRounding}");
-                System.Diagnostics.Debug.WriteLine($"SnapsToDevicePixels: {MirrorDesignCanvas.SnapsToDevicePixels}");
-
-                if (playModePage.DesignCanvas != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"\n=== PlayMode DesignCanvas ===");
-                    System.Diagnostics.Debug.WriteLine($"TextFormattingMode: {TextOptions.GetTextFormattingMode(playModePage.DesignCanvas)}");
-                    System.Diagnostics.Debug.WriteLine($"TextRenderingMode: {TextOptions.GetTextRenderingMode(playModePage.DesignCanvas)}");
-                    System.Diagnostics.Debug.WriteLine($"TextHintingMode: {TextOptions.GetTextHintingMode(playModePage.DesignCanvas)}");
-                    System.Diagnostics.Debug.WriteLine($"BitmapScalingMode: {RenderOptions.GetBitmapScalingMode(playModePage.DesignCanvas)}");
-                    System.Diagnostics.Debug.WriteLine($"EdgeMode: {RenderOptions.GetEdgeMode(playModePage.DesignCanvas)}");
-                    System.Diagnostics.Debug.WriteLine($"ClearTypeHint: {RenderOptions.GetClearTypeHint(playModePage.DesignCanvas)}");
-                    System.Diagnostics.Debug.WriteLine($"UseLayoutRounding: {playModePage.DesignCanvas.UseLayoutRounding}");
-                    System.Diagnostics.Debug.WriteLine($"SnapsToDevicePixels: {playModePage.DesignCanvas.SnapsToDevicePixels}");
-                }
-
-                // 🔍 检查子元素
-                System.Diagnostics.Debug.WriteLine($"\n=== MirrorDesignCanvas Children ===");
-                System.Diagnostics.Debug.WriteLine($"Count: {MirrorDesignCanvas.Children.Count}");
-                foreach (UIElement child in MirrorDesignCanvas.Children)
-                {
-                    if (child is Border border && border.Child is TextBlock tb)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"TextBlock: '{tb.Text}'");
-                        System.Diagnostics.Debug.WriteLine($"  FontFamily: {tb.FontFamily}");
-                        System.Diagnostics.Debug.WriteLine($"  FontSize: {tb.FontSize}");
-                        System.Diagnostics.Debug.WriteLine($"  TextFormattingMode: {TextOptions.GetTextFormattingMode(tb)}");
-                        System.Diagnostics.Debug.WriteLine($"  TextRenderingMode: {TextOptions.GetTextRenderingMode(tb)}");
-                        System.Diagnostics.Debug.WriteLine($"  BitmapScalingMode: {RenderOptions.GetBitmapScalingMode(tb)}");
-                        break; // 只检查第一个
-                    }
-                }
-
-                System.Diagnostics.Debug.WriteLine($"=====================================");
-            }), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+          
         }
 
         private bool IsConfigOrPlayModePage(object? content) =>
@@ -283,7 +226,7 @@ namespace CMDevicesManager
                 if (Equals(item.Tag, "__MirrorToggle"))
                 {
                     bool toShow = true;//GlobalMirrorHost.Visibility != Visibility.Visible;
-                    GlobalMirrorHost.Visibility = toShow ? Visibility.Visible : Visibility.Collapsed;
+                    GlobalMirrorHost.Visibility = toShow ? Visibility.Visible : Visibility.Hidden;
                     GlobalMirrorHost.IsHitTestVisible = toShow;
 
                     RestorePreviousSelection();
@@ -475,14 +418,14 @@ namespace CMDevicesManager
         {
 
             GlobalMirrorHost.IsHitTestVisible = false;
-            GlobalMirrorHost.Visibility = Visibility.Collapsed;
+            GlobalMirrorHost.Visibility = Visibility.Hidden;
         }
 
         private void CloseMirrorPreview_Click(object sender, RoutedEventArgs e)
         {
     
             GlobalMirrorHost.IsHitTestVisible = false;
-            GlobalMirrorHost.Visibility = Visibility.Collapsed;
+            GlobalMirrorHost.Visibility = Visibility.Hidden;
         }
 
         // ===== ADDED: Real-time JPEG streaming for non-DeviceConfig pages =====
