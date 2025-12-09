@@ -3057,23 +3057,10 @@ namespace CMDevicesManager.Pages
             {
                 SetLoadingState(true, "Clearing all media files...");
 
-                // Release all image sources first to prevent file locks
+                // Release all image sources first to prevent file locks and update UI
                 for (int i = 0; i < 5; i++)
                 {
-                    var slotNumber = i + 1;
-                    var thumbnail = FindName($"MediaThumbnail{slotNumber}") as Image;
-                    if (thumbnail?.Source is BitmapImage bitmapToRelease)
-                    {
-                        try
-                        {
-                            thumbnail.Source = null;
-                            bitmapToRelease.StreamSource?.Dispose();
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Warn($"Failed to release image source for slot {slotNumber}: {ex.Message}");
-                        }
-                    }
+                    UpdateMediaSlotUI(i, null, false);
                 }
 
                 // Delete all suspend files from device
