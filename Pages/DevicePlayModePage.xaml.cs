@@ -481,16 +481,25 @@ namespace CMDevicesManager.Pages
                 {
                     // 暂时移除事件处理程序，避免触发 Click 事件
                     ScreenToggle.Click -= ScreenToggle_Click;
+                    // Unchecked = On, Checked = Off
                     ScreenToggle.IsChecked = !isScreenOn;
                     ScreenToggle.Click += ScreenToggle_Click;
 
-                    Logger.Info($"Initialized ScreenToggle state: {(isScreenOn ? "ON (checked)" : "OFF (unchecked)")}, Saved brightness: {savedBrightness}%");
+                    UpdateDisplaySettingsState(isScreenOn);
+
+                    Logger.Info($"Initialized ScreenToggle state: {(isScreenOn ? "ON (unchecked)" : "OFF (checked)")}, Saved brightness: {savedBrightness}%");
                 }
             }
             catch (Exception ex)
             {
                 Logger.Warn($"Failed to initialize ScreenToggle state for device {_deviceInfo?.SerialNumber}: {ex.Message}");
             }
+        }
+
+        private void UpdateDisplaySettingsState(bool isScreenOn)
+        {
+            if (BrightnessSlider != null) BrightnessSlider.IsEnabled = isScreenOn;
+            SetRotationButtonsEnabled(isScreenOn);
         }
 
         private void InitializeDisplayControls()
@@ -1040,6 +1049,7 @@ namespace CMDevicesManager.Pages
                         {                        
                             // Save IsScreenOn = false
                             SaveScreenStateToService(false);
+                            UpdateDisplaySettingsState(false);
 
                             _currentBrightness = 0;
                             ApplyBrightnessToUi(_currentBrightness);
@@ -1085,6 +1095,7 @@ namespace CMDevicesManager.Pages
                         
                         // Save IsScreenOn = true
                         SaveScreenStateToService(true);
+                        UpdateDisplaySettingsState(true);
 
                         Logger.Info("Screen opened and brightness restored");
                     }
@@ -3541,17 +3552,20 @@ namespace CMDevicesManager.Pages
                 _currentRotation = normalizedRotation;
                 UpdateRotationUi(normalizedRotation);
 
-                //// Update ScreenToggle based on actual device brightness
-                //if (ScreenToggle != null)
-                //{
-                //    bool isScreenOn = deviceBrightness > 0;
-                //    ScreenToggle.Click -= ScreenToggle_Click;
-                //    ScreenToggle.IsChecked = isScreenOn;
-                //    ScreenToggle.Click += ScreenToggle_Click;
+                // Update ScreenToggle based on actual device brightness
+                if (ScreenToggle != null)
+                {
+                    bool isScreenOn = deviceBrightness > 0;
+                    ScreenToggle.Click -= ScreenToggle_Click;
+                    // Unchecked = On, Checked = Off
+                    ScreenToggle.IsChecked = !isScreenOn;
+                    ScreenToggle.Click += ScreenToggle_Click;
 
-                //    // Sync to service
-                //    SaveScreenStateToService(isScreenOn);
-                //}
+                    UpdateDisplaySettingsState(isScreenOn);
+
+                    // Sync to service
+                    SaveScreenStateToService(isScreenOn);
+                }
 
                 return true;
             }
