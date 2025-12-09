@@ -260,6 +260,9 @@ namespace CMDevicesManager.Models
         [JsonPropertyName("brightness")]
         public int Brightness { get; set; } = 80;
 
+        [JsonPropertyName("isScreenOn")]
+        public bool IsScreenOn { get; set; } = true;
+
         [JsonPropertyName("rotation")]
         public int Rotation { get; set; } = 0;
 
@@ -286,7 +289,7 @@ namespace CMDevicesManager.Models
 
         public override string ToString()
         {
-            return $"Brightness: {Brightness}%, Rotation: {Rotation}°, KeepAlive: {KeepAliveTimeout}s, PlaybackMode: {PlaybackMode}";
+            return $"Brightness: {Brightness}%, Rotation: {Rotation}ï¿½, KeepAlive: {KeepAliveTimeout}s, PlaybackMode: {PlaybackMode}";
         }
     }
 

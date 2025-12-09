@@ -474,14 +474,14 @@ namespace CMDevicesManager.Pages
                 var settings = offlineDataService.GetDeviceSettings(_deviceInfo.SerialNumber);
                 var savedBrightness = settings.Brightness;
 
-                // ✅ 修正：亮度 > 0 表示屏幕开启，toggle 应该是 checked
-                bool isScreenOn = savedBrightness > 0;
+                // ✅ Use IsScreenOn from settings
+                bool isScreenOn = settings.IsScreenOn;
 
                 if (ScreenToggle != null)
                 {
                     // 暂时移除事件处理程序，避免触发 Click 事件
                     ScreenToggle.Click -= ScreenToggle_Click;
-                    ScreenToggle.IsChecked = isScreenOn;
+                    ScreenToggle.IsChecked = !isScreenOn;
                     ScreenToggle.Click += ScreenToggle_Click;
 
                     Logger.Info($"Initialized ScreenToggle state: {(isScreenOn ? "ON (checked)" : "OFF (unchecked)")}, Saved brightness: {savedBrightness}%");
@@ -1037,7 +1037,10 @@ namespace CMDevicesManager.Pages
                         var successCount = results.Values.Count(r => r);
 
                         if (successCount > 0)
-                        {
+                        {                        
+                            // Save IsScreenOn = false
+                            SaveScreenStateToService(false);
+
                             _currentBrightness = 0;
                             ApplyBrightnessToUi(_currentBrightness);
                            
@@ -1079,8 +1082,9 @@ namespace CMDevicesManager.Pages
                         SetLoadingState(true, LR("PlayMode_OpeningScreen", "Opening screen..."));
 
                         await RestoreBrightnessFromServiceAsync();
-
-                       
+                        
+                        // Save IsScreenOn = true
+                        SaveScreenStateToService(true);
 
                         Logger.Info("Screen opened and brightness restored");
                     }
@@ -3471,6 +3475,11 @@ namespace CMDevicesManager.Pages
             {
                 var offlineDataService = ServiceLocator.OfflineMediaDataService;
                 offlineDataService.UpdateDeviceSetting(_deviceInfo.SerialNumber, "brightness", _currentBrightness);
+                // Also ensure IsScreenOn is true if brightness > 0
+                if (_currentBrightness > 0)
+                {
+                    offlineDataService.UpdateDeviceSetting(_deviceInfo.SerialNumber, "isscreenon", true);
+                }
             }
             catch (Exception ex)
             {
@@ -3478,18 +3487,34 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        /// <summary>
-        /// Loads current brightness and rotation from the device via HID and updates the UI
-        /// </summary>
-        private async Task LoadCurrentDeviceDisplaySettingsAsync()
+        private void SaveScreenStateToService(bool isScreenOn)
         {
-            if (!IsHidServiceReady || _hidDeviceService == null || _deviceInfo == null)
+            if (_deviceInfo?.SerialNumber == null || !ServiceLocator.IsOfflineMediaServiceInitialized)
                 return;
 
             try
             {
+                var offlineDataService = ServiceLocator.OfflineMediaDataService;
+                offlineDataService.UpdateDeviceSetting(_deviceInfo.SerialNumber, "isscreenon", isScreenOn);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"Failed to save screen state for device {_deviceInfo?.SerialNumber}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Loads current brightness and rotation from the device via HID and updates the UI
+        /// </summary>
+        private async Task<bool> LoadCurrentDeviceDisplaySettingsAsync()
+        {
+            if (!IsHidServiceReady || _hidDeviceService == null || _deviceInfo == null)
+                return false;
+
+            try
+            {
                 var statusResults = await _hidDeviceService.GetDeviceStatusAsync();
-                if (!statusResults.Any()) return;
+                if (!statusResults.Any()) return false;
 
                 DeviceStatus? status = null;
 
@@ -3504,7 +3529,7 @@ namespace CMDevicesManager.Pages
                     status = statusResults.Values.FirstOrDefault(s => s.HasValue);
                 }
 
-                if (!status.HasValue) return;
+                if (!status.HasValue) return false;
 
                 var deviceStatus = status.Value;
                 int deviceBrightness = Math.Clamp(deviceStatus.Brightness, 0, 100);
@@ -3515,10 +3540,25 @@ namespace CMDevicesManager.Pages
 
                 _currentRotation = normalizedRotation;
                 UpdateRotationUi(normalizedRotation);
+
+                //// Update ScreenToggle based on actual device brightness
+                //if (ScreenToggle != null)
+                //{
+                //    bool isScreenOn = deviceBrightness > 0;
+                //    ScreenToggle.Click -= ScreenToggle_Click;
+                //    ScreenToggle.IsChecked = isScreenOn;
+                //    ScreenToggle.Click += ScreenToggle_Click;
+
+                //    // Sync to service
+                //    SaveScreenStateToService(isScreenOn);
+                //}
+
+                return true;
             }
             catch (Exception ex)
             {
                 Logger.Warn($"Failed to load device display settings for {_deviceInfo?.SerialNumber}: {ex.Message}");
+                return false;
             }
         }
 
@@ -3829,13 +3869,13 @@ namespace CMDevicesManager.Pages
                 ApplyBrightnessToUi(_currentBrightness);
 
                 // ✅ 同步更新 ScreenToggle 状态
-                if (ScreenToggle != null)
-                {
-                    bool isScreenOn = savedBrightness > 0;
-                    ScreenToggle.Click -= ScreenToggle_Click;
-                    ScreenToggle.IsChecked = isScreenOn;
-                    ScreenToggle.Click += ScreenToggle_Click;
-                }
+                //if (ScreenToggle != null)
+                //{
+                //    bool isScreenOn = savedBrightness > 0;
+                //    ScreenToggle.Click -= ScreenToggle_Click;
+                //    ScreenToggle.IsChecked = isScreenOn;
+                //    ScreenToggle.Click += ScreenToggle_Click;
+                //}
             }
             catch (Exception ex)
             {

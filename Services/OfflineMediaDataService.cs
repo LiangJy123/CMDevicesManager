@@ -670,6 +670,9 @@ namespace CMDevicesManager.Services
                     case "brightness":
                         if (value is int brightness) device.Settings.Brightness = brightness;
                         break;
+                    case "isscreenon":
+                        if (value is bool isScreenOn) device.Settings.IsScreenOn = isScreenOn;
+                        break;
                     case "rotation":
                         if (value is int rotation) device.Settings.Rotation = rotation;
                         break;
