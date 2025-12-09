@@ -141,6 +141,38 @@ namespace CMDevicesManager.Utilities
         }
 
         /// <summary>
+        /// Convert video to specific resolution and bitrate
+        /// </summary>
+        public static async Task<bool> ConvertVideoAsync(string inputPath, string outputPath, int width, int height, int bitrateKbps = 1500)
+        {
+            try
+            {
+                // Ensure directory exists
+                var dir = Path.GetDirectoryName(outputPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
+                await FFMpegArguments
+                    .FromFileInput(inputPath)
+                    .OutputToFile(outputPath, true, options => options
+                        .WithVideoCodec("libx264")
+                        .WithVideoBitrate(bitrateKbps)
+                        .WithCustomArgument($"-vf \"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}\"")
+                        .WithCustomArgument("-pix_fmt yuv420p")
+                        .WithCustomArgument("-movflags +faststart")
+                        .WithCustomArgument("-preset medium"))
+                    .ProcessAsynchronously();
+                
+                return File.Exists(outputPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error converting video: {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Get video information from an MP4 file
         /// </summary>
         /// <param name="mp4FilePath">Path to the MP4 file</param>

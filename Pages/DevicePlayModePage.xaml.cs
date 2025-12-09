@@ -2483,12 +2483,48 @@ namespace CMDevicesManager.Pages
         /// </summary>
         private async Task AddMediaFile(string filePath, int slotIndex)
         {
+            string tempConvertedPath = null;
+            string sourceFilePath = filePath;
+
             try
             {
                 SetLoadingState(true, $"Adding media to slot {slotIndex + 1}...");
 
+                // Check if video needs conversion
+                if (IsVideoFile(Path.GetExtension(filePath)))
+                {
+                    try 
+                    {
+                        var videoInfo = await VideoConverter.GetMp4InfoAsync(filePath);
+                        if (videoInfo != null)
+                        {
+                            // Check if conversion needed: not 480x480 OR bitrate > 2.5Mbps
+                            bool needsResize = videoInfo.Width != 480 || videoInfo.Height != 480;
+                            bool needsBitrateReduction = videoInfo.BitRate > 2500000; 
+
+                            if (needsResize || needsBitrateReduction)
+                            {
+                                SetLoadingState(true, $"Optimizing video for device (480x480)...");
+                                
+                                tempConvertedPath = Path.Combine(Path.GetTempPath(), $"converted_{Guid.NewGuid()}.mp4");
+                                bool converted = await VideoConverter.ConvertVideoAsync(filePath, tempConvertedPath, 480, 480, 2000);
+                                
+                                if (converted)
+                                {
+                                    sourceFilePath = tempConvertedPath;
+                                    Logger.Info($"Video converted: {filePath} -> {sourceFilePath}");
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn($"Failed to check/convert video: {ex.Message}");
+                    }
+                }
+
                 // Need to rename the file name start suspend_1.jpg, suspend_2.mp4, etc.
-                var fileExtension = Path.GetExtension(filePath).ToLower();
+                var fileExtension = Path.GetExtension(sourceFilePath).ToLower();
                 var newFileName = $"suspend_{slotIndex}{fileExtension}";
 
                 // Determine the target directory based on device serial number
@@ -2511,8 +2547,6 @@ namespace CMDevicesManager.Pages
                 if (!Directory.Exists(targetDir))
                     Directory.CreateDirectory(targetDir);
 
-                File.Copy(filePath, newFilePath, true);
-
                 // Update offline media data service if available
                 if (_deviceInfo?.SerialNumber != null && ServiceLocator.IsOfflineMediaServiceInitialized)
                 {
@@ -2520,11 +2554,15 @@ namespace CMDevicesManager.Pages
                     offlineDataService.AddSuspendMediaFile(
                         _deviceInfo.SerialNumber,
                         newFileName,
-                        filePath,
+                        sourceFilePath,
                         slotIndex,
                         transferId: (byte)(slotIndex + 1)
                     );
                     Logger.Info($"Added media file to offline data: {newFileName}");
+                }
+                else
+                {
+                    File.Copy(sourceFilePath, newFilePath, true);
                 }
 
                 // Transfer file to device using suspend media functionality
@@ -2566,6 +2604,10 @@ namespace CMDevicesManager.Pages
             finally
             {
                 SetLoadingState(false);
+                if (tempConvertedPath != null && File.Exists(tempConvertedPath))
+                {
+                    try { File.Delete(tempConvertedPath); } catch { }
+                }
             }
         }
 
