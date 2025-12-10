@@ -1227,14 +1227,14 @@ namespace CMDevicesManager.Pages
                         {
                             // Check if conversion needed: not 480x480 OR bitrate > 2.5Mbps
                             bool needsResize = videoInfo.Width != 480 || videoInfo.Height != 480;
-                            bool needsBitrateReduction = videoInfo.BitRate > 2500000; 
+                            bool needsBitrateReduction = videoInfo.BitRate > 1500000; 
 
                             if (needsResize || needsBitrateReduction)
                             {
                                 SetLoadingState(true, $"Optimizing video for device (480x480)...");
                                 
                                 tempConvertedPath = Path.Combine(Path.GetTempPath(), $"converted_{Guid.NewGuid()}.mp4");
-                                bool converted = await CMDevicesManager.Utilities.VideoConverter.ConvertVideoAsync(filePath, tempConvertedPath, 480, 480, 2000);
+                                bool converted = await CMDevicesManager.Utilities.VideoConverter.ConvertVideoAsync(filePath, tempConvertedPath, 480, 480, 1500);
                                 
                                 if (converted)
                                 {

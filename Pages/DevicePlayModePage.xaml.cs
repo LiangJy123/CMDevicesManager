@@ -711,8 +711,7 @@ namespace CMDevicesManager.Pages
         {
             bool isRealtime = _currentPlayMode == PlaybackMode.RealtimeConfig;
             if (PlayContentTitleText != null)
-                PlayContentTitleText.Text = LR(isRealtime ? "PlayMode_PlayContentTitle" : "PlayMode_VideoPlaybackTitle",
-                                               isRealtime ? "Play Content" : "Offline Media");
+                PlayContentTitleText.Text = isRealtime ? LR("PlayMode_PlayContentTitle", "Play Content") : "";
             if (PlayContentHintText != null)
                 PlayContentHintText.Text = LR(isRealtime ? "PlayMode_RealtimeHint" : "PlayMode_OfflineVideoHint",
                                               PlayContentHintText.Text);
@@ -2500,14 +2499,14 @@ namespace CMDevicesManager.Pages
                         {
                             // Check if conversion needed: not 480x480 OR bitrate > 2.5Mbps
                             bool needsResize = videoInfo.Width != 480 || videoInfo.Height != 480;
-                            bool needsBitrateReduction = videoInfo.BitRate > 2500000; 
+                            bool needsBitrateReduction = videoInfo.BitRate > 1500000; 
 
                             if (needsResize || needsBitrateReduction)
                             {
                                 SetLoadingState(true, $"Optimizing video for device (480x480)...");
                                 
                                 tempConvertedPath = Path.Combine(Path.GetTempPath(), $"converted_{Guid.NewGuid()}.mp4");
-                                bool converted = await VideoConverter.ConvertVideoAsync(filePath, tempConvertedPath, 480, 480, 2000);
+                                bool converted = await VideoConverter.ConvertVideoAsync(filePath, tempConvertedPath, 480, 480, 1500);
                                 
                                 if (converted)
                                 {
@@ -3289,6 +3288,24 @@ namespace CMDevicesManager.Pages
         #endregion
         private void SetLoadingState(bool isLoading, string message = "Loading...")
         {
+            if (LoadingOverlay != null)
+            {
+                LoadingOverlay.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
+            }
+            
+            if (LoadingText != null)
+            {
+                LoadingText.Text = message;
+            }
+
+            if (isLoading)
+            {
+                // Disable controls if needed
+            }
+            else
+            {
+                // Enable controls if needed
+            }
         }
 
         // Method to refresh suspend media display without full device status update
@@ -3777,7 +3794,7 @@ namespace CMDevicesManager.Pages
             // 更新标题和提示文本
             if (PlayContentTitleText != null)
             {
-                PlayContentTitleText.Text = isRealtime ? "Play Content" : "Offline Media";
+                PlayContentTitleText.Text = isRealtime ? "Play Content" : "";
             }
 
             if (PlayContentHintText != null)

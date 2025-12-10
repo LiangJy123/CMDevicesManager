@@ -1612,5 +1612,38 @@
                 </Border>
             </Grid>
         </Border>
+        <!-- Loading Overlay -->
+        <Grid x:Name="LoadingOverlay" 
+              Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" Grid.ColumnSpan="3"
+              Visibility="Collapsed" 
+              Background="{StaticResource OverlayMaskBrush}"
+              Panel.ZIndex="2000">
+            <Border Background="{StaticResource ElevatedPanelBrush}" 
+                    CornerRadius="16" 
+                    Padding="40,32"
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"
+                    MinWidth="320">
+                <Border.Effect>
+                    <DropShadowEffect Color="Black" BlurRadius="30" ShadowDepth="8" Opacity="0.5"/>
+                </Border.Effect>
+                <StackPanel>
+                    <Border CornerRadius="3" ClipToBounds="True" Width="240" Height="6" Margin="0,0,0,24" Background="{StaticResource SubPanelBackgroundBrush}">
+                        <ProgressBar IsIndeterminate="True" 
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     Foreground="{StaticResource AccentBrushLight}"/>
+                    </Border>
+                    <TextBlock x:Name="LoadingText" 
+                               Text="Loading..." 
+                               Foreground="{StaticResource PrimaryTextBrush}" 
+                               FontSize="15" 
+                               FontWeight="Medium"
+                               HorizontalAlignment="Center"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Page>
