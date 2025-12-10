@@ -29,7 +29,6 @@ namespace CMDevicesManager.Pages
             Unloaded += HomePage_Unloaded;
 
             // 防止父级滚动干扰
-            PreviewMouseWheel += (_, e) => e.Handled = true;
             PreviewKeyDown += (_, e) =>
             {
                 if (e.Key is Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End)
