@@ -1158,7 +1158,6 @@ namespace CMDevicesManager.Pages
             {
                 if (!string.IsNullOrWhiteSpace(cfg.BackgroundColor))
                 {
-                    // 先尝试使用 BrushConverter（支持多种格式）
                     var converter = new BrushConverter();
                     var brush = (Brush?)converter.ConvertFromString(cfg.BackgroundColor);
                     if (brush != null)
@@ -1167,13 +1166,11 @@ namespace CMDevicesManager.Pages
                     }
                     else
                     {
-                        // 转换失败，使用白色
                         BgColorRect.Fill = Brushes.White;
                     }
                 }
                 else
                 {
-                    // 配置中没有颜色，使用白色
                     BgColorRect.Fill = Brushes.White;
                 }
             }
@@ -1204,7 +1201,6 @@ namespace CMDevicesManager.Pages
 
             foreach (var elem in cfg.Elements.OrderBy(e => e.ZIndex))
             {
-                // 🔧 关键修复：创建局部副本避免闭包捕获循环变量
                 var elemCopy = elem;
 
                 FrameworkElement? content = null;
@@ -1251,16 +1247,15 @@ namespace CMDevicesManager.Pages
 
                             var style = elem.UsageDisplayStyle?.Trim();
                             bool isUsageVisual =
-            (kind == LiveInfoKindAlias.CpuUsage ||
-             kind == LiveInfoKindAlias.GpuUsage ||
-             kind == LiveInfoKindAlias.CpuTemperature ||
-             kind == LiveInfoKindAlias.GpuTemperature)
-            && !string.IsNullOrWhiteSpace(style)
-            && !style.Equals("Text", StringComparison.OrdinalIgnoreCase);
+                (kind == LiveInfoKindAlias.CpuUsage ||
+                 kind == LiveInfoKindAlias.GpuUsage ||
+                 kind == LiveInfoKindAlias.CpuTemperature ||
+                 kind == LiveInfoKindAlias.GpuTemperature)
+                && !string.IsNullOrWhiteSpace(style)
+                && !style.Equals("Text", StringComparison.OrdinalIgnoreCase);
 
                             if (isUsageVisual)
                             {
-                                // 直接使用 BuildUsageVisual 返回的 HostBorder，避免将其子元素再放入新的 Border 造成重复逻辑父节点异常
                                 var item = BuildUsageVisual(kind, style!,
                                     tb,
                                     elem.UsageStartColor,
@@ -1269,7 +1264,7 @@ namespace CMDevicesManager.Pages
                                     elem.UsageBarBackgroundColor);
 
                                 _usageVisualItems.Add(item);
-                                host = item.HostBorder;   // 直接作为最终 host
+                                host = item.HostBorder;
                                 usageVisualCreated = true;
                             }
                             else
@@ -1283,7 +1278,7 @@ namespace CMDevicesManager.Pages
                                     DateFormat = elem.DateFormat
                                 };
                                 _usageVisualItems.Add(item);
-                                content = tb; // 后面统一包装成 border
+                                content = tb;
                             }
                             break;
                         }
@@ -1312,14 +1307,15 @@ namespace CMDevicesManager.Pages
                         }
                     case "Video":
                         {
-                            // [保持原有视频逻辑不变]
                             Image? videoImg = null;
                             List<VideoFrameData>? frames = null;
                             string? resolvedVideoPath = null;
+
                             if (!string.IsNullOrEmpty(elem.VideoFramesCacheFolder))
                             {
                                 frames = LoadCachedVideoFramesFolder(elem.VideoFramesCacheFolder);
                             }
+
                             if (frames == null || frames.Count == 0)
                             {
                                 if (!string.IsNullOrEmpty(elem.VideoPath))
@@ -1439,7 +1435,6 @@ namespace CMDevicesManager.Pages
                         }
                 }
 
-                // 如果是 usageVisualCreated，则 host 已经完整；否则需要用 content 创建 host
                 if (!usageVisualCreated)
                 {
                     if (content == null) continue;
@@ -1451,10 +1446,10 @@ namespace CMDevicesManager.Pages
                         RenderTransformOrigin = new Point(0.5, 0.5)
                     };
                 }
-                // 共用：设置 Opacity
+
                 host!.Opacity = elem.Opacity <= 0 ? 1.0 : elem.Opacity;
 
-                // ✅ Transform: 直接使用配置中保存的坐标（已经是修正后的值）
+                // ✅ Transform: 暂时使用原始坐标，稍后在 Loaded 中修正
                 var tg = new TransformGroup();
                 double scaleFactor = elem.Scale <= 0 ? 1.0 : elem.Scale;
                 var scale = new ScaleTransform(scaleFactor, scaleFactor);
@@ -1465,7 +1460,6 @@ namespace CMDevicesManager.Pages
                 if (elem.Rotation.HasValue && Math.Abs(elem.Rotation.Value) > 0.01)
                     tg.Children.Add(new RotateTransform(elem.Rotation.Value));
 
-                // ✅ 关键：直接使用配置中的坐标，不进行二次修正
                 var translate = new TranslateTransform(elem.X, elem.Y);
                 tg.Children.Add(translate);
 
@@ -1473,8 +1467,23 @@ namespace CMDevicesManager.Pages
                 Canvas.SetZIndex(host, elem.ZIndex);
                 DesignCanvas.Children.Add(host);
 
-                // ❌ 删除所有 Loaded 和 SizeChanged 事件订阅
-                // DeviceConfigPage 保存的坐标已经是正确的，无需二次修正
+                // 🔧 关键修复：为所有元素添加 Loaded 事件修正（包括视频）
+                host.Loaded += (s, e) =>
+                {
+                    if (host.RenderTransform is TransformGroup tgLoaded)
+                    {
+                        var translateLoaded = tgLoaded.Children.OfType<TranslateTransform>().LastOrDefault();
+                        var scaleLoaded = tgLoaded.Children.OfType<ScaleTransform>().FirstOrDefault();
+
+                        if (translateLoaded != null && scaleLoaded != null)
+                        {
+                            double correctedX = CalculateTranslateX(host, elemCopy.X, scaleLoaded.ScaleX);
+                            double correctedY = CalculateTranslateY(host, elemCopy.Y, scaleLoaded.ScaleY);
+                            translateLoaded.X = correctedX;
+                            translateLoaded.Y = correctedY;
+                        }
+                    }
+                };
 
                 // 自动移动
                 if ((elem.Type == "Text" || elem.Type == "LiveText")

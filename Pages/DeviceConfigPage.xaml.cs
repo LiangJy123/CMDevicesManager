@@ -2638,6 +2638,8 @@ namespace CMDevicesManager.Pages
         // 依赖已有: ResolveRelativePath, LoadCachedVideoFrames, VideoElementInfo, StartVideoPlayback,
         // _currentVideoFrames, _currentVideoImage, _currentVideoBorder, _currentFrameIndex
 
+      
+
         private void RestoreVideoElement(ElementConfiguration ec)
         {
             if (string.IsNullOrWhiteSpace(ec.VideoPath))
@@ -2656,7 +2658,6 @@ namespace CMDevicesManager.Pages
                 }
 
                 string resolved = ResolveRelativePath(ec.VideoPath);
-                // 可以不存在（用户可能四处移动文件），仍然给个占位
                 List<VideoFrameData>? cached = null;
                 if (!string.IsNullOrWhiteSpace(ec.VideoFramesCacheFolder))
                     cached = LoadCachedVideoFrames(ec.VideoFramesCacheFolder);
@@ -2670,7 +2671,7 @@ namespace CMDevicesManager.Pages
                     _currentVideoFrames = cached;
                     _currentFrameIndex = 0;
                     videoImage = new Image { Stretch = Stretch.Uniform };
-                    UpdateVideoFrame(videoImage, cached[0]); // 利用已有方法
+                    UpdateVideoFrame(videoImage, cached[0]);
                     host = CreateBaseBorder(videoImage);
                     _currentVideoImage = videoImage;
                     _currentVideoBorder = host;
@@ -2732,7 +2733,7 @@ namespace CMDevicesManager.Pages
                                     await Dispatcher.InvokeAsync(() =>
                                     {
                                         if (!DesignCanvas.Children.Contains(host))
-                                            return; // 已被清理
+                                            return;
 
                                         _currentVideoFrames = frames;
                                         _currentFrameIndex = 0;
@@ -2780,6 +2781,7 @@ namespace CMDevicesManager.Pages
                 // 设置公共属性（Transform / ZIndex / Opacity）
                 host.Opacity = ec.Opacity <= 0 ? 1 : ec.Opacity;
 
+                // ✅ 修复：暂时使用原始坐标，稍后在 Loaded 回调中修正
                 var tg = new TransformGroup();
                 var scale = new ScaleTransform(ec.Scale <= 0 ? 1 : ec.Scale, ec.Scale <= 0 ? 1 : ec.Scale);
                 tg.Children.Add(scale);
@@ -2797,14 +2799,24 @@ namespace CMDevicesManager.Pages
                 };
 
                 DesignCanvas.Children.Add(host);
+
+                // 🔧 关键修复：在元素布局完成后修正位置
+                host.Loaded += (s, e) =>
+                {
+                    if (GetTransforms(host, out var sc, out var tr))
+                    {
+                        double correctedX = CalculateTranslateX(host, ec.X, ec.Scale);
+                        double correctedY = CalculateTranslateY(host, ec.Y, ec.Scale);
+                        tr.X = correctedX;
+                        tr.Y = correctedY;
+                    }
+                };
             }
             catch (Exception ex)
             {
                 Logger.Info($"Restore video element failed: {ex.Message}");
             }
         }
-
-
         // ================= Load Config =================
         private async void LoadConfig_Click(object sender, RoutedEventArgs e)
         {

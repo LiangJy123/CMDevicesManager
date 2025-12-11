@@ -717,10 +717,44 @@ namespace CMDevicesManager.Services
                 Opacity = videoElem.Opacity <= 0 ? 1.0 : videoElem.Opacity,
                 RenderTransformOrigin = new Point(0.5, 0.5)
             };
-            ApplyVideoElementTransform(host, videoElem);
+
+            // ✅ 修复前：直接应用 Transform
+            // ApplyVideoElementTransform(host, videoElem);
+
+            // ✅ 修复后：先用原始坐标，稍后在 Loaded 回调中修正
+            var tg = new TransformGroup();
+            var scale = new ScaleTransform(videoElem.Scale <= 0 ? 1.0 : videoElem.Scale, videoElem.Scale <= 0 ? 1.0 : videoElem.Scale);
+            tg.Children.Add(scale);
+
+            if (videoElem.MirroredX == true)
+                tg.Children.Add(new ScaleTransform(-1, 1));
+            if (videoElem.Rotation.HasValue && Math.Abs(videoElem.Rotation.Value) > 0.01)
+                tg.Children.Add(new RotateTransform(videoElem.Rotation.Value));
+
+            tg.Children.Add(new TranslateTransform(videoElem.X, videoElem.Y));
+            host.RenderTransform = tg;
+
             Canvas.SetZIndex(host, videoElem.ZIndex);
             _designCanvas.Children.Add(host);
             _videoBorder = host;
+
+            // 🔧 关键修复：在元素布局完成后修正位置
+            host.Loaded += (s, e) =>
+            {
+                if (host.RenderTransform is TransformGroup tgLoaded)
+                {
+                    var translate = tgLoaded.Children.OfType<TranslateTransform>().LastOrDefault();
+                    var scaleTransform = tgLoaded.Children.OfType<ScaleTransform>().FirstOrDefault();
+
+                    if (translate != null && scaleTransform != null)
+                    {
+                        double correctedX = CalculateTranslateX(host, videoElem.X, scaleTransform.ScaleX);
+                        double correctedY = CalculateTranslateY(host, videoElem.Y, scaleTransform.ScaleY);
+                        translate.X = correctedX;
+                        translate.Y = correctedY;
+                    }
+                }
+            };
 
             // Try cache first
             List<VideoFrameData>? frames = null;
@@ -800,7 +834,7 @@ namespace CMDevicesManager.Services
                 catch { }
             }
         }
-
+      
         private void MetricsTimer_Tick(object? sender, EventArgs e) => UpdateMetricsOnce();
 
         private void UpdateMetricsOnce()
