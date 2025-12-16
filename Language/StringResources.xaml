@@ -306,6 +306,18 @@
     <sys:String x:Key="PlayMode_ImagesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">图像:</sys:String>
     <sys:String x:Key="PlayMode_DevicesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备:</sys:String>
     <sys:String x:Key="PlayMode_CurrentRotationFormat" xmlns:sys="clr-namespace:System;assembly=mscorlib">当前: {0}°</sys:String>
+    <sys:String x:Key="PlayMode_AddingMediaToSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在添加媒体到插槽 {0}...</sys:String>
+    <sys:String x:Key="PlayMode_OptimizingVideo" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在为设备优化视频 (480x480)...</sys:String>
+    <sys:String x:Key="PlayMode_RemovingMediaFromSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在从插槽 {0} 移除媒体...</sys:String>
+    <sys:String x:Key="PlayMode_AddingMultipleMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在添加多个媒体文件...</sys:String>
+    <sys:String x:Key="PlayMode_ClearingAllMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在清除所有媒体文件...</sys:String>
+    <sys:String x:Key="PlayMode_LoadingVideo" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在加载视频...</sys:String>
+    <sys:String x:Key="PlayMode_VideoMissing" xmlns:sys="clr-namespace:System;assembly=mscorlib">视频 (丢失)</sys:String>
+    <sys:String x:Key="PlayMode_VideoMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">视频媒体</sys:String>
+    <sys:String x:Key="PlayMode_ImageMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">图像媒体</sys:String>
+    <sys:String x:Key="PlayMode_MediaFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">媒体文件</sys:String>
+    <sys:String x:Key="PlayMode_DeviceMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">设备媒体</sys:String>
+    <sys:String x:Key="PlayMode_AddMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加媒体</sys:String>
     <sys:String x:Key="SetBackgroundColorButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">设置背景颜色</sys:String>
     <!-- Delete Config Dialog -->
     <sys:String x:Key="DeleteConfig_ConfirmTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">确认删除</sys:String>
@@ -346,6 +358,8 @@
     <sys:String x:Key="PlayMode_ScreenOn" xmlns:sys="clr-namespace:System;assembly=mscorlib">开启画面</sys:String>
     <sys:String x:Key="PlayMode_ScreenOff" xmlns:sys="clr-namespace:System;assembly=mscorlib">关闭画面</sys:String>
     <sys:String x:Key="PlayMode_ScreenToggleTooltip" xmlns:sys="clr-namespace:System;assembly=mscorlib">切换画面开关</sys:String>
+    <sys:String x:Key="PlayMode_ScreenControl" xmlns:sys="clr-namespace:System;assembly=mscorlib">屏幕控制</sys:String>
+    <sys:String x:Key="PlayMode_Save" xmlns:sys="clr-namespace:System;assembly=mscorlib">保存</sys:String>
 
 
 

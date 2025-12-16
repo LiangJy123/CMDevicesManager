@@ -311,6 +311,18 @@
     <sys:String x:Key="PlayMode_ImagesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">圖像:</sys:String>
     <sys:String x:Key="PlayMode_DevicesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">設備:</sys:String>
     <sys:String x:Key="PlayMode_CurrentRotationFormat" xmlns:sys="clr-namespace:System;assembly=mscorlib">當前: {0}°</sys:String>
+    <sys:String x:Key="PlayMode_AddingMediaToSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在新增媒體到插槽 {0}...</sys:String>
+    <sys:String x:Key="PlayMode_OptimizingVideo" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在為設備優化影片 (480x480)...</sys:String>
+    <sys:String x:Key="PlayMode_RemovingMediaFromSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在從插槽 {0} 移除媒體...</sys:String>
+    <sys:String x:Key="PlayMode_AddingMultipleMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在新增多個媒體檔案...</sys:String>
+    <sys:String x:Key="PlayMode_ClearingAllMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在清除所有媒體檔案...</sys:String>
+    <sys:String x:Key="PlayMode_LoadingVideo" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在載入影片...</sys:String>
+    <sys:String x:Key="PlayMode_VideoMissing" xmlns:sys="clr-namespace:System;assembly=mscorlib">影片 (遺失)</sys:String>
+    <sys:String x:Key="PlayMode_VideoMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">影片媒體</sys:String>
+    <sys:String x:Key="PlayMode_ImageMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">圖像媒體</sys:String>
+    <sys:String x:Key="PlayMode_MediaFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">媒體檔案</sys:String>
+    <sys:String x:Key="PlayMode_DeviceMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">設備媒體</sys:String>
+    <sys:String x:Key="PlayMode_AddMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">新增媒體</sys:String>
     <sys:String x:Key="SetBackgroundColorButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">設定背景顏色</sys:String>
     <!-- Delete Config Dialog -->
     <sys:String x:Key="DeleteConfig_ConfirmTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">確認刪除</sys:String>

@@ -1393,7 +1393,7 @@
                             </UniformGrid>
                             <TextBlock x:Name="CurrentRotationText" Text="Current: 0°" FontSize="11"
                                 Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,10"/>
-                            <TextBlock Text="Brightness" FontSize="12" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{DynamicResource PlayMode_Brightness}" FontSize="12" Foreground="{StaticResource SubtitleBrush}" Margin="0,0,0,4"/>
                             <Slider x:Name="BrightnessSlider" Minimum="0" Maximum="100" Value="80"
                                 TickFrequency="10" IsSnapToTickEnabled="True"
                                 Margin="0,0,0,6"
@@ -1441,7 +1441,7 @@
                     </Border>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Visibility="Collapsed">
                         <Button x:Name="SaveCanvasButton"
-        Content="Save"
+        Content="{DynamicResource PlayMode_Save}"
         Style="{StaticResource MiniButton}"
         Margin="0,0,8,0"
         Click="SaveCanvasButton_Click"/>
@@ -1635,7 +1635,7 @@
                                      Foreground="{StaticResource AccentBrushLight}"/>
                     </Border>
                     <TextBlock x:Name="LoadingText" 
-                               Text="Loading..." 
+                               Text="{DynamicResource PlayMode_Loading}" 
                                Foreground="{StaticResource PrimaryTextBrush}" 
                                FontSize="15" 
                                FontWeight="Medium"

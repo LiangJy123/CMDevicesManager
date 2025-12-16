@@ -306,6 +306,18 @@ Cancel: Abort save</sys:String>
     <sys:String x:Key="PlayMode_ImagesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Images:</sys:String>
     <sys:String x:Key="PlayMode_DevicesLabel" xmlns:sys="clr-namespace:System;assembly=mscorlib">Devices:</sys:String>
     <sys:String x:Key="PlayMode_CurrentRotationFormat" xmlns:sys="clr-namespace:System;assembly=mscorlib">Current: {0}°</sys:String>
+    <sys:String x:Key="PlayMode_AddingMediaToSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">Adding media to slot {0}...</sys:String>
+    <sys:String x:Key="PlayMode_OptimizingVideo" xmlns:sys="clr-namespace:System;assembly=mscorlib">Optimizing video for device (480x480)...</sys:String>
+    <sys:String x:Key="PlayMode_RemovingMediaFromSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">Removing media from slot {0}...</sys:String>
+    <sys:String x:Key="PlayMode_AddingMultipleMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">Adding multiple media files...</sys:String>
+    <sys:String x:Key="PlayMode_ClearingAllMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">Clearing all media files...</sys:String>
+    <sys:String x:Key="PlayMode_LoadingVideo" xmlns:sys="clr-namespace:System;assembly=mscorlib">Loading Video...</sys:String>
+    <sys:String x:Key="PlayMode_VideoMissing" xmlns:sys="clr-namespace:System;assembly=mscorlib">VIDEO (missing)</sys:String>
+    <sys:String x:Key="PlayMode_VideoMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">Video Media</sys:String>
+    <sys:String x:Key="PlayMode_ImageMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">Image Media</sys:String>
+    <sys:String x:Key="PlayMode_MediaFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">Media File</sys:String>
+    <sys:String x:Key="PlayMode_DeviceMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">Device Media</sys:String>
+    <sys:String x:Key="PlayMode_AddMedia" xmlns:sys="clr-namespace:System;assembly=mscorlib">Add Media</sys:String>
     <sys:String x:Key="SetBackgroundColorButton" xmlns:sys="clr-namespace:System;assembly=mscorlib">Set Background Color</sys:String>
     <!-- Delete Config Dialog -->
     <sys:String x:Key="DeleteConfig_ConfirmTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">Confirm Delete</sys:String>
@@ -347,6 +359,8 @@ This operation will delete both the configuration file and preview images, and c
     <sys:String x:Key="PlayMode_ScreenOn"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Screen ON</sys:String>
     <sys:String x:Key="PlayMode_ScreenOff"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Screen OFF</sys:String>
     <sys:String x:Key="PlayMode_ScreenToggleTooltip"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Toggle screen on/off</sys:String>
+    <sys:String x:Key="PlayMode_ScreenControl" xmlns:sys="clr-namespace:System;assembly=mscorlib">Screen Control</sys:String>
+    <sys:String x:Key="PlayMode_Save" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save</sys:String>
     <sys:String x:Key="PlayMode_OfflineModeTitle"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Switching to Offline Mode</sys:String>
     <sys:String x:Key="PlayMode_OfflineModeMessage"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Please configure offline media files below. The preview will be disabled while in offline mode.</sys:String>
 </ResourceDictionary>

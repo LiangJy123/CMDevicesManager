@@ -68,8 +68,8 @@ namespace CMDevicesManager.Pages
         private Dictionary<string, BitmapImage> _videoThumbnailCache = new();
 
         private PlaybackMode _currentPlayMode = PlaybackMode.RealtimeConfig;
-        private string LR(string key, string fallback) =>
-    Application.Current.TryFindResource(key) as string ?? fallback;
+        private string LR(string key, string? fallback = null) =>
+    Application.Current.TryFindResource(key) as string ?? fallback ?? key;
         private sealed class GlobalConfigSequence
         {
             public List<GlobalConfigEntry> Items { get; set; } = new();
@@ -791,7 +791,7 @@ namespace CMDevicesManager.Pages
             GlobalConfigRendered?.Invoke(blank);
             _lastAppliedConfig = blank;
 
-            CurrentImageName.Text = "No config";
+            CurrentImageName.Text = LR("PlayMode_NoConfig");
             ImageDimensions.Text = "";
             SaveGlobalSequence();
             UpdateEmptyConfigsPlaceholder(); // NEW
@@ -885,7 +885,7 @@ namespace CMDevicesManager.Pages
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    CurrentImageName.Text = "(Missing config)";
+                    CurrentImageName.Text = LR("PlayMode_MissingConfig");
                     ImageDimensions.Text = "";
                 });
                 return;
@@ -909,7 +909,7 @@ namespace CMDevicesManager.Pages
             {
                 await Dispatcher.InvokeAsync(() =>
                 {
-                    CurrentImageName.Text = "(Invalid config)";
+                    CurrentImageName.Text = LR("PlayMode_InvalidConfig");
                     ImageDimensions.Text = "";
                 });
                 return;
@@ -1325,7 +1325,7 @@ namespace CMDevicesManager.Pages
                                     {
                                         var tb = new TextBlock
                                         {
-                                            Text = "Loading Video...",
+                                            Text = LR("PlayMode_LoadingVideo"),
                                             FontSize = 20,
                                             Foreground = Brushes.White,
                                             FontWeight = FontWeights.SemiBold,
@@ -1385,7 +1385,7 @@ namespace CMDevicesManager.Pages
                                     {
                                         var tb = new TextBlock
                                         {
-                                            Text = "VIDEO (missing)",
+                                            Text = LR("PlayMode_VideoMissing"),
                                             FontSize = 24,
                                             Foreground = Brushes.LightGray,
                                             FontWeight = FontWeights.Bold
@@ -2496,7 +2496,7 @@ namespace CMDevicesManager.Pages
 
             try
             {
-                SetLoadingState(true, $"Adding media to slot {slotIndex + 1}...");
+                SetLoadingState(true, string.Format(LR("PlayMode_AddingMediaToSlot"), slotIndex + 1));
 
                 // Check if video needs conversion
                 if (IsVideoFile(Path.GetExtension(filePath)))
@@ -2512,7 +2512,7 @@ namespace CMDevicesManager.Pages
 
                             if (needsResize || needsBitrateReduction)
                             {
-                                SetLoadingState(true, $"Optimizing video for device (480x480)...");
+                                SetLoadingState(true, LR("PlayMode_OptimizingVideo"));
                                 
                                 tempConvertedPath = Path.Combine(Path.GetTempPath(), $"converted_{Guid.NewGuid()}.mp4");
                                 bool converted = await VideoConverter.ConvertVideoAsync(filePath, tempConvertedPath, 480, 480, 1500);
@@ -2780,23 +2780,23 @@ namespace CMDevicesManager.Pages
                                 var fileExtension = Path.GetExtension(filePath).ToLower();
                                 if (IsVideoFile(fileExtension))
                                 {
-                                    textBlock.Text = "Video Media";
+                                    textBlock.Text = LR("PlayMode_VideoMedia");
                                     textBlock.Foreground = new SolidColorBrush(Colors.LightCoral);
                                 }
                                 else if (IsImageFile(fileExtension))
                                 {
-                                    textBlock.Text = "Image Media";
+                                    textBlock.Text = LR("PlayMode_ImageMedia");
                                     textBlock.Foreground = new SolidColorBrush(Colors.LightGreen);
                                 }
                                 else
                                 {
-                                    textBlock.Text = "Media File";
+                                    textBlock.Text = LR("PlayMode_MediaFile");
                                     textBlock.Foreground = new SolidColorBrush(Colors.LightBlue);
                                 }
                             }
                             else
                             {
-                                textBlock.Text = "Device Media";
+                                textBlock.Text = LR("PlayMode_DeviceMedia");
                                 textBlock.Foreground = new SolidColorBrush(Colors.LightBlue);
                             }
                         }
@@ -2853,7 +2853,7 @@ namespace CMDevicesManager.Pages
                         }
                         if (textBlock != null && textBlock != iconBlock)
                         {
-                            textBlock.Text = "Add Media";
+                            textBlock.Text = LR("PlayMode_AddMedia");
                             textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66));
                         }
 
@@ -2911,7 +2911,7 @@ namespace CMDevicesManager.Pages
             {
                 try
                 {
-                    SetLoadingState(true, $"Removing media from slot {slotIndex + 1}...");
+                    SetLoadingState(true, string.Format(LR("PlayMode_RemovingMediaFromSlot"), slotIndex + 1));
 
                     // Release image source before deletion to avoid file locks
                     var slotNumber = slotIndex + 1;
@@ -3062,7 +3062,7 @@ namespace CMDevicesManager.Pages
                 {
                     var filePaths = openFileDialog.FileNames.Take(5).ToList(); // Limit to 5 files
 
-                    SetLoadingState(true, "Adding multiple media files...");
+                    SetLoadingState(true, LR("PlayMode_AddingMultipleMedia"));
 
                     // Process each file individually with proper naming
                     var processedFiles = new List<string>();
@@ -3120,7 +3120,7 @@ namespace CMDevicesManager.Pages
 
             try
             {
-                SetLoadingState(true, "Clearing all media files...");
+                SetLoadingState(true, LR("PlayMode_ClearingAllMedia"));
 
                 // Release all image sources first to prevent file locks and update UI
                 for (int i = 0; i < 5; i++)
@@ -3295,8 +3295,9 @@ namespace CMDevicesManager.Pages
         }
 
         #endregion
-        private void SetLoadingState(bool isLoading, string message = "Loading...")
+        private void SetLoadingState(bool isLoading, string? message = null)
         {
+            if (message == null) message = LR("PlayMode_Loading");
             if (LoadingOverlay != null)
             {
                 LoadingOverlay.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
