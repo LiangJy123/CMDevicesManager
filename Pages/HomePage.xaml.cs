@@ -56,21 +56,5 @@ namespace CMDevicesManager.Pages
             }
         }
 
-        private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            if (sender is ScrollViewer scrollViewer)
-            {
-                // 计算滚动偏移量
-                // Delta 为正表示向上滚动，为负表示向下滚动
-                // 每次滚动约 120 单位，我们将其转换为像素
-                double offset = scrollViewer.VerticalOffset - (e.Delta / 3.0);
-
-                // 应用新的偏移量
-                scrollViewer.ScrollToVerticalOffset(offset);
-
-                // 标记事件已处理，防止事件继续冒泡
-                e.Handled = true;
-            }
-        }
     }
 }

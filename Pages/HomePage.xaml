@@ -320,8 +320,7 @@
     <ScrollViewer  x:Name="MainScrollViewer"
               VerticalScrollBarVisibility="Auto" 
               HorizontalScrollBarVisibility="Disabled"
-              Focusable="True"
-              PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+              Focusable="True">
         <Grid Margin="10,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
