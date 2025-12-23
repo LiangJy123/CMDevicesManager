@@ -761,7 +761,7 @@ namespace HID.DisplayController
         }
 
         // Software Screen Rendering-Command (display-ctrl-ssr-command)
-        private async void SendDisplayCtrlSsrCommandCommand(string jsonPayload)
+        private async Task SendDisplayCtrlSsrCommandCommand(string jsonPayload)
         {
             try
             {
@@ -1020,7 +1020,7 @@ namespace HID.DisplayController
         /// <param name="blockIndex">Current block index</param>
         /// <param name="fileType">File type</param>
         /// <param name="blockData">Data for this block</param>
-        private void SendFileTransferBlock(byte transferId, ushort totalBlocks, ushort blockIndex, byte fileType, byte[] blockData)
+        private async Task SendFileTransferBlock(byte transferId, ushort totalBlocks, ushort blockIndex, byte fileType, byte[] blockData)
         {
             // Create metadata
             var metadata = new FileTransferMetadata(transferId, totalBlocks, blockIndex, fileType);
@@ -1063,14 +1063,14 @@ namespace HID.DisplayController
             Array.Copy(blockData, 0, payload, offset, blockData.Length);
 
             // Send using HID report
-            SendFileTransferReport(payload);
+            await SendFileTransferReport(payload);
         }
 
         /// <summary>
         /// Send file transfer data via HID report
         /// </summary>
         /// <param name="payload">Complete payload to send</param>
-        private async void SendFileTransferReport(byte[] payload)
+        private async Task SendFileTransferReport(byte[] payload)
         {
             try
             {
@@ -1282,6 +1282,7 @@ namespace HID.DisplayController
         }
 
         /// <summary>
+        /// <summary>
         /// Validate response data before parsing
         /// </summary>
         /// <param name="buffer">Response buffer</param>
@@ -1383,8 +1384,8 @@ namespace HID.DisplayController
 
             if (expectedChecksum != actualChecksum)
             {
-                //Debug.WriteLine($"[DEBUG] Checksum mismatch: expected=0x{expectedChecksum:X2}, actual=0x{actualChecksum:X2}");
-                //return false;
+                Debug.WriteLine($"[DEBUG] Checksum mismatch: expected=0x{expectedChecksum:X2}, actual=0x{actualChecksum:X2}");
+                return false;
             }
 
             // Update actualLength to the position right after the end marker
@@ -1670,7 +1671,7 @@ namespace HID.DisplayController
             }
             else
             {
-                SendDisplayCtrlSsrCommandCommand(jsonPayload);
+                await SendDisplayCtrlSsrCommandCommand(jsonPayload);
                 return null;
             }
         }
