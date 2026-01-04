@@ -2,6 +2,7 @@
 using CMDevicesManager.Models;
 using CMDevicesManager.Services;
 using FFMpegCore;
+using HID.DisplayController;
 using System.Configuration;
 using System.Data;
 using System.IO;
@@ -44,6 +45,9 @@ namespace CMDevicesManager
             base.OnStartup(e);
 
             Logger.Info("Application starting up");
+
+            // Initialize DisplayController logging
+            DisplayController.LogHandler = msg => Logger.Info($"[DisplayController] {msg}");
 
             try
             {
