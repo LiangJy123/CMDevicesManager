@@ -19,6 +19,7 @@ using System.Windows.Threading;
 using Button = System.Windows.Controls.Button;
 using Color = System.Windows.Media.Color;
 using Image = System.Windows.Controls.Image;
+using Application = System.Windows.Application;
 
 namespace CMDevicesManager.Pages
 {
@@ -44,6 +45,9 @@ namespace CMDevicesManager.Pages
         private Dictionary<string, BitmapImage> _videoThumbnailCache = new();
 
         private PlaybackMode _currentPlayMode = PlaybackMode.RealtimeConfig;
+
+        private string LR(string key, string? fallback = null) =>
+            Application.Current.TryFindResource(key) as string ?? fallback ?? key;
 
         #region Properties
 
@@ -205,7 +209,7 @@ namespace CMDevicesManager.Pages
 
             try
             {
-                SetLoadingState(true, "Connecting to device...");
+                SetLoadingState(true, LR("DS_ConnectingToDevice", "Connecting to device..."));
 
                 // Update device info display
                 UpdateDeviceInfoDisplay();
@@ -244,11 +248,11 @@ namespace CMDevicesManager.Pages
         {
             if (_deviceInfo == null) return;
 
-            DeviceNameText.Text = _deviceInfo.ProductString ?? "Unknown Device";
-            DevicePathText.Text = _deviceInfo.Path ?? "Unknown Path";
-            SerialNumberText.Text = _deviceInfo.SerialNumber ?? "N/A";
-            ManufacturerText.Text = _deviceInfo.ManufacturerString ?? "N/A";
-            ProductNameText.Text = _deviceInfo.ProductString ?? "N/A";
+            DeviceNameText.Text = _deviceInfo.ProductString ?? LR("DS_UnknownDevice", "Unknown Device");
+            DevicePathText.Text = _deviceInfo.Path ?? LR("DS_UnknownPath", "Unknown Path");
+            SerialNumberText.Text = _deviceInfo.SerialNumber ?? LR("DS_NA", "N/A");
+            ManufacturerText.Text = _deviceInfo.ManufacturerString ?? LR("DS_NA", "N/A");
+            ProductNameText.Text = _deviceInfo.ProductString ?? LR("DS_NA", "N/A");
         }
 
 
@@ -289,7 +293,7 @@ namespace CMDevicesManager.Pages
 
             try
             {
-                SetLoadingState(true, "Loading device information...");
+                SetLoadingState(true, LR("DS_LoadingDeviceInfo", "Loading device information..."));
 
                 // Get firmware and hardware versions using HID service
                 var firmwareInfoResults = await _hidDeviceService.GetDeviceFirmwareInfoAsync();
@@ -339,7 +343,7 @@ namespace CMDevicesManager.Pages
 
             try
             {
-                SetLoadingState(true, "Refreshing device status...");
+                SetLoadingState(true, LR("DS_RefreshingDeviceStatus", "Refreshing device status..."));
 
                 // sleep 500ms
                 await Task.Delay(500);
@@ -396,11 +400,11 @@ namespace CMDevicesManager.Pages
 
         private void SetStatusToNA()
         {
-            BrightnessText.Text = "N/A";
-            RotationText.Text = "N/A";
-            OsdStateText.Text = "N/A";
-            KeepAliveText.Text = "N/A";
-            DisplaySleepText.Text = "N/A";
+            BrightnessText.Text = LR("DS_NA", "N/A");
+            RotationText.Text = LR("DS_NA", "N/A");
+            OsdStateText.Text = LR("DS_NA", "N/A");
+            KeepAliveText.Text = LR("DS_NA", "N/A");
+            DisplaySleepText.Text = LR("DS_NA", "N/A");
             
             // Reset toggle switches if they exist
             try
@@ -416,8 +420,9 @@ namespace CMDevicesManager.Pages
             catch { /* Toggles may not be available yet */ }
         }
 
-        private void SetLoadingState(bool isLoading, string message = "Loading...")
+        private void SetLoadingState(bool isLoading, string? message = null)
         {
+            message ??= LR("PlayMode_Loading", "Loading...");
             _isLoading = isLoading;
             LoadingOverlay.Visibility = isLoading ? Visibility.Visible : Visibility.Collapsed;
             LoadingText.Text = message;
@@ -765,14 +770,14 @@ namespace CMDevicesManager.Pages
             // No confirmation dialog needed - tooltip provides the info
             try
             {
-                SetLoadingState(true, "Rebooting device...");
+                SetLoadingState(true, LR("DS_RebootingDevice", "Rebooting device..."));
 
                 var results = await _hidDeviceService.RebootDevicesAsync();
                 var successCount = results.Values.Count(r => r);
                 
                 if (successCount > 0)
                 {
-                    ShowNotification("Reboot command sent successfully. The device will restart shortly.");
+                    ShowNotification(LR("DS_RebootSuccess", "Reboot command sent successfully. The device will restart shortly."));
                     
                     // Wait for device to reboot and try to reconnect
                     await Task.Delay(3000);
@@ -811,14 +816,14 @@ namespace CMDevicesManager.Pages
             // No confirmation dialog needed - tooltip provides the warning
             try
             {
-                SetLoadingState(true, "Performing factory reset...");
+                SetLoadingState(true, LR("DS_PerformingFactoryReset", "Performing factory reset..."));
 
                 var results = await _hidDeviceService.FactoryResetDevicesAsync();
                 var successCount = results.Values.Count(r => r);
                 
                 if (successCount > 0)
                 {
-                    ShowNotification("Factory reset command sent successfully. The device will reset to defaults and restart.");
+                    ShowNotification(LR("DS_FactoryResetSuccess", "Factory reset command sent successfully. The device will reset to defaults and restart."));
                     
                     // Wait for device to reset and try to reconnect
                     await Task.Delay(5000);
@@ -870,16 +875,14 @@ namespace CMDevicesManager.Pages
             // No confirmation dialog needed - tooltip provides the warning
             try
             {
-                SetLoadingState(true, "Updating firmware... DO NOT DISCONNECT!");
+                SetLoadingState(true, LR("DS_UpdatingFirmwareWarning", "Updating firmware... DO NOT DISCONNECT!"));
 
                 var results = await _hidDeviceService.UpdateFirmwareAsync(filePath);
                 var successCount = results.Values.Count(r => r);
                 
                 if (successCount > 0)
                 {
-                    ShowNotification(
-                        "Firmware update completed successfully!\n\n" +
-                        "The device may restart automatically. Please wait for the process to complete.");
+                    ShowNotification(LR("DS_FirmwareUpdateSuccess", "Firmware update completed successfully!\n\nThe device may restart automatically. Please wait for the process to complete."));
                     
                     // Wait for device to restart and try to reconnect
                     await Task.Delay(10000);
@@ -917,20 +920,20 @@ namespace CMDevicesManager.Pages
             // No confirmation dialog needed - tooltip provides the info
             try
             {
-                SetLoadingState(true, isEnabled ? "Enabling sleep mode..." : "Disabling sleep mode...");
+                SetLoadingState(true, isEnabled ? LR("DS_EnablingSleepMode", "Enabling sleep mode...") : LR("DS_DisablingSleepMode", "Disabling sleep mode..."));
 
                 var results = await _hidDeviceService.SetDisplayInSleepAsync(isEnabled);
                 var successCount = results.Values.Count(r => r);
                 
                 if (successCount > 0)
                 {
-                    ShowNotification(isEnabled ? "Sleep mode enabled successfully." : "Sleep mode disabled successfully.");
+                    ShowNotification(isEnabled ? LR("DS_SleepModeEnabled", "Sleep mode enabled successfully.") : LR("DS_SleepModeDisabled", "Sleep mode disabled successfully."));
                     // Refresh status to update display
                     await RefreshDeviceStatus();
                 }
                 else
                 {
-                    ShowNotification($"Failed to {(isEnabled ? "enable" : "disable")} sleep mode. Please try again.", true);
+                    ShowNotification(isEnabled ? LR("DS_SleepModeEnableFailed", "Failed to enable sleep mode. Please try again.") : LR("DS_SleepModeDisableFailed", "Failed to disable sleep mode. Please try again."), true);
                     // Revert toggle state on failure
                     toggle.IsChecked = !isEnabled;
                 }
@@ -960,14 +963,14 @@ namespace CMDevicesManager.Pages
             // No confirmation dialog needed - tooltip provides the info
             try
             {
-                SetLoadingState(true, isActivated ? "Activating suspend mode..." : "Activating RealTime mode...");
+                SetLoadingState(true, isActivated ? LR("DS_ActivatingSuspendMode", "Activating suspend mode...") : LR("DS_ActivatingRealTimeMode", "Activating RealTime mode..."));
 
                 var results = await _hidDeviceService.SetRealTimeDisplayAsync(!isActivated);
                 var successCount = results.Values.Count(r => r);
                 
                 if (successCount > 0)
                 {
-                    ShowNotification(isActivated ? "Suspend mode activated successfully." : "RealTime mode activated successfully.");
+                    ShowNotification(isActivated ? LR("DS_SuspendModeActivated", "Suspend mode activated successfully.") : LR("DS_RealTimeModeActivated", "RealTime mode activated successfully."));
 
                     _currentPlayMode = isActivated ? PlaybackMode.OfflineVideo : PlaybackMode.RealtimeConfig;
                     SavePlaybackModeToService(); // Save to offline data service
@@ -988,7 +991,7 @@ namespace CMDevicesManager.Pages
                 }
                 else
                 {
-                    ShowNotification($"Failed to {(isActivated ? "activate" : "clear")} suspend mode. Please try again.", true);
+                    ShowNotification(isActivated ? LR("DS_SuspendModeActivateFailed", "Failed to activate suspend mode. Please try again.") : LR("DS_RealTimeModeActivateFailed", "Failed to activate RealTime mode. Please try again."), true);
                     // Revert toggle state on failure
                     toggle.IsChecked = !isActivated;
                 }
@@ -1167,18 +1170,18 @@ namespace CMDevicesManager.Pages
                     }
                     else
                     {
-                        ShowNotification($"Cannot preview this media type: {fileExtension}", true, 3000);
+                        ShowNotification(string.Format(LR("DS_CannotPreviewMediaType", "Cannot preview this media type: {0}"), fileExtension), true, 3000);
                     }
                 }
                 else
                 {
-                    ShowNotification($"No local media file available for preview (Slot {slotIndex + 1})", true, 3000);
+                    ShowNotification(string.Format(LR("DS_NoLocalMediaForPreview", "No local media file available for preview (Slot {0})"), slotIndex + 1), true, 3000);
                 }
             }
             catch (Exception ex)
             {
                 Logger.Warn($"Failed to open media preview for slot {slotIndex + 1}: {ex.Message}");
-                ShowNotification($"Failed to open media preview: {ex.Message}", true, 3000);
+                ShowNotification(string.Format(LR("DS_OpenMediaPreviewFailed", "Failed to open media preview: {0}"), ex.Message), true, 3000);
             }
         }
 
@@ -1191,7 +1194,7 @@ namespace CMDevicesManager.Pages
             {
                 var openFileDialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = $"Select Media File for Slot {slotIndex + 1}",
+                    Title = string.Format(LR("DS_SelectMediaFileForSlot", "Select Media File for Slot {0}"), slotIndex + 1),
                     Filter = "Supported Media|*.mp4;*.jpg",
                     CheckFileExists = true,
                     CheckPathExists = true
@@ -1206,7 +1209,7 @@ namespace CMDevicesManager.Pages
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to add media to slot {slotIndex}: {ex.Message}");
-                ShowNotification($"Failed to add media: {ex.Message}", true);
+                ShowNotification(string.Format(LR("DS_AddMediaFailed", "Failed to add media file: {0}"), ex.Message), true);
             }
         }
 
@@ -1220,7 +1223,7 @@ namespace CMDevicesManager.Pages
 
             try
             {
-                SetLoadingState(true, $"Adding media to slot {slotIndex + 1}...");
+                SetLoadingState(true, string.Format(LR("DS_AddingMediaToSlot", "Adding media to slot {0}..."), slotIndex + 1));
 
                 // Check if video needs conversion
                 if (IsVideoFile(Path.GetExtension(filePath)))
@@ -1236,7 +1239,7 @@ namespace CMDevicesManager.Pages
 
                             if (needsResize || needsBitrateReduction)
                             {
-                                SetLoadingState(true, $"Optimizing video for device (480x480)...");
+                                SetLoadingState(true, LR("DS_OptimizingVideo", "Optimizing video for device (480x480)..."));
                                 
                                 tempConvertedPath = Path.Combine(Path.GetTempPath(), $"converted_{Guid.NewGuid()}.mp4");
                                 bool converted = await CMDevicesManager.Utilities.VideoConverter.ConvertVideoAsync(filePath, tempConvertedPath, 480, 480, 1500);
@@ -1309,14 +1312,14 @@ namespace CMDevicesManager.Pages
                     await _hidDeviceService.SetRealTimeDisplayAsync(false);
                     // Update UI to show the media
                     UpdateMediaSlotUI(slotIndex, newFilePath, true);
-                    ShowNotification($"Media added to slot {slotIndex + 1} successfully.");
+                    ShowNotification(string.Format(LR("DS_MediaAddedToSlotSuccess", "Media added to slot {0} successfully."), slotIndex + 1));
                     
                     // Refresh device status to get updated suspend media info
                     await RefreshDeviceStatus();
                 }
                 else
                 {
-                    ShowNotification($"Failed to add media to slot {slotIndex + 1}.", true);
+                    ShowNotification(string.Format(LR("DS_AddMediaToSlotFailed", "Failed to add media to slot {0}."), slotIndex + 1), true);
                     
                     // Remove from offline data if device transfer failed
                     if (_deviceInfo?.SerialNumber != null && ServiceLocator.IsOfflineMediaServiceInitialized)
@@ -1330,7 +1333,7 @@ namespace CMDevicesManager.Pages
             {
                 Debug.WriteLine($"Failed to add media file: {ex.Message}");
                 Logger.Error($"Failed to add media file to slot {slotIndex + 1}: {ex.Message}", ex);
-                ShowNotification($"Failed to add media: {ex.Message}", true);
+                ShowNotification(string.Format(LR("DS_AddMediaFailed", "Failed to add media file: {0}"), ex.Message), true);
             }
             finally
             {
@@ -1503,23 +1506,23 @@ namespace CMDevicesManager.Pages
                                 var fileExtension = Path.GetExtension(filePath).ToLower();
                                 if (IsVideoFile(fileExtension))
                                 {
-                                    textBlock.Text = "Video Media";
+                                    textBlock.Text = LR("PlayMode_VideoMedia", "Video Media");
                                     textBlock.Foreground = new SolidColorBrush(Colors.LightCoral);
                                 }
                                 else if (IsImageFile(fileExtension))
                                 {
-                                    textBlock.Text = "Image Media";
+                                    textBlock.Text = LR("PlayMode_ImageMedia", "Image Media");
                                     textBlock.Foreground = new SolidColorBrush(Colors.LightGreen);
                                 }
                                 else
                                 {
-                                    textBlock.Text = "Media File";
+                                    textBlock.Text = LR("PlayMode_MediaFile", "Media File");
                                     textBlock.Foreground = new SolidColorBrush(Colors.LightBlue);
                                 }
                             }
                             else
                             {
-                                textBlock.Text = "Device Media";
+                                textBlock.Text = LR("PlayMode_DeviceMedia", "Device Media");
                                 textBlock.Foreground = new SolidColorBrush(Colors.LightBlue);
                             }
                         }
@@ -1576,7 +1579,7 @@ namespace CMDevicesManager.Pages
                         }
                         if (textBlock != null && textBlock != iconBlock)
                         {
-                            textBlock.Text = "Add Medias";
+                            textBlock.Text = LR("PlayMode_AddMedia", "Add Medias");
                             textBlock.Foreground = new SolidColorBrush(Color.FromRgb(0x66, 0x66, 0x66));
                         }
                         
@@ -1619,7 +1622,7 @@ namespace CMDevicesManager.Pages
             var fileName = FindName($"MediaFileName{slotIndex + 1}") as TextBlock;
             var mediaName = fileName?.Text ?? $"Media {slotIndex + 1}";
             
-            ShowNotification($"Media: {mediaName} (Slot {slotIndex + 1})", false, 3000);
+            ShowNotification(string.Format(LR("DS_MediaInfoNotification", "Media: {0} (Slot {1})"), mediaName, slotIndex + 1), false, 3000);
         }
 
         /// <summary>
@@ -1634,7 +1637,7 @@ namespace CMDevicesManager.Pages
             {
                 try
                 {
-                    SetLoadingState(true, $"Removing media from slot {slotIndex + 1}...");
+                    SetLoadingState(true, string.Format(LR("DS_RemovingMediaFromSlot", "Removing media from slot {0}..."), slotIndex + 1));
 
                     // Release image source before deletion to avoid file locks
                     var slotNumber = slotIndex + 1;
@@ -1740,21 +1743,21 @@ namespace CMDevicesManager.Pages
                         
                         // Update UI to show empty slot
                         UpdateMediaSlotUI(slotIndex, null, false);
-                        ShowNotification($"Media removed from slot {slotIndex + 1} successfully.");
+                        ShowNotification(string.Format(LR("DS_MediaRemovedSuccessfully", "Media removed from slot {0} successfully."), slotIndex + 1));
                         
                         // Refresh device status to get updated suspend media info
                         await RefreshDeviceStatus();
                     }
                     else
                     {
-                        ShowNotification($"Failed to remove media from slot {slotIndex + 1}.", true);
+                        ShowNotification(string.Format(LR("DS_RemoveMediaFromSlotFailed", "Failed to remove media from slot {0}."), slotIndex + 1), true);
                     }
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Failed to remove media: {ex.Message}");
                     Logger.Error($"Failed to remove media from slot {slotIndex + 1}: {ex.Message}", ex);
-                    ShowNotification($"Failed to remove media: {ex.Message}", true);
+                    ShowNotification(string.Format(LR("DS_RemoveMediaGeneralFailed", "Failed to remove media: {0}"), ex.Message), true);
                 }
                 finally
                 {
@@ -1774,7 +1777,7 @@ namespace CMDevicesManager.Pages
             {
                 var openFileDialog = new Microsoft.Win32.OpenFileDialog
                 {
-                    Title = "Select Multiple Media Files",
+                    Title = LR("DS_SelectMultipleMediaFiles", "Select Multiple Media Files"),
                     Filter = "Supported Media|*.mp4;*.jpg;*.jpeg;*.png;*.gif;*.bmp|" +
                             "Video Files|*.mp4|" +
                             "Image Files|*.jpg;*.jpeg;*.png;*.gif;*.bmp|" +
@@ -1788,7 +1791,7 @@ namespace CMDevicesManager.Pages
                 {
                     var filePaths = openFileDialog.FileNames.Take(5).ToList(); // Limit to 5 files
                     
-                    SetLoadingState(true, "Adding multiple media files...");
+                    SetLoadingState(true, LR("PlayMode_AddingMultipleMedia", "Adding multiple media files..."));
 
                     // Process each file individually with proper naming
                     var processedFiles = new List<string>();
@@ -1814,14 +1817,14 @@ namespace CMDevicesManager.Pages
                     
                     if (successCount > 0)
                     {
-                        ShowNotification($"Added {processedFiles.Count} media files successfully.");
+                        ShowNotification(string.Format(LR("DS_AddedMultipleMediaSuccessfully", "Added {0} media files successfully."), processedFiles.Count));
                         
                         // Refresh device status to get updated suspend media info
                         await RefreshDeviceStatus();
                     }
                     else
                     {
-                        ShowNotification("Failed to add media files.", true);
+                        ShowNotification(LR("DS_AddMediaFilesGeneralFailed", "Failed to add media files."), true);
                     }
                 }
             }
@@ -1829,7 +1832,7 @@ namespace CMDevicesManager.Pages
             {
                 Debug.WriteLine($"Failed to add multiple media files: {ex.Message}");
                 Logger.Error($"Failed to add multiple media files: {ex.Message}", ex);
-                ShowNotification($"Failed to add media files: {ex.Message}", true);
+                ShowNotification(string.Format(LR("DS_AddMediaFilesFailed", "Failed to add media files: {0}"), ex.Message), true);
             }
             finally
             {
@@ -1846,7 +1849,7 @@ namespace CMDevicesManager.Pages
 
             try
             {
-                SetLoadingState(true, "Clearing all media files...");
+                SetLoadingState(true, LR("PlayMode_ClearingAllMedia", "Clearing all media files..."));
 
                 // Release all image sources first to prevent file locks
                 for (int i = 0; i < 5; i++)
@@ -1952,21 +1955,21 @@ namespace CMDevicesManager.Pages
                         Logger.Warn($"Failed to clean up local media files: {ex.Message}");
                     }
                     
-                    ShowNotification("All media files cleared successfully.");
+                    ShowNotification(LR("DS_AllMediaCleared", "All media files cleared successfully."));
                     
                     // Refresh device status to get updated suspend media info
                     await RefreshDeviceStatus();
                 }
                 else
                 {
-                    ShowNotification("Failed to clear media files.", true);
+                    ShowNotification(LR("DS_ClearMediaGeneralFailed", "Failed to clear media files."), true);
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to clear all media: {ex.Message}");
                 Logger.Error($"Failed to clear all media: {ex.Message}", ex);
-                ShowNotification($"Failed to clear media files: {ex.Message}", true);
+                ShowNotification(string.Format(LR("DS_ClearMediaFailed", "Failed to clear media files: {0}"), ex.Message), true);
             }
             finally
             {

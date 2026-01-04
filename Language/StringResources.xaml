@@ -366,4 +366,57 @@
     <sys:String x:Key="PlayMode_OfflineModeTitle" xmlns:sys="clr-namespace:System;assembly=mscorlib">切换到离线模式</sys:String>
     <sys:String x:Key="PlayMode_OfflineModeMessage" xmlns:sys="clr-namespace:System;assembly=mscorlib">请在下方配置离线媒体文件。离线模式下预览功能将被停用。</sys:String>
 
+    <!-- DeviceSettings Page Code-Behind -->
+    <sys:String x:Key="DS_UnknownDevice" xmlns:sys="clr-namespace:System;assembly=mscorlib">未知设备</sys:String>
+    <sys:String x:Key="DS_UnknownPath" xmlns:sys="clr-namespace:System;assembly=mscorlib">未知路径</sys:String>
+    <sys:String x:Key="DS_NA" xmlns:sys="clr-namespace:System;assembly=mscorlib">N/A</sys:String>
+    <sys:String x:Key="DS_SelectFirmwareFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">选择固件文件</sys:String>
+    <sys:String x:Key="DS_InitHidServiceFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">无法初始化 HID 服务：设备信息或路径为空</sys:String>
+    <sys:String x:Key="DS_NoLocalMediaForPreview" xmlns:sys="clr-namespace:System;assembly=mscorlib">无法预览本地媒体文件 (插槽 {0})</sys:String>
+    <sys:String x:Key="DS_SelectMediaFileForSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">选择插槽 {0} 的媒体文件</sys:String>
+    <sys:String x:Key="DS_SelectValidMediaFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">请选择有效的媒体文件 (图片或视频)。</sys:String>
+    <sys:String x:Key="DS_AddMediaFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加媒体文件失败：{0}</sys:String>
+    <sys:String x:Key="DS_RemoveMediaFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">从插槽 {0} 移除媒体失败：{1}</sys:String>
+    <sys:String x:Key="DS_SelectOneMediaFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">请至少选择一个媒体文件。</sys:String>
+    <sys:String x:Key="DS_SelectOneValidMediaFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">请至少选择一个有效的媒体文件 (图片或视频)。</sys:String>
+    <sys:String x:Key="DS_AddMediaFilesFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加媒体文件失败：{0}</sys:String>
+    <sys:String x:Key="DS_AllMediaCleared" xmlns:sys="clr-namespace:System;assembly=mscorlib">所有媒体文件已成功清除。</sys:String>
+    <sys:String x:Key="DS_ClearMediaFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">清除媒体文件失败：{0}</sys:String>
+    <sys:String x:Key="DS_SelectMultipleMediaFiles" xmlns:sys="clr-namespace:System;assembly=mscorlib">选择多个媒体文件</sys:String>
+    <sys:String x:Key="DS_ConnectingToDevice" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在连接设备...</sys:String>
+    <sys:String x:Key="DS_LoadingDeviceInfo" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在加载设备信息...</sys:String>
+    <sys:String x:Key="DS_RefreshingDeviceStatus" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在刷新设备状态...</sys:String>
+    <sys:String x:Key="DS_RebootingDevice" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在重启设备...</sys:String>
+    <sys:String x:Key="DS_PerformingFactoryReset" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在执行恢复出厂设置...</sys:String>
+    <sys:String x:Key="DS_UpdatingFirmwareWarning" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在更新固件... 请勿断开连接！</sys:String>
+    <sys:String x:Key="DS_EnablingSleepMode" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在启用睡眠模式...</sys:String>
+    <sys:String x:Key="DS_DisablingSleepMode" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在禁用睡眠模式...</sys:String>
+    <sys:String x:Key="DS_ActivatingSuspendMode" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在启用挂起模式...</sys:String>
+    <sys:String x:Key="DS_ActivatingRealTimeMode" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在启用实时模式...</sys:String>
+    <sys:String x:Key="DS_AddingMediaToSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在添加媒体到插槽 {0}...</sys:String>
+    <sys:String x:Key="DS_OptimizingVideo" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在为设备优化视频 (480x480)...</sys:String>
+    <sys:String x:Key="DS_RemovingMediaFromSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">正在从插槽 {0} 移除媒体...</sys:String>
+    <sys:String x:Key="DS_OpenMediaPreviewFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">无法打开媒体预览：{0}</sys:String>
+    <sys:String x:Key="DS_CannotPreviewMediaType" xmlns:sys="clr-namespace:System;assembly=mscorlib">无法预览此媒体类型：{0}</sys:String>
+    <sys:String x:Key="DS_MediaAddedToSlotSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">已成功添加媒体到插槽 {0}。</sys:String>
+    <sys:String x:Key="DS_MediaInfoNotification" xmlns:sys="clr-namespace:System;assembly=mscorlib">媒体: {0} (插槽 {1})</sys:String>
+    <sys:String x:Key="DS_AddMediaToSlotFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加媒体到插槽 {0} 失败。</sys:String>
+    <sys:String x:Key="DS_MediaRemovedSuccessfully" xmlns:sys="clr-namespace:System;assembly=mscorlib">已成功从插槽 {0} 移除媒体。</sys:String>
+    <sys:String x:Key="DS_RemoveMediaFromSlotFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">从插槽 {0} 移除媒体失败。</sys:String>
+    <sys:String x:Key="DS_RemoveMediaGeneralFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">移除媒体失败：{0}</sys:String>
+    <sys:String x:Key="DS_AddedMultipleMediaSuccessfully" xmlns:sys="clr-namespace:System;assembly=mscorlib">已成功添加 {0} 个媒体文件。</sys:String>
+    <sys:String x:Key="DS_AddMediaFilesGeneralFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">添加媒体文件失败。</sys:String>
+    <sys:String x:Key="DS_ClearMediaGeneralFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">清除媒体文件失败。</sys:String>
+    <sys:String x:Key="DS_SuspendModeActivated" xmlns:sys="clr-namespace:System;assembly=mscorlib">挂起模式已成功启用。</sys:String>
+    <sys:String x:Key="DS_RealTimeModeActivated" xmlns:sys="clr-namespace:System;assembly=mscorlib">实时模式已成功启用。</sys:String>
+    <sys:String x:Key="DS_RebootSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">重启指令已发送。设备将在稍后重启。</sys:String>
+    <sys:String x:Key="DS_FactoryResetSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">恢复出厂设置指令已发送。设备将恢复默认值并重启。</sys:String>
+    <sys:String x:Key="DS_FirmwareUpdateSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">固件更新成功！\n\n设备可能会自动重启。请等待过程完成。</sys:String>
+    <sys:String x:Key="DS_SleepModeEnabled" xmlns:sys="clr-namespace:System;assembly=mscorlib">睡眠模式已成功启用。</sys:String>
+    <sys:String x:Key="DS_SleepModeDisabled" xmlns:sys="clr-namespace:System;assembly=mscorlib">睡眠模式已成功禁用。</sys:String>
+    <sys:String x:Key="DS_SleepModeEnableFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">启用睡眠模式失败。请重试。</sys:String>
+    <sys:String x:Key="DS_SleepModeDisableFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">禁用睡眠模式失败。请重试。</sys:String>
+    <sys:String x:Key="DS_SuspendModeActivateFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">启用挂起模式失败。请重试。</sys:String>
+    <sys:String x:Key="DS_RealTimeModeActivateFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">启用实时模式失败。请重试。</sys:String>
+
 </ResourceDictionary>

@@ -363,4 +363,59 @@ This operation will delete both the configuration file and preview images, and c
     <sys:String x:Key="PlayMode_Save" xmlns:sys="clr-namespace:System;assembly=mscorlib">Save</sys:String>
     <sys:String x:Key="PlayMode_OfflineModeTitle"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Switching to Offline Mode</sys:String>
     <sys:String x:Key="PlayMode_OfflineModeMessage"  xmlns:sys="clr-namespace:System;assembly=mscorlib">Please configure offline media files below. The preview will be disabled while in offline mode.</sys:String>
+
+    <!-- DeviceSettings Page Code-Behind -->
+    <sys:String x:Key="DS_UnknownDevice" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unknown Device</sys:String>
+    <sys:String x:Key="DS_UnknownPath" xmlns:sys="clr-namespace:System;assembly=mscorlib">Unknown Path</sys:String>
+    <sys:String x:Key="DS_NA" xmlns:sys="clr-namespace:System;assembly=mscorlib">N/A</sys:String>
+    <sys:String x:Key="DS_SelectFirmwareFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">Select Firmware File</sys:String>
+    <sys:String x:Key="DS_InitHidServiceFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cannot initialize HID service: DeviceInfo or device path is null</sys:String>
+    <sys:String x:Key="DS_NoLocalMediaForPreview" xmlns:sys="clr-namespace:System;assembly=mscorlib">No local media file available for preview (Slot {0})</sys:String>
+    <sys:String x:Key="DS_SelectMediaFileForSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">Select Media File for Slot {0}</sys:String>
+    <sys:String x:Key="DS_SelectValidMediaFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">Please select a valid media file (Image or Video).</sys:String>
+    <sys:String x:Key="DS_AddMediaFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to add media file: {0}</sys:String>
+    <sys:String x:Key="DS_RemoveMediaFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to remove media from slot {0}: {1}</sys:String>
+    <sys:String x:Key="DS_SelectOneMediaFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">Please select at least one media file.</sys:String>
+    <sys:String x:Key="DS_SelectOneValidMediaFile" xmlns:sys="clr-namespace:System;assembly=mscorlib">Please select at least one valid media file (Image or Video).</sys:String>
+    <sys:String x:Key="DS_AddMediaFilesFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to add media files: {0}</sys:String>
+    <sys:String x:Key="DS_AllMediaCleared" xmlns:sys="clr-namespace:System;assembly=mscorlib">All media files cleared successfully.</sys:String>
+    <sys:String x:Key="DS_ClearMediaFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to clear media files: {0}</sys:String>
+    <sys:String x:Key="DS_SelectMultipleMediaFiles" xmlns:sys="clr-namespace:System;assembly=mscorlib">Select Multiple Media Files</sys:String>
+    <sys:String x:Key="DS_ConnectingToDevice" xmlns:sys="clr-namespace:System;assembly=mscorlib">Connecting to device...</sys:String>
+    <sys:String x:Key="DS_LoadingDeviceInfo" xmlns:sys="clr-namespace:System;assembly=mscorlib">Loading device information...</sys:String>
+    <sys:String x:Key="DS_RefreshingDeviceStatus" xmlns:sys="clr-namespace:System;assembly=mscorlib">Refreshing device status...</sys:String>
+    <sys:String x:Key="DS_RebootingDevice" xmlns:sys="clr-namespace:System;assembly=mscorlib">Rebooting device...</sys:String>
+    <sys:String x:Key="DS_PerformingFactoryReset" xmlns:sys="clr-namespace:System;assembly=mscorlib">Performing factory reset...</sys:String>
+    <sys:String x:Key="DS_UpdatingFirmwareWarning" xmlns:sys="clr-namespace:System;assembly=mscorlib">Updating firmware... DO NOT DISCONNECT!</sys:String>
+    <sys:String x:Key="DS_EnablingSleepMode" xmlns:sys="clr-namespace:System;assembly=mscorlib">Enabling sleep mode...</sys:String>
+    <sys:String x:Key="DS_DisablingSleepMode" xmlns:sys="clr-namespace:System;assembly=mscorlib">Disabling sleep mode...</sys:String>
+    <sys:String x:Key="DS_ActivatingSuspendMode" xmlns:sys="clr-namespace:System;assembly=mscorlib">Activating suspend mode...</sys:String>
+    <sys:String x:Key="DS_ActivatingRealTimeMode" xmlns:sys="clr-namespace:System;assembly=mscorlib">Activating RealTime mode...</sys:String>
+    <sys:String x:Key="DS_AddingMediaToSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">Adding media to slot {0}...</sys:String>
+    <sys:String x:Key="DS_OptimizingVideo" xmlns:sys="clr-namespace:System;assembly=mscorlib">Optimizing video for device (480x480)...</sys:String>
+    <sys:String x:Key="DS_RemovingMediaFromSlot" xmlns:sys="clr-namespace:System;assembly=mscorlib">Removing media from slot {0}...</sys:String>
+    <sys:String x:Key="DS_OpenMediaPreviewFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to open media preview: {0}</sys:String>
+    <sys:String x:Key="DS_CannotPreviewMediaType" xmlns:sys="clr-namespace:System;assembly=mscorlib">Cannot preview this media type: {0}</sys:String>
+    <sys:String x:Key="DS_MediaAddedToSlotSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">Media added to slot {0} successfully.</sys:String>
+    <sys:String x:Key="DS_MediaInfoNotification" xmlns:sys="clr-namespace:System;assembly=mscorlib">Media: {0} (Slot {1})</sys:String>
+    <sys:String x:Key="DS_AddMediaToSlotFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to add media to slot {0}.</sys:String>
+    <sys:String x:Key="DS_MediaRemovedSuccessfully" xmlns:sys="clr-namespace:System;assembly=mscorlib">Media removed from slot {0} successfully.</sys:String>
+    <sys:String x:Key="DS_RemoveMediaFromSlotFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to remove media from slot {0}.</sys:String>
+    <sys:String x:Key="DS_RemoveMediaGeneralFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to remove media: {0}</sys:String>
+    <sys:String x:Key="DS_AddedMultipleMediaSuccessfully" xmlns:sys="clr-namespace:System;assembly=mscorlib">Added {0} media files successfully.</sys:String>
+    <sys:String x:Key="DS_AddMediaFilesGeneralFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to add media files.</sys:String>
+    <sys:String x:Key="DS_ClearMediaGeneralFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to clear media files.</sys:String>
+    <sys:String x:Key="DS_SuspendModeActivated" xmlns:sys="clr-namespace:System;assembly=mscorlib">Suspend mode activated successfully.</sys:String>
+    <sys:String x:Key="DS_RealTimeModeActivated" xmlns:sys="clr-namespace:System;assembly=mscorlib">RealTime mode activated successfully.</sys:String>
+    <sys:String x:Key="DS_RebootSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">Reboot command sent successfully. The device will restart shortly.</sys:String>
+    <sys:String x:Key="DS_FactoryResetSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">Factory reset command sent successfully. The device will reset to defaults and restart.</sys:String>
+    <sys:String x:Key="DS_FirmwareUpdateSuccess" xmlns:sys="clr-namespace:System;assembly=mscorlib">Firmware update completed successfully!
+
+The device may restart automatically. Please wait for the process to complete.</sys:String>
+    <sys:String x:Key="DS_SleepModeEnabled" xmlns:sys="clr-namespace:System;assembly=mscorlib">Sleep mode enabled successfully.</sys:String>
+    <sys:String x:Key="DS_SleepModeDisabled" xmlns:sys="clr-namespace:System;assembly=mscorlib">Sleep mode disabled successfully.</sys:String>
+    <sys:String x:Key="DS_SleepModeEnableFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to enable sleep mode. Please try again.</sys:String>
+    <sys:String x:Key="DS_SleepModeDisableFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to disable sleep mode. Please try again.</sys:String>
+    <sys:String x:Key="DS_SuspendModeActivateFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to activate suspend mode. Please try again.</sys:String>
+    <sys:String x:Key="DS_RealTimeModeActivateFailed" xmlns:sys="clr-namespace:System;assembly=mscorlib">Failed to activate RealTime mode. Please try again.</sys:String>
 </ResourceDictionary>
