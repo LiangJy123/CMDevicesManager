@@ -241,10 +241,16 @@ namespace HID.DisplayController
 
     public class DisplayController
     {
-        private readonly Device _device;
+        private Device _device;
         private readonly SemaphoreSlim _writeSemaphore; // Add this for write synchronization
         private readonly object _writeLock = new object(); // Additional lock for critical sections
         private volatile bool _isDisposing = false;  // Simple flag approach
+
+        // Store connection parameters for reconnection
+        private ushort? _vendorId;
+        private ushort? _productId;
+        private string? _serialNumber;
+        private string? _devicePath;
 
         private const byte StartEndMarker5A = 0x5A;
         // display-ctrl-ssr-command report ID 0x1E.
@@ -327,6 +333,10 @@ namespace HID.DisplayController
 
         public DisplayController(ushort vendorId, ushort productId, string serialNumber)
         {
+            _vendorId = vendorId;
+            _productId = productId;
+            _serialNumber = serialNumber;
+
             try
             {
                 _device = new Device(vendorId, productId, serialNumber);
@@ -347,6 +357,8 @@ namespace HID.DisplayController
         /// <param name="devicePath">The path to the device to be controlled. This must be a valid path to a HID device.</param>
         public DisplayController(string devicePath)
         {
+            _devicePath = devicePath;
+
             try
             {
                 _device = new Device(devicePath);
@@ -399,6 +411,62 @@ namespace HID.DisplayController
         public void RefreshDeviceProperties()
         {
             InitializeDeviceProperties();
+        }
+
+        /// <summary>
+        /// Attempt to reconnect to the device
+        /// </summary>
+        private void Reconnect()
+        {
+            Log("[DisplayController] Attempting to reconnect...");
+            
+            // Acquire semaphore to ensure no writes are happening
+            // Note: We use a short timeout because if the device is stuck, we don't want to wait forever
+            bool acquired = _writeSemaphore.Wait(1000);
+            
+            try
+            {
+                // Dispose old device instance
+                try
+                {
+                    _device?.Dispose();
+                }
+                catch (Exception ex) 
+                { 
+                    Log($"[DisplayController] Warning during device disposal: {ex.Message}"); 
+                }
+
+                // Create new device instance
+                if (_devicePath != null)
+                {
+                    _device = new Device(_devicePath);
+                }
+                else if (_vendorId.HasValue && _productId.HasValue)
+                {
+                    _device = new Device(_vendorId.Value, _productId.Value, _serialNumber);
+                }
+                else
+                {
+                    Log("[DisplayController] Cannot reconnect: missing connection parameters");
+                    return;
+                }
+                
+                // Re-initialize properties
+                InitializeDeviceProperties();
+                Log("[DisplayController] Reconnected successfully");
+            }
+            catch (Exception ex)
+            {
+                Log($"[DisplayController] Reconnection failed: {ex.Message}");
+                throw; 
+            }
+            finally
+            {
+                if (acquired)
+                {
+                    _writeSemaphore.Release();
+                }
+            }
         }
 
 
@@ -1255,6 +1323,24 @@ namespace HID.DisplayController
                 {
                     // HID specific exceptions
                     Log($"HID read error: {ex.Message}");
+
+                    // Check for device not connected error (0x48F)
+                    if (ex.Message.Contains("0x0000048F") || ex.Message.Contains("device is not connected"))
+                    {
+                        Log("[DisplayController] Device disconnection detected. Attempting to reset...");
+                        try
+                        {
+                            Reconnect();
+                            // Add a small delay after reconnection
+                            Thread.Sleep(1000);
+                        }
+                        catch (Exception reconnectEx)
+                        {
+                            Log($"[DisplayController] Reset failed: {reconnectEx.Message}");
+                            // Wait a bit before retrying (the loop in StartResponseListener will call us again)
+                            Thread.Sleep(2000);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
