@@ -341,6 +341,9 @@ namespace CMDevicesManager.Pages
             {
                 SetLoadingState(true, "Refreshing device status...");
 
+                // sleep 500ms
+                await Task.Delay(500);
+
                 var statusResults = await _hidDeviceService.GetDeviceStatusAsync();
                 if (statusResults.Any())
                 {
