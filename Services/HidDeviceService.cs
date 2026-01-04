@@ -362,7 +362,8 @@ namespace CMDevicesManager.Services
         /// </summary>
         private async Task<Dictionary<string, bool>> ExecuteOnFilteredDevicesAsync<T>(
             Func<DisplayController, Task<T>> command,
-            TimeSpan? timeout = null)
+            TimeSpan? timeout = null,
+            bool logInfo = true)
         {
             if (_multiDeviceManager == null)
             {
@@ -378,7 +379,10 @@ namespace CMDevicesManager.Services
                 return results;
             }
 
-            Logger.Info($"Executing command on {targetPaths.Count} filtered devices");
+            if (logInfo)
+            {
+                Logger.Info($"Executing command on {targetPaths.Count} filtered devices");
+            }
 
             foreach (var devicePath in targetPaths)
             {
@@ -397,7 +401,10 @@ namespace CMDevicesManager.Services
                             await task;
                         }
                         results[devicePath] = true;
-                        Logger.Info($"Command succeeded for device: {devicePath}");
+                        if (logInfo)
+                        {
+                            Logger.Info($"Command succeeded for device: {devicePath}");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -420,7 +427,10 @@ namespace CMDevicesManager.Services
             }
 
             var successCount = results.Values.Count(r => r);
-            Logger.Info($"Command completed on {successCount}/{targetPaths.Count} filtered devices");
+            if (logInfo)
+            {
+                Logger.Info($"Command completed on {successCount}/{targetPaths.Count} filtered devices");
+            }
 
             return results;
         }
@@ -430,7 +440,8 @@ namespace CMDevicesManager.Services
         /// </summary>
         private async Task<Dictionary<string, bool>> ExecuteWithResponseOnFilteredDevicesAsync(
             Func<DisplayController, Task<bool>> command,
-            TimeSpan? timeout = null)
+            TimeSpan? timeout = null,
+            bool logInfo = true)
         {
             if (_multiDeviceManager == null)
             {
@@ -446,7 +457,10 @@ namespace CMDevicesManager.Services
                 return results;
             }
 
-            Logger.Info($"Executing command with response on {targetPaths.Count} filtered devices");
+            if (logInfo)
+            {
+                Logger.Info($"Executing command with response on {targetPaths.Count} filtered devices");
+            }
 
             foreach (var devicePath in targetPaths)
             {
@@ -466,7 +480,10 @@ namespace CMDevicesManager.Services
                             result = await task;
                         }
                         results[devicePath] = result;
-                        Logger.Info($"Command with response succeeded for device: {devicePath}");
+                        if (logInfo)
+                        {
+                            Logger.Info($"Command with response succeeded for device: {devicePath}");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -489,7 +506,10 @@ namespace CMDevicesManager.Services
             }
 
             var successCount = results.Values.Count(r => r);
-            Logger.Info($"Command with response completed on {successCount}/{targetPaths.Count} filtered devices");
+            if (logInfo)
+            {
+                Logger.Info($"Command with response completed on {successCount}/{targetPaths.Count} filtered devices");
+            }
 
             return results;
         }
@@ -708,7 +728,7 @@ namespace CMDevicesManager.Services
             return await ExecuteOnFilteredDevicesAsync(async controller =>
             {
                 return await controller.SendMultipleSuspendFilesWithResponse(filePaths, startingTransferId);
-            });
+            }, logInfo: false);
         }
 
         /// <summary>
@@ -793,7 +813,7 @@ namespace CMDevicesManager.Services
             {
                 controller.SendFileFromDisk(filePath, transferId: transferId);
                 return true;
-            });
+            }, logInfo: false);
         }
 
         /// <summary>
@@ -808,7 +828,7 @@ namespace CMDevicesManager.Services
             {
                 controller.SendFileTransfer(jpegData, fileType:1, transferId: transferId);
                 return true;
-            });
+            }, logInfo: false);
         }
 
         /// <summary>
@@ -825,7 +845,7 @@ namespace CMDevicesManager.Services
             {
                 await controller.SendCmdKeepAliveWithResponse(actualTimestamp);
                 return true;
-            });
+            }, logInfo: false);
             
             var successCount = results.Values.Count(r => r);
             KeepAliveSent?.Invoke(this, new KeepAliveEventArgs(actualTimestamp, successCount, results.Count));
