@@ -348,6 +348,8 @@ namespace CMDevicesManager.Pages
                 if (statusResults.Any())
                 {
                     var result = statusResults.First();
+                    Logger.Info($"Status retrieved for device: {_deviceInfo?.Path}");
+
                     if (result.Value.HasValue)
                     {
                         var status = result.Value.Value;
@@ -1190,7 +1192,7 @@ namespace CMDevicesManager.Pages
                 var openFileDialog = new Microsoft.Win32.OpenFileDialog
                 {
                     Title = $"Select Media File for Slot {slotIndex + 1}",
-                    Filter = "Supported Media|*.mp4;*.jpg;*.jpeg",
+                    Filter = "Supported Media|*.mp4;*.jpg",
                     CheckFileExists = true,
                     CheckPathExists = true
                 };
@@ -1393,7 +1395,7 @@ namespace CMDevicesManager.Pages
                                     // Display image directly with proper resource management
                                     var bitmap = new BitmapImage();
                                     bitmap.BeginInit();
-                                    bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
+                                    bitmap.CreateOptions = BitmapCreateOptions.IgnoreColorProfile | BitmapCreateOptions.IgnoreImageCache;
                                     bitmap.CacheOption = BitmapCacheOption.OnLoad; // Load immediately and release file handle
                                     bitmap.UriSource = new Uri(filePath);
                                     bitmap.DecodePixelWidth = 200; // Optimize for display
