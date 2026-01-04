@@ -1709,7 +1709,12 @@ namespace CMDevicesManager.Pages
                 root = baseText;
             }
 
-            var wrapper = new Border { Child = root };
+            var wrapper = new Border
+            {
+                Child = root,
+                BorderThickness = new Thickness(0),
+                RenderTransformOrigin = new Point(0.5, 0.5)
+            };
             item.HostBorder = wrapper;
             return item;
         }
