@@ -2812,7 +2812,7 @@ namespace CMDevicesManager.Pages
                         placeholder.Visibility = showPlaceholder ? Visibility.Visible : Visibility.Collapsed;
                     }
 
-                    if (infoOverlay != null) infoOverlay.Visibility = Visibility.Visible;
+                    if (infoOverlay != null) infoOverlay.Visibility = Visibility.Collapsed;
                     if (fileName != null)
                     {
                         fileName.Text = File.Exists(filePath) ? Path.GetFileName(filePath) : Path.GetFileName(filePath);
