@@ -323,13 +323,13 @@
 
                             <!-- VERSION / BUILD LABEL - 青色光晕 -->
                             <TextBlock Grid.Row="1"
-                       Text="未公开版本，仅用于内部测试-beta0.0.6"
+                       Text="V0.0.7"
                        FontSize="10"
                        Foreground="#B8C5FF"
                        TextAlignment="Center"
                        TextWrapping="Wrap"
                        Margin="6,0,6,12"
-                       Opacity="0.9" Visibility="Collapsed" />
+                       Opacity="0.9" Visibility="Visible" />
                         </Grid>
                     </Border>
 
